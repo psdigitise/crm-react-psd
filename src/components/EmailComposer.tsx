@@ -24,6 +24,7 @@ interface EmailComposerProps {
   fetchEmails: () => void; // <- Add this line
   selectedEmail?: any; // Add this line
   clearSelectedEmail?: () => void; // Add this line
+  fetchComments:() => void;
 
 }
 
@@ -33,7 +34,7 @@ const showToast = (msg, opts) => alert(msg);
 const API_BASE_URL = "http://103.214.132.20:8002/api/method/frappe.core.doctype.communication.email.make";
 const AUTH_TOKEN = "token 1b670b800ace83b:f82627cb56de7f6"; // Replace with your actual token
 
-export default function EmailOrCommentComposer({ deal, onClose, mode, dealName, fetchEmails, selectedEmail, clearSelectedEmail }: EmailComposerProps) {
+export default function EmailOrCommentComposer({ deal, onClose, mode, dealName, fetchEmails, selectedEmail, clearSelectedEmail,fetchComments }: EmailComposerProps) {
   const { theme } = useTheme();
 
   const [showComment, setShowComment] = useState(false);
@@ -258,6 +259,9 @@ export default function EmailOrCommentComposer({ deal, onClose, mode, dealName, 
       {/* Show only one: Email or Comment */}
       {showComment ? (
         <Commentemail
+          // reference_doctype="CRM Deal"
+          fetchComments={fetchComments}
+          reference_name={dealName} // <-- pass it heres
           onClose={() => onClose(false)}
         />
       ) : (

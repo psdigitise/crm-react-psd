@@ -4,7 +4,7 @@ import { useTheme } from './ThemeProvider';
 import { showToast } from '../utils/toast';
 import EmailComposer from './EmailComposer';
 import CommentCreate from './CommentCreate';
-import { FaCircleDot } from 'react-icons/fa6';
+import { FaCircleDot, FaRegComment } from 'react-icons/fa6';
 import { Listbox } from '@headlessui/react';
 import { HiOutlinePlus } from 'react-icons/hi';
 import { IoDocument } from 'react-icons/io5';
@@ -369,30 +369,68 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
     }
   }, [deal.name]);
 
+  // const fetchComments = useCallback(async () => {
+  //   setCommentsLoading(true);
+  //   try {
+  //     const filters = JSON.stringify([
+  //       ["reference_doctype", "=", "CRM Deal"],
+  //       ["reference_name", "=", deal.name]
+  //     ]);
+
+  //     const fields = JSON.stringify([
+  //       "name", "content", "comment_type", "reference_doctype", "reference_name", "creation", "owner"
+  //     ]);
+
+  //     const url = `http://103.214.132.20:8002/api/v2/document/Comment?fields=${encodeURIComponent(fields)}&filters=${encodeURIComponent(filters)}`;
+
+  //     const response = await fetch(url, {
+  //       headers: {
+  //         'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6',
+  //         'Content-Type': 'application/json'
+  //       }
+  //     });
+
+  //     if (response.ok) {
+  //       const result = await response.json();
+  //       setComments(result.data || []);
+  //     }
+  //   } catch (error) {
+  //     console.error('Error fetching comments:', error);
+  //     showToast('Failed to fetch comments', { type: 'error' });
+  //   } finally {
+  //     setCommentsLoading(false);
+  //   }
+  // }, [deal.name]);
   const fetchComments = useCallback(async () => {
     setCommentsLoading(true);
     try {
-      const filters = JSON.stringify([
-        ["reference_doctype", "=", "CRM Deal"],
-        ["reference_name", "=", deal.name]
-      ]);
-
-      const fields = JSON.stringify([
-        "name", "content", "comment_type", "reference_doctype", "reference_name", "creation", "owner"
-      ]);
-
-      const url = `http://103.214.132.20:8002/api/v2/document/Comment?fields=${encodeURIComponent(fields)}&filters=${encodeURIComponent(filters)}`;
+      const url = 'http://103.214.132.20:8002/api/method/crm.api.activities.get_activities';
 
       const response = await fetch(url, {
+        method: 'POST',
         headers: {
           'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6',
           'Content-Type': 'application/json'
-        }
+        },
+        body: JSON.stringify({
+          name: deal.name
+        })
       });
 
       if (response.ok) {
         const result = await response.json();
-        setComments(result.data || []);
+        // Extract the comments from the response
+        const activities = result.message[0] || [];
+        const comments = activities
+          .filter(activity => activity.activity_type === 'comment')
+          .map(comment => ({
+            name: comment.name,
+            content: comment.content,
+            comment_type: 'Comment',
+            creation: comment.creation,
+            owner: comment.owner
+          }));
+        setComments(comments);
       }
     } catch (error) {
       console.error('Error fetching comments:', error);
@@ -1662,46 +1700,88 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
           <div className="space-y-6">
             <div className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} p-6`}>
               <div className="flex justify-between items-center gap-5 mb-6">
-                <h3 className={`text-lg font-semibold ${textColor} mb-0`}>Comments</h3>
+                <h3 className={`text-lg font-semibold ${textColor} mb-2`}>Comments</h3>
                 <button
-                  onClick={() => setShowCommentModal(true)}
+                  // onClick={() => setShowCommentModal(true)}
+                  onClick={() => {
+                    setSelectedEmail(null);                // Clear selected email
+                    setEmailModalMode("new");
+                    setEmailModalMode("comment");             // Set mode to 'new'
+                    setShowEmailModal(true);              // Open composer
+                    setTimeout(() => {
+                      composerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }, 100);                              // Wait for modal to render
+                  }}
                   className={`px-4 py-2 rounded-lg flex items-center space-x-2 text-white ${theme === 'dark' ? 'bg-purplebg hover:bg-purple-700' : 'bg-blue-600 hover:bg-blue-700'}`}
                 >
                   <Plus className="w-4 h-4" />
                   <span>New Comment</span>
                 </button>
               </div>
-              {comments.length === 0 ? (
+
+              {commentsLoading ? (
+                <div className="text-center py-8">
+                  <span>loading comments</span>
+                </div>
+              ) : comments.length === 0 ? (
                 <div className="text-center py-8">
                   <MessageSquare className={`w-12 h-12 mx-auto mb-4 ${textSecondaryColor}`} />
                   <p className={textSecondaryColor}>No comments yet</p>
                   <span
-                    onClick={() => setShowCommentModal(true)}
+                    // onClick={() => setShowCommentModal(true)}
+                    onClick={() => {
+                      setSelectedEmail(null);                // Clear selected email
+                      setEmailModalMode("new");             // Set mode to 'new'
+                      setShowEmailModal(true);              // Open composer
+                      setTimeout(() => {
+                        composerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }, 100);                              // Wait for modal to render
+                    }}
                     className="text-white cursor-pointer bg-gray-400 rounded-md inline-block text-center px-6 py-2"
-                  >New Comments</span>
+                  >New Comment</span>
                 </div>
               ) : (
                 <div className="space-y-4">
                   {comments.map((comment) => (
-                    <div key={comment.name} className={`border ${borderColor} rounded-lg p-4`}>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className={`text-sm font-medium ${textSecondaryColor}`}>{comment.comment_type}</span>
-                        <span className={`text-sm ${textSecondaryColor}`}>{formatDate(comment.creation)}</span>
+                    <div key={comment.name} className="relative ">
+                      <div className="flex justify-between items-center mb-2">
+                        <div className="flex items-center gap-4">
+                          {/* Comment icon */}
+                          <div className="mt-1 text-white text-lg">
+                            <FaRegComment size={18} />
+                          </div>
+                          <div className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-500 text-white text-sm font-semibold">
+                            {comment.owner?.charAt(0).toUpperCase() || "?"}
+                          </div>
+                          <p className={`text-sm font-medium ${textSecondaryColor}`}>
+                            {comment.owner} added a {comment.comment_type}
+                          </p>
+                        </div>
+
+                        {/* Right aligned time */}
+                        <p className="text-sm text-white">
+                          last week
+                        </p>
                       </div>
-                      <p className={`${theme === 'dark' ? 'text-white' : 'text-gray-600'} whitespace-pre-wrap`}>{comment.content}</p>
-                      <p className={`text-sm ${textSecondaryColor} mt-2`}>by {comment.owner}</p>
+
+                      <div className={`border ${borderColor} rounded-lg p-4 mb-8 ml-9 mt-2`}>
+                        {/* <div className="flex items-center justify-between mb-2">
+                          <span className={`text-sm ${textSecondaryColor}`}>
+                            {formatDate(comment.creation)}
+                          </span>
+                        </div> */}
+                        <div className={`${theme === 'dark' ? 'text-white' : 'text-gray-600'} whitespace-pre-wrap`}>
+                          {comment.content.replace(/<[^>]+>/g, '')}
+                        </div>
+
+                      </div>
                     </div>
                   ))}
                 </div>
               )}
             </div>
-            {/* </div> */}
-            {/* Comments List */}
-            {/* <div className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} p-6`}> */}
-            {/* <h3 className={`text-lg font-semibold ${textColor} mb-4`}>Comments</h3> */}
 
-            {/* </div> */}
-            <div className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} p-6`}>
+            {/* <div className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} p-6`}>
               {!showCommentModal && (
                 <div className="flex gap-4 mt-4">
                   <button
@@ -1727,6 +1807,45 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
               )}
               {showCommentModal && (
                 <CommentCreate mode={CommentModalMode} onClose={() => setShowCommentModal(false)} />
+              )}
+            </div> */}
+
+            <div
+              ref={composerRef}
+              className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} p-6`}>
+              {/* Show Reply/Comment buttons when modal is closed */}
+              {!showEmailModal && (
+                <div className="flex gap-4 mt-4">
+                  <button
+                    className={`flex items-center gap-1 ${theme === "dark" ? "text-white" : "text-gray-600"}`}
+                    onClick={() => {
+                      setEmailModalMode("reply");
+                      setShowEmailModal(true);
+                    }}
+                  >
+                    <Mail size={14} /> Reply
+                  </button>
+
+                  <button
+                    className={`flex items-center gap-1 ${theme === "dark" ? "text-white" : "text-gray-400"}`}
+                    onClick={() => {
+                      setEmailModalMode("comment");
+                      setShowEmailModal(true);
+                    }}
+                  >
+                    <MessageSquare size={14} /> Comment
+                  </button>
+                </div>
+              )}
+              {showEmailModal && (
+                <EmailComposer
+                  mode={emailModalMode}
+                  dealName={deal.name}
+                  fetchEmails={fetchEmails}
+                  fetchComments={fetchComments}
+                  selectedEmail={selectedEmail}
+                  clearSelectedEmail={() => setSelectedEmail(null)} // Add this line
+                  onClose={() => setShowEmailModal(false)} />
               )}
             </div>
           </div>
@@ -2096,9 +2215,6 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                               )}
                             </div>
                           )}
-
-
-
                         </div>
                       </div>
                     </div>

@@ -10,6 +10,13 @@ import { useTheme } from './ThemeProvider';
 import Emailpageleads from "./Emailpageleads";
 import { getUserSession } from "../utils/session";
 
+interface CommentEmailProps {
+  fetchComments: () => void;
+  reference_name: string;
+  onSuccess?: () => void;
+  onClose?: () => void;
+}
+
 // Dummy showToast for demo. Replace with your own toast/snackbar.
 const showToast = (msg, opts) => alert(msg);
 
@@ -23,11 +30,11 @@ const AUTH_TOKEN = "token 1b670b800ace83b:f82627cb56de7f6";
 //   onClose,
 // }) {
 export default function Commentemail({
-  reference_doctype = "",
-  reference_name = "",
+  fetchComments,
+  reference_name,
   onSuccess,
-  onClose, // <-- add this
-}) {
+  onClose,
+}: CommentEmailProps) {
   // ...rest of your code
   const { theme } = useTheme();
   const [showReply, setShowReply] = useState(false);
@@ -60,7 +67,7 @@ export default function Commentemail({
           comment_email: email,
           content: comment,
           reference_doctype: "CRM Deal",
-          reference_name: "CRM-DEAL-2025-00050"
+          reference_name: reference_name
         }),
       });
 
@@ -68,6 +75,7 @@ export default function Commentemail({
         //showToast("Comment added!", { type: "success" });
         setComment("");
         if (onSuccess) onSuccess();
+        fetchComments();
         // ✅ Close popup after success
         if (onClose) onClose(); // or simply onClose?.()
       } else {
