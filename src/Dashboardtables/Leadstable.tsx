@@ -1,0 +1,63 @@
+import { MoreHorizontal } from 'lucide-react';
+import { useTheme } from "../components/ThemeProvider"
+
+export interface Lead {
+    id: string;
+    lead_name: string;
+    status: string;
+}
+
+interface LeadTableProps {
+    title: string;
+    data: Lead[];
+}
+
+export function LeadTable({ title, data }: LeadTableProps) {
+    const { theme } = useTheme();
+
+    return (
+        // <div className={`rounded-xl shadow-sm border p-2 ${theme === 'dark' ? 'bg-custom-gradient border-white' : 'bg-white border-gray-100'}`}>
+        <div className={`rounded-xl shadow-sm border p-2 h-[350px] flex flex-col ${theme === 'dark' ? 'bg-custom-gradient border-white' : 'bg-white border-gray-100'}`}>
+            <div className={`p-4 sm:p-6 border-b ${theme === 'dark' ? 'border-purple-500/30' : 'border-gray-100'}`}>
+                <div className="flex items-center justify-between">
+                    <h3 className={`text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{title}</h3>
+                    <button className={`p-1 rounded-lg transition-colors ${theme === 'dark' ? 'hover:bg-purple-800/50' : 'hover:bg-gray-100'}`}>
+                        <MoreHorizontal className={`w-5 h-5 ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`} />
+                    </button>
+                </div>
+            </div>
+            <div className="overflow-y-auto overflow-x-auto table-scroll h-full">
+                <table className="w-full table-fixed min-w-[700px]">
+                    <thead className={`${theme === 'dark' ? 'bg-purplebg' : 'bg-gray-50'} sticky top-0 z-10`}>
+                        <tr className='divide-x divide-white'>
+                            <th className={`px-4 py-3 text-gray-500 text-left text-xs font-semibold uppercase tracking-wider ${theme === 'dark' ? 'text-white' : 'text-gray-500'} `}>
+                                Full Name
+                            </th>
+                            <th className={`px-4 py-3 text-gray-500  text-left text-xs font-semibold uppercase tracking-wider ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`}>
+                                Status
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody className={`divide-y ${theme === 'dark' ? 'divide-white' : 'divide-gray-200'}`}>
+                        {data.map((lead) => (
+                            <tr key={lead.id} className={`${theme === 'dark' ? 'hover:bg-purple-800/20' : 'hover:bg-gray-50'}`}>
+                                <td className={`px-4 py-4 text-sm font-semibold truncate ${theme === 'dark' ? 'text-white' : 'text-blue-600' }`}>{lead.lead_name}</td>
+                                <td className={`px-4 py-4 text-sm truncate ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>{lead.status}</td>
+                            </tr>
+                        ))}
+                        {data.length === 0 && (
+                            <tr>
+                                <td
+                                    colSpan={1}
+                                    className={`px-4 py-4 text-sm text-center ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`}
+                                >
+                                    No Leads Found
+                                </td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+}
