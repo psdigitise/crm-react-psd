@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Send,
   Paperclip,
@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { useTheme } from '../ThemeProvider';
 import EmailComposerleads from "./EmailComposerleads";
+import EmojiPicker from "emoji-picker-react";
 
 // Dummy showToast for demo. Replace with your own toast/snackbar.
 const showToast = (msg, opts) => alert(msg);
@@ -118,6 +119,16 @@ useEffect(() => {
     }
   };
 
+   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const emojiPickerRef = useRef<HTMLDivElement>(null);
+
+    const onEmojiClick = (emojiData: any) => {
+    setComment(prev => prev + emojiData.emoj);
+    setShowEmojiPicker(false);
+  };
+
+
+
   return (
     <div
       className={`max-full mx-auto rounded-md shadow-sm p-4 space-y-4 mb-5 border ${theme === 'dark'
@@ -182,8 +193,31 @@ useEffect(() => {
               }`}
           >
             <div className="flex items-center gap-4">
+              {/* <Paperclip className="cursor-pointer" size={18} />
+              <Smile className="cursor-pointer" size={18} /> */}
+                
+            <div className="flex items-center gap-4 relative">
               <Paperclip className="cursor-pointer" size={18} />
-              <Smile className="cursor-pointer" size={18} />
+              <Smile 
+                className="cursor-pointer" 
+                size={18} 
+                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+              />
+              {showEmojiPicker && (
+                <div ref={emojiPickerRef} className="absolute bottom-8 left-8 z-10">
+                  <EmojiPicker
+                    onEmojiClick={onEmojiClick}
+                    width={300}
+                    height={350}
+                    skinTonesDisabled
+                    searchDisabled={false}
+                    previewConfig={{ showPreview: false }}
+                    theme={theme === "dark" ? "dark" : "light"}
+                  />
+                </div>
+              )}
+            </div>
+
             </div>
             <div className="flex items-center gap-3">
               {/* <button
