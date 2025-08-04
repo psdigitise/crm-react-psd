@@ -408,7 +408,7 @@ export default function EmailOrCommentComposer({ deal, onClose, mode, dealName, 
               }`}
           >
             <div className="flex items-center gap-4">
-              <label className="cursor-pointer">
+              {/* <label className="cursor-pointer">
                 <Paperclip size={18} />
                 <input
                   type="file"
@@ -422,7 +422,32 @@ export default function EmailOrCommentComposer({ deal, onClose, mode, dealName, 
                   }}
 
                 />
-              </label>
+              </label> */}
+              <label className="cursor-pointer">
+  <Paperclip size={18} />
+  <input
+    type="file"
+    className="hidden"
+    onChange={(e) => {
+      const file = e.target.files?.[0];
+      if (file) {
+        // Check if file with same name already exists
+        const isDuplicate = uploadedFiles.some(
+          existingFile => existingFile.name === file.name
+        );
+        
+        if (!isDuplicate) {
+          setUploadedFiles((prev) => [...prev, file]);
+        } else {
+          showToast("This file has already been attached", { type: "warning" });
+        }
+        
+        // Clear the input to allow selecting the same file again if needed
+        e.target.value = "";
+      }
+    }}
+  />
+</label>
               <div className="relative">
                 <Smile
                   className="cursor-pointer"

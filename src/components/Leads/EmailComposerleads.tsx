@@ -59,7 +59,7 @@ export default function EmailComposerleads({
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [uploadedFiles, setUploadedFiles] = useState<{ name: string; url: string }[]>([]);
     const emojiPickerRef = useRef<HTMLDivElement>(null);
-
+  const [isSubjectEdited, setIsSubjectEdited] = useState(false);
     const shouldShowCc = emailForm.cc !== "" || showCc;
     const shouldShowBCc = emailForm.bcc !== "" || showBCc;
 
@@ -215,6 +215,36 @@ export default function EmailComposerleads({
         setShowEmojiPicker(false);
     };
 
+
+        useEffect(() => {
+        if (replyData) {
+            setEmailForm({
+                recipient: replyData.recipient || "",
+                cc: replyData.cc || "",
+                bcc: replyData.bcc || "",
+                subject: replyData.subject || "",
+                message: replyData.message || "",
+            });
+            if (replyData.cc) setShowCc(true);
+            if (replyData.bcc) setShowBCc(true);
+            // If it's a reply, mark subject as edited to preserve the reply subject
+            setIsSubjectEdited(true);
+        } else {
+            // For new emails, set the default subject with lead name
+            setEmailForm(prev => ({
+                ...prev,
+                subject: isSubjectEdited ? prev.subject : `test (#${lead.name})`
+            }));
+        }
+    }, [replyData, lead.name]);
+
+  const handleSubjectChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setEmailForm(f => ({ ...f, subject: e.target.value }));
+        // Mark as edited when user changes the subject
+        if (!isSubjectEdited) {
+            setIsSubjectEdited(true);
+        }
+    };
     return (
         <div
             className={`max-full mx-auto rounded-md shadow-sm p-4 space-y-4 mb-5 border ${theme === "dark"
@@ -285,7 +315,7 @@ export default function EmailComposerleads({
                             <span className={`w-12 ${theme === "dark" ? "text-white" : "text-gray-500"}`}>To:</span>
                             <input
                                 type="email"
-                                value={emailForm.recipient}
+                                value={emailForm.recipient }
                                 onChange={e => setEmailForm(f => ({ ...f, recipient: e.target.value }))}
                                 className={`px-2 py-1 rounded font-medium outline-none flex-1 ${theme === "dark" ? "bg-gray-700 text-white" : "bg-gray-100 text-gray-800"
                                     }`}
@@ -334,8 +364,9 @@ export default function EmailComposerleads({
                             <span className={`w-12 ${theme === "dark" ? "text-white" : "text-gray-500"}`}>Subject:</span>
                             <input
                                 type="text"
-                                value={emailForm.subject}
-                                onChange={e => setEmailForm(f => ({ ...f, subject: e.target.value }))}
+                                value={emailForm.subject }
+                                 onChange={handleSubjectChange}
+                               // onChange={e => setEmailForm(f => ({ ...f, subject: e.target.value }))}
                                 className={`px-2 py-1 rounded font-medium outline-none flex-1 ${theme === "dark" ? "bg-gray-700 text-white" : "bg-gray-100 text-gray-800"
                                     }`}
                                 placeholder="Subject"

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from './ThemeProvider';
 import { getUserSession } from '../utils/session';
 import { MdOutlineCircle } from "react-icons/md";
@@ -31,7 +31,7 @@ import { showToast } from '../utils/toast';
 import EmailComposer from './EmailComposer';
 import { InfoSidebar } from './InfoSidebar';
 import CommentCreate from './CommentCreate';
-import { FaCircleDot } from 'react-icons/fa6';
+import { FaCircleDot, FaRegComment } from 'react-icons/fa6';
 import { Listbox } from '@headlessui/react';
 import EmailComposerleads from '../components/Leads/EmailComposerleads';
 import Commentemailleads from '../components/Leads/Commentemailleads'
@@ -345,7 +345,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
   const tabs = [
     { id: 'activity', label: 'Activity', icon: <Activity className="w-4 h-4" /> },
     { id: 'emails', label: 'Emails', icon: <Mail className="w-4 h-4" /> },
-    { id: 'comments', label: 'Comments', icon: <MessageSquare className="w-4 h-4" /> },
+    { id: 'comments', label: 'Comments', icon:  <FaRegComment className="w-4 h-4" />},
     { id: 'overview', label: 'Data', icon: <User className="w-4 h-4" /> },
 
 
@@ -444,6 +444,17 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
   const [userOptions, setUserOptions] = useState<string[]>([]);
   const [organizationOptions, setOrganizationOptions] = useState<string[]>([]);
   const [contactOptions, setContactOptions] = useState<string[]>([]);
+const composerRef = useRef<HTMLDivElement>(null);
+  //  const handleNewEmailClick = () => {
+  //   composerRef.current?.scrollIntoView({ behavior: "smooth" });
+  // };
+
+  const handleNewEmailClick = () => {
+  setShowEmailModal(true); // Show the composer first
+  setTimeout(() => {
+    composerRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, 100); // Small delay to allow the component to render
+};
 
   // Fetch lead data
   const fetchLeadData = async () => {
@@ -1594,6 +1605,24 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
     setShowEmailModal(true);
   };
 
+  function getRelativeTime(dateString: string) {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffSec = Math.floor(diffMs / 1000);
+  const diffMin = Math.floor(diffSec / 60);
+  const diffHr = Math.floor(diffMin / 60);
+  const diffDay = Math.floor(diffHr / 24);
+
+  if (diffSec < 60) return `${diffSec} sec ago`;
+  if (diffMin < 60) return `${diffMin} min ago`;
+  if (diffHr < 24) return `${diffHr} hour${diffHr > 1 ? 's' : ''} ago`;
+  if (diffDay < 7) return `${diffDay} day${diffDay > 1 ? 's' : ''} ago`;
+
+  // fallback to full date if older than a week
+  return date.toLocaleString(); // or customize with Intl.DateTimeFormat
+}
+
   // Handle delete lead
   const handleDelete = async () => {
     if (!confirm('Are you sure you want to delete this lead?')) return;
@@ -2048,7 +2077,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
 
       {/* Content */}
       <div className="p-4 sm:p-6">
-        <div className={`sticky top-20 z-10 py-2 ${theme === 'dark' ? 'bg-gray-900' : 'bg-white'}`}>
+        <div >
           {activeTab === 'overview' && (
             isEditing ? (
               <div className="flex justify-between items-center">
@@ -2088,7 +2117,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
             )
           )}
         </div>
-        <div className={`sticky top-20 z-10 ${theme === 'dark' ? 'bg-dark-secondary' : 'bg-white'} py-2`}>
+        <div >
         </div>
 
         {activeTab === 'overview' && (
@@ -2625,20 +2654,28 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                 </div>
               ) : comments.length === 0 ? (
                 <div className="text-center py-8">
+                  
                   <MessageSquare className={`w-12 h-12 ${theme === 'dark' ? 'text-gray-500' : 'text-white'} mx-auto mb-4`} />
                   <p className={`${theme === 'dark' ? 'text-white' : 'text-gray-500'}`}>No comments yet</p>
                 </div>
               ) : (
                 <div className="space-y-4 ">
                   {comments.map((comment) => (
-                    <div
+                   <>
+                   <div className='flex gap-2'>
+                      <div className='flex flex-col items-center '>
+                      <div className="w-7 h-10 flex items-center justify-center bg-gray-500 rounded-full">
+   <FaRegComment className="w-4 h-4 text-purple-300" />
+</div>
+<div className='w-px h-full bg-gray-300 my-2'></div>
+          </div>
+
+                     <div
                       key={comment.name}
-                      className={`border rounded-lg p-4 ${theme === 'dark' ? 'border-purple-500/30 hover:bg-purple-800/30' : 'border-gray-200 hover:bg-gray-50'} transition-colors`}
+                      className={`border w-full rounded-lg p-4 ${theme === 'dark' ? 'border-purple-500/30 hover:bg-purple-800/30' : 'border-gray-200 hover:bg-gray-50'} transition-colors`}
                     >
                       <div className="flex items-start space-x-3">
-                        <div className={`p-2 rounded-full ${theme === 'dark' ? 'bg-purple-900' : 'bg-purple-100'}`}>
-                          <MessageSquare className={`w-4 h-4 ${theme === 'dark' ? 'text-purple-300' : 'text-purple-600'}`} />
-                        </div>
+                        
                         <div className="flex-1">
                           <div className="flex items-center justify-between">
                             <div>
@@ -2689,6 +2726,8 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                         </div>
                       </div>
                     </div>
+                   </div>
+                   </>
                   ))}
                 </div>
               )}
@@ -3084,24 +3123,26 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
 
 
         {activeTab === 'emails' && (
-          <div className="space-y-6">
-            <div className={`rounded-lg shadow-sm border p-6 ${theme === 'dark' ? 'bg-custom-gradient border-white' : 'bg-white border-gray-200'}`}>
+          <div className="">
+            <div className={`rounded-lg   p-6 ${theme === 'dark' ? ' border-white' : 'bg-white border-gray-200'}`}>
               <div className='flex justify-between items-center gap-5'>
-                <h3 className={`text-lg font-semibold mb-0 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Send Email</h3>
+                <h3 className={`text-lg font-semibold mb-0 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Emails</h3>
                 <button
-                  onClick={() => setShowEmailModal(prev => !prev)}
+                  // onClick={() => setShowEmailModal(prev => !prev)}
+                  onClick={handleNewEmailClick}
                   className={`px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 ${theme === 'dark' ? 'bg-purplebg text-white hover:bg-purple-700' : 'bg-purplebg text-white hover:bg-purple-700'}`}
                 >
-                  <Mail className="w-4 h-4" />
-                  <span>Send Email</span>
+                  {/* <Mail className="w-4 h-4" /> */}
+                  <Plus className="w-5 h-5 text-gray-600 dark:text-white" />
+                  <span  >New Email</span>
                 </button>
               </div>
             </div>
 
             <div className={`rounded-lg shadow-sm border p-6 max-h-[400px] overflow-y-auto pr-10 ${theme === 'dark' ? 'bg-custom-gradient border-white' : 'bg-white border-gray-200'}`}>
-              <h3 className={`text-lg font-semibold mb-4 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+              {/* <h3 className={`text-lg font-semibold mb-4 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
                 Email Communications ({activitiesNew?.docinfo?.communications?.length || 0})
-              </h3>
+              </h3> */}
 
               {loading ? (
                 <div className="flex items-center justify-center py-8">
@@ -3115,9 +3156,21 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
               ) : (
                 <div className="space-y-4">
                   {activitiesNew.docinfo.communications.map((comm: any) => (
+                    <>
+                    <div className='flex gap-2'>
+                      {/* <div >
+                    <h1 className='text-white px-2 py-1 bg-black rounded'>h</h1>
+                    </div> */}
+          <div className='flex flex-col items-center '>
+                      <div className="w-7 h-10 flex items-center justify-center bg-gray-500 rounded-full">
+  <h1 className="text-white text-sm">{comm.sender.charAt(0).toUpperCase()}</h1>
+</div>
+<div className='w-px h-full bg-gray-300 my-2'></div>
+          </div>
+
                     <div
                       key={comm.name}
-                      className={`border rounded-lg p-4 ${theme === 'dark' ? 'border-purple-500/30 hover:bg-purple-800/30' : 'border-gray-200 hover:bg-gray-50'} transition-colors`}
+                      className={`border rounded-lg p-4 w-full ${theme === 'dark' ? 'border-purple-500/30 hover:bg-purple-800/30' : 'border-gray-200 hover:bg-gray-50'} transition-colors`}
                     >
                       <div className="flex items-start space-x-3">
                         <div className={`p-2 rounded-full ${theme === 'dark' ? 'bg-blue-900/30' : 'bg-blue-100'}`}>
@@ -3129,11 +3182,11 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                               {comm.subject || "No Subject"}
                             </h4>
                             <div className='flex gap-2'>
-                              <span className={`text-sm px-2 py-0.5 rounded-full font-medium ${comm.delivery_status === 'Sent' ? 'bg-green-100 text-green-500' : 'bg-gray-100 text-gray-500'}`}>
+                              {/* <span className={`text-sm px-2 py-0.5 rounded-full font-medium ${comm.delivery_status === 'Sent' ? 'bg-green-100 text-green-500' : 'bg-gray-100 text-gray-500'}`}>
                                 {comm.delivery_status || "N/A"}
-                              </span>
+                              </span> */}
                               <span className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`}>
-                                {formatDate(comm.creation)}
+                                {getRelativeTime(comm.creation)}
                               </span>
                               <div className="flex gap-2">
                                 <button
@@ -3185,10 +3238,13 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                         </div>
                       </div>
                     </div>
+                    </div>
+                    </>
                   ))}
                 </div>
               )}
             </div>
+             <div ref={composerRef}>
             {showEmailModal && (
               <EmailComposerleads
                 onClose={() => {
@@ -3203,8 +3259,9 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
               />
             )}
           </div>
-
+  </div>
         )}
+      
         {/* {showEmailModal && (
                 <EmailComposer onClose={() => setShowEmailModal(false)} />
               )} */}
