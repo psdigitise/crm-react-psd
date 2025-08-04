@@ -492,6 +492,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
             cc: email.data?.cc || '',
             bcc: email.data?.bcc || '',
             content: email.data?.content || '',
+             creation: email.creation, 
             date: email.creation,
             attachments: email.data?.attachments || [],
             delivery_status: email.data?.delivery_status || 'Unknown'
@@ -1544,7 +1545,6 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         {activeTab === 'calls' && (
           <div className="space-y-6">
             {/* Add Call Form */}
-
             {/* <h3 className={`text-lg font-semibold ${textColor} mb-4`}>Add Call Log</h3> */}
             <div className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} p-6`}>
               <div className='flex justify-between items-center gap-5 mb-6'>
