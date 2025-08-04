@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Send,
   Paperclip,
@@ -9,6 +9,8 @@ import {
 import { useTheme } from './ThemeProvider';
 import Emailpageleads from "./Emailpageleads";
 import { getUserSession } from "../utils/session";
+import Picker from '@emoji-mart/react';
+import data from '@emoji-mart/data';
 
 interface CommentEmailProps {
   fetchComments: () => void;
@@ -23,12 +25,6 @@ const showToast = (msg, opts) => alert(msg);
 const API_BASE_URL = "http://103.214.132.20:8002/api/v2/document";
 const AUTH_TOKEN = "token 1b670b800ace83b:f82627cb56de7f6";
 
-// export default function CommentCreate({
-//   reference_doctype = "",
-//   reference_name = "",
-//   onSuccess,
-//   onClose,
-// }) {
 export default function Commentemail({
   fetchComments,
   reference_name,
@@ -40,6 +36,8 @@ export default function Commentemail({
   const [showReply, setShowReply] = useState(false);
   const [comment, setComment] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const emojiPickerRef = useRef<HTMLDivElement>(null);
 
   const userSession = getUserSession();
   const CommentedBy = userSession?.username || "Administrator";
@@ -82,11 +80,32 @@ export default function Commentemail({
         throw new Error("Failed to add comment");
       }
     } catch (error) {
-      showToast("Failed to add comment", { type: "error" });
+      console.log("Failed to add comment", { type: "error" });
     } finally {
       setLoading(false);
     }
   };
+
+   const addEmoji = (emoji: { native: string }) => {
+    setComment(prev => prev + emoji.native);
+    setShowEmojiPicker(false);
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target as Node)) {
+        setShowEmojiPicker(false);
+      }
+    };
+
+    if (showEmojiPicker) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showEmojiPicker]);
 
   return (
     <div
@@ -153,7 +172,25 @@ export default function Commentemail({
           >
             <div className="flex items-center gap-4">
               <Paperclip className="cursor-pointer" size={18} />
-              <Smile className="cursor-pointer" size={18} />
+             <div className="relative">
+                <Smile
+                  className="cursor-pointer"
+                  size={18}
+                  onClick={() => setShowEmojiPicker(prev => !prev)}
+                />
+                {showEmojiPicker && (
+                  <div
+                    ref={emojiPickerRef}
+                    className="absolute z-50 bottom-full left-0 mt-2"
+                  >
+                    <Picker 
+                      data={data} 
+                      onEmojiSelect={addEmoji}
+                      theme={theme}
+                    />
+                  </div>
+                )}
+              </div>
             </div>
             <div className="flex items-center gap-3">
               {/* <button
