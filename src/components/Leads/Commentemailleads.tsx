@@ -123,7 +123,7 @@ useEffect(() => {
   const emojiPickerRef = useRef<HTMLDivElement>(null);
 
     const onEmojiClick = (emojiData: any) => {
-    setComment(prev => prev + emojiData.emoj);
+    setComment(prev => prev + emojiData.emoji);
     setShowEmojiPicker(false);
   };
 
