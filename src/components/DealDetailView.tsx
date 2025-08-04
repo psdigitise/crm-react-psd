@@ -4,7 +4,7 @@ import { useTheme } from './ThemeProvider';
 import { showToast } from '../utils/toast';
 import EmailComposer from './EmailComposer';
 import CommentCreate from './CommentCreate';
-import { FaCircleDot, FaRegComment } from 'react-icons/fa6';
+import { FaCircleDot, FaRegComment, FaRegComments } from 'react-icons/fa6';
 import { Listbox } from '@headlessui/react';
 import { HiOutlinePlus } from 'react-icons/hi';
 import { IoDocument } from 'react-icons/io5';
@@ -60,6 +60,17 @@ interface CallLog {
   owner: string;
 }
 
+// interface Comment {
+//   name: string;
+//   content: string;
+//   comment_type: string;
+//   reference_doctype: string;
+//   reference_name: string;
+//   creation: string;
+//   owner: string;
+// }
+
+
 interface Comment {
   name: string;
   content: string;
@@ -68,8 +79,15 @@ interface Comment {
   reference_name: string;
   creation: string;
   owner: string;
+  attachments?: {
+    name: string;
+    file_name: string;
+    file_url: string;
+    is_private: number;
+    file_type?: string;
+    file_size?: number;
+  }[];
 }
-
 interface Task {
   name: string;
   title: string;
@@ -89,7 +107,7 @@ interface Email {
   sender: string;
   recipients: { recipient: string; status: string }[];
   message: string;
-  creation: string;
+  //creation: string;
 }
 
 interface DealDetailViewProps {
@@ -129,6 +147,7 @@ interface Email {
     is_private: number;
   }>;
   delivery_status: string;
+  creation:string;
 }
 
 type TabType = 'overview' | 'activity' | 'notes' | 'calls' | 'comments' | 'tasks' | 'emails';
@@ -229,12 +248,11 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
   const tabs = [
     { id: 'activity', label: 'Activity', icon: Activity, count: activities.length },
     { id: 'emails', label: 'Emails', icon: Send, count: emails.length },
-    { id: 'comments', label: 'Comments', icon: MessageSquare, count: comments.length },
+    { id: 'comments', label: 'Comments', icon: FaRegComment, count: comments.length },
     { id: 'overview', label: 'Data', icon: User, count: null },
     { id: 'calls', label: 'Calls', icon: Phone, count: callLogs.length },
     { id: 'tasks', label: 'Tasks', icon: CheckSquare, count: tasks.length },
     { id: 'notes', label: 'Notes', icon: FileText, count: notes.length },
-
   ];
 
   // Updated color scheme variables
@@ -369,38 +387,6 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
     }
   }, [deal.name]);
 
-  // const fetchComments = useCallback(async () => {
-  //   setCommentsLoading(true);
-  //   try {
-  //     const filters = JSON.stringify([
-  //       ["reference_doctype", "=", "CRM Deal"],
-  //       ["reference_name", "=", deal.name]
-  //     ]);
-
-  //     const fields = JSON.stringify([
-  //       "name", "content", "comment_type", "reference_doctype", "reference_name", "creation", "owner"
-  //     ]);
-
-  //     const url = `http://103.214.132.20:8002/api/v2/document/Comment?fields=${encodeURIComponent(fields)}&filters=${encodeURIComponent(filters)}`;
-
-  //     const response = await fetch(url, {
-  //       headers: {
-  //         'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6',
-  //         'Content-Type': 'application/json'
-  //       }
-  //     });
-
-  //     if (response.ok) {
-  //       const result = await response.json();
-  //       setComments(result.data || []);
-  //     }
-  //   } catch (error) {
-  //     console.error('Error fetching comments:', error);
-  //     showToast('Failed to fetch comments', { type: 'error' });
-  //   } finally {
-  //     setCommentsLoading(false);
-  //   }
-  // }, [deal.name]);
   const fetchComments = useCallback(async () => {
     setCommentsLoading(true);
     try {
@@ -428,7 +414,15 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
             content: comment.content,
             comment_type: 'Comment',
             creation: comment.creation,
-            owner: comment.owner
+            owner: comment.owner,
+            attachments: comment.attachments?.map((att: any) => ({
+              name: att.name,
+              file_name: att.file_name,
+              file_url: att.file_url,
+              is_private: att.is_private,
+              file_type: att.file_type,
+              file_size: att.file_size
+            }))
           }));
         setComments(comments);
       }
@@ -1129,6 +1123,34 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
     }
   }, [emailModalMode, showEmailModal]);
 
+ function getRelativeTime(dateString: string) {
+  if (!dateString) return "Unknown date";
+
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return "Invalid date";
+
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffSec = Math.floor(diffMs / 1000);
+  const diffMin = Math.floor(diffSec / 60);
+  const diffHr = Math.floor(diffMin / 60);
+  const diffDay = Math.floor(diffHr / 24);
+  const diffWeek = Math.floor(diffDay / 7);
+  const diffMonth = Math.floor(diffDay / 30); // approximate
+  const diffYear = Math.floor(diffDay / 365); // approximate
+
+  if (diffSec < 60) return `${diffSec} sec ago`;
+  if (diffMin < 60) return `${diffMin} min ago`;
+  if (diffHr < 24) return `${diffHr} hour${diffHr !== 1 ? "s" : ""} ago`;
+  if (diffDay < 7) return `${diffDay} day${diffDay !== 1 ? "s" : ""} ago`;
+  if (diffWeek < 4) return `${diffWeek} week${diffWeek !== 1 ? "s" : ""} ago`;
+  if (diffMonth < 12) return `${diffMonth} month${diffMonth !== 1 ? "s" : ""} ago`;
+
+  return `${diffYear} year${diffYear !== 1 ? "s" : ""} ago`;
+}
+
+
+
 
   return (
     <div className={`min-h-screen ${bgColor}`}>
@@ -1760,7 +1782,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
 
                         {/* Right aligned time */}
                         <p className="text-sm text-white">
-                          last week
+                          {/* last week */}
+                            {getRelativeTime(comment.creation)}
                         </p>
                       </div>
 
@@ -1773,42 +1796,37 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                         <div className={`${theme === 'dark' ? 'text-white' : 'text-gray-600'} whitespace-pre-wrap`}>
                           {comment.content.replace(/<[^>]+>/g, '')}
                         </div>
-
+                        {/* Attachments section */}
+                        {comment.attachments && comment.attachments.length > 0 && (
+                          <div className="mt-0">
+                            <div className="text-sm font-medium mb-2">Attachments:</div>
+                            <div className="flex flex-wrap gap-3">
+                              {comment.attachments.map((attachment) => (
+                                <a
+                                  key={attachment.name}
+                                  href={attachment.file_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center border text-white px-3 py-1 rounded bg-white-31 hover:bg-gray-600 transition-colors"
+                                >
+                                  <span className="mr-2 flex items-center gap-1 truncate max-w-[200px]">
+                                     <IoDocument className="w-3 h-3 mr-1" />
+                                    {attachment.file_name}
+                                  </span>
+                                  {/* <span className="text-xs opacity-75">
+                  ({formatFileSize(attachment.file_size)})
+                </span> */}
+                                </a>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
                 </div>
               )}
             </div>
-
-            {/* <div className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} p-6`}>
-              {!showCommentModal && (
-                <div className="flex gap-4 mt-4">
-                  <button
-                    className={`flex items-center gap-1 ${theme === "dark" ? "text-white" : "text-gray-600"}`}
-                    onClick={() => {
-                      setCommentModalMode("comment");
-                      setShowCommentModal(true);
-                    }}
-                  >
-                    <Mail size={14} /> Reply
-                  </button>
-
-                  <button
-                    className={`flex items-center gap-1 ${theme === "dark" ? "text-white" : "text-gray-400"}`}
-                    onClick={() => {
-                      setCommentModalMode("reply");
-                      setShowCommentModal(true);
-                    }}
-                  >
-                    <MessageSquare size={14} /> Comment
-                  </button>
-                </div>
-              )}
-              {showCommentModal && (
-                <CommentCreate mode={CommentModalMode} onClose={() => setShowCommentModal(false)} />
-              )}
-            </div> */}
 
             <div
               ref={composerRef}
@@ -1833,7 +1851,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                       setShowEmailModal(true);
                     }}
                   >
-                    <MessageSquare size={14} /> Comment
+                    <FaRegComment size={14} /> Comment
                   </button>
                 </div>
               )}
@@ -2128,7 +2146,10 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                             >
                               {email.delivery_status}
                             </span> */}
-                            <span className="text-xs text-white">3 hours ago</span>
+                            <span className="text-xs text-white"> 
+                              {/* {email.creation ? getRelativeTime(email.creation) : "Unknown date"} */}
+                                {getRelativeTime(email.creation)}
+                            </span>
                             <button
                               onClick={() => {
                                 setSelectedEmail(email);
@@ -2247,7 +2268,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                       setShowEmailModal(true);
                     }}
                   >
-                    <MessageSquare size={14} /> Comment
+                    <FaRegComment size={14} /> Comment
                   </button>
                 </div>
               )}

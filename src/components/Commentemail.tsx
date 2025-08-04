@@ -11,6 +11,8 @@ import Emailpageleads from "./Emailpageleads";
 import { getUserSession } from "../utils/session";
 import Picker from '@emoji-mart/react';
 import data from '@emoji-mart/data';
+import axios from "axios";
+import { IoDocument } from "react-icons/io5";
 
 interface CommentEmailProps {
   fetchComments: () => void;
@@ -22,8 +24,8 @@ interface CommentEmailProps {
 // Dummy showToast for demo. Replace with your own toast/snackbar.
 const showToast = (msg, opts) => alert(msg);
 
-const API_BASE_URL = "http://103.214.132.20:8002/api/v2/document";
 const AUTH_TOKEN = "token 1b670b800ace83b:f82627cb56de7f6";
+const UPLOAD_API_URL = "http://103.214.132.20:8002/api/method/upload_file";
 
 export default function Commentemail({
   fetchComments,
@@ -42,6 +44,46 @@ export default function Commentemail({
   const userSession = getUserSession();
   const CommentedBy = userSession?.username || "Administrator";
   const email = userSession?.email || "Administrator";
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  async function uploadFiles(files: File[]): Promise<string[]> {
+    const uploadedFileIds: string[] = [];
+
+    for (const file of files) {
+      const formData = new FormData();
+      formData.append("doctype", "CRM Deal");
+      formData.append("docname", reference_name); // Use reference_name from props
+      formData.append("type", "image");
+      formData.append("file", file);
+      formData.append("is_private", "0");
+      formData.append("folder", "Home/Attachments");
+
+      try {
+        const response = await axios.post(UPLOAD_API_URL, formData, {
+          headers: {
+            Authorization: AUTH_TOKEN,
+            "Content-Type": "multipart/form-data",
+          },
+        });
+
+        const fileId = response.data?.message?.name;
+        if (fileId) uploadedFileIds.push(fileId);
+      } catch (error) {
+        console.error("File upload error:", error);
+        throw new Error("File upload failed");
+      }
+    }
+
+    return uploadedFileIds;
+  }
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const newFiles = Array.from(e.target.files);
+      setUploadedFiles(prev => [...prev, ...newFiles]);
+    }
+  };
 
   const sendComment = async () => {
     if (!comment.trim()) {
@@ -50,17 +92,21 @@ export default function Commentemail({
     }
     setLoading(true);
     try {
-      const response = await fetch(`http://103.214.132.20:8002/api/method/frappe.desk.form.utils.add_comment`, {
+      let attachmentIds: string[] = [];
+
+      // Step 1: Upload attachments if any
+      if (uploadedFiles.length > 0) {
+        attachmentIds = await uploadFiles(uploadedFiles);
+      }
+
+      // Step 2: Add the comment
+      const commentResponse = await fetch(`http://103.214.132.20:8002/api/method/frappe.desk.form.utils.add_comment`, {
         method: "POST",
         headers: {
           Authorization: AUTH_TOKEN,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          // subject: comment,
-          // comment_type: "Comment",
-          // reference_doctype,
-          // reference_name,
           comment_by: CommentedBy,
           comment_email: email,
           content: comment,
@@ -69,24 +115,44 @@ export default function Commentemail({
         }),
       });
 
-      if (response.ok) {
-        //showToast("Comment added!", { type: "success" });
+      const commentData = await commentResponse.json();
+
+      if (commentResponse.ok) {
+        // Step 3: If we have attachments, link them to the comment
+        if (attachmentIds.length > 0) {
+          const commentName = commentData.message.name; // Get the comment name/id from response
+
+          await fetch(`http://103.214.132.20:8002/api/method/crm.api.comment.add_attachments`, {
+            method: "POST",
+            headers: {
+              Authorization: AUTH_TOKEN,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              name: commentName,
+              attachments: attachmentIds
+            }),
+          });
+        }
+
+        // Success handling
         setComment("");
+        setUploadedFiles([]);
         if (onSuccess) onSuccess();
         fetchComments();
-        // ✅ Close popup after success
-        if (onClose) onClose(); // or simply onClose?.()
+        if (onClose) onClose();
       } else {
         throw new Error("Failed to add comment");
       }
     } catch (error) {
+      console.error("Failed to add comment", error);
       console.log("Failed to add comment", { type: "error" });
     } finally {
       setLoading(false);
     }
   };
 
-   const addEmoji = (emoji: { native: string }) => {
+  const addEmoji = (emoji: { native: string }) => {
     setComment(prev => prev + emoji.native);
     setShowEmojiPicker(false);
   };
@@ -119,36 +185,9 @@ export default function Commentemail({
         className={`flex gap-4 text-sm font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
           }`}
       >
-        {/* <button
-          className={`flex items-center gap-1 pb-1 ${showReply
-            ? theme === 'dark'
-              ? 'border-b-2 border-white'
-              : 'border-b-2 border-gray-800'
-            : ''
-            }`}
-          type="button"
-          onClick={() => setShowReply(true)}
-        >
-          <Reply size={14} /> Reply
-        </button> */}
-        {/* <button
-          className={`flex items-center gap-1 ${!showReply
-            ? theme === 'dark'
-              ? 'border-b-2 border-white'
-              : 'border-b-2 border-gray-800'
-            : ''
-            }`}
-          type="button"
-          onClick={() => setShowReply(false)}
-        >
-          <MessageSquare size={14} /> Comment
-        </button> */}
       </div>
 
       {showReply ? (
-        // <Emailpageleads
-        // // You can pass props like deal, reference_doctype, reference_name if needed
-        // />
         <Emailpageleads
           // deal={deal}
           onClose={() => setShowReply(false)} // <-- add this
@@ -165,14 +204,51 @@ export default function Commentemail({
             onChange={e => setComment(e.target.value)}
             disabled={loading}
           ></textarea>
+          {/* File upload section */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            multiple
+            style={{ display: 'none' }}
+          />
+          {/* Display uploaded files */}
+          {uploadedFiles.length > 0 && (
+            <div className="flex flex-wrap gap-3 mt-3">
+              {uploadedFiles.map((file, index) => (
+                <div
+                  key={index}
+                  className="flex items-center border text-white px-3 py-1 rounded bg-white-31"
+                >
+                  <span className="mr-2 flex items-center gap-1 truncate max-w-[200px]">
+                    {/* You can use a document icon here */}
+                    <IoDocument className="text-base" />
+                    {file.name}
+                  </span>
+                  <button
+                    onClick={() =>
+                      setUploadedFiles((prev) => prev.filter((_, i) => i !== index))
+                    }
+                    className="text-white text-lg leading-none"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
           {/* Action Buttons */}
           <div
             className={`flex justify-between items-center text-sm mt-4 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
               }`}
           >
             <div className="flex items-center gap-4">
-              <Paperclip className="cursor-pointer" size={18} />
-             <div className="relative">
+              <Paperclip
+                className="cursor-pointer"
+                size={18}
+                onClick={() => fileInputRef.current?.click()}
+              />
+              <div className="relative">
                 <Smile
                   className="cursor-pointer"
                   size={18}
@@ -183,8 +259,8 @@ export default function Commentemail({
                     ref={emojiPickerRef}
                     className="absolute z-50 bottom-full left-0 mt-2"
                   >
-                    <Picker 
-                      data={data} 
+                    <Picker
+                      data={data}
                       onEmojiSelect={addEmoji}
                       theme={theme}
                     />
@@ -193,14 +269,6 @@ export default function Commentemail({
               </div>
             </div>
             <div className="flex items-center gap-3">
-              {/* <button
-                className="text-red-500 text-base font-semibold px-5 py-2"
-                type="button"
-                onClick={() => setComment("")}
-                disabled={loading}
-              >
-                Discard
-              </button> */}
               <button
                 className="text-red-500 text-base font-semibold px-5 py-2"
                 type="button"
