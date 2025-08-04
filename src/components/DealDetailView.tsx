@@ -2122,12 +2122,12 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
 
                           {/* Right-side controls */}
                           <div className="flex items-center gap-3 ml-auto">
-                            <span
+                            {/* <span
                               className={`text-xs px-3 py-1 font-semibold rounded-full bg-green-200 ${email.delivery_status === "Sent" ? "text-green-700" : "text-yellow-700 bg-yellow-200"
                                 }`}
                             >
                               {email.delivery_status}
-                            </span>
+                            </span> */}
                             <span className="text-xs text-white">3 hours ago</span>
                             <button
                               onClick={() => {
