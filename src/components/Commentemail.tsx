@@ -199,7 +199,7 @@ export default function Commentemail({
               ? 'bg-white-31 border-gray-600 text-white focus:ring-gray-500'
               : 'bg-white border border-gray-300 text-gray-800 focus:ring-gray-300'
               }`}
-            placeholder="Type your message..."
+            //placeholder="Type your message..."
             value={comment}
             onChange={e => setComment(e.target.value)}
             disabled={loading}

@@ -24,7 +24,7 @@ interface EmailComposerProps {
   fetchEmails: () => void; // <- Add this line
   selectedEmail?: any; // Add this line
   clearSelectedEmail?: () => void; // Add this line
-  fetchComments:() => void;
+  fetchComments: () => void;
 
 }
 
@@ -34,7 +34,7 @@ const showToast = (msg, opts) => alert(msg);
 const API_BASE_URL = "http://103.214.132.20:8002/api/method/frappe.core.doctype.communication.email.make";
 const AUTH_TOKEN = "token 1b670b800ace83b:f82627cb56de7f6"; // Replace with your actual token
 
-export default function EmailOrCommentComposer({ deal, onClose, mode, dealName, fetchEmails, selectedEmail, clearSelectedEmail,fetchComments }: EmailComposerProps) {
+export default function EmailOrCommentComposer({ deal, onClose, mode, dealName, fetchEmails, selectedEmail, clearSelectedEmail, fetchComments }: EmailComposerProps) {
   const { theme } = useTheme();
 
   const [showComment, setShowComment] = useState(false);
@@ -364,7 +364,7 @@ export default function EmailOrCommentComposer({ deal, onClose, mode, dealName, 
                 ? "bg-white-31 border-gray-600 text-white focus:ring-gray-500"
                 : "bg-white border border-gray-300 text-gray-800 focus:ring-gray-300"
                 }`}
-              placeholder="Type your message..."
+              placeholder="@John, Can you please check this?"
               value={emailForm.message}
               onChange={e => setEmailForm(f => ({ ...f, message: e.target.value }))}
             />
@@ -408,7 +408,7 @@ export default function EmailOrCommentComposer({ deal, onClose, mode, dealName, 
               }`}
           >
             <div className="flex items-center gap-4">
-              <label className="cursor-pointer">
+              {/* <label className="cursor-pointer">
                 <Paperclip size={18} />
                 <input
                   type="file"
@@ -421,6 +421,31 @@ export default function EmailOrCommentComposer({ deal, onClose, mode, dealName, 
                     }
                   }}
 
+                />
+              </label> */}
+              <label className="cursor-pointer">
+                <Paperclip size={18} />
+                <input
+                  type="file"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      // Check if file with same name already exists
+                      const isDuplicate = uploadedFiles.some(
+                        existingFile => existingFile.name === file.name
+                      );
+
+                      if (!isDuplicate) {
+                        setUploadedFiles((prev) => [...prev, file]);
+                      } else {
+                        showToast("This file has already been attached", { type: "warning" });
+                      }
+
+                      // Clear the input to allow selecting the same file again if needed
+                      e.target.value = "";
+                    }
+                  }}
                 />
               </label>
               <div className="relative">
