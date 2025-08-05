@@ -29,7 +29,7 @@ interface EmailComposerProps {
         message: string;
         isReplyAll?: boolean;
     };
-    setShowCommentModal:any
+    
 }
 
 const API_BASE_URL = "http://103.214.132.20:8002/api/method/frappe.core.doctype.communication.email.make";
@@ -42,7 +42,7 @@ export default function EmailComposerleads({
     onClose,
     refreshEmails,
     replyData,
-    setShowCommentModal
+   
 }: EmailComposerProps) {
     const { theme } = useTheme();
     const [showComment, setShowComment] = useState(false);
@@ -60,12 +60,13 @@ export default function EmailComposerleads({
     //const [attachement, setAttachement] = useState<string[]>([])
     const [attachments, setAttachments] = useState<string[]>([]); // Array of attachment IDs
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+    const [isFocused, setIsFocused] = useState(false);
     const [uploadedFiles, setUploadedFiles] = useState<{ name: string; url: string }[]>([]);
     const emojiPickerRef = useRef<HTMLDivElement>(null);
   const [isSubjectEdited, setIsSubjectEdited] = useState(false);
     const shouldShowCc = emailForm.cc !== "" || showCc;
     const shouldShowBCc = emailForm.bcc !== "" || showBCc;
-
+const hasMessageContent = emailForm.message.trim().length > 0;
     useEffect(() => {
         if (replyData) {
             setEmailForm({
@@ -395,14 +396,13 @@ const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
 
             {showComment ? (
                 <Commentemailleads lead={lead} refreshEmails={refreshEmails} handleFileChange={handleFileChange}
-                 fileInputRef={fileInputRef} attachments={attachments}
-                
-                  setAttachments={setAttachments}
-                  uploadedFiles={uploadedFiles}
-                  setUploadedFiles={setUploadedFiles} 
-    setEmailForm={setEmailForm} 
-   onClose={onClose}
-    setShowCommentModal={setShowCommentModal}
+                fileInputRef={fileInputRef} attachments={attachments}
+
+                setAttachments={setAttachments}
+                uploadedFiles={uploadedFiles}
+                setUploadedFiles={setUploadedFiles}
+                setEmailForm={setEmailForm}
+                onClose={onClose} setShowCommentModal={undefined}   
                   />
             ) : (
                 <div>
@@ -507,8 +507,10 @@ const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
                                 ? "bg-white-31 border-gray-600 text-white focus:ring-gray-500"
                                 : "bg-white border border-gray-300 text-gray-800 focus:ring-gray-300"
                                 }`}
-                            placeholder="Type your message..."
+                            placeholder={isFocused?"":"@John,can you please check this?"}
                             value={emailForm.message}
+                             onFocus={() => setIsFocused(true)}
+                              onBlur={() => setIsFocused(false)}
                             onChange={e => setEmailForm(f => ({ ...f, message: e.target.value }))}
                         ></textarea>
                     </div>
@@ -564,10 +566,20 @@ const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
                             >
                                 Discard
                             </button>
-                            <button
+                            {/* <button
                                 className="bg-purplebg text-base font-semibold text-white px-5 py-2 rounded-md flex items-center gap-1 hover:bg-purple-700"
                                 onClick={sendEmail}
                                 disabled={loading}
+                                type="button"
+                            >
+                                <Send size={14} /> {loading ? "Sending..." : "Send"}
+                            </button> */}
+                             <button
+                                className={`bg-purplebg text-base font-semibold text-white px-5 py-2 rounded-md flex items-center gap-1 hover:bg-purple-700 ${
+                                    !hasMessageContent ? "opacity-50 cursor-not-allowed" : ""
+                                }`}
+                                onClick={sendEmail}
+                                disabled={loading || !hasMessageContent}
                                 type="button"
                             >
                                 <Send size={14} /> {loading ? "Sending..." : "Send"}

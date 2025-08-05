@@ -444,6 +444,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
   const [userOptions, setUserOptions] = useState<string[]>([]);
   const [organizationOptions, setOrganizationOptions] = useState<string[]>([]);
   const [contactOptions, setContactOptions] = useState<string[]>([]);
+  
 const composerRef = useRef<HTMLDivElement>(null);
 const commentRef =useRef<HTMLDivElement>(null)
   //  const handleNewEmailClick = () => {
@@ -2744,16 +2745,16 @@ commentRef.current?.scrollIntoView({behavior:"smooth"})
            <div ref={commentRef}>
              {showCommentModal && (
               <EmailComposerleads
-                onClose={() => {
-                  setShowEmailModal(false);
-                  setReplyData(undefined); // Clear reply data when closing
-                }}
-                lead={lead}
-                deal={undefined}
-                setListSuccess={setListSuccess}
-                refreshEmails={refreshComments}
-                replyData={replyData} // Pass the reply data
-              />
+                  onClose={() => {
+                    setShowCommentModal(false);
+                    setReplyData(undefined); // Clear reply data when closing
+                  } }
+                  lead={lead}
+                  deal={undefined}
+                  setListSuccess={setListSuccess}
+                  refreshEmails={refreshComments}
+                  replyData={replyData} // Pass the reply data
+                             />
             )}
            </div>
           </div>
@@ -3262,7 +3263,7 @@ commentRef.current?.scrollIntoView({behavior:"smooth"})
                   setShowEmailModal(false);
                   setReplyData(undefined); // Clear reply data when closing
                 }}
-                setShowCommentModal={setShowCommentModal}
+               
                 lead={lead}
                 deal={undefined}
                 setListSuccess={setListSuccess}

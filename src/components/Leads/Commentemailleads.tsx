@@ -77,8 +77,10 @@ export default function Commentemailleads({
   const [showReply, setShowReply] = useState(false);
   const [comment, setComment] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
   const [attachmentsName,setAttachmentsName]=useState<string[]>([])
-
+  
+const hasMessageContent = comment.trim().length > 0;
   const getUserInfo = () => {
   try {
     const session = sessionStorage.getItem('userSession');
@@ -445,10 +447,13 @@ const handleDiscard = () => {
               ? 'bg-white-31 border-gray-600 text-white focus:ring-gray-500'
               : 'bg-white border border-gray-300 text-gray-800 focus:ring-gray-300'
               }`}
-            placeholder="Type your message..."
+            
             value={comment}
+            placeholder={isFocused?"":`Hi john\n \nCan you please provide more details on this...`}
             onChange={e => setComment(e.target.value)}
             disabled={loading}
+             onFocus={() => setIsFocused(true)}
+             onBlur={()=>setIsFocused(false)}
           ></textarea>
           {/* Action Buttons */}
           <div
@@ -471,6 +476,7 @@ const handleDiscard = () => {
                                                   type="file"
                                                   ref={fileInputRef}
                                                   onChange={handleFileChange}
+
                                                   multiple
                                                   style={{ display: "none" }}
                                               />
@@ -518,8 +524,11 @@ const handleDiscard = () => {
                 Discard
               </button>
               <button
-                className="bg-purplebg text-base font-semibold text-white px-5 py-2 rounded-md flex items-center gap-1 hover:bg-purple-700"
-                onClick={sendComment}
+               // className="bg-purplebg text-base font-semibold text-white px-5 py-2 rounded-md flex items-center gap-1 hover:bg-purple-700"
+                className={`bg-purplebg text-base font-semibold text-white px-5 py-2 rounded-md flex items-center gap-1 hover:bg-purple-700 ${
+                                    !hasMessageContent ? "opacity-50 cursor-not-allowed" : ""
+                                }`}
+               onClick={sendComment}
                 disabled={loading}
                 type="button"
               >
