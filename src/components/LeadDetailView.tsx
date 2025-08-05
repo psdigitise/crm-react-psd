@@ -445,6 +445,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
   const [organizationOptions, setOrganizationOptions] = useState<string[]>([]);
   const [contactOptions, setContactOptions] = useState<string[]>([]);
 const composerRef = useRef<HTMLDivElement>(null);
+const commentRef =useRef<HTMLDivElement>(null)
   //  const handleNewEmailClick = () => {
   //   composerRef.current?.scrollIntoView({ behavior: "smooth" });
   // };
@@ -455,6 +456,13 @@ const composerRef = useRef<HTMLDivElement>(null);
     composerRef.current?.scrollIntoView({ behavior: "smooth" });
   }, 100); // Small delay to allow the component to render
 };
+
+const handleCommentNavigate =()=>{
+  setShowCommentModal(true);
+  setTimeout(()=>{
+commentRef.current?.scrollIntoView({behavior:"smooth"})
+  },100)
+}
 
   // Fetch lead data
   const fetchLeadData = async () => {
@@ -1428,7 +1436,7 @@ const composerRef = useRef<HTMLDivElement>(null);
       });
 
       if (response.ok) {
-        showToast('File uploaded successfully', { type: 'success' });
+        //showToast('File uploaded successfully', { type: 'success' });
         setShowFileModal(false);
         setFileForm({ file: null, file_name: '', file_url: '' });
         await fetchFiles();
@@ -2629,7 +2637,8 @@ const composerRef = useRef<HTMLDivElement>(null);
               <div className="flex justify-between items-center gap-4">
                 <h3 className={`text-lg font-semibold mb-0 ${theme === 'dark' ? "text-white" : "text-black"} mb-4`}>Add Comment</h3>
                 <button
-                  onClick={() => setShowCommentModal(prev => !prev)}
+                 // onClick={() => setShowCommentModal(prev => !prev)}
+                 onClick={handleCommentNavigate}
                   className={`px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 ${theme === 'dark' ? 'bg-purplebg text-white hover:bg-purple-700' : 'bg-purplebg text-white hover:bg-purple-700'}`}
                 >
                   <Plus className="w-4 h-4" />
@@ -2732,7 +2741,8 @@ const composerRef = useRef<HTMLDivElement>(null);
                 </div>
               )}
             </div>
-            {showCommentModal && (
+           <div ref={commentRef}>
+             {showCommentModal && (
               <EmailComposerleads
                 onClose={() => {
                   setShowEmailModal(false);
@@ -2745,6 +2755,7 @@ const composerRef = useRef<HTMLDivElement>(null);
                 replyData={replyData} // Pass the reply data
               />
             )}
+           </div>
           </div>
         )}
 
@@ -3251,6 +3262,7 @@ const composerRef = useRef<HTMLDivElement>(null);
                   setShowEmailModal(false);
                   setReplyData(undefined); // Clear reply data when closing
                 }}
+                setShowCommentModal={setShowCommentModal}
                 lead={lead}
                 deal={undefined}
                 setListSuccess={setListSuccess}

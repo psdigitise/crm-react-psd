@@ -29,6 +29,7 @@ interface EmailComposerProps {
         message: string;
         isReplyAll?: boolean;
     };
+    setShowCommentModal:any
 }
 
 const API_BASE_URL = "http://103.214.132.20:8002/api/method/frappe.core.doctype.communication.email.make";
@@ -40,7 +41,8 @@ export default function EmailComposerleads({
     deal,
     onClose,
     refreshEmails,
-    replyData
+    replyData,
+    setShowCommentModal
 }: EmailComposerProps) {
     const { theme } = useTheme();
     const [showComment, setShowComment] = useState(false);
@@ -55,7 +57,8 @@ export default function EmailComposerleads({
     const [showCc, setShowCc] = useState(false);
     const [showBCc, setShowBCc] = useState(false);
     const [ok, setok] = useState<string>('');
-    const [attachement, setAttachement] = useState('')
+    //const [attachement, setAttachement] = useState<string[]>([])
+    const [attachments, setAttachments] = useState<string[]>([]); // Array of attachment IDs
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [uploadedFiles, setUploadedFiles] = useState<{ name: string; url: string }[]>([]);
     const emojiPickerRef = useRef<HTMLDivElement>(null);
@@ -111,8 +114,8 @@ export default function EmailComposerleads({
             };
 
             // Only add attachments if attachement has a value
-            if (attachement) {
-                payload.attachments = [attachement];
+            if (attachments.length>0) {attachments
+                payload.attachments = attachments;
             }
 
             const response = await fetch(API_BASE_URL, {
@@ -129,7 +132,8 @@ export default function EmailComposerleads({
                 console.log("Email sent successfully", { type: "success" });
                 setEmailForm({ recipient: "", cc: "", bcc: "", subject: "", message: "" });
                 setUploadedFiles([]);
-                setAttachement(''); // Clear the attachment
+                setAttachments([]);
+                //setAttachements([]); // Clear the attachment
                 await refreshEmails();
                 onClose(); // Close the composer after successful send
             } else {
@@ -147,55 +151,142 @@ export default function EmailComposerleads({
 
     const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (!file) return;
+    // const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    //     const file = event.target.files?.[0];
+    //     if (!file) return;
 
-        const formData = new FormData();
-        formData.append("doctype", "CRM Lead");
-        formData.append("docname", lead.name);
-        formData.append("file", file);
-        formData.append("is_private", "0");
-        formData.append("folder", "Home/Attachments");
+    //     const formData = new FormData();
+    //     formData.append("doctype", "CRM Lead");
+    //     formData.append("docname", lead.name);
+    //     formData.append("file", file);
+    //     formData.append("is_private", "0");
+    //     formData.append("folder", "Home/Attachments");
 
-        try {
-            const response = await fetch("http://103.214.132.20:8002/api/method/upload_file/", {
-                method: "POST",
-                headers: {
-                    Authorization: AUTH_TOKEN,
-                },
-                body: formData,
-            });
+    //     try {
+    //         const response = await fetch("http://103.214.132.20:8002/api/method/upload_file/", {
+    //             method: "POST",
+    //             headers: {
+    //                 Authorization: AUTH_TOKEN,
+    //             },
+    //             body: formData,
+    //         });
 
-            const data = await response.json();
+    //         const data = await response.json();
 
-            if (response.ok && data.message?.file_url) {
-                showToast("File uploaded successfully", { type: "success" });
+    //         if (response.ok && data.message?.file_url) {
+    //            // showToast("File uploaded successfully", { type: "success" });
 
-                const fileUrl = `http://103.214.132.20:8002${data.message.file_url}`;
-                const fileName = data.message.file_name;
-                const name = data.message.name;
-                setAttachement(name)
+    //             const fileUrl = `http://103.214.132.20:8002${data.message.file_url}`;
+    //             const fileName = data.message.file_name;
+    //             const name = data.message.name;
+    //             setAttachement(name)
 
-                setUploadedFiles((prev) => [...prev, { name: fileName, url: fileUrl }]);
+    //             setUploadedFiles((prev) => [...prev, { name: fileName, url: fileUrl }]);
 
-                // const previewHTML = fileName.match(/\.(jpg|jpeg|png|gif)$/i)
-                //   ? `<br/><strong>📎 ${fileName}</strong><br/><img src="${fileUrl}" alt="${fileName}" style="max-width: 100%; height: auto;" />`
-                //   : `<br/><strong>📎 ${fileName}</strong><br/><a href="${fileUrl}" target="_blank">${fileName}</a>`;
+    //             // const previewHTML = fileName.match(/\.(jpg|jpeg|png|gif)$/i)
+    //             //   ? `<br/><strong>📎 ${fileName}</strong><br/><img src="${fileUrl}" alt="${fileName}" style="max-width: 100%; height: auto;" />`
+    //             //   : `<br/><strong>📎 ${fileName}</strong><br/><a href="${fileUrl}" target="_blank">${fileName}</a>`;
 
-                // setEmailForm((prev) => ({
-                //   ...prev,
-                //   message: prev.message + previewHTML,
-                // }));
-            } else {
-                showToast("Failed to upload file", { type: "error" });
-                console.error("Upload error:", data);
-            }
-        } catch (err) {
-            console.error("Upload failed:", err);
-            showToast("Error uploading file", { type: "error" });
-        }
-    };
+    //             // setEmailForm((prev) => ({
+    //             //   ...prev,
+    //             //   message: prev.message + previewHTML,
+    //             // }));
+    //         } else {
+    //             showToast("Failed to upload file", { type: "error" });
+    //             console.error("Upload error:", data);
+    //         }
+    //     } catch (err) {
+    //         console.error("Upload failed:", err);
+    //         showToast("Error uploading file", { type: "error" });
+    //     }
+    // };
+
+// const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+//   const files = event.target.files;
+//   if (!files || files.length === 0) return;
+//  const newAttachments = [];
+//   for (const file of Array.from(files)) {
+//     const formData = new FormData();
+//     formData.append("doctype", "CRM Lead");
+//     formData.append("docname", lead.name);
+//     formData.append("file", file);
+//     formData.append("is_private", "0");
+//     formData.append("folder", "Home/Attachments");
+
+//     try {
+//       const response = await fetch("http://103.214.132.20:8002/api/method/upload_file/", {
+//         method: "POST",
+//         headers: {
+//           Authorization: AUTH_TOKEN,
+//         },
+//         body: formData,
+//       });
+
+//       const data = await response.json();
+
+//       if (response.ok && data.message?.file_url) {
+//         const fileUrl = `http://103.214.132.20:8002${data.message.file_url}`;
+//         const fileName = data.message.file_name;
+//         const name = data.message.name;
+
+//         setAttachement(name);
+//         setUploadedFiles((prev) => [...prev, { name: fileName, url: fileUrl }]);
+//       } else {
+//         showToast(`Failed to upload ${file.name}`, { type: "error" });
+//         console.error("Upload error:", data);
+//       }
+//     } catch (err) {
+//       console.error("Upload failed:", err);
+//       showToast(`Error uploading ${file.name}`, { type: "error" });
+//     }
+//   }
+// };
+
+
+const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const files = event.target.files;
+  if (!files || files.length === 0) return;
+
+  const newAttachments: any[] = [];
+  
+  for (const file of Array.from(files)) {
+    const formData = new FormData();
+    formData.append("doctype", "CRM Lead");
+    formData.append("docname", lead.name);
+    formData.append("file", file);
+    formData.append("is_private", "0");
+    formData.append("folder", "Home/Attachments");
+
+    try {
+      const response = await fetch("http://103.214.132.20:8002/api/method/upload_file/", {
+        method: "POST",
+        headers: {
+          Authorization: AUTH_TOKEN,
+        },
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.message?.name) {
+        const fileUrl = `http://103.214.132.20:8002${data.message.file_url}`;
+        const fileName = data.message.file_name;
+        const name = data.message.name;
+
+        newAttachments.push(name); // Add to new attachments
+        setUploadedFiles(prev => [...prev, { name: fileName, url: fileUrl }]);
+      } else {
+        showToast(`Failed to upload ${file.name}`, { type: "error" });
+      }
+    } catch (err) {
+      console.error("Upload failed:", err);
+      showToast(`Error uploading ${file.name}`, { type: "error" });
+    }
+  }
+
+  // Add all new attachments to state
+  setAttachments(prev => [...prev, ...newAttachments]);
+};
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -303,7 +394,16 @@ export default function EmailComposerleads({
             </div>
 
             {showComment ? (
-                <Commentemailleads lead={lead} refreshEmails={refreshEmails} />
+                <Commentemailleads lead={lead} refreshEmails={refreshEmails} handleFileChange={handleFileChange}
+                 fileInputRef={fileInputRef} attachments={attachments}
+                
+                  setAttachments={setAttachments}
+                  uploadedFiles={uploadedFiles}
+                  setUploadedFiles={setUploadedFiles} 
+    setEmailForm={setEmailForm} 
+   onClose={onClose}
+    setShowCommentModal={setShowCommentModal}
+                  />
             ) : (
                 <div>
                     {/* Email Form */}
@@ -428,6 +528,7 @@ export default function EmailComposerleads({
                                     type="file"
                                     ref={fileInputRef}
                                     onChange={handleFileChange}
+                                    multiple
                                     style={{ display: "none" }}
                                 />
                             </>

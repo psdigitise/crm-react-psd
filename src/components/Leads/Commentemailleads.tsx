@@ -29,11 +29,28 @@ interface CommentEmailProps {
     name: string;
     [key: string]: any;
   };
+    setAttachments:React.Dispatch<React.SetStateAction<string[]>>
   reference_doctype?: string;
   reference_name?: string;
   onSuccess?: () => void;
   onClose?: () => void;
+  
     refreshEmails: () => Promise<void>;
+      handleFileChange: (event: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
+       fileInputRef?: React.RefObject<HTMLInputElement>;
+        attachments: string[];
+        setShowCommentModal:any;
+          uploadedFiles: { name: string; url: string }[]; 
+            setUploadedFiles: React.Dispatch<React.SetStateAction<{ name: string; url: string }[]>>;
+    setEmailForm: React.Dispatch<React.SetStateAction<{
+        recipient: string;
+        cc: string;
+        bcc: string;
+        subject: string;
+        message: string;
+        
+    }>>;
+       
 }
 export default function Commentemailleads({
   
@@ -42,7 +59,16 @@ export default function Commentemailleads({
   onSuccess,
   onClose, // <-- add this
   lead,
-  refreshEmails
+  refreshEmails,
+  fileInputRef,
+  handleFileChange,
+  attachments,
+   setUploadedFiles,
+    setEmailForm,
+  uploadedFiles,
+   setAttachments,
+   setShowCommentModal
+  
 }:CommentEmailProps) {
   // ...rest of your code
   console.log('1bf',lead.name);
@@ -51,6 +77,7 @@ export default function Commentemailleads({
   const [showReply, setShowReply] = useState(false);
   const [comment, setComment] = useState("");
   const [loading, setLoading] = useState(false);
+  const [attachmentsName,setAttachmentsName]=useState<string[]>([])
 
   const getUserInfo = () => {
   try {
@@ -76,48 +103,112 @@ useEffect(() => {
   console.log("Current user:", username, email);
 }, []);
 
-  const sendComment = async () => {
-     const { email, username } = getUserInfo();
-    if (!comment.trim()) {
-      showToast("Please type your comment.", { type: "warning" });
-      return;
-    }
-    setLoading(true);
-    try {
-    //  const response = await fetch(`${API_BASE_URL}/Comment`, {
 
-      const response = await fetch(`${API_BASE_URL}/frappe.desk.form.utils.add_comment`, {
-        method: "POST",
-        headers: {
-          Authorization: AUTH_TOKEN,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-         comment_by:username,
-         comment_email:email,
-         content:comment,
-         reference_doctype:"CRM Lead",
-         reference_name:lead.name
-          // comment_type: "Comment",
-          // reference_doctype,
-          // reference_name,
-        }),
-      });
 
-      if (response.ok) {
-        console.log("Comment added!", { type: "success" });
-        setComment("");
-        await refreshEmails();
-        if (onSuccess) onSuccess();
-      } else {
-        throw new Error("Failed to add comment");
-      }
-    } catch (error) {
-      showToast("Failed to add comment", { type: "error" });
-    } finally {
-      setLoading(false);
-    }
-  };
+
+// const addAttachmentsToComment = async (commentName: string[], attachmentNames: string[]) => {
+//   // Validate inputs
+//   if (!commentName || attachmentNames.length === 0) {
+//     showToast("Comment name and at least one attachment are required", { type: "error" });
+//     return;
+//   }
+
+//   try {
+//     const response = await fetch(
+//       "http://103.214.132.20:8002/api/method/crm.api.comment.add_attachments", 
+//       {
+//         method: "POST",
+//         headers: {
+//           "Authorization": AUTH_TOKEN,
+//           "Content-Type": "application/json",
+//         },
+//         body: JSON.stringify({
+//           name: commentName,  // Should be a single string, not an array
+//           attachments: attachmentNames  // Array of attachment IDs
+//         }),
+//       }
+//     );
+
+//     const result = await response.json();
+
+//     if (!response.ok) {
+//       // Handle Frappe-specific error format
+//       const errorMsg = result.exc_type 
+//         ? `${result.exc_type}: ${result.message}`
+//         : result.message || "Failed to add attachments";
+//       throw new Error(errorMsg);
+//     }
+
+//     showToast(result.message || "Attachments added successfully", { type: "success" });
+//     return result;
+//   } catch (error) {
+//     console.error("Error adding attachments:", error);
+//     showToast(error.message || "Error adding attachments", { type: "error" });
+//     throw error;
+//   }
+// };
+
+// Usage example - should be triggered by an event, not in useEffect
+// const handleAddAttachments = async () => {
+//   try {
+//     await addAttachmentsToComment(attachmentsName,attachments);
+//   } catch (error) {
+//     // Error already handled in the function
+//   }
+// };
+
+//   const sendComment = async () => {
+//      const { email, username } = getUserInfo();
+//     if (!comment.trim()) {
+//       showToast("Please type your comment.", { type: "warning" });
+//       return;
+//     }
+//     setLoading(true);
+//     try {
+//     //  const response = await fetch(`${API_BASE_URL}/Comment`, {
+
+//       const response = await fetch(`${API_BASE_URL}/frappe.desk.form.utils.add_comment`, {
+//         method: "POST",
+//         headers: {
+//           Authorization: AUTH_TOKEN,
+//           "Content-Type": "application/json",
+//         },
+//         body: JSON.stringify({
+//          comment_by:username,
+//          comment_email:email,
+//          content:comment,
+//          reference_doctype:"CRM Lead",
+//          reference_name:lead.name,
+//          //attachments:attachments
+//           // comment_type: "Comment",
+//           // reference_doctype,
+//           // reference_name,
+//         }),
+//       });
+// console.log("12k",response)
+//       if (response.ok) {
+//           const responseData = await response.json();
+//             console.log("Full response:", responseData.message.name);
+//             setAttachmentsName(responseData.message.name)
+//           //  handleAddAttachments()
+//           await addAttachmentsToComment(attachmentsName,attachments);
+//         console.log("Comment added!", { type: "success" });
+//         // setComment("");
+//         // setAttachement([]);
+//           setUploadedFiles([]);  // Clears the displayed attachments
+//       setAttachments([]);    // Clears the attachment IDs
+//       setComment("");   
+//         await refreshEmails();
+//         if (onSuccess) onSuccess();
+//       } else {
+//         throw new Error("Failed to add comment");
+//       }
+//     } catch (error) {
+//       showToast("Failed to add comment", { type: "error" });
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
 
    const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
@@ -126,6 +217,151 @@ useEffect(() => {
     setComment(prev => prev + emojiData.emoji);
     setShowEmojiPicker(false);
   };
+
+  const sendComment = async () => {
+  const { email, username } = getUserInfo();
+  if (!comment.trim()) {
+    showToast("Please type your comment.", { type: "warning" });
+    return;
+  }
+  
+  setLoading(true);
+  try {
+    // First create the comment without attachments
+    const response = await fetch(`${API_BASE_URL}/frappe.desk.form.utils.add_comment`, {
+      method: "POST",
+      headers: {
+        Authorization: AUTH_TOKEN,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        comment_by: username,
+        comment_email: email,
+        content: comment,
+        reference_doctype: "CRM Lead",
+        reference_name: lead.name,
+        // Remove attachments from here as this endpoint doesn't expect them
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to add comment");
+    }
+
+    const responseData = await response.json();
+    const commentName = responseData.message.name;
+    
+    // Only proceed with attachments if there are any
+    if (attachments.length > 0) {
+      await addAttachmentsToComment(commentName, attachments);
+    }
+
+    showToast("Comment added successfully", { type: "success" });
+    setUploadedFiles([]);
+    setAttachments([]);
+    setComment("");
+    
+    await refreshEmails();
+    if (onSuccess) onSuccess();
+  } catch (error) {
+    console.error("Error adding comment:", error);
+    showToast(error.message || "Failed to add comment", { type: "error" });
+  } finally {
+    setLoading(false);
+  }
+};
+
+const addAttachmentsToComment = async (commentName: string, attachmentNames: string[]) => {
+  try {
+    const response = await fetch(
+      "http://103.214.132.20:8002/api/method/crm.api.comment.add_attachments", 
+      {
+        method: "POST",
+        headers: {
+          "Authorization": AUTH_TOKEN,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: commentName,  // Single string, not array
+          attachments: attachmentNames
+        }),
+      }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      const errorMsg = result.exc_type 
+        ? `${result.exc_type}: ${result.message}`
+        : result.message || "Failed to add attachments";
+      throw new Error(errorMsg);
+    }
+
+    return result;
+  } catch (error) {
+    console.error("Error adding attachments:", error);
+    throw error;
+  }
+};
+
+
+const handleDiscard = () => {
+  // Clear all input states
+  setComment("");
+  setUploadedFiles([]);
+  setAttachments([]);
+  
+  // Close the modal if onClose is provided
+  if (onClose) {
+    onClose();
+  }
+};
+
+// const handleDiscard = () => {
+//   // Clear all input states
+//   setComment("");
+//   setUploadedFiles([]);
+//   setAttachments([]);
+//    setShowCommentModal(false);
+//   // Close the modal if onClose is provided
+//   if (onClose) {
+//     onClose();
+//   }
+// };
+// const addAttachmentsToComment = async (commentName: string[], attachmentNames: string[]) => {
+//   try {
+//     const response = await fetch("http://103.214.132.20:8002/api/method/crm.api.comment.add_attachments", {
+//       method: "POST",
+//       headers: {
+//         "Authorization": AUTH_TOKEN,
+//         "Content-Type": "application/json",
+//       },
+//       body: JSON.stringify({
+//         name: commentName,
+//         attachments: attachmentNames
+//       }),
+//     });
+
+//     const result = await response.json();
+
+//     if (response.ok) {
+//       showToast(result.message || "Attachments added successfully", { type: "success" });
+//       return result.message;
+//     } else {
+//       showToast(result.message || "Failed to add attachments", { type: "error" });
+//       throw new Error(result.message || "Failed to add attachments");
+//     }
+//   } catch (error) {
+//     console.error("Error adding attachments:", error);
+//     showToast("Error adding attachments", { type: "error" });
+//     throw error;
+//   }
+// };
+
+// useEffect(()=>{
+// addAttachmentsToComment(attachments,attachmentsName)
+// },[attachments,attachmentsName])
+
 
 
 
@@ -177,6 +413,33 @@ useEffect(() => {
           deal={undefined}        />
       ) : (
         <div>
+             {uploadedFiles.length > 0 && (
+                            <div className="flex flex-wrap gap-3 mt-3 mb-2">
+                                {uploadedFiles.map((file, index) => (
+                                    <div
+                                        key={index}
+                                        className="flex items-center border text-white px-3 py-1 rounded bg-white-31"
+                                    >
+                                        <span className="mr-2 flex items-center gap-1 truncate max-w-[200px]">
+                                            📎 {file.name}
+                                        </span>
+                                        <button
+                                            onClick={() => {
+                                                setUploadedFiles((prev) => prev.filter((_, i) => i !== index));
+                                                // setEmailForm((prev) => ({
+                                                //     ...prev,
+                                                //     message: prev.message.replace(file.url, ""),
+                                                // }));
+                                            }}
+                                            className="text-white text-lg leading-none"
+                                        >
+                                            ×
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
           <textarea
             className={`w-full h-40 rounded-md p-3 text-sm focus:outline-none focus:ring-1 ${theme === 'dark'
               ? 'bg-white-31 border-gray-600 text-white focus:ring-gray-500'
@@ -197,7 +460,21 @@ useEffect(() => {
               <Smile className="cursor-pointer" size={18} /> */}
                 
             <div className="flex items-center gap-4 relative">
-              <Paperclip className="cursor-pointer" size={18} />
+              {/* <Paperclip className="cursor-pointer" size={18} /> */}
+               <>
+                                              <Paperclip
+                                                  className="cursor-pointer"
+                                                  size={18}
+                                                  onClick={() => fileInputRef?.current?.click()}
+                                              />
+                                              <input
+                                                  type="file"
+                                                  ref={fileInputRef}
+                                                  onChange={handleFileChange}
+                                                  multiple
+                                                  style={{ display: "none" }}
+                                              />
+                                          </>
               <Smile 
                 className="cursor-pointer" 
                 size={18} 
@@ -231,10 +508,11 @@ useEffect(() => {
               <button
                 className="text-red-500 text-base font-semibold px-5 py-2"
                 type="button"
-                onClick={() => {
-                  setComment("");
-                  if (onClose) onClose(); // <-- close the modal
-                }}
+                // onClick={() => {
+                //   setComment("");
+                //   if (onClose) onClose(); // <-- close the modal
+                // }}
+                onClick={handleDiscard}
                 disabled={loading}
               >
                 Discard
