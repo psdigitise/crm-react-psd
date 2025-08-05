@@ -1,19 +1,21 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { ArrowLeft, User, Activity, FileText, Phone, MessageSquare, CheckSquare, Send, Plus, Loader2, Mail, Trash2, Reply, Paperclip } from 'lucide-react';
+import { ArrowLeft, Activity, FileText, Phone, MessageSquare, CheckSquare, Send, Plus, Loader2, Mail, Trash2, Reply, Paperclip } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import { showToast } from '../utils/toast';
 import EmailComposer from './EmailComposer';
-import CommentCreate from './CommentCreate';
-import { FaCircleDot, FaRegComment, FaRegComments } from 'react-icons/fa6';
+import { FaCircleDot, FaRegComment } from 'react-icons/fa6';
 import { Listbox } from '@headlessui/react';
-import { HiOutlinePlus } from 'react-icons/hi';
+import { HiOutlineMailOpen, HiOutlinePlus } from 'react-icons/hi';
 import { IoDocument } from 'react-icons/io5';
 import { LuReply, LuReplyAll } from 'react-icons/lu';
 import { PiDotsThreeOutlineBold } from 'react-icons/pi';
-import { ClipLoader } from 'react-spinners';
+import { TiDocumentText } from 'react-icons/ti';
+import { apiAxios } from '../api/apiUrl';
+import axios from 'axios';
+import Select from 'react-select';
+import { darkSelectStyles } from '../components/Dropdownstyles/darkSelectStyles'
 
-
-interface Deal {
+export interface Deal {
   id: string;
   name: string;
   organization: string;
@@ -35,6 +37,10 @@ interface Deal {
   mobile_no?: string;
   gender?: string;
   deal_owner?: string;
+  close_date?: string;
+  probability?: string;
+  next_step?: string;
+
 }
 
 interface Note {
@@ -59,18 +65,6 @@ interface CallLog {
   creation: string;
   owner: string;
 }
-
-// interface Comment {
-//   name: string;
-//   content: string;
-//   comment_type: string;
-//   reference_doctype: string;
-//   reference_name: string;
-//   creation: string;
-//   owner: string;
-// }
-
-
 interface Comment {
   name: string;
   content: string;
@@ -101,7 +95,6 @@ interface Task {
   creation: string;
   owner: string;
 }
-
 interface Email {
   name: string;
   sender: string;
@@ -109,13 +102,11 @@ interface Email {
   message: string;
   //creation: string;
 }
-
 interface DealDetailViewProps {
   deal: Deal;
   onBack: () => void;
   onSave: (updatedDeal: Deal) => void;
 }
-
 interface ActivityItem {
   id: string;
   type: 'note' | 'call' | 'comment' | 'task' | 'edit';
@@ -147,7 +138,7 @@ interface Email {
     is_private: number;
   }>;
   delivery_status: string;
-  creation:string;
+  creation: string;
 }
 
 type TabType = 'overview' | 'activity' | 'notes' | 'calls' | 'comments' | 'tasks' | 'emails';
@@ -209,7 +200,6 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
   // Add to state variables
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [activityLoading, setActivityLoading] = useState(false);
-
   const [isEditMode, setIsEditMode] = useState(false);
 
   // Form states
@@ -246,13 +236,14 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
   });
 
   const tabs = [
-    { id: 'activity', label: 'Activity', icon: Activity, count: activities.length },
-    { id: 'emails', label: 'Emails', icon: Send, count: emails.length },
-    { id: 'comments', label: 'Comments', icon: FaRegComment, count: comments.length },
-    { id: 'overview', label: 'Data', icon: User, count: null },
-    { id: 'calls', label: 'Calls', icon: Phone, count: callLogs.length },
-    { id: 'tasks', label: 'Tasks', icon: CheckSquare, count: tasks.length },
-    { id: 'notes', label: 'Notes', icon: FileText, count: notes.length },
+    { id: 'activity', label: 'Activity', icon: Activity },
+    { id: 'emails', label: 'Emails', icon: HiOutlineMailOpen },
+    { id: 'comments', label: 'Comments', icon: FaRegComment },
+    { id: 'overview', label: 'Data', icon: TiDocumentText },
+    { id: 'calls', label: 'Calls', icon: Phone },
+    { id: 'tasks', label: 'Tasks', icon: CheckSquare },
+    { id: 'notes', label: 'Notes', icon: FileText },
+    // { id: 'attachments', label: 'Attachments', icon: <Paperclip className="w-4 h-4" /> },
   ];
 
   // Updated color scheme variables
@@ -293,37 +284,6 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
       ...prev,
       [field]: value
     }));
-  };
-
-  const handleSave = async () => {
-    setLoading(true);
-    try {
-      const response = await fetch(
-        `http://103.214.132.20:8002/api/v2/document/CRM Deal/${deal.name}`,
-        {
-          method: 'PUT',
-          headers: {
-            'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6',
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(editedDeal)
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const result = await response.json();
-      onSave(result);
-      setIsEditing(false);
-      showToast.success('Deal updated successfully!');
-    } catch (error) {
-      console.error('Error updating deal:', error);
-      showToast.error('Failed to update deal');
-    } finally {
-      setLoading(false);
-    }
   };
 
   const fetchNotes = useCallback(async () => {
@@ -492,7 +452,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
             cc: email.data?.cc || '',
             bcc: email.data?.bcc || '',
             content: email.data?.content || '',
-             creation: email.creation, 
+            creation: email.creation,
             date: email.creation,
             attachments: email.data?.attachments || [],
             delivery_status: email.data?.delivery_status || 'Unknown'
@@ -766,47 +726,6 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
     }
   };
 
-
-  const addComment = async () => {
-    if (!commentForm.content.trim()) {
-      showToast('Please fill all required fields', { type: 'error' });
-      return;
-    }
-
-    setCommentsLoading(true);
-    try {
-      const response = await fetch(
-        'http://103.214.132.20:8002/api/v2/document/Comment',
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6',
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            content: commentForm.content,
-            comment_type: commentForm.comment_type,
-            reference_doctype: 'CRM Deal',
-            reference_name: deal.name
-          })
-        }
-      );
-
-      if (response.ok) {
-        showToast('Comment added successfully', { type: 'success' });
-        setCommentForm({ content: '', comment_type: 'Comment' });
-        await fetchComments();
-      } else {
-        throw new Error('Failed to add comment');
-      }
-    } catch (error) {
-      console.error('Error adding comment:', error);
-      showToast('Failed to add comment', { type: 'error' });
-    } finally {
-      setCommentsLoading(false);
-    }
-  };
-
   const addTask = async () => {
     if (!taskForm.title.trim() || !taskForm.description.trim()) {
       showToast('Please fill all required fields', { type: 'error' });
@@ -938,47 +857,6 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
     }
   };
 
-  const sendEmail = async () => {
-    if (!emailForm.recipient.trim() || !emailForm.message.trim()) {
-      showToast('Please fill all required fields', { type: 'error' });
-      return;
-    }
-
-
-    setEmailsLoading(true);
-    try {
-      const response = await fetch(
-        'http://103.214.132.20:8002/api/v2/document/Email Queue',
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6',
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            sender: 'hariprasad@psdigitise.com', // Fixed sender
-            recipients: [{ recipient: emailForm.recipient, status: 'Not Sent' }],
-            message: emailForm.message,
-            reference_doctype: 'CRM Deal',
-            reference_name: deal.name
-          })
-        }
-      );
-
-      if (response.ok) {
-        showToast('Email queued successfully', { type: 'success' });
-        setEmailForm({ recipient: '', message: '' });
-        await fetchEmails();
-      } else {
-        throw new Error('Failed to queue email');
-      }
-    } catch (error) {
-      console.error('Error queueing email:', error);
-      showToast('Failed to queue email', { type: 'error' });
-    } finally {
-      setEmailsLoading(false);
-    }
-  };
 
   const statusColors: Record<Deal['status'], string> = {
     Qualification: 'text-yellow-500',
@@ -1124,32 +1002,242 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
     }
   }, [emailModalMode, showEmailModal]);
 
- function getRelativeTime(dateString: string) {
-  if (!dateString) return "Unknown date";
+  function getRelativeTime(dateString: string) {
+    if (!dateString) return "Unknown date";
 
-  const date = new Date(dateString);
-  if (isNaN(date.getTime())) return "Invalid date";
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return "Invalid date";
 
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffSec = Math.floor(diffMs / 1000);
-  const diffMin = Math.floor(diffSec / 60);
-  const diffHr = Math.floor(diffMin / 60);
-  const diffDay = Math.floor(diffHr / 24);
-  const diffWeek = Math.floor(diffDay / 7);
-  const diffMonth = Math.floor(diffDay / 30); // approximate
-  const diffYear = Math.floor(diffDay / 365); // approximate
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffSec = Math.floor(diffMs / 1000);
+    const diffMin = Math.floor(diffSec / 60);
+    const diffHr = Math.floor(diffMin / 60);
+    const diffDay = Math.floor(diffHr / 24);
+    const diffWeek = Math.floor(diffDay / 7);
+    const diffMonth = Math.floor(diffDay / 30); // approximate
+    const diffYear = Math.floor(diffDay / 365); // approximate
 
-  if (diffSec < 60) return `${diffSec} sec ago`;
-  if (diffMin < 60) return `${diffMin} min ago`;
-  if (diffHr < 24) return `${diffHr} hour${diffHr !== 1 ? "s" : ""} ago`;
-  if (diffDay < 7) return `${diffDay} day${diffDay !== 1 ? "s" : ""} ago`;
-  if (diffWeek < 4) return `${diffWeek} week${diffWeek !== 1 ? "s" : ""} ago`;
-  if (diffMonth < 12) return `${diffMonth} month${diffMonth !== 1 ? "s" : ""} ago`;
+    if (diffSec < 60) return `${diffSec} sec ago`;
+    if (diffMin < 60) return `${diffMin} min ago`;
+    if (diffHr < 24) return `${diffHr} hour${diffHr !== 1 ? "s" : ""} ago`;
+    if (diffDay < 7) return `${diffDay} day${diffDay !== 1 ? "s" : ""} ago`;
+    if (diffWeek < 4) return `${diffWeek} week${diffWeek !== 1 ? "s" : ""} ago`;
+    if (diffMonth < 12) return `${diffMonth} month${diffMonth !== 1 ? "s" : ""} ago`;
 
-  return `${diffYear} year${diffYear !== 1 ? "s" : ""} ago`;
-}
+    return `${diffYear} year${diffYear !== 1 ? "s" : ""} ago`;
+  }
 
+  const fetchDealDetails = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await apiAxios.post(
+        '/api/method/frappe.client.get',
+        {
+          doctype: "CRM Deal",
+          name: deal.name
+        },
+        {
+          headers: {
+            'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6',
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      const dealData = response.data.message;
+
+      // Update the editedDeal state with the fetched data
+      setEditedDeal(prev => ({
+        ...prev,
+        organization: dealData.organization || '',
+        organization_name: dealData.organization_name || '',
+        website: dealData.website || '',
+        no_of_employees: dealData.no_of_employees || '',
+        territory: dealData.territory || '',
+        annual_revenue: dealData.annual_revenue?.toString() || '0',
+        industry: dealData.industry || '',
+        salutation: dealData.salutation || '',
+        first_name: dealData.first_name || '',
+        last_name: dealData.last_name || '',
+        email: dealData.email || '',
+        mobile_no: dealData.mobile_no || '',
+        gender: dealData.gender || '',
+        deal_owner: dealData.deal_owner || '',
+        next_step: dealData.next_step || '',
+        probability: dealData.probability?.toString() || '0',
+        status: dealData.status || 'Qualification',
+        close_date: dealData.close_date || ''
+      }));
+
+    } catch (error) {
+      console.error('Error fetching deal details:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [deal.name]);
+
+
+  // Call this effect when the component mounts or when the deal changes
+  useEffect(() => {
+    if (deal.name) {
+      fetchDealDetails();
+    }
+  }, [deal.name, fetchDealDetails]);
+
+  //Edit Deals
+  const handleSave = async () => {
+    setLoading(true);
+
+    try {
+      const payload = {
+        doctype: "CRM Deal",
+        name: editedDeal.name, // ensure this is available
+        fieldname: {
+          organization: editedDeal.organization,
+          organization_name: editedDeal.organization_name,
+          website: editedDeal.website,
+          territory: editedDeal.territory,
+          annual_revenue: editedDeal.annual_revenue,
+          close_date: editedDeal.close_date,
+          probability: editedDeal.probability,
+          next_step: editedDeal.next_step,
+          deal_owner: editedDeal.deal_owner,
+          status: editedDeal.status, // include if needed
+        },
+      };
+
+      const response = await apiAxios.post(
+        "/api/method/frappe.client.set_value",
+        payload,
+        {
+          headers: {
+            'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6',
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      console.log("Save successful:", response.data.message);
+      // Optionally show success message or reload
+    } catch (error) {
+      console.error("Save failed:", error);
+      // Optionally show error message
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const [organizationOptions, setOrganizationOptions] = useState([]);
+  const [OwnersOptions, setOwnersOptions] = useState([]);
+  const [TerritoryOptions, setTerritoryOptions] = useState([]);
+  useEffect(() => {
+    const fetchOrganizations = async () => {
+      try {
+        const response = await apiAxios.post(
+          '/api/method/frappe.desk.search.search_link',
+          {
+            txt: "",
+            doctype: "CRM Organization",
+            filters: null
+          },
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Token 1b670b800ace83b:f82627cb56de7f6'
+            }
+          }
+        );
+
+        // Axios automatically parses the JSON response, so we can access it directly
+        const data = response.data;
+
+        // Transform the API response to match the format expected by Select
+        const options = data.message.map((item: { value: any; description: any; }) => ({
+          value: item.value,
+          label: item.value,
+          description: item.description
+        }));
+        setOrganizationOptions(options);
+      } catch (err) {
+        // You might want to handle the error here, e.g., show a toast notification
+        console.error('Error fetching organizations:', err);
+      }
+    };
+    fetchOrganizations();
+  }, []);
+
+  useEffect(() => {
+    const fetchOwners = async () => {
+      try {
+        const response = await apiAxios.post(
+          '/api/method/frappe.desk.search.search_link',
+          {
+            txt: "",
+            doctype: "User",
+            filters: null
+          },
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Token 1b670b800ace83b:f82627cb56de7f6'
+            }
+          }
+        );
+
+        // Axios automatically parses the JSON response, so we can access it directly
+        const data = response.data;
+
+        // Transform the API response to match the format expected by Select
+        const options = data.message.map((item: { value: any; description: any; }) => ({
+          value: item.value,
+          label: item.value,
+          description: item.description
+        }));
+        setOwnersOptions(options);
+      } catch (err) {
+        // You might want to handle the error here, e.g., show a toast notification
+        console.error('Error fetching Deal owners:', err);
+      }
+    };
+    fetchOwners();
+  }, []);
+
+  useEffect(() => {
+    const fetchTerritory = async () => {
+      try {
+        const response = await apiAxios.post(
+          '/api/method/frappe.desk.search.search_link',
+          {
+            txt: "",
+            doctype: "CRM Territory",
+            filters: null
+          },
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Token 1b670b800ace83b:f82627cb56de7f6'
+            }
+          }
+        );
+
+        // Axios automatically parses the JSON response, so we can access it directly
+        const data = response.data;
+
+        // Transform the API response to match the format expected by Select
+        const options = data.message.map((item: { value: any; description: any; }) => ({
+          value: item.value,
+          label: item.value,
+          description: item.description
+        }));
+        setTerritoryOptions(options);
+      } catch (err) {
+        // You might want to handle the error here, e.g., show a toast notification
+        console.error('Error fetching Deal owners:', err);
+      }
+    };
+    fetchTerritory();
+  }, []);
 
 
 
@@ -1270,17 +1358,11 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
       <div className="p-4 sm:p-6">
         {activeTab === 'overview' && (
           <div>
-            <div>
-              <div className="flex items-center space-x-2 mb-6">
-                {isEditing ? (
-                  <div className="flex justify-between w-full space-x-2">
-                    <button
-                      onClick={() => setIsEditing(false)}
-                      className={`px-4 py-2 ${textColor} ${secondaryButtonBgColor} rounded-lg transition-colors`}
-                      disabled={loading}
-                    >
-                      Cancel
-                    </button>
+            <div className="grid grid-cols-1 gap-6">
+              <div className="space-y-6">
+                <div className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} p-6`}>
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className={`text-lg font-semibold ${textColor}`}>Data</h3>
                     <button
                       onClick={handleSave}
                       className={`px-4 py-2 ${buttonBgColor} text-white rounded-lg transition-colors flex items-center space-x-2`}
@@ -1288,121 +1370,111 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                     >
                       {loading ? (
                         <>
-                          <Loader2 className="w-4 h-4 animate-spin" />
                           <span>Saving...</span>
                         </>
                       ) : 'Save'}
                     </button>
                   </div>
-                ) : (
-                  <button
-                    onClick={() => setIsEditing(true)}
-                    className={`px-4 py-2 ${theme === 'dark'
-                      ? 'bg-purplebg hover:bg-purple-700'
-                      : 'bg-gray-900 hover:bg-gray-800'
-                      } text-white rounded-lg transition-colors`}
-                  >
-                    Edit Deal
-                  </button>
-                )}
-              </div>
-            </div>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Main Info */}
-              <div className="lg:col-span-2 space-y-6">
-                <div className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} p-6`}>
-                  <h3 className={`text-lg font-semibold ${textColor} mb-4`}>Deal Information</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <div>
                       <label className={`block text-sm font-medium ${textSecondaryColor}`}>Organization</label>
-                      {isEditing ? (
-                        <input
-                          type="text"
-                          value={editedDeal.organization}
-                          onChange={(e) => handleInputChange('organization', e.target.value)}
-                          className={`mt-1 block w-full rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
-                        />
-                      ) : (
-                        <p className={`mt-1 text-sm ${textColor}`}>{deal.organization}</p>
-                      )}
+                      <Select
+                        value={organizationOptions.find(
+                          (option) => option.value === editedDeal.organization_name
+                        )}
+                        onChange={(selectedOption) =>
+                          handleInputChange('organization_name', selectedOption ? selectedOption.value : '')
+                        }
+                        options={organizationOptions}
+                        isClearable
+                        isSearchable
+                        placeholder="Search or select organization..."
+                        className="mt-1 w-full"
+                        classNamePrefix="org-select"
+                        styles={darkSelectStyles}
+                      />
+                    </div>
+
+                    <div>
+                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>Website</label>
+                      <input
+                        type="text"
+                        value={editedDeal.website || ''}
+                        onChange={(e) => handleInputChange('website', e.target.value)}
+                        className={`p-[2px] pl-2  placeholder-gray-200 mt-1 block w-full rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
+                      />
                     </div>
                     <div>
-                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>Status</label>
-                      {isEditing ? (
-                        <select
-                          value={editedDeal.status}
-                          onChange={(e) => handleInputChange('status', e.target.value)}
-                          className={`mt-1 block w-full rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
-                        >
-                          <option value="Qualification">Qualification</option>
-                          <option value="Demo/Making">Demo/Making</option>
-                          <option value="Proposal/Quotation">Proposal/Quotation</option>
-                          <option value="Negotiation">Negotiation</option>
-                        </select>
-                      ) : (
-                        <p className={`mt-1 text-sm ${textColor}`}>{deal.status}</p>
-                      )}
+                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>Territory</label>
+                      <Select
+                        value={TerritoryOptions.find(
+                          (option) => option.value === editedDeal.territory
+                        )}
+                        onChange={(selectedOption) =>
+                          handleInputChange('territory', selectedOption ? selectedOption.value : '')
+                        }
+                        options={TerritoryOptions}
+                        isClearable
+                        isSearchable
+                        placeholder="Search or select Territory..."
+                        className="mt-1 w-full"
+                        classNamePrefix="org-select"
+                        styles={darkSelectStyles}
+                      />
                     </div>
                     <div>
                       <label className={`block text-sm font-medium ${textSecondaryColor}`}>Annual Revenue</label>
-                      {isEditing ? (
-                        <input
-                          type="text"
-                          value={editedDeal.annualRevenue}
-                          onChange={(e) => handleInputChange('annualRevenue', e.target.value)}
-                          className={`mt-1 block w-full rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
-                        />
-                      ) : (
-                        <p className={`mt-1 text-sm ${textColor}`}>{deal.annualRevenue}</p>
-                      )}
+                      <input
+                        type="text"
+                        value={editedDeal.annual_revenue || ''}
+                        onChange={(e) => handleInputChange('annual_revenue', e.target.value)}
+                        className={`p-[2px] pl-2 mt-1 block w-full rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
+                      />
                     </div>
                     <div>
-                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>Assigned To</label>
-                      {isEditing ? (
-                        <input
-                          type="text"
-                          value={editedDeal.assignedTo}
-                          onChange={(e) => handleInputChange('assignedTo', e.target.value)}
-                          className={`mt-1 block w-full rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
-                        />
-                      ) : (
-                        <p className={`mt-1 text-sm ${textColor}`}>{deal.assignedTo}</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Side Info */}
-              <div className="space-y-6">
-                <div className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} p-6`}>
-                  <h3 className={`text-lg font-semibold ${textColor} mb-4`}>Contact Information</h3>
-                  <div className="space-y-4">
-                    <div>
-                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>Email</label>
-                      {isEditing ? (
-                        <input
-                          type="email"
-                          value={editedDeal.email}
-                          onChange={(e) => handleInputChange('email', e.target.value)}
-                          className={`mt-1 block w-full rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
-                        />
-                      ) : (
-                        <p className={`mt-1 text-sm ${textColor}`}>{deal.email}</p>
-                      )}
+                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>Close Date</label>
+                      <input
+                        type="date"
+                        value={editedDeal.close_date?.split(' ')[0] || ''}
+                        onChange={(e) => handleInputChange('close_date', e.target.value)}
+                        className={`p-[2px] pl-2 mt-1 block w-full rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
+                      />
                     </div>
                     <div>
-                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>Mobile Number</label>
-                      {isEditing ? (
-                        <input
-                          type="tel"
-                          value={editedDeal.mobileNo}
-                          onChange={(e) => handleInputChange('mobileNo', e.target.value)}
-                          className={`mt-1 block w-full rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
-                        />
-                      ) : (
-                        <p className={`mt-1 text-sm ${textColor}`}>{deal.mobileNo}</p>
-                      )}
+                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>Probability</label>
+                      <input
+                        type="number"
+                        value={editedDeal.probability || ''}
+                        onChange={(e) => handleInputChange('probability', e.target.value)}
+                        className={`p-[2px] pl-2 mt-1 block w-full rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
+                      />
+                    </div>
+                    <div>
+                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>Next Step</label>
+                      <input
+                        type="text"
+                        value={editedDeal.next_step || ''}
+                        onChange={(e) => handleInputChange('next_step', e.target.value)}
+                        className={`p-[2px] pl-2 mt-1 block w-full rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
+                      />
+                    </div>
+                    <div>
+                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>Deal Owner</label>
+                      <Select
+                        value={OwnersOptions.find(
+                          (option) => option.value === editedDeal.deal_owner
+                        )}
+                        onChange={(selectedOption) =>
+                          handleInputChange('deal_owner', selectedOption ? selectedOption.value : '')
+                        }
+                        options={OwnersOptions}
+                        isClearable
+                        isSearchable
+                        placeholder="Search or select Deal Owners..."
+                        className="mt-1 w-full"
+                        classNamePrefix="org-select"
+                        styles={darkSelectStyles}
+                      />
                     </div>
                   </div>
                 </div>
@@ -1410,7 +1482,6 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
             </div>
           </div>
         )}
-
         {activeTab === 'notes' && (
           <div className="space-y-6">
             {/* Add Note Form */}
@@ -1747,8 +1818,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                 </div>
               ) : comments.length === 0 ? (
                 <div className="text-center py-8">
-                  <MessageSquare className={`w-12 h-12 mx-auto mb-4 ${textSecondaryColor}`} />
-                  <p className={textSecondaryColor}>No comments yet</p>
+                  <FaRegComment className={`w-12 h-12 mx-auto mb-4 ${textSecondaryColor}`} />
+                  <p className={textSecondaryColor}>No comments</p>
                   <span
                     // onClick={() => setShowCommentModal(true)}
                     onClick={() => {
@@ -1783,41 +1854,46 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                         {/* Right aligned time */}
                         <p className="text-sm text-white">
                           {/* last week */}
-                            {getRelativeTime(comment.creation)}
+                          {getRelativeTime(comment.creation)}
                         </p>
                       </div>
 
-                      <div className={`border ${borderColor} rounded-lg p-4 mb-8 ml-9 mt-2`}>
+                      <div className={`border border-gray-600  rounded-lg p-4 mb-8 ml-9 mt-2`}>
                         {/* <div className="flex items-center justify-between mb-2">
                           <span className={`text-sm ${textSecondaryColor}`}>
                             {formatDate(comment.creation)}
                           </span>
                         </div> */}
-                        <div className={`${theme === 'dark' ? 'text-white' : 'text-gray-600'} whitespace-pre-wrap`}>
+                        <div className={`${theme === 'dark' ? 'text-white' : 'text-gray-600'} mb-2 whitespace-pre-wrap`}>
                           {comment.content.replace(/<[^>]+>/g, '')}
                         </div>
                         {/* Attachments section */}
                         {comment.attachments && comment.attachments.length > 0 && (
                           <div className="mt-0">
-                            <div className="text-sm font-medium mb-2">Attachments:</div>
+                            
                             <div className="flex flex-wrap gap-3">
-                              {comment.attachments.map((attachment) => (
-                                <a
-                                  key={attachment.name}
-                                  href={attachment.file_url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="flex items-center border text-white px-3 py-1 rounded bg-white-31 hover:bg-gray-600 transition-colors"
-                                >
-                                  <span className="mr-2 flex items-center gap-1 truncate max-w-[200px]">
-                                     <IoDocument className="w-3 h-3 mr-1" />
-                                    {attachment.file_name}
-                                  </span>
-                                  {/* <span className="text-xs opacity-75">
-                  ({formatFileSize(attachment.file_size)})
-                </span> */}
-                                </a>
-                              ))}
+                              {comment.attachments.map((attachment, index) => {
+                                const baseURL = "http://103.214.132.20:8002/";
+                                const fullURL = attachment.file_url.startsWith("http")
+                                  ? attachment.file_url
+                                  : `${baseURL}${attachment.file_url}`;
+
+                                return (
+                                  <div key={index} className="flex items-center gap-2">
+                                    <a
+                                      href={fullURL}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="flex items-center border border-gray-600 text-white px-3 py-1 rounded bg-white-31 hover:bg-gray-600 transition-colors"
+                                    >
+                                      <span className="mr-2 flex items-center gap-1 truncate max-w-[200px]">
+                                        <IoDocument className="w-3 h-3 mr-1" />
+                                        {attachment.file_name}
+                                      </span>
+                                    </a>
+                                  </div>
+                                );
+                              })}
                             </div>
                           </div>
                         )}
@@ -2118,13 +2194,11 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                       }, 100);                              // Wait for modal to render
                     }}
                     className="text-white cursor-pointer bg-gray-400 rounded-md inline-block text-center px-6 py-2"
-                  >New Mail</span>
+                  >New Email</span>
                 </div>
               ) : (
                 <div className="space-y-4">
-
                   {emails.map((email) => (
-
                     <div key={email.id} className="flex items-start w-full">
                       {/* Avatar Circle */}
                       <div className=" mt-2 relative z-10 w-8 h-8 flex items-center justify-center rounded-full bg-gray-500 text-white text-sm font-semibold mr-4">
@@ -2132,7 +2206,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                       </div>
 
                       {/* Email Card */}
-                      <div className={`flex-1 border ${borderColor} rounded-lg p-4 hover:shadow-md transition-shadow`}>
+                      <div className={`flex-1 border border-gray-600 rounded-lg p-4 hover:shadow-md transition-shadow`}>
                         <div className="flex justify-between items-start mb-2">
                           <h4 className={`font-medium ${textColor}`}>
                             {email.fromName} &lt;{email.from}&gt;
@@ -2140,15 +2214,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
 
                           {/* Right-side controls */}
                           <div className="flex items-center gap-3 ml-auto">
-                            {/* <span
-                              className={`text-xs px-3 py-1 font-semibold rounded-full bg-green-200 ${email.delivery_status === "Sent" ? "text-green-700" : "text-yellow-700 bg-yellow-200"
-                                }`}
-                            >
-                              {email.delivery_status}
-                            </span> */}
-                            <span className="text-xs text-white"> 
-                              {/* {email.creation ? getRelativeTime(email.creation) : "Unknown date"} */}
-                                {getRelativeTime(email.creation)}
+                            <span className="text-xs text-white">
+                              {getRelativeTime(email.creation)}
                             </span>
                             <button
                               onClick={() => {
@@ -2183,9 +2250,9 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                           </span>
                         </div>
 
-                        <div className="mt-4 pt-2 border-t border-gray-200 flex flex-col items-start">
+                        <div className="mt-4  pt-2 border-t border-gray-600  flex flex-col items-start">
                           <div
-                            className={`${textColor} whitespace-pre-wrap mt-4 w-full`}
+                            className={`${textColor} mb-2 whitespace-pre-wrap mt-4 w-full`}
                             dangerouslySetInnerHTML={{
                               __html: email.content.includes('\n\n---\n\n')
                                 ? email.content.split('\n\n---\n\n')[1]
@@ -2193,25 +2260,41 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                             }}
                           />
 
-                          {email.attachments?.length > 0 && (
-                            <div className="mt-4 w-full">
-                              <div className="flex flex-wrap gap-2">
-                                {email.attachments.map((attachment, index) => (
+                          {email.attachments.map((attachment, index) => {
+                            const baseURL = "http://103.214.132.20:8002/";
+                            const fullURL = `${baseURL}${attachment.file_url}`;
+                            //const isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(attachment.file_name);
+
+                            return (
+                              <div key={index} className="mb-2 flex items-center gap-2">
+                                <a
+                                  href={fullURL}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className={`px-3 py-1 border border-gray-600 rounded-md text-sm flex items-center ${theme === "dark" ? "bg-gray-700 text-white" : "bg-gray-200 text-gray-800"}`}
+                                >
+                                  <IoDocument className="w-3 h-3 mr-1" />
+                                  {attachment.file_name}
+                                </a>
+
+                                {/* {isImage && (
                                   <a
-                                    key={index}
-                                    href={attachment.file_url}
+                                    href={fullURL}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className={`px-3 py-1 rounded-md text-sm flex items-center ${theme === "dark" ? "bg-gray-700 text-white" : "bg-gray-200 text-gray-800"
-                                      }`}
+                                    className="inline-block"
                                   >
-                                    <IoDocument className="w-3 h-3 mr-1" />
-                                    {attachment.file_name}
+                                    <img
+                                      src={fullURL}
+                                      alt={attachment.file_name}
+                                      className="w-10 h-10 object-cover rounded border border-gray-400 hover:opacity-80"
+                                    />
                                   </a>
-                                ))}
+                                )} */}
                               </div>
-                            </div>
-                          )}
+                            );
+                          })}
+
 
                           {email.content.includes('\n\n---\n\n') && (
                             <div className="mt-2">
@@ -2279,6 +2362,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                   fetchEmails={fetchEmails}
                   selectedEmail={selectedEmail}
                   clearSelectedEmail={() => setSelectedEmail(null)} // Add this line
+                  deal={deal} // Add this line
                   onClose={() => setShowEmailModal(false)} />
               )}
             </div>

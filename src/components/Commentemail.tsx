@@ -3,8 +3,6 @@ import {
   Send,
   Paperclip,
   Smile,
-  MessageSquare,
-  Reply,
 } from "lucide-react";
 import { useTheme } from './ThemeProvider';
 import Emailpageleads from "./Emailpageleads";
@@ -199,7 +197,7 @@ export default function Commentemail({
               ? 'bg-white-31 border-gray-600 text-white focus:ring-gray-500'
               : 'bg-white border border-gray-300 text-gray-800 focus:ring-gray-300'
               }`}
-            //placeholder="Type your message..."
+            placeholder="@John, Can you please check this?"
             value={comment}
             onChange={e => setComment(e.target.value)}
             disabled={loading}
@@ -281,13 +279,18 @@ export default function Commentemail({
                 Discard
               </button>
               <button
-                className="bg-purplebg text-base font-semibold text-white px-5 py-2 rounded-md flex items-center gap-1 hover:bg-purple-700"
+                className={`text-base font-semibold px-5 py-2 rounded-md flex items-center gap-1 
+    ${loading || !comment.trim()
+                    ? "bg-gray-400 text-white cursor-not-allowed"
+                    : "bg-purplebg text-white hover:bg-purple-700"
+                  }`}
                 onClick={sendComment}
-                disabled={loading}
+                disabled={loading || !comment.trim()}
                 type="button"
               >
                 <Send size={14} /> {loading ? "Sending..." : "Send"}
               </button>
+
             </div>
           </div>
         </div>

@@ -4,17 +4,16 @@ import {
   Paperclip,
   Smile,
   MessageSquare,
-  Reply,
   Mail,
 } from "lucide-react";
 import { useTheme } from "./ThemeProvider";
 import Commentemail from "./Commentemail";
 import Picker from '@emoji-mart/react'
 import data from '@emoji-mart/data'
-import { HiOutlineDocument } from "react-icons/hi";
 import { IoDocument } from "react-icons/io5";
 import { getUserSession } from "../utils/session"; // Update with correct path
 import axios from "axios";
+import { Deal } from "./DealDetailView";
 
 
 interface EmailComposerProps {
@@ -25,7 +24,7 @@ interface EmailComposerProps {
   selectedEmail?: any; // Add this line
   clearSelectedEmail?: () => void; // Add this line
   fetchComments: () => void;
-
+  deal?: Deal; // Add this line
 }
 
 // Dummy showToast for demo. Replace with your own.
@@ -216,6 +215,15 @@ export default function EmailOrCommentComposer({ deal, onClose, mode, dealName, 
     }
   }, [mode]);
 
+  useEffect(() => {
+    if (mode === "new" && deal) {
+      // Set subject with deal name and ID
+      setEmailForm(prev => ({
+        ...prev,
+        subject: `${deal.organization} (#${deal.id})`
+      }));
+    }
+  }, [mode, deal]);
 
   return (
     <div
@@ -360,11 +368,13 @@ export default function EmailOrCommentComposer({ deal, onClose, mode, dealName, 
           </div>
           <div>
             <textarea
-              className={`w-full h-40 rounded-md p-3 text-sm focus:outline-none focus:ring-1 ${theme === "dark"
+              className={`mt-3 w-full h-40 rounded-md p-3 text-sm focus:outline-none focus:ring-1 ${theme === "dark"
                 ? "bg-white-31 border-gray-600 text-white focus:ring-gray-500"
                 : "bg-white border border-gray-300 text-gray-800 focus:ring-gray-300"
                 }`}
-              placeholder="@John, Can you please check this?"
+              placeholder="Hi John,
+               
+Can you please provider more details on this..."
               value={emailForm.message}
               onChange={e => setEmailForm(f => ({ ...f, message: e.target.value }))}
             />
@@ -408,21 +418,6 @@ export default function EmailOrCommentComposer({ deal, onClose, mode, dealName, 
               }`}
           >
             <div className="flex items-center gap-4">
-              {/* <label className="cursor-pointer">
-                <Paperclip size={18} />
-                <input
-                  type="file"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      setUploadedFiles((prev) => [...prev, file]);
-                      console.log("Selected file:", file);
-                    }
-                  }}
-
-                />
-              </label> */}
               <label className="cursor-pointer">
                 <Paperclip size={18} />
                 <input
@@ -478,13 +473,18 @@ export default function EmailOrCommentComposer({ deal, onClose, mode, dealName, 
                 Discard
               </button>
               <button
-                className="bg-purplebg text-base font-semibold text-white px-5 py-2 rounded-md flex items-center gap-1 hover:bg-purple-700"
+                className={`text-base font-semibold px-5 py-2 rounded-md flex items-center gap-1
+    ${loading || !emailForm.message.trim()
+                    ? "bg-gray-400 text-white cursor-not-allowed"
+                    : "bg-purplebg text-white hover:bg-purple-700"
+                  }`}
                 onClick={sendEmail}
-                disabled={loading}
+                disabled={loading || !emailForm.message.trim()}
                 type="button"
               >
-                <Send size={14} /> {loading ? "Sending..." : "Send"}
+                {loading ? "Sending..." : "Send"}
               </button>
+
             </div>
           </div>
         </div>
