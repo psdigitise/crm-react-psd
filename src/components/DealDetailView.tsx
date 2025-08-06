@@ -6,7 +6,7 @@ import EmailComposer from './EmailComposer';
 import { FaCircleDot, FaRegComment } from 'react-icons/fa6';
 import { Listbox } from '@headlessui/react';
 import { HiOutlineMailOpen, HiOutlinePlus } from 'react-icons/hi';
-import { IoDocument } from 'react-icons/io5';
+import { IoDocument, IoLockClosedOutline, IoLockOpenOutline } from 'react-icons/io5';
 import { LuReply, LuReplyAll } from 'react-icons/lu';
 import { PiDotsThreeOutlineBold } from 'react-icons/pi';
 import { TiDocumentText } from 'react-icons/ti';
@@ -14,6 +14,8 @@ import { apiAxios } from '../api/apiUrl';
 import axios from 'axios';
 import Select from 'react-select';
 import { darkSelectStyles } from '../components/Dropdownstyles/darkSelectStyles'
+import { getUserSession } from '../utils/session';
+import UploadAttachmentPopup from './DealsAttachmentPopups/AddAttachmentPopups';
 
 export interface Deal {
   id: string;
@@ -141,7 +143,8 @@ interface Email {
   creation: string;
 }
 
-type TabType = 'overview' | 'activity' | 'notes' | 'calls' | 'comments' | 'tasks' | 'emails';
+
+type TabType = 'overview' | 'activity' | 'notes' | 'calls' | 'comments' | 'tasks' | 'emails' | 'attachments';
 
 const commentTypes = [
   'Comment',
@@ -201,7 +204,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [activityLoading, setActivityLoading] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
-
+  const userSession = getUserSession();
+  const Username = userSession?.username || "Administrator";
   // Form states
   const [noteForm, setNoteForm] = useState({
     title: '',
@@ -243,6 +247,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
     { id: 'calls', label: 'Calls', icon: Phone },
     { id: 'tasks', label: 'Tasks', icon: CheckSquare },
     { id: 'notes', label: 'Notes', icon: FileText },
+    { id: 'attachments', label: 'Attachments', icon: Paperclip },
+
     // { id: 'attachments', label: 'Attachments', icon: <Paperclip className="w-4 h-4" /> },
   ];
 
@@ -368,8 +374,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         // Extract the comments from the response
         const activities = result.message[0] || [];
         const comments = activities
-          .filter(activity => activity.activity_type === 'comment')
-          .map(comment => ({
+          .filter((activity: { activity_type: string; }) => activity.activity_type === 'comment')
+          .map((comment: { name: any; content: any; creation: any; owner: any; attachments: any[]; }) => ({
             name: comment.name,
             content: comment.content,
             comment_type: 'Comment',
@@ -1239,6 +1245,68 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
     fetchTerritory();
   }, []);
 
+  const [attachments, setAttachments] = useState<Array<{
+    name: string;
+    file_name: string;
+    file_url: string;
+    file_type?: string;
+    file_size?: number;
+    is_private: number;
+    modified?: string;
+    creation?: string;
+    owner?: string;
+  }>>([]);
+  const [attachmentsLoading, setAttachmentsLoading] = useState(false);
+  const [isUploadPopupOpen, setIsUploadPopupOpen] = useState(false);
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+  const fetchAttachments = useCallback(async () => {
+    setAttachmentsLoading(true);
+    try {
+      const response = await fetch(
+        'http://103.214.132.20:8002/api/method/crm.api.activities.get_activities',
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            name: deal.name
+          })
+        }
+      );
+
+      if (response.ok) {
+        const result = await response.json();
+        // The attachments are in the last array of the message array
+        const attachments = result.message[result.message.length - 1] || [];
+        setAttachments(attachments);
+      }
+    } catch (error) {
+      console.error('Error fetching attachments:', error);
+      showToast('Failed to fetch attachments', { type: 'error' });
+    } finally {
+      setAttachmentsLoading(false);
+    }
+  }, [deal.name]);
+
+  useEffect(() => {
+    if (activeTab === 'attachments') {
+      fetchAttachments();
+    }
+  }, [activeTab, fetchAttachments]);
+
+  const isImageFile = (fileName: string | undefined): boolean => {
+    if (!fileName) return false;
+    return /\.(jpg|jpeg|png|gif|bmp|webp)$/i.test(fileName);
+  };
 
 
   return (
@@ -1847,7 +1915,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                             {comment.owner?.charAt(0).toUpperCase() || "?"}
                           </div>
                           <p className={`text-sm font-medium ${textSecondaryColor}`}>
-                            {comment.owner} added a {comment.comment_type}
+                            {Username} added a {comment.comment_type}
                           </p>
                         </div>
 
@@ -1870,10 +1938,10 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                         {/* Attachments section */}
                         {comment.attachments && comment.attachments.length > 0 && (
                           <div className="mt-0">
-                            
+
                             <div className="flex flex-wrap gap-3">
                               {comment.attachments.map((attachment, index) => {
-                                const baseURL = "http://103.214.132.20:8002/";
+                                const baseURL = "http://103.214.132.20:8002";
                                 const fullURL = attachment.file_url.startsWith("http")
                                   ? attachment.file_url
                                   : `${baseURL}${attachment.file_url}`;
@@ -2261,7 +2329,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                           />
 
                           {email.attachments.map((attachment, index) => {
-                            const baseURL = "http://103.214.132.20:8002/";
+                            const baseURL = "http://103.214.132.20:8002";
                             const fullURL = `${baseURL}${attachment.file_url}`;
                             //const isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(attachment.file_name);
 
@@ -2438,6 +2506,94 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                 </div>
               </>
             )}
+          </div>
+        )}
+
+
+        {activeTab === 'attachments' && (
+          <div className="space-y-6">
+            <div className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} p-6`}>
+              <div className='flex items-center justify-between gap-5 mb-6'>
+                <h3 className={`text-lg font-semibold ${textColor} mb-0`}>Attachments</h3>
+                <button
+                  onClick={() => setIsUploadPopupOpen(true)}
+                  className={`px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 ml-auto ${theme === 'dark' ? 'bg-purplebg text-white hover:bg-purple-700' : 'bg-purplebg text-white hover:bg-purple-700'}`}
+                >
+                  <HiOutlinePlus className="w-4 h-4" />
+                  <span>Upload Attachment</span>
+                </button>
+              </div>
+
+              {attachmentsLoading ? (
+                <div className="flex items-center justify-center">
+                  <Loader2 className={`w-8 h-8 animate-spin ${theme === 'dark' ? 'text-purplebg' : 'text-blue-600'}`} />
+                  <span className={`ml-2 ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>Loading attachments...</span>
+                </div>
+              ) : attachments.length === 0 ? (
+                <div className="text-center py-8">
+                  <Paperclip className={`w-12 h-12 mx-auto mb-4 ${textSecondaryColor}`} />
+                  <p className={textSecondaryColor}>No attachments found</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {attachments.map((attachment) => (
+                    <div
+                      key={attachment.name}
+                      className={`flex items-center justify-between p-4 rounded-lg ${theme === 'dark' ? 'bg-gray-800 hover:bg-gray-700' : 'bg-gray-50 hover:bg-gray-100'} transition-colors cursor-pointer`}
+                      onClick={() => window.open(`http://103.214.132.20:8002${attachment.file_url}`, '_blank')}
+                    >
+                      <div className="flex items-center">
+                        {isImageFile(attachment.file_name) ? (
+                          <img
+                            src={`http://103.214.132.20:8002${attachment.file_url}`}
+                            alt={attachment.file_name}
+                            className="w-12 h-12 mr-3 object-cover rounded border border-gray-400 hover:opacity-80"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 mr-3 flex items-center justify-center border border-gray-400 rounded">
+                            <IoDocument className={`w-6 h-6 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`} />
+                          </div>
+
+                        )}
+                        <div>
+                          <p className={`font-medium ${textColor}`}>{attachment.file_name}</p>
+                          <p className={`text-sm ${textSecondaryColor}`}>
+                            {attachment.file_size ? formatFileSize(attachment.file_size) : 'Unknown size'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end space-y-2">
+                        <p className={`text-sm ${textSecondaryColor}`}> {getRelativeTime(attachment.creation ?? '')}</p>
+                        <div className="flex items-center space-x-2">
+                          {attachment.is_private === 1 ? (
+                            <div className="p-2 bg-gray-700 rounded-full flex items-center justify-center">
+                              <IoLockClosedOutline className={`w-4 h-4 ${theme === 'dark' ? 'text-white' : 'text-gray-100'}`} title="Private" />
+                            </div>
+                          ) : (
+                            <div className="p-2 bg-gray-700 rounded-full flex items-center justify-center">
+                              <IoLockOpenOutline className={`w-4 h-4 ${theme === 'dark' ? 'text-white' : 'text-gray-100'}`} title="Public" />
+                            </div>
+                          )}
+
+                          <button
+                            className={`p-1.5 bg-gray-700 rounded-full ${theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-200'}`}
+                            onClick={() => {
+                              // Handle delete if needed
+                            }}
+                          >
+                            <Trash2 className={`w-5 h-5 text-white ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`} />
+                          </button>
+                          {/* <UploadAttachmentPopup
+                            isOpen={isUploadPopupOpen}
+                            onClose={() => setIsUploadPopupOpen(false)}
+                          /> */}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>

@@ -206,7 +206,25 @@ export default function Commentemail({
           <input
             type="file"
             ref={fileInputRef}
-            onChange={handleFileChange}
+            //onChange={handleFileChange}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) {
+                // Check if file with same name already exists
+                const isDuplicate = uploadedFiles.some(
+                  existingFile => existingFile.name === file.name
+                );
+
+                if (!isDuplicate) {
+                  setUploadedFiles((prev) => [...prev, file]);
+                } else {
+                  console.log("This file has already been attached", { type: "warning" });
+                }
+
+                // Clear the input to allow selecting the same file again if needed
+                e.target.value = "";
+              }
+            }}
             multiple
             style={{ display: 'none' }}
           />
@@ -244,7 +262,7 @@ export default function Commentemail({
               <Paperclip
                 className="cursor-pointer"
                 size={18}
-                onClick={() => fileInputRef.current?.click()}
+              onClick={() => fileInputRef.current?.click()}
               />
               <div className="relative">
                 <Smile
