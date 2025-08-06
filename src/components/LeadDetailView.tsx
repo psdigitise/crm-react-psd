@@ -582,7 +582,7 @@ console.log("llo",comms);
 
   useEffect(() => {
     fetchActivitiesNew();
-  }, [listSuccess]); // Empty dependency array means this runs once on mount
+  }, [listSuccess,lead.name]); // Empty dependency array means this runs once on mount
 
 
   // Fetch activities
@@ -3252,14 +3252,14 @@ const fetchComments = async () => {
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
                 </div>
-              ) : !activitiesNew?.docinfo?.communications || activitiesNew.docinfo.communications.length === 0 ? (
+              ) : !activitiesNew || activitiesNew.length  === 0 ? (
                 <div className="text-center py-8">
                   <Mail className={`w-12 h-12 ${theme === 'dark' ? 'text-gray-500' : 'text-white'} mx-auto mb-4`} />
                   <p className={`${theme === 'dark' ? 'text-white' : 'text-gray-500'}`}>No emails yet</p>
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {activitiesNew.docinfo.communications.map((comm: any) => {
+                  {activitiesNew.map((comm: any) => {
 
                     // const attachments = comm.attachments ? JSON.parse(comm.attachments) : [];
                     //         let attachments = [];
