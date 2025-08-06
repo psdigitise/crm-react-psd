@@ -223,7 +223,7 @@ useEffect(() => {
   const sendComment = async () => {
   const { email, username } = getUserInfo();
   if (!comment.trim()) {
-    showToast("Please type your comment.", { type: "warning" });
+    console.log("Please type your comment.", { type: "warning" });
     return;
   }
   
@@ -258,7 +258,7 @@ useEffect(() => {
       await addAttachmentsToComment(commentName, attachments);
     }
 
-    showToast("Comment added successfully", { type: "success" });
+    console.log("Comment added successfully", { type: "success" });
     setUploadedFiles([]);
     setAttachments([]);
     setComment("");
@@ -267,7 +267,7 @@ useEffect(() => {
     if (onSuccess) onSuccess();
   } catch (error) {
     console.error("Error adding comment:", error);
-    showToast(error.message || "Failed to add comment", { type: "error" });
+    console.log(error.message || "Failed to add comment", { type: "error" });
   } finally {
     setLoading(false);
   }

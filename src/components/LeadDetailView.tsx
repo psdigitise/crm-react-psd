@@ -453,6 +453,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
 
   const refreshComments = async () => {
     await fetchComments(); // This will update activitiesNew state
+    await fetchActivitiesNew();
   };
   // Toggle switch component
   const ToggleSwitch = ({ enabled, onToggle }) => (
@@ -544,12 +545,34 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
       }
 
       const data = await response.json();
-      const comms = data.docinfo.communications;
-       const commentAttach = data.docinfo.attachments;
-console.log("llo",data.message);
-setActivitiesNewAttachment(commentAttach);
-      setActivitiesNew(comms);
+        const activities = data.message[0] || [];
+        const comments = activities
+          .filter((activity:any) => activity.activity_type === 'comment')
+          .map((comment:any) => ({
+            name: comment.name,
+            content: comment.content,
+            comment_type: 'Comment',
+            creation: comment.creation,
+            owner: comment.owner,
+            attachments: comment.attachments?.map((att: any) => ({
+              name: att.name,
+              file_name: att.file_name,
+              file_url: att.file_url,
+              is_private: att.is_private,
+              file_type: att.file_type,
+              file_size: att.file_size
+            }))
+          }));
+        setComments(comments);
+        console.log("11m",comments);
+        
       
+      const comms = data.docinfo?.communications;
+       const commentAttach = data.docinfo.attachments;
+console.log("llo",comms);
+
+      setActivitiesNew(comms);
+      setActivitiesNewAttachment(commentAttach);
     } catch (err) {
       console.log("error")
     } finally {
@@ -787,7 +810,7 @@ const fetchComments = async () => {
       });
       console.log('activitiesNew.docinfo.communicationsactivitiesNew.docinfo.communications',commentsWithAttachments);
       
-      setComments(commentsWithAttachments);
+    //  setComments(commentsWithAttachments);
     } else {
       const errorData = await response.json();
       console.error("Failed to fetch:", errorData);
@@ -2717,215 +2740,117 @@ const fetchComments = async () => {
           </div>
         )}
 
+
         {activeTab === 'comments' && (
-          <div className="">
-            <div className={` p-6 ${theme === 'dark' ? ' border-white' : 'bg-white border-gray-200'}`}>
-              <div className="flex justify-between items-center gap-4">
-                <h3 className={`text-2xl font-semibold mb-0 ${theme === 'dark' ? "text-white" : "text-black"} mb-4`}>Comments</h3>
-                <button
-                  // onClick={() => setShowCommentModal(prev => !prev)}
-                  onClick={handleCommentNavigate}
-                  className={`px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 ${theme === 'dark' ? 'bg-purplebg text-white hover:bg-purple-700' : 'bg-purplebg text-white hover:bg-purple-700'}`}
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>New Comment</span>
-                </button>
+  <div className="">
+    <div className={` p-6 ${theme === 'dark' ? ' border-white' : 'bg-white border-gray-200'}`}>
+      <div className="flex justify-between items-center gap-4">
+        <h3 className={`text-2xl font-semibold mb-0 ${theme === 'dark' ? "text-white" : "text-black"} mb-4`}>Comments</h3>
+        <button
+          onClick={handleCommentNavigate}
+          className={`px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 ${theme === 'dark' ? 'bg-purplebg text-white hover:bg-purple-700' : 'bg-purplebg text-white hover:bg-purple-700'}`}
+        >
+          <Plus className="w-4 h-4" />
+          <span>New Comment</span>
+        </button>
+      </div>
+    </div>
+    <div className={`rounded-lg max-h-[400px] overflow-y-auto pr-2 shadow-sm border p-6 ${theme === 'dark' ? 'bg-custom-gradient border-white' : 'bg-white border-gray-200'}`}>
+      {commentsLoading ? (
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="w-6 h-6 animate-spin text-purple-600" />
+        </div>
+      ) : comments.length === 0 ? (
+        <div className="text-center py-8">
+          <MessageSquare className={`w-12 h-12 ${theme === 'dark' ? 'text-gray-500' : 'text-white'} mx-auto mb-4`} />
+          <p className={`${theme === 'dark' ? 'text-white' : 'text-gray-500'}`}>No comments yet</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {comments.map((comment) => (
+            <div key={comment.name} className='flex gap-2'>
+              <div className='flex flex-col items-center'>
+                <div className="w-7 h-10 flex items-center justify-center bg-gray-500 rounded-full">
+                  <FaRegComment className="w-4 h-4 text-purple-300" />
+                </div>
+                <div className='w-px h-full bg-gray-300 my-2'></div>
               </div>
-              {/* {showCommentModal && (
-                <CommentCreate
-                  reference_doctype="CRM Lead"
-                  reference_name={lead.name}
-                  onSuccess={fetchComments}
-                  onClose={() => setShowCommentModal(false)}
-                />
-              )} */}
 
-            </div>
-            <div className={`rounded-lg max-h-[400px] overflow-y-auto pr-2  shadow-sm border p-6 ${theme === 'dark' ? 'bg-custom-gradient border-white' : 'bg-white border-gray-200'}`}>
-              {/* <h3 className={`text-lg font-semibold mb-4 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Comments ({comments.length})</h3> */}
-              {commentsLoading ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="w-6 h-6 animate-spin text-purple-600" />
-                </div>
-              ) : comments.length === 0 ? (
-                <div className="text-center py-8">
-
-                  <MessageSquare className={`w-12 h-12 ${theme === 'dark' ? 'text-gray-500' : 'text-white'} mx-auto mb-4`} />
-                  <p className={`${theme === 'dark' ? 'text-white' : 'text-gray-500'}`}>No comments yet</p>
-                </div>
-              ) : (
-                <div className="space-y-4 ">
-                  {comments.map((comment) => {
-
-
-                    // let attachments = [];
-                    // try {
-                    //   attachments = commentAttachment?.docinfo?.attachments? JSON.parse(commentAttachment?.docinfo?.attachments) : [];
-                    // } catch (e) {
-                    //   console.error('Error parsing attachments:', e);
-                    //   attachments = [];
-                    // }
-
-        //                let attachments = [];
-        // try {
-        //   attachments = comment.attachments ? JSON.parse(comment.attachments) : [];
-        //   console.log('1lpp',attachments);
-        // } catch (e) {
-        //   console.error('Error parsing attachments:', e);
-        //   attachments = [];
-        // }
-
-        //  const attachments = activitiesNewAttachment || [];
-        //             console.log('1lp',attachments);
+              <div className={`border w-full rounded-lg p-4 ${theme === 'dark' ? 'border-purple-500/30 hover:bg-purple-800/30' : 'border-gray-200 hover:bg-gray-50'} transition-colors`}>
+                <div className="flex items-start space-x-3">
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className={`font-medium px-2 py-1 rounded-full bg-slate-500 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                          {comment.owner.charAt(0).toUpperCase()}
+                        </span>
+                        <span className={`font-medium ml-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                          <span className="text-gray-300">{comment.owner}</span>
+                        </span>
+                        <span className={`font-medium ml-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                          added a <span className="text-gray-300">comment</span>
+                        </span>
+                      </div>
+                      <span className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`}>
+                        {getRelativeTime(comment.creation)}
+                      </span>
+                    </div>
                     
-                     let attachments = [];
-                    try {
-                      attachments = activitiesNewAttachment ? (activitiesNewAttachment) : [];
-                    } catch (e) {
-                      console.error('Error parsing attachments:', e);
-                      attachments = [];
-                    }
-                    return (<>
-                      <div className='flex gap-2'>
-                        <div className='flex flex-col items-center '>
-                          <div className="w-7 h-10 flex items-center justify-center bg-gray-500 rounded-full">
-                            <FaRegComment className="w-4 h-4 text-purple-300" />
-                          </div>
-                          <div className='w-px h-full bg-gray-300 my-2'></div>
-                        </div>
+                    {/* Comment Content */}
+                    <p className={`bg-gray-800 p-3 rounded ${theme === 'dark' ? 'text-white' : 'text-gray-600'} mt-2`}>
+                      {stripHtml(comment.content)}
+                    </p>
 
-                        <div
-                          key={comment.name}
-                          className={`border w-full rounded-lg p-4 ${theme === 'dark' ? 'border-purple-500/30 hover:bg-purple-800/30' : 'border-gray-200 hover:bg-gray-50'} transition-colors`}
-                        >
-                          <div className="flex items-start space-x-3">
-
-                            <div className="flex-1">
-                              <div className="flex items-center justify-between">
-                                <div>
-                                  <span className={`font-medium px-2 py-1 rounded-full bg-slate-500 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{comment.owner.charAt(0).toUpperCase()}</span>
-                                  <span className={`font-medium ml-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}> <span className="text-gray-300">{comment.owner}</span></span>
-                                  {/* <span className={`font-medium ml-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>added a <span classname=>comment</span></span> */}
-                                  <span className={`font-medium ml-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                                    added a <span className="text-gray-300">comment</span>
-                                  </span>
-
-                                </div>
-                                <span className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`}>{getRelativeTime(comment.creation)}</span>
-                              </div>
-                              <p className={` bg-gray-800 p-3 rounded ${theme === 'dark' ? 'text-white' : 'text-gray-600'} mt-2`}>{stripHtml(comment.content)}</p>
-
-                              {/* {attachments.length > 0 && (
-                                <div className="mt-3">
-                                  <p className={`text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>
-                                    Attachments:
-                                  </p>
-                                  <div className="flex flex-wrap gap-2">
-                                    {attachments.map((attachment: any, index: number) => (
-                                      <a
-                                        key={index}
-                                        // href={attachment.file_url}
-                                        href={`http://103.214.132.20:8002${attachment.file_url}`}
-                                        download
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className={`flex items-center gap-2 px-3 py-2 rounded-md ${theme === 'dark' ? 'bg-white hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'} transition-colors`}
-                                      >
-                                        <File className="w-4 h-4" />
-                                        <span className="text-sm">
-                                          {attachment.file_name}
-                                        </span>
-                                      </a>
-                                    ))}
-                                  </div>
-                                </div>
-                              )} */}
-
-                                      {attachments.length > 0 && (
-          <div className="mt-3">
-            <p className={`text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>
-              Attachments:
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {attachments.map((attachment: { file_url: string; file_name: any; }, index: React.Key | null | undefined) => (
-                <a
-                  key={index}
-                  href={`http://103.214.132.20:8002${attachment.file_url}`}
-                  download
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`flex items-center gap-2 px-3 py-2 rounded-md ${theme === 'dark' ? 'bg-white hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'} transition-colors`}
-                >
-                  <File className="w-4 h-4" />
-                  <span className="text-sm">
-                    {attachment.file_name || attachment.file_url.split('/').pop()}
-                  </span>
-                </a>
-              ))}
-            </div>
-          </div>
-        )}
-
-                              {comment.subject && (
-                                <p className={`${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'} mt-1`}>Subject: {comment.subject}</p>
-                              )}
-                              <div className={`flex items-center space-x-4 mt-3 text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`}>
-                                {/* <span>By: {comment.owner}</span> */}
-                                {/* <button
-                              onClick={() => {
-                                if (window.confirm('Are you sure you want to delete this comment?')) {
-                                  fetch(`${API_BASE_URL}/method/frappe.client.delete`, {
-                                    method: 'POST',
-                                    headers: {
-                                      'Authorization': AUTH_TOKEN,
-                                      'Content-Type': 'application/json'
-                                    },
-                                    body: JSON.stringify({
-                                      doctype: 'Comment',
-                                      name: comment.name
-                                    })
-                                  })
-                                  .then(() => fetchComments())
-                                  .catch(error => {
-                                    console.error('Error deleting comment:', error);
-                                    showToast('Failed to delete comment', { type: 'error' });
-                                  });
-                                }
-                              }}
-                              title="Delete"
-                              className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-900 transition-colors"
-                              style={{ lineHeight: 0 }}
+                    {/* Attachments Section */}
+                    {comment.attachments && comment.attachments.length > 0 && (
+                      <div className="mt-3">
+                        <p className={`text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>
+                          Attachments:
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {comment.attachments.map((attachment: { file_url: string; file_name: any; }, index: React.Key | null | undefined) => (
+                            <a
+                              key={index}
+                              href={`http://103.214.132.20:8002${attachment.file_url}`}
+                              download
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className={`flex items-center gap-2 px-3 py-2 rounded-md ${theme === 'dark' ? 'bg-white hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'} transition-colors`}
                             >
-                              <Trash2 className="w-4 h-4 text-red-500" />
-                            </button> */}
-                              </div>
-                            </div>
-                          </div>
+                              <File className="w-4 h-4" />
+                              <span className="text-sm">
+                                {attachment.file_name || attachment.file_url.split('/').pop()}
+                              </span>
+                            </a>
+                          ))}
                         </div>
                       </div>
-                    </>
-                    )
-                  })}
+                    )}
+                  </div>
                 </div>
-              )}
+              </div>
             </div>
-            <div ref={commentRef}>
-              {showCommentModal && (
-                <EmailComposerleads
-                  onClose={() => {
-                    setShowCommentModal(false);
-                    setReplyData(undefined); // Clear reply data when closing
-                  }}
-                  lead={lead}
-                  deal={undefined}
-                  setListSuccess={setListSuccess}
-                  refreshEmails={refreshComments}
-                  replyData={replyData} // Pass the reply data
-                />
-              )}
-            </div>
-          </div>
-        )}
+          ))}
+        </div>
+      )}
+    </div>
+    <div ref={commentRef}>
+      {showCommentModal && (
+        <EmailComposerleads
+          onClose={() => {
+            setShowCommentModal(false);
+            setReplyData(undefined);
+          }}
+          lead={lead}
+          deal={undefined}
+          setListSuccess={setListSuccess}
+          refreshEmails={refreshComments}
+          replyData={replyData}
+        />
+      )}
+    </div>
+  </div>
+)}
 
         {activeTab === 'tasks' && (
           <div className="space-y-6">
