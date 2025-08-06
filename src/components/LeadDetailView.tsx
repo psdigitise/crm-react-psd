@@ -25,7 +25,8 @@ import {
   CornerUpRight,
   Disc,
   ReplyAll,
-  CornerUpLeft
+  CornerUpLeft,
+  File
 } from 'lucide-react';
 import { showToast } from '../utils/toast';
 import EmailComposer from './EmailComposer';
@@ -104,6 +105,7 @@ interface CallLog {
 }
 
 interface Comment {
+  attachments: any;
   name: string;
   content: string;
   comment_type: string;
@@ -113,6 +115,38 @@ interface Comment {
   owner: string;
   subject: string;
 }
+
+export interface Attachment {
+  name: string;
+  file_name: string;
+  file_url: string;
+  is_private: number;
+}
+
+
+export interface Communication {
+  name: string;
+  communication_type: string;
+  communication_medium: string;
+  comment_type: string;
+  communication_date: string;
+  content: string;
+  sender: string;
+  sender_full_name: string;
+  cc: string | null;
+  bcc: string | null;
+  creation: string;
+  subject: string;
+  delivery_status: string;
+  _liked_by: string | null;
+  reference_doctype: string;
+  reference_name: string;
+  read_by_recipient: number;
+  rating: number;
+  recipients: string;
+  attachments: string; // JSON string; you'll parse this into Attachment[]
+}
+
 
 interface Task {
   name: string;
@@ -291,6 +325,10 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
   const [notes, setNotes] = useState<Note[]>([]);
   const [callLogs, setCallLogs] = useState<CallLog[]>([]);
   const [comments, setComments] = useState<Comment[]>([]);
+  const [commentAttachment, setCommentAtachment] = useState<any>([]);
+
+  console.log("mnv", comments.attachments);
+
   const [commentsNew, setCommentsNew] = useState<any>([]);
 
   console.log("1ki", commentsNew?.docinfo?.comments.length);
@@ -301,7 +339,9 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
 
   const [files, setFiles] = useState([]);
   const [activitiesNew, setActivitiesNew] = useState<any>(null);
+  const [activitiesNewAttachment, setActivitiesNewAttachment] = useState<any>(null);
 
+  console.log("activitiesNew.docinfo.communications", activitiesNewAttachment);
   // Loading states
   const [notesLoading, setNotesLoading] = useState(false);
   const [callsLoading, setCallsLoading] = useState(false);
@@ -345,18 +385,8 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
   const tabs = [
     { id: 'activity', label: 'Activity', icon: <Activity className="w-4 h-4" /> },
     { id: 'emails', label: 'Emails', icon: <Mail className="w-4 h-4" /> },
-    { id: 'comments', label: 'Comments', icon:  <FaRegComment className="w-4 h-4" />},
+    { id: 'comments', label: 'Comments', icon: <FaRegComment className="w-4 h-4" /> },
     { id: 'overview', label: 'Data', icon: <User className="w-4 h-4" /> },
-
-
-
-
-
-
-
-
-
-    +
     { id: 'calls', label: 'Calls', icon: <Phone className="w-4 h-4" /> },
     { id: 'tasks', label: 'Tasks', icon: <CheckSquare className="w-4 h-4" /> },
     { id: 'notes', label: 'Notes', icon: <FileText className="w-4 h-4" /> },
@@ -444,26 +474,26 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
   const [userOptions, setUserOptions] = useState<string[]>([]);
   const [organizationOptions, setOrganizationOptions] = useState<string[]>([]);
   const [contactOptions, setContactOptions] = useState<string[]>([]);
-  
-const composerRef = useRef<HTMLDivElement>(null);
-const commentRef =useRef<HTMLDivElement>(null)
+
+  const composerRef = useRef<HTMLDivElement>(null);
+  const commentRef = useRef<HTMLDivElement>(null)
   //  const handleNewEmailClick = () => {
   //   composerRef.current?.scrollIntoView({ behavior: "smooth" });
   // };
 
   const handleNewEmailClick = () => {
-  setShowEmailModal(true); // Show the composer first
-  setTimeout(() => {
-    composerRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, 100); // Small delay to allow the component to render
-};
+    setShowEmailModal(true); // Show the composer first
+    setTimeout(() => {
+      composerRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, 100); // Small delay to allow the component to render
+  };
 
-const handleCommentNavigate =()=>{
-  setShowCommentModal(true);
-  setTimeout(()=>{
-commentRef.current?.scrollIntoView({behavior:"smooth"})
-  },100)
-}
+  const handleCommentNavigate = () => {
+    setShowCommentModal(true);
+    setTimeout(() => {
+      commentRef.current?.scrollIntoView({ behavior: "smooth" })
+    }, 100)
+  }
 
   // Fetch lead data
   const fetchLeadData = async () => {
@@ -515,9 +545,11 @@ commentRef.current?.scrollIntoView({behavior:"smooth"})
 
       const data = await response.json();
       const comms = data.docinfo.communications;
-
+       const commentAttach = data.docinfo.attachments;
+console.log("llo",data.message);
+setActivitiesNewAttachment(commentAttach);
       setActivitiesNew(comms);
-      setActivitiesNew(data);
+      
     } catch (err) {
       console.log("error")
     } finally {
@@ -687,37 +719,87 @@ commentRef.current?.scrollIntoView({behavior:"smooth"})
   // };
 
 
-  const fetchComments = async () => {
-    setCommentsLoading(true);
-    try {
-      const response = await fetch(`${API_BASE_URL}/method/crm.api.activities.get_activities`, {
-        method: 'POST',
-        headers: {
-          'Authorization': AUTH_TOKEN,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          name: lead.name // ✅ dynamically use the lead name
-        })
+  // const fetchComments = async () => {
+  //   setCommentsLoading(true);
+  //   try {
+  //     const response = await fetch(`${API_BASE_URL}/method/crm.api.activities.get_activities`, {
+  //       method: 'POST',
+  //       headers: {
+  //         'Authorization': AUTH_TOKEN,
+  //         'Content-Type': 'application/json'
+  //       },
+  //       body: JSON.stringify({
+  //         name: lead.name // ✅ dynamically use the lead name
+  //       })
+  //     });
+
+  //     if (response.ok) {
+  //       const result = await response.json();
+  //       setCommentsNew(result)
+  //       console.log('ll', result.docinfo.communications)
+  //       setCommentAtachment(result.docinfo.communication)
+  //       setComments(result.docinfo.comments || []);
+  //     } else {
+  //       const errorData = await response.json();
+  //       console.error("Failed to fetch:", errorData);
+  //       showToast(`Failed to fetch comments: ${errorData?.message || response.statusText}`, { type: "error" });
+  //     }
+  //   } catch (error) {
+  //     console.error('Error fetching comments:', error);
+  //     showToast('Failed to fetch comments', { type: 'error' });
+  //   } finally {
+  //     setCommentsLoading(false);
+  //   }
+  // };
+// When fetching comments, ensure attachments are properly parsed
+const fetchComments = async () => {
+  setCommentsLoading(true);
+  try {
+    const response = await fetch(`${API_BASE_URL}/method/crm.api.activities.get_activities`, {
+      method: 'POST',
+      headers: {
+        'Authorization': AUTH_TOKEN,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        name: lead.name
+      })
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+      setCommentsNew(result);
+      
+      // Process comments with their attachments
+      const commentsWithAttachments = result.docinfo.comments.map((comment: { attachments: string; }) => {
+        try {
+          return {
+            ...comment,
+            attachments: comment.attachments ? JSON.parse(comment.attachments) : []
+          };
+        } catch (e) {
+          console.error('Error parsing attachments:', e);
+          return {
+            ...comment,
+            attachments: []
+          };
+        }
       });
-
-      if (response.ok) {
-        const result = await response.json();
-        setCommentsNew(result)
-
-        setComments(result.docinfo.comments || []);
-      } else {
-        const errorData = await response.json();
-        console.error("Failed to fetch:", errorData);
-        showToast(`Failed to fetch comments: ${errorData?.message || response.statusText}`, { type: "error" });
-      }
-    } catch (error) {
-      console.error('Error fetching comments:', error);
-      showToast('Failed to fetch comments', { type: 'error' });
-    } finally {
-      setCommentsLoading(false);
+      console.log('activitiesNew.docinfo.communicationsactivitiesNew.docinfo.communications',commentsWithAttachments);
+      
+      setComments(commentsWithAttachments);
+    } else {
+      const errorData = await response.json();
+      console.error("Failed to fetch:", errorData);
+      showToast(`Failed to fetch comments: ${errorData?.message || response.statusText}`, { type: "error" });
     }
-  };
+  } catch (error) {
+    console.error('Error fetching comments:', error);
+    showToast('Failed to fetch comments', { type: 'error' });
+  } finally {
+    setCommentsLoading(false);
+  }
+};
 
   useEffect(() => {
     fetchComments()
@@ -1558,6 +1640,9 @@ commentRef.current?.scrollIntoView({behavior:"smooth"})
 
 
   const handleReply = (email: any, replyAll: boolean) => {
+    setTimeout(() => {
+      composerRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, 100);
     // Set the recipient (original sender)
     let recipient = email.sender;
 
@@ -1615,22 +1700,22 @@ commentRef.current?.scrollIntoView({behavior:"smooth"})
   };
 
   function getRelativeTime(dateString: string) {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffSec = Math.floor(diffMs / 1000);
-  const diffMin = Math.floor(diffSec / 60);
-  const diffHr = Math.floor(diffMin / 60);
-  const diffDay = Math.floor(diffHr / 24);
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffSec = Math.floor(diffMs / 1000);
+    const diffMin = Math.floor(diffSec / 60);
+    const diffHr = Math.floor(diffMin / 60);
+    const diffDay = Math.floor(diffHr / 24);
 
-  if (diffSec < 60) return `${diffSec} sec ago`;
-  if (diffMin < 60) return `${diffMin} min ago`;
-  if (diffHr < 24) return `${diffHr} hour${diffHr > 1 ? 's' : ''} ago`;
-  if (diffDay < 7) return `${diffDay} day${diffDay > 1 ? 's' : ''} ago`;
+    if (diffSec < 60) return `${diffSec} sec ago`;
+    if (diffMin < 60) return `${diffMin} min ago`;
+    if (diffHr < 24) return `${diffHr} hour${diffHr > 1 ? 's' : ''} ago`;
+    if (diffDay < 7) return `${diffDay} day${diffDay > 1 ? 's' : ''} ago`;
 
-  // fallback to full date if older than a week
-  return date.toLocaleString(); // or customize with Intl.DateTimeFormat
-}
+    // fallback to full date if older than a week
+    return date.toLocaleString(); // or customize with Intl.DateTimeFormat
+  }
 
   // Handle delete lead
   const handleDelete = async () => {
@@ -2633,17 +2718,17 @@ commentRef.current?.scrollIntoView({behavior:"smooth"})
         )}
 
         {activeTab === 'comments' && (
-          <div className="space-y-6">
-            <div className={`rounded-lg shadow-sm border p-6 ${theme === 'dark' ? 'bg-custom-gradient border-white' : 'bg-white border-gray-200'}`}>
+          <div className="">
+            <div className={` p-6 ${theme === 'dark' ? ' border-white' : 'bg-white border-gray-200'}`}>
               <div className="flex justify-between items-center gap-4">
-                <h3 className={`text-lg font-semibold mb-0 ${theme === 'dark' ? "text-white" : "text-black"} mb-4`}>Add Comment</h3>
+                <h3 className={`text-2xl font-semibold mb-0 ${theme === 'dark' ? "text-white" : "text-black"} mb-4`}>Comments</h3>
                 <button
-                 // onClick={() => setShowCommentModal(prev => !prev)}
-                 onClick={handleCommentNavigate}
+                  // onClick={() => setShowCommentModal(prev => !prev)}
+                  onClick={handleCommentNavigate}
                   className={`px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 ${theme === 'dark' ? 'bg-purplebg text-white hover:bg-purple-700' : 'bg-purplebg text-white hover:bg-purple-700'}`}
                 >
                   <Plus className="w-4 h-4" />
-                  <span>Add Comment</span>
+                  <span>New Comment</span>
                 </button>
               </div>
               {/* {showCommentModal && (
@@ -2657,55 +2742,136 @@ commentRef.current?.scrollIntoView({behavior:"smooth"})
 
             </div>
             <div className={`rounded-lg max-h-[400px] overflow-y-auto pr-2  shadow-sm border p-6 ${theme === 'dark' ? 'bg-custom-gradient border-white' : 'bg-white border-gray-200'}`}>
-              <h3 className={`text-lg font-semibold mb-4 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Comments ({comments.length})</h3>
+              {/* <h3 className={`text-lg font-semibold mb-4 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Comments ({comments.length})</h3> */}
               {commentsLoading ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="w-6 h-6 animate-spin text-purple-600" />
                 </div>
               ) : comments.length === 0 ? (
                 <div className="text-center py-8">
-                  
+
                   <MessageSquare className={`w-12 h-12 ${theme === 'dark' ? 'text-gray-500' : 'text-white'} mx-auto mb-4`} />
                   <p className={`${theme === 'dark' ? 'text-white' : 'text-gray-500'}`}>No comments yet</p>
                 </div>
               ) : (
                 <div className="space-y-4 ">
-                  {comments.map((comment) => (
-                   <>
-                   <div className='flex gap-2'>
-                      <div className='flex flex-col items-center '>
-                      <div className="w-7 h-10 flex items-center justify-center bg-gray-500 rounded-full">
-   <FaRegComment className="w-4 h-4 text-purple-300" />
-</div>
-<div className='w-px h-full bg-gray-300 my-2'></div>
-          </div>
+                  {comments.map((comment) => {
 
-                     <div
-                      key={comment.name}
-                      className={`border w-full rounded-lg p-4 ${theme === 'dark' ? 'border-purple-500/30 hover:bg-purple-800/30' : 'border-gray-200 hover:bg-gray-50'} transition-colors`}
-                    >
-                      <div className="flex items-start space-x-3">
-                        
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <span className={`font-medium px-2 py-1 rounded-full bg-slate-500 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{comment.owner.charAt(0).toUpperCase()}</span>
-                              <span className={`font-medium ml-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}> <span className="text-gray-300">{comment.owner}</span></span>
-                              {/* <span className={`font-medium ml-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>added a <span classname=>comment</span></span> */}
-                              <span className={`font-medium ml-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                                added a <span className="text-gray-300">comment</span>
-                              </span>
 
-                            </div>
-                            <span className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`}>{formatDate(comment.creation)}</span>
+                    // let attachments = [];
+                    // try {
+                    //   attachments = commentAttachment?.docinfo?.attachments? JSON.parse(commentAttachment?.docinfo?.attachments) : [];
+                    // } catch (e) {
+                    //   console.error('Error parsing attachments:', e);
+                    //   attachments = [];
+                    // }
+
+        //                let attachments = [];
+        // try {
+        //   attachments = comment.attachments ? JSON.parse(comment.attachments) : [];
+        //   console.log('1lpp',attachments);
+        // } catch (e) {
+        //   console.error('Error parsing attachments:', e);
+        //   attachments = [];
+        // }
+
+        //  const attachments = activitiesNewAttachment || [];
+        //             console.log('1lp',attachments);
+                    
+                     let attachments = [];
+                    try {
+                      attachments = activitiesNewAttachment ? (activitiesNewAttachment) : [];
+                    } catch (e) {
+                      console.error('Error parsing attachments:', e);
+                      attachments = [];
+                    }
+                    return (<>
+                      <div className='flex gap-2'>
+                        <div className='flex flex-col items-center '>
+                          <div className="w-7 h-10 flex items-center justify-center bg-gray-500 rounded-full">
+                            <FaRegComment className="w-4 h-4 text-purple-300" />
                           </div>
-                          <p className={` bg-gray-800 p-3 rounded ${theme === 'dark' ? 'text-white' : 'text-gray-600'} mt-2`}>{stripHtml(comment.content)}</p>
-                          {comment.subject && (
-                            <p className={`${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'} mt-1`}>Subject: {comment.subject}</p>
-                          )}
-                          <div className={`flex items-center space-x-4 mt-3 text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`}>
-                            {/* <span>By: {comment.owner}</span> */}
-                            {/* <button
+                          <div className='w-px h-full bg-gray-300 my-2'></div>
+                        </div>
+
+                        <div
+                          key={comment.name}
+                          className={`border w-full rounded-lg p-4 ${theme === 'dark' ? 'border-purple-500/30 hover:bg-purple-800/30' : 'border-gray-200 hover:bg-gray-50'} transition-colors`}
+                        >
+                          <div className="flex items-start space-x-3">
+
+                            <div className="flex-1">
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <span className={`font-medium px-2 py-1 rounded-full bg-slate-500 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{comment.owner.charAt(0).toUpperCase()}</span>
+                                  <span className={`font-medium ml-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}> <span className="text-gray-300">{comment.owner}</span></span>
+                                  {/* <span className={`font-medium ml-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>added a <span classname=>comment</span></span> */}
+                                  <span className={`font-medium ml-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                                    added a <span className="text-gray-300">comment</span>
+                                  </span>
+
+                                </div>
+                                <span className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`}>{getRelativeTime(comment.creation)}</span>
+                              </div>
+                              <p className={` bg-gray-800 p-3 rounded ${theme === 'dark' ? 'text-white' : 'text-gray-600'} mt-2`}>{stripHtml(comment.content)}</p>
+
+                              {/* {attachments.length > 0 && (
+                                <div className="mt-3">
+                                  <p className={`text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>
+                                    Attachments:
+                                  </p>
+                                  <div className="flex flex-wrap gap-2">
+                                    {attachments.map((attachment: any, index: number) => (
+                                      <a
+                                        key={index}
+                                        // href={attachment.file_url}
+                                        href={`http://103.214.132.20:8002${attachment.file_url}`}
+                                        download
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className={`flex items-center gap-2 px-3 py-2 rounded-md ${theme === 'dark' ? 'bg-white hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'} transition-colors`}
+                                      >
+                                        <File className="w-4 h-4" />
+                                        <span className="text-sm">
+                                          {attachment.file_name}
+                                        </span>
+                                      </a>
+                                    ))}
+                                  </div>
+                                </div>
+                              )} */}
+
+                                      {attachments.length > 0 && (
+          <div className="mt-3">
+            <p className={`text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>
+              Attachments:
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {attachments.map((attachment: { file_url: string; file_name: any; }, index: React.Key | null | undefined) => (
+                <a
+                  key={index}
+                  href={`http://103.214.132.20:8002${attachment.file_url}`}
+                  download
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`flex items-center gap-2 px-3 py-2 rounded-md ${theme === 'dark' ? 'bg-white hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'} transition-colors`}
+                >
+                  <File className="w-4 h-4" />
+                  <span className="text-sm">
+                    {attachment.file_name || attachment.file_url.split('/').pop()}
+                  </span>
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+
+                              {comment.subject && (
+                                <p className={`${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'} mt-1`}>Subject: {comment.subject}</p>
+                              )}
+                              <div className={`flex items-center space-x-4 mt-3 text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`}>
+                                {/* <span>By: {comment.owner}</span> */}
+                                {/* <button
                               onClick={() => {
                                 if (window.confirm('Are you sure you want to delete this comment?')) {
                                   fetch(`${API_BASE_URL}/method/frappe.client.delete`, {
@@ -2732,31 +2898,32 @@ commentRef.current?.scrollIntoView({behavior:"smooth"})
                             >
                               <Trash2 className="w-4 h-4 text-red-500" />
                             </button> */}
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                   </div>
-                   </>
-                  ))}
+                    </>
+                    )
+                  })}
                 </div>
               )}
             </div>
-           <div ref={commentRef}>
-             {showCommentModal && (
-              <EmailComposerleads
+            <div ref={commentRef}>
+              {showCommentModal && (
+                <EmailComposerleads
                   onClose={() => {
                     setShowCommentModal(false);
                     setReplyData(undefined); // Clear reply data when closing
-                  } }
+                  }}
                   lead={lead}
                   deal={undefined}
                   setListSuccess={setListSuccess}
                   refreshEmails={refreshComments}
                   replyData={replyData} // Pass the reply data
-                             />
-            )}
-           </div>
+                />
+              )}
+            </div>
           </div>
         )}
 
@@ -2964,16 +3131,16 @@ commentRef.current?.scrollIntoView({behavior:"smooth"})
           </div>
         )}
         {activeTab === 'files' && (
-          <div className="space-y-6">
-            <div className={`rounded-lg shadow-sm border p-6 ${theme === 'dark' ? 'bg-custom-gradient border-white' : 'bg-white border-gray-200'}`}>
+          <div className="">
+            <div className={`rounded-lg  p-6 ${theme === 'dark' ? ' border-white' : 'bg-white border-gray-200'}`}>
               <div className='flex justify-between items-center gap-5'>
-                <h3 className={`text-lg font-semibold mb-0 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Add File</h3>
+                <h3 className={`text-lg font-semibold mb-0 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Attachments</h3>
                 <button
                   onClick={() => setShowFileModal(true)}
                   className={`px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 ${theme === 'dark' ? 'bg-purplebg text-white hover:bg-purple-700' : 'bg-purplebg text-white hover:bg-purple-700'}`}
                 >
                   <Plus className="w-4 h-4" />
-                  <span>Add File</span>
+                  <span>Upload Attachment</span>
                 </button>
               </div>
             </div>
@@ -3138,7 +3305,7 @@ commentRef.current?.scrollIntoView({behavior:"smooth"})
           <div className="">
             <div className={`rounded-lg   p-6 ${theme === 'dark' ? ' border-white' : 'bg-white border-gray-200'}`}>
               <div className='flex justify-between items-center gap-5'>
-                <h3 className={`text-lg font-semibold mb-0 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Emails</h3>
+                <h3 className={`text-2xl font-semibold mb-0 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Emails</h3>
                 <button
                   // onClick={() => setShowEmailModal(prev => !prev)}
                   onClick={handleNewEmailClick}
@@ -3167,114 +3334,159 @@ commentRef.current?.scrollIntoView({behavior:"smooth"})
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {activitiesNew.docinfo.communications.map((comm: any) => (
-                    <>
-                    <div className='flex gap-2'>
-                      {/* <div >
+                  {activitiesNew.docinfo.communications.map((comm: any) => {
+
+                    // const attachments = comm.attachments ? JSON.parse(comm.attachments) : [];
+                    //         let attachments = [];
+                    // try {
+                    //   attachments = comm.attachments ? JSON.parse(comm.attachments) : [];
+                    // } catch (e) {
+                    //   console.error('Error parsing attachments:', e);
+                    //   attachments = [];
+                    // }
+
+
+                    let attachments = [];
+                    try {
+                      attachments = comm.attachments ? JSON.parse(comm.attachments) : [];
+                    } catch (e) {
+                      console.error('Error parsing attachments:', e);
+                      attachments = [];
+                    }
+                    return (<>
+                      <div className='flex gap-2'>
+                        {/* <div >
                     <h1 className='text-white px-2 py-1 bg-black rounded'>h</h1>
                     </div> */}
-          <div className='flex flex-col items-center '>
-                      <div className="w-7 h-10 flex items-center justify-center bg-gray-500 rounded-full">
-  <h1 className="text-white text-sm">{comm.sender.charAt(0).toUpperCase()}</h1>
-</div>
-<div className='w-px h-full bg-gray-300 my-2'></div>
-          </div>
-
-                    <div
-                      key={comm.name}
-                      className={`border rounded-lg p-4 w-full ${theme === 'dark' ? 'border-purple-500/30 hover:bg-purple-800/30' : 'border-gray-200 hover:bg-gray-50'} transition-colors`}
-                    >
-                      <div className="flex items-start space-x-3">
-                        <div className={`p-2 rounded-full ${theme === 'dark' ? 'bg-blue-900/30' : 'bg-blue-100'}`}>
-                          <Mail className={`w-4 h-4 ${theme === 'dark' ? 'text-blue-300' : 'text-blue-600'}`} />
+                        <div className='flex flex-col items-center '>
+                          <div className="w-7 h-10 flex items-center justify-center bg-gray-500 rounded-full">
+                            <h1 className="text-white text-sm">{comm.sender?.charAt(0).toUpperCase()}</h1>
+                          </div>
+                          <div className='w-px h-full bg-gray-300 my-2'></div>
                         </div>
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between">
-                            <h4 className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                              {comm.subject || "No Subject"}
-                            </h4>
-                            <div className='flex gap-2'>
-                              {/* <span className={`text-sm px-2 py-0.5 rounded-full font-medium ${comm.delivery_status === 'Sent' ? 'bg-green-100 text-green-500' : 'bg-gray-100 text-gray-500'}`}>
+
+                        <div
+                          key={comm.name}
+                          className={`border rounded-lg p-4 w-full ${theme === 'dark' ? 'border-purple-500/30 hover:bg-purple-800/30' : 'border-gray-200 hover:bg-gray-50'} transition-colors`}
+                        >
+                          <div className="flex items-start space-x-3">
+                            {/* <div className={`p-2 rounded-full ${theme === 'dark' ? 'bg-blue-900/30' : 'bg-blue-100'}`}>
+                          <Mail className={`w-4 h-4 ${theme === 'dark' ? 'text-blue-300' : 'text-blue-600'}`} />
+                        </div> */}
+                            <div className="flex-1">
+                              <div className="flex items-center justify-between">
+                                <h4 className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                                  {comm.subject || "No Subject"}
+                                </h4>
+                                <div className='flex gap-2'>
+                                  {/* <span className={`text-sm px-2 py-0.5 rounded-full font-medium ${comm.delivery_status === 'Sent' ? 'bg-green-100 text-green-500' : 'bg-gray-100 text-gray-500'}`}>
                                 {comm.delivery_status || "N/A"}
                               </span> */}
-                              <span className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`}>
-                                {getRelativeTime(comm.creation)}
-                              </span>
-                              <div className="flex gap-2">
-                                <button
-                                  onClick={() => handleReply(comm, false)}
-                                  className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
-                                  title="Reply"
-                                >
-                                  <Reply className="w-4 h-4 text-white" />
+                                  <span className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`}>
+                                    {getRelativeTime(comm.creation)}
+                                  </span>
+                                  <div className="flex gap-2">
+                                    <button
+                                      onClick={() => handleReply(comm, false)}
+                                      className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+                                      title="Reply"
+                                    >
+                                      <Reply className="w-4 h-4 text-white" />
 
-                                </button>
-                                <button
-                                  onClick={() => handleReply(comm, true)}
-                                  className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
-                                  title="Reply All"
-                                >
-                                  {/* <CornerUpRight className="w-4 h-4" /> */}
-                                  <ReplyAll className="w-4 h-4 text-white" />
-                                </button>
+                                    </button>
+                                    <button
+                                      onClick={() => handleReply(comm, true)}
+                                      className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+                                      title="Reply All"
+                                    >
+                                      {/* <CornerUpRight className="w-4 h-4" /> */}
+                                      <ReplyAll className="w-4 h-4 text-white" />
+                                    </button>
+                                  </div>
+                                </div>
                               </div>
+
+                              <div className="mt-2 space-y-1">
+                                <p className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>
+                                  <span className="font-semibold">From:</span> {comm.sender}
+                                </p>
+                                <p className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>
+                                  <span className="font-semibold">To:</span> {comm.recipients}
+                                </p>
+                                {comm.cc && (
+                                  <p className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>
+                                    <span className="font-semibold">CC:</span> {comm.cc}
+                                  </p>
+                                )}
+                                {comm.bcc && (
+                                  <p className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>
+                                    <span className="font-semibold">BCC:</span> {comm.bcc}
+                                  </p>
+                                )}
+                              </div>
+
+                              {comm.content && (
+                                <div className={`mt-3 p-3 rounded ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-50'}`}>
+                                  <p className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
+                                    {comm.content}
+                                  </p>
+                                </div>
+                              )}
+
+                              {attachments.length > 0 && (
+                                <div className="mt-3">
+                                  <p className={`text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>
+                                    Attachments:
+                                  </p>
+                                  <div className="flex flex-wrap gap-2">
+                                    {attachments.map((attachment: any, index: number) => (
+                                      <a
+                                        key={index}
+                                        // href={attachment.file_url}
+                                        href={`http://103.214.132.20:8002${attachment.file_url}`}
+                                        download
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className={`flex items-center gap-2 px-3 py-2 rounded-md ${theme === 'dark' ? 'bg-white hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'} transition-colors`}
+                                      >
+                                        <File className="w-4 h-4" />
+                                        <span className="text-sm">
+                                          {attachment.file_url.split('/').pop()}
+                                        </span>
+                                      </a>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           </div>
-
-                          <div className="mt-2 space-y-1">
-                            <p className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>
-                              <span className="font-semibold">From:</span> {comm.sender}
-                            </p>
-                            <p className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>
-                              <span className="font-semibold">To:</span> {comm.recipients}
-                            </p>
-                            {comm.cc && (
-                              <p className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>
-                                <span className="font-semibold">CC:</span> {comm.cc}
-                              </p>
-                            )}
-                            {comm.bcc && (
-                              <p className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>
-                                <span className="font-semibold">BCC:</span> {comm.bcc}
-                              </p>
-                            )}
-                          </div>
-
-                          {comm.content && (
-                            <div className={`mt-3 p-3 rounded ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-50'}`}>
-                              <p className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
-                                {comm.content}
-                              </p>
-                            </div>
-                          )}
                         </div>
                       </div>
-                    </div>
-                    </div>
-                    </>
-                  ))}
+                    </>)
+                  }
+                  )}
                 </div>
               )}
             </div>
-             <div ref={composerRef}>
-            {showEmailModal && (
-              <EmailComposerleads
-                onClose={() => {
-                  setShowEmailModal(false);
-                  setReplyData(undefined); // Clear reply data when closing
-                }}
-               
-                lead={lead}
-                deal={undefined}
-                setListSuccess={setListSuccess}
-                refreshEmails={refreshEmails}
-                replyData={replyData} // Pass the reply data
-              />
-            )}
+            <div ref={composerRef}>
+              {showEmailModal && (
+                <EmailComposerleads
+                  onClose={() => {
+                    setShowEmailModal(false);
+                    setReplyData(undefined); // Clear reply data when closing
+                  }}
+
+                  lead={lead}
+                  deal={undefined}
+                  setListSuccess={setListSuccess}
+                  refreshEmails={refreshEmails}
+                  replyData={replyData} // Pass the reply data
+                />
+              )}
+            </div>
           </div>
-  </div>
         )}
-      
+
         {/* {showEmailModal && (
                 <EmailComposer onClose={() => setShowEmailModal(false)} />
               )} */}

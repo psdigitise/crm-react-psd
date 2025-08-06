@@ -12,6 +12,7 @@ import { useTheme } from "../ThemeProvider";
 import Commentemailleads from "./Commentemailleads";
 import EmojiPicker from "emoji-picker-react";
 import { getUserSession } from "../../utils/session";
+import { FaRegComment } from "react-icons/fa6";
 
 const showToast = (msg, opts) => alert(msg);
 
@@ -374,7 +375,8 @@ const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
                     type="button"
                     onClick={() => setShowComment(true)}
                 >
-                    <MessageSquare size={20} className={`${showComment ? "text-white" : "text-gray-600"}`} /> Comment
+                    
+                    <FaRegComment  size={20} className={`${showComment ? "text-white" : "text-gray-600"}`} /> Comment
                 </button>
                 <div className="flex gap-5 justify-end ml-auto mr-10">
                     <button
