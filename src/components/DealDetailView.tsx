@@ -16,6 +16,9 @@ import Select from 'react-select';
 import { darkSelectStyles } from '../components/Dropdownstyles/darkSelectStyles'
 import { getUserSession } from '../utils/session';
 import UploadAttachmentPopup from './DealsAttachmentPopups/AddAttachmentPopups';
+import React from 'react';
+import { DeleteAttachmentPopup } from './DealsAttachmentPopups/DeleteAttachmentPopup';
+import { AttachmentPrivatePopup } from './DealsAttachmentPopups/AttachmnetPrivatePopup';
 
 export interface Deal {
   id: string;
@@ -1269,26 +1272,24 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
   const fetchAttachments = useCallback(async () => {
     setAttachmentsLoading(true);
     try {
-      const response = await fetch(
-        'http://103.214.132.20:8002/api/method/crm.api.activities.get_activities',
+      const response = await apiAxios.post(
+        '/api/method/crm.api.activities.get_activities',
         {
-          method: 'POST',
+          name: deal.name
+        },
+        {
           headers: {
-            'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6',
+            Authorization: 'token 1b670b800ace83b:f82627cb56de7f6',
             'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            name: deal.name
-          })
+          }
         }
       );
 
-      if (response.ok) {
-        const result = await response.json();
-        // The attachments are in the last array of the message array
-        const attachments = result.message[result.message.length - 1] || [];
-        setAttachments(attachments);
-      }
+      const result = response.data;
+
+      // The attachments are in the last array of the message array
+      const attachments = result.message[result.message.length - 1] || [];
+      setAttachments(attachments);
     } catch (error) {
       console.error('Error fetching attachments:', error);
       showToast('Failed to fetch attachments', { type: 'error' });
@@ -1307,6 +1308,11 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
     if (!fileName) return false;
     return /\.(jpg|jpeg|png|gif|bmp|webp)$/i.test(fileName);
   };
+  const [attachmentToDelete, setAttachmentToDelete] = React.useState<{ name: string } | null>(null);
+  const [attachmentToTogglePrivacy, setAttachmentToTogglePrivacy] = React.useState<{
+    name: string;
+    is_private: number;
+  } | null>(null);
 
 
   return (
@@ -2564,7 +2570,15 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                       </div>
                       <div className="flex flex-col items-end space-y-2">
                         <p className={`text-sm ${textSecondaryColor}`}> {getRelativeTime(attachment.creation ?? '')}</p>
-                        <div className="flex items-center space-x-2">
+                        <div
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setAttachmentToTogglePrivacy({
+                              name: attachment.name,
+                              is_private: attachment.is_private
+                            });
+                          }}
+                          className="flex items-center space-x-2">
                           {attachment.is_private === 1 ? (
                             <div className="p-2 bg-gray-700 rounded-full flex items-center justify-center">
                               <IoLockClosedOutline className={`w-4 h-4 ${theme === 'dark' ? 'text-white' : 'text-gray-100'}`} title="Private" />
@@ -2577,16 +2591,16 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
 
                           <button
                             className={`p-1.5 bg-gray-700 rounded-full ${theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-200'}`}
-                            onClick={() => {
-                              // Handle delete if needed
+                            onClick={(e) => {
+                              e.stopPropagation(); // Prevent triggering the parent div's click
+                              setAttachmentToDelete({
+                                name: attachment.name
+                              });
                             }}
                           >
                             <Trash2 className={`w-5 h-5 text-white ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`} />
                           </button>
-                          {/* <UploadAttachmentPopup
-                            isOpen={isUploadPopupOpen}
-                            onClose={() => setIsUploadPopupOpen(false)}
-                          /> */}
+
                         </div>
                       </div>
                     </div>
@@ -2594,6 +2608,26 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                 </div>
               )}
             </div>
+            <UploadAttachmentPopup
+              isOpen={isUploadPopupOpen}
+              dealName={deal.name}
+              fetchAttachments={fetchAttachments}
+              onClose={() => setIsUploadPopupOpen(false)}
+            />
+            {attachmentToDelete && (
+              <DeleteAttachmentPopup
+                closePopup={() => setAttachmentToDelete(null)}
+                attachment={attachmentToDelete}
+                fetchAttachments={fetchAttachments}
+              />
+            )}
+            {attachmentToTogglePrivacy && (
+              <AttachmentPrivatePopup
+                closePopup={() => setAttachmentToTogglePrivacy(null)}
+                attachment={attachmentToTogglePrivacy}
+                fetchAttachments={fetchAttachments}
+              />
+            )}
           </div>
         )}
       </div>
