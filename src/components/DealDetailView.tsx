@@ -6,11 +6,11 @@ import EmailComposer from './EmailComposer';
 import { FaCircleDot, FaRegComment } from 'react-icons/fa6';
 import { Listbox } from '@headlessui/react';
 import { HiOutlineMailOpen, HiOutlinePlus } from 'react-icons/hi';
-import { IoDocument, IoLockClosedOutline, IoLockOpenOutline } from 'react-icons/io5';
-import { LuReply, LuReplyAll } from 'react-icons/lu';
+import { IoCloseOutline, IoDocument, IoLockClosedOutline, IoLockOpenOutline } from 'react-icons/io5';
+import { LuCalendar, LuReply, LuReplyAll, LuUpload } from 'react-icons/lu';
 import { PiDotsThreeOutlineBold } from 'react-icons/pi';
 import { TiDocumentText } from 'react-icons/ti';
-import { apiAxios } from '../api/apiUrl';
+import { apiAxios, AUTH_TOKEN } from '../api/apiUrl';
 import axios from 'axios';
 import Select from 'react-select';
 import { darkSelectStyles } from '../components/Dropdownstyles/darkSelectStyles'
@@ -19,6 +19,9 @@ import UploadAttachmentPopup from './DealsAttachmentPopups/AddAttachmentPopups';
 import React from 'react';
 import { DeleteAttachmentPopup } from './DealsAttachmentPopups/DeleteAttachmentPopup';
 import { AttachmentPrivatePopup } from './DealsAttachmentPopups/AttachmnetPrivatePopup';
+import { BsThreeDots } from "react-icons/bs";
+import { DeleteTaskPopup } from './TaskPopups/DeleteTaskPopups';
+
 
 export interface Deal {
   id: string;
@@ -94,6 +97,8 @@ interface Task {
   status: string;
   priority: string;
   start_date: string;
+  assigned_to: String;
+  modified: String;
   due_date: string;
   reference_doctype: string;
   reference_docname: string;
@@ -146,6 +151,15 @@ interface Email {
   creation: string;
 }
 
+interface TaskForm {
+  title: string;
+  description: string;
+  status: string;
+  priority: string;
+  start_date?: string;  // Make it optional
+  due_date: string;
+  assigned_to: string;
+}
 
 type TabType = 'overview' | 'activity' | 'notes' | 'calls' | 'comments' | 'tasks' | 'emails' | 'attachments';
 
@@ -228,15 +242,15 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
     comment_type: 'Comment'
   });
 
-  const [taskForm, setTaskForm] = useState({
+  const [taskForm, setTaskForm] = useState<TaskForm>({
     title: '',
     description: '',
     status: 'Open',
     priority: 'Medium',
-    start_date: '',
-    due_date: ''
+    start_date: '',  // Include here if keeping it
+    due_date: '',
+    assigned_to: ''
   });
-
   const [emailForm, setEmailForm] = useState({
     recipient: '',
     message: ''
@@ -298,34 +312,45 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
   const fetchNotes = useCallback(async () => {
     setNotesLoading(true);
     try {
-      if (!deal?.name) {
-        showToast.error("Invalid deal name");
-        return;
-      }
 
-      const filters = JSON.stringify([
-        ["reference_doctype", "=", "CRM Deal"],
-        ["reference_docname", "=", deal.name]
-      ]);
 
-      const fields = JSON.stringify([
-        "title", "content", "reference_doctype", "reference_docname", "creation", "owner"
-      ]);
-
-      const url = `http://103.214.132.20:8002/api/v2/document/FCRM Note?fields=${encodeURIComponent(fields)}&filters=${encodeURIComponent(filters)}`;
-
-      const response = await fetch(url, {
-        headers: {
-          Authorization: 'token 1b670b800ace83b:f82627cb56de7f6',
-          'Content-Type': 'application/json'
+      const response = await fetch(
+        'http://103.214.132.20:8002/api/method/crm.api.activities.get_activities',
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            name: deal.name
+          })
         }
-      });
+      );
 
-      const result = await response.json();
-      setNotes(result.data || []);
+      if (response.ok) {
+        const result = await response.json();
+        // Notes are in the third array of the message array
+        const notesData = result.message[2] || [];
+
+        // Transform the notes data to match your Note interface
+        const formattedNotes = notesData.map((note: any) => ({
+          name: note.name,
+          title: note.title,
+          content: note.content,
+          reference_doctype: 'CRM Deal',
+          reference_docname: deal.name,
+          creation: note.modified, // Using modified since creation isn't in the response
+          owner: note.owner
+        }));
+
+        setNotes(formattedNotes);
+      } else {
+        throw new Error('Failed to fetch notes');
+      }
     } catch (error) {
       console.error("Error fetching notes:", error);
-      showToast.error("Failed to fetch notes");
+      // showToast.error("Failed to fetch notes");
     } finally {
       setNotesLoading(false);
     }
@@ -403,28 +428,58 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
     }
   }, [deal.name]);
 
+  // const fetchTasks = useCallback(async () => {
+  //   setTasksLoading(true);
+  //   try {
+  //     const response = await fetch(
+  //       `http://103.214.132.20:8002/api/v2/document/CRM Task?fields=["name","title","description","status","priority","start_date","due_date","creation","owner"]&filters=[["reference_doctype","=","CRM Deal"],["reference_docname","=","${deal.name}"]]`,
+  //       {
+  //         headers: {
+  //           'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6',
+  //           'Content-Type': 'application/json'
+  //         }
+  //       }
+  //     );
+
+  //     if (response.ok) {
+  //       const result = await response.json();
+  //       setTasks(result.data || []);
+  //     }
+  //   } catch (error) {
+  //     console.error('Error fetching tasks:', error);
+  //     showToast('Failed to fetch tasks', { type: 'error' });
+  //   } finally {
+  //     setTasksLoading(false);
+  //   }
+  // }, [deal.name]);
+
   const fetchTasks = useCallback(async () => {
-    setTasksLoading(true);
+    setNotesLoading(true);
     try {
       const response = await fetch(
-        `http://103.214.132.20:8002/api/v2/document/CRM Task?fields=["name","title","description","status","priority","start_date","due_date","creation","owner"]&filters=[["reference_doctype","=","CRM Deal"],["reference_docname","=","${deal.name}"]]`,
+        'http://103.214.132.20:8002/api/method/crm.api.activities.get_activities',
         {
+          method: 'POST',
           headers: {
             'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6',
             'Content-Type': 'application/json'
-          }
+          },
+          body: JSON.stringify({
+            name: deal.name // e.g. "CRM-DEAL-2025-00060"
+          })
         }
       );
 
       if (response.ok) {
         const result = await response.json();
-        setTasks(result.data || []);
+        // The tasks seem to be in result.message[3] based on the sample response
+        setTasks(result.message[3] || []);
       }
     } catch (error) {
-      console.error('Error fetching tasks:', error);
-      showToast('Failed to fetch tasks', { type: 'error' });
+      console.error('Error fetching task notes:', error);
+      showToast('Failed to fetch task notes', { type: 'error' });
     } finally {
-      setTasksLoading(false);
+      setNotesLoading(false);
     }
   }, [deal.name]);
 
@@ -495,70 +550,72 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
   };
 
   const addNote = async () => {
-    if (!noteForm.title.trim() || !noteForm.content.trim()) {
-      showToast('Please fill all required fields', { type: 'error' });
-      return;
-    }
 
     setNotesLoading(true);
     try {
-      const response = await fetch(
-        'http://103.214.132.20:8002/api/v2/document/FCRM Note',
+      const response = await apiAxios.post(
+        '/api/method/frappe.client.insert',
         {
-          method: 'POST',
-          headers: {
-            'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6',
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
+          doc: {
+            doctype: "FCRM Note",
             title: noteForm.title,
             content: noteForm.content,
-            reference_doctype: 'CRM Deal',
+            reference_doctype: "CRM Deal",
             reference_docname: deal.name
-          })
+          }
+        },
+        {
+          headers: {
+            'Authorization': AUTH_TOKEN,
+            'Content-Type': 'application/json'
+          }
         }
       );
 
-      if (response.ok) {
-        showToast('Note added successfully', { type: 'success' });
+      if (response.status === 200) {
         setNoteForm({ title: '', content: '' });
-        await fetchNotes();
+        setShowNoteModal(false);
+        await fetchNotes();  // Refresh the notes list
       } else {
-        throw new Error('Failed to add note');
+        throw new Error(response.data.message || 'Failed to add note');
       }
     } catch (error) {
       console.error('Error adding note:', error);
-      showToast('Failed to add note', { type: 'error' });
     } finally {
       setNotesLoading(false);
     }
   };
 
   const editNote = async () => {
-    if (!noteForm.title.trim() || !noteForm.content.trim()) {
-      showToast('Please fill all required fields', { type: 'error' });
+    if (!noteForm.title.trim()) {
+      showToast('Title is required', { type: 'error' });
       return false;
     }
 
     setNotesLoading(true);
     try {
-      const response = await fetch(
-        `http://103.214.132.20:8002/api/v2/document/FCRM Note/${noteForm.name}`,
+      const response = await apiAxios.post(
+        '/api/method/frappe.client.set_value',
         {
-          method: 'PATCH',
-          headers: {
-            'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6',
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
+          doctype: "FCRM Note",
+          name: noteForm.name, // The document ID to update
+          fieldname: {
             title: noteForm.title,
             content: noteForm.content,
-          })
+            //   modified: "2025-08-09 13:05:15.210597"
+            //   name: "08unvfprli"
+            //  owner: "mx.techies@gmail.com"
+          }
+        },
+        {
+          headers: {
+            'Authorization': AUTH_TOKEN,
+            'Content-Type': 'application/json'
+          }
         }
       );
 
-      if (response.ok) {
-        showToast('Note updated successfully', { type: 'success' });
+      if (response.data && response.data.message) {
         setNoteForm({ title: '', content: '', name: '' });
         await fetchNotes();
         return true;
@@ -567,42 +624,44 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         return false;
       }
     } catch (error) {
-      showToast('Failed to update note', { type: 'error' });
+      showToast(
+        error.response?.data?.message || 'Failed to update note',
+        { type: 'error' }
+      );
       return false;
     } finally {
       setNotesLoading(false);
     }
   };
 
-  const deleteNote = async (name) => {
-    if (!window.confirm('Are you sure you want to delete this note?')) return;
+  const deleteNote = async (name: string) => {
     setNotesLoading(true);
     try {
-      const response = await fetch(
-        `http://103.214.132.20:8002/api/v2/document/FCRM Note/${name}`,
+      const response = await apiAxios.post(
+        '/api/method/frappe.client.delete',
         {
-          method: 'DELETE',
+          doctype: "FCRM Note",
+          name: name
+        },
+        {
           headers: {
-            'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6',
+            'Authorization': AUTH_TOKEN,
             'Content-Type': 'application/json'
           }
         }
       );
-      if (response.ok) {
-        showToast('Note deleted', { type: 'success' });
-        await fetchNotes();
+
+      if (response.status === 200) {
+        await fetchNotes(); // Refresh the notes list
       } else {
-        showToast('Failed to delete note', { type: 'error' });
+        throw new Error(response.data?.message || 'Failed to delete note');
       }
     } catch (error) {
-      showToast('Failed to delete note', { type: 'error' });
+      console.error("Error deleting note:", error);
     } finally {
       setNotesLoading(false);
     }
   };
-
-
-
 
   const addCall = async () => {
     if (!callForm.from.trim() || !callForm.to.trim()) {
@@ -743,78 +802,31 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
 
     setTasksLoading(true);
     try {
-      const response = await fetch(
-        'http://103.214.132.20:8002/api/v2/document/CRM Task',
+      const response = await apiAxios.post(
+        '/api/method/frappe.client.insert',
         {
-          method: 'POST',
-          headers: {
-            'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6',
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
+          doc: {
+            doctype: "CRM Task",
+            reference_doctype: "CRM Deal",
+            reference_docname: deal.name,
             title: taskForm.title,
             description: taskForm.description,
-            status: taskForm.status,
+            assigned_to: taskForm.assigned_to,
+            due_date: taskForm.due_date ? `${taskForm.due_date} 23:59:59` : null,
             priority: taskForm.priority,
-            start_date: taskForm.start_date,
-            due_date: taskForm.due_date,
-            reference_doctype: 'CRM Deal',
-            reference_docname: deal.name
-          })
+            status: taskForm.status
+          }
+        },
+        {
+          headers: {
+            'Authorization': AUTH_TOKEN,
+            'Content-Type': 'application/json'
+          }
         }
       );
 
-      if (response.ok) {
-        showToast('Task added successfully', { type: 'success' });
-        setTaskForm({
-          title: '',
-          description: '',
-          status: 'Open',
-          priority: 'Medium',
-          start_date: '',
-          due_date: ''
-        });
-        await fetchTasks();
-      } else {
-        throw new Error('Failed to add task');
-      }
-    } catch (error) {
-      console.error('Error adding task:', error);
-      showToast('Failed to add task', { type: 'error' });
-    } finally {
-      setTasksLoading(false);
-    }
-  };
-
-  const editTask = async () => {
-    if (!taskForm.title.trim() || !taskForm.description.trim()) {
-      showToast('Please fill all required fields', { type: 'error' });
-      return false;
-    }
-
-    setTasksLoading(true);
-    try {
-      const response = await fetch(
-        `http://103.214.132.20:8002/api/v2/document/CRM Task/${taskForm.name}`,
-        {
-          method: 'PATCH',
-          headers: {
-            'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6',
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            title: taskForm.title,
-            description: taskForm.description,
-            status: taskForm.status,
-            priority: taskForm.priority,
-            start_date: taskForm.start_date,
-            due_date: taskForm.due_date,
-          })
-        }
-      );
-
-      if (response.ok) {
-        showToast('Task updated successfully', { type: 'success' });
+      if (response.data) {
+        setShowTaskModal(false);
         setTaskForm({
           title: '',
           description: '',
@@ -822,9 +834,57 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
           priority: 'Medium',
           start_date: '',
           due_date: '',
-          name: ''
+          assigned_to: ''
         });
         await fetchTasks();
+      }
+    } catch (error) {
+      console.error('Error adding task:', error);
+      showToast(
+        error.response?.data?.message ||
+        error.message ||
+        'Failed to add task',
+        { type: 'error' }
+      );
+    } finally {
+      setTasksLoading(false);
+    }
+  };
+
+  const editTask = async (taskName) => {
+    if (!taskForm.title.trim()) {
+      showToast('Title is required', { type: 'error' });
+      return false;
+    }
+
+    setTasksLoading(true);
+    try {
+      const response = await fetch(
+        'http://103.214.132.20:8002/api/method/frappe.client.set_value',
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            doctype: "CRM Task",
+            name: taskName,
+            fieldname: {
+              name: taskName,
+              title: taskForm.title,
+              description: taskForm.description,
+              assigned_to: taskForm.assigned_to,
+              due_date: taskForm.due_date ? `${taskForm.due_date} 00:00:00` : null,
+              priority: taskForm.priority,
+              status: taskForm.status
+            }
+          })
+        }
+      );
+
+      if (response.ok) {
+        await fetchTasks(); // Refresh the task list
         return true;
       } else {
         showToast('Failed to update task', { type: 'error' });
@@ -1313,7 +1373,13 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
     name: string;
     is_private: number;
   } | null>(null);
+  const [noteFormError, setNoteFormError] = useState(false);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [currentTaskId, setCurrentTaskId] = useState(null);
+  const [showDeleteTaskPopup, setShowDeleteTaskPopup] = React.useState(false);
+  const [taskToDelete, setTaskToDelete] = React.useState<string | null>(null);
 
+  console.log("taskToDelete", taskToDelete)
 
   return (
     <div className={`min-h-screen ${bgColor}`}>
@@ -1556,6 +1622,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
             </div>
           </div>
         )}
+
         {activeTab === 'notes' && (
           <div className="space-y-6">
             {/* Add Note Form */}
@@ -1564,23 +1631,31 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
               <div className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} p-6`}>
                 <div className='flex justify-between items-center gap-5 mb-6'>
 
-                  <h3 className={`text-lg font-semibold ${textColor} mb-0`}>Add Note</h3>
+                  <h3 className={`text-lg font-semibold ${textColor} mb-0`}>Notes</h3>
                   <button
-                    onClick={() => setShowNoteModal(true)}
+                    onClick={() => {
+                      setShowNoteModal(true);
+                      setIsEditMode(false); // Add this line
+                      setNoteForm({ title: '', content: '' }); // Also reset form if needed
+                    }}
                     className={`${buttonBgColor} text-white px-4 py-2 rounded-lg flex items-center space-x-2`}
                   >
                     <Plus className="w-4 h-4" />
-                    <span>Add Note</span>
+                    <span>New Note</span>
                   </button>
                 </div>
                 {notes.length === 0 ? (
                   <div className="text-center py-8">
                     <FileText className={`w-12 h-12 mx-auto mb-4 ${textSecondaryColor}`} />
-                    <p className={textSecondaryColor}>No notes yet</p>
+                    <p className={textSecondaryColor}>No Notes</p>
                     <span
-                      onClick={() => setShowNoteModal(true)}
+                      onClick={() => {
+                        setShowNoteModal(true);
+                        setIsEditMode(false); // Add this line
+                        setNoteForm({ title: '', content: '' }); // Also reset form if needed
+                      }}
                       className="text-white cursor-pointer bg-gray-400 rounded-md inline-block text-center px-6 py-2"
-                    >Add Note </span>
+                    >Create Note </span>
                   </div>
                 ) : (
                   <div className="grid grid-cols-3 gap-5">
@@ -1588,79 +1663,158 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                     {notes.map((note) => (
                       <div
                         key={note.name}
-                        className={`border ${borderColor} rounded-lg p-4`}
+                        className={`border ${borderColor} rounded-lg p-4 relative`} // ✅ relative here
                         onDoubleClick={() => {
                           setNoteForm({
-                            title: note.title || '',
-                            content: note.content || '',
                             name: note.name || '',
+                            title: note.title || '',
+                            content: note.content || ''
                           });
                           setIsEditMode(true);
                           setShowNoteModal(true);
                         }}
                         style={{ cursor: 'pointer' }}
-                        title="Double click to edit"
+
                       >
+                        {/* Title & Menu Button */}
                         <div className="flex items-center justify-between mb-2">
                           <h4 className={`text-lg font-semibold ${textColor}`}>{note.title}</h4>
-                          <button
-                            onClick={e => {
-                              e.stopPropagation();
-                              deleteNote(note.name);
-                            }}
-                            title="Delete"
-                            className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-900 transition-colors"
-                            style={{ lineHeight: 0 }}
-                          >
-                            <Trash2 className="w-4 h-4 text-red-500" />
-                          </button>
+                          <div className="relative"> {/* ✅ relative so dropdown anchors here */}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setOpenMenuId(openMenuId === note.name ? null : note.name);
+                              }}
+                              className="p-1 rounded transition-colors"
+                              style={{ lineHeight: 0 }}
+                            >
+                              <BsThreeDots className="w-4 h-4 text-white" />
+                            </button>
+
+                            {/* Dropdown */}
+                            {openMenuId === note.name && (
+                              <div className="absolute right-0 mt-2 w-28 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    deleteNote(note.name);
+                                    setOpenMenuId(null);
+                                  }}
+                                  className="flex items-center gap-2 px-3 py-2 hover:bg-gray-300 hover:rounded-lg w-full text-left"
+                                >
+                                  <Trash2 className="w-4 h-4 text-red-500" />
+                                  <span>Delete</span>
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                        <p className={`text-base font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-600'} whitespace-pre-wrap`}>{note.content}</p>
-                        <p className={`text-bse font-semibold ${textSecondaryColor} mt-2`}>by {note.owner}</p>
-                        <p className={`text-sm mt-2 ${textSecondaryColor}`}>{formatDate(note.creation)}</p>
+
+                        {/* Content */}
+                        <p
+                          className={`text-base font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-600'
+                            } whitespace-pre-wrap`}
+                        >
+                          {note.content}
+                        </p>
+
+                        {/* Footer */}
+                        <div className="flex justify-between items-center mt-20 text-sm gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className="flex items-center justify-center w-6 h-6 rounded-full bg-gray-500 text-gray-300 font-bold text-xs">
+                              {note.owner?.charAt(0).toUpperCase() || "-"}
+                            </span>
+                            <span className={textSecondaryColor}>{note.owner}</span>
+                          </div>
+                          <span className={`${textSecondaryColor} font-medium`}>
+                            {getRelativeTime(note.creation)}
+                          </span>
+                        </div>
                       </div>
                     ))}
+
                   </div>
                 )}
               </div>
             </div>
 
             {showNoteModal && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-                <div className={`w-full max-w-lg ${cardBgColor} rounded-lg shadow-lg p-6 relative border ${borderColor}`}>
-                  <button
-                    onClick={() => setShowNoteModal(false)}
-                    className={`absolute top-2 right-3  hover:text-gray-700 dark:hover:text-white ${theme === "dark" ? "text-white" : "text-black"} `}
-                  >
-                    ✕
-                  </button>
+              <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto">
+                {/* Overlay */}
+                <div
+                  className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
+                  onClick={() => setShowNoteModal(false)}
+                />
 
-                  <h3 className={`text-lg font-semibold mb-4 ${textColor}`}>Add Note</h3>
-                  <div className="space-y-4">
-                    <div>
-                      <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>Title *</label>
-                      <input
-                        type="text"
-                        value={noteForm.title}
-                        onChange={(e) => setNoteForm({ ...noteForm, title: e.target.value })}
-                        className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
-                        placeholder="Enter note title"
-                      />
+                {/* Modal */}
+                <div
+                  className={`relative transform overflow-hidden rounded-lg text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg border border-gray-400 ${theme === 'dark' ? 'bg-dark-secondary' : 'bg-white'}`}
+                >
+                  <div className={`px-4 pt-5 pb-4 sm:p-6 sm:pb-4 ${theme === 'dark' ? 'bg-dark-secondary' : 'bg-white'}`}>
+                    {/* Close */}
+                    <div className="absolute top-0 right-0 pt-4 pr-4">
+                      <button
+                        type="button"
+                        className={`rounded-md ${theme === 'dark' ? 'text-white' : 'text-gray-400'} hover:text-gray-500 focus:outline-none`}
+                        onClick={() => {
+                          setShowNoteModal(false);
+                          setIsEditMode(false); // Add this line
+                        }}
+                      >
+                        <IoCloseOutline size={24} />
+                      </button>
                     </div>
-                    <div>
-                      <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>Content *</label>
-                      <textarea
-                        value={noteForm.content}
-                        onChange={(e) => setNoteForm({ ...noteForm, content: e.target.value })}
-                        rows={4}
-                        className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
-                        placeholder="Enter note content"
-                      />
-                    </div>
-                    <div className="flex justify-end">
 
+                    {/* Header */}
+                    <h3 className={`text-xl font-bold mb-4 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                      {isEditMode ? 'Edit Note' : 'Create Note'}
+                    </h3>
+
+                    {/* Form */}
+                    <div className="space-y-4">
+                      <div>
+                        <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                          Title <span className='text-red-500'>*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={noteForm.title}
+                          onChange={(e) => setNoteForm({ ...noteForm, title: e.target.value })}
+                          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark' ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'
+                            } ${noteForm.title === '' && noteFormError ? 'border-red-500' : ''
+                            }`}
+                          placeholder="Call with John Doe"
+                        />
+                        {noteForm.title === '' && noteFormError && (
+                          <p className="mt-1 text-sm text-red-500">Title is required</p>
+                        )}
+                      </div>
+                      <div>
+                        <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                          Content
+                        </label>
+                        <textarea
+                          value={noteForm.content}
+                          onChange={(e) => setNoteForm({ ...noteForm, content: e.target.value })}
+                          rows={8}  // Increased from 4 to 8
+                          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark' ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'
+                            }`}
+                          placeholder="Took a call with John Doe and discussed the new project"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Footer */}
+                  <div className={`px-4 py-3 sm:px-6 ${theme === 'dark' ? 'bg-dark-tertiary' : 'bg-gray-50'}`}>
+                    <div className="w-full">
                       <button
                         onClick={async () => {
+                          if (noteForm.title === '') {
+                            setNoteFormError(true);
+                            return;
+                          }
+
                           let success = false;
                           if (isEditMode) {
                             success = await editNote();
@@ -1670,20 +1824,29 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                           if (success) {
                             setShowNoteModal(false);
                             setIsEditMode(false);
+                            setNoteFormError(false);
                           }
                         }}
                         disabled={notesLoading}
-                        className={`${buttonBgColor} text-white px-4 py-2 rounded-lg flex items-center space-x-2 disabled:opacity-50`}
+                        className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 sm:text-sm ${theme === 'dark'
+                          ? 'bg-purple-600 text-white hover:bg-purple-700 focus:ring-purple-500'
+                          : 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500'
+                          } ${notesLoading ? 'opacity-50 cursor-not-allowed' : ''
+                          }`}
                       >
-                        {notesLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                        <span>{isEditMode ? 'Update' : 'Add Note'}</span>
+                        {notesLoading ? (
+                          <span className="flex items-center justify-center">
+                            {isEditMode ? 'Updating...' : 'Creating...'}
+                          </span>
+                        ) : (
+                          isEditMode ? 'Update' : 'Create'
+                        )}
                       </button>
                     </div>
                   </div>
                 </div>
               </div>
             )}
-
           </div>
         )}
 
@@ -1752,7 +1915,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                             className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-900 transition-colors"
                             style={{ lineHeight: 0 }}
                           >
-                            <Trash2 className="w-4 h-4 text-red-500" />
+                            <BsThreeDots className="w-4 h-4 text-red-500" />
                           </button>
                         </div>
                       </div>
@@ -1761,7 +1924,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                         <span className={textSecondaryColor}>Type: {call.type}</span>
                         <span className={textSecondaryColor}>Duration: {call.duration} min</span>
                       </div>
-                      <p className={`text-sm ${textSecondaryColor} mt-2`}>by {call.owner}</p>
+                      <p className={`text-sm ${textSecondaryColor} mt-2`}> {call.owner}</p>
                     </div>
                   ))}
                 </div>
@@ -2026,13 +2189,13 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
             {/* <h3 className={`text-lg font-semibold ${textColor} mb-4`}>Add Task</h3> */}
             <div className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} p-6`}>
               <div className='flex justify-between items-center gap-5 mb-6'>
-                <h3 className={`text-lg font-semibold ${textColor} mb-0`}>New Task</h3>
+                <h3 className={`text-lg font-semibold ${textColor} mb-0`}> Tasks</h3>
                 <button
                   onClick={() => setShowTaskModal(true)}
                   className={`px-4 py-2 rounded-lg flex items-center space-x-2 text-white ${theme === 'dark' ? 'bg-purplebg hover:bg-purple-700' : 'bg-blue-600 hover:bg-blue-700'}`}
                 >
                   <Plus className="w-4 h-4" />
-                  <span>Add Task</span>
+                  <span>New Task</span>
                 </button>
               </div>
               {tasks.length === 0 ? (
@@ -2046,74 +2209,130 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {tasks.map((task) => (
+                  {tasks.map((note) => (
                     <div
-                      key={task.name}
-                      className={`border ${borderColor} rounded-lg p-4`}
-                      onDoubleClick={() => {
+                      key={note.name}
+                      onClick={() => {
                         setTaskForm({
-                          title: task.title || '',
-                          description: task.description || '',
-                          status: task.status || 'Open',
-                          priority: task.priority || 'Medium',
-                          start_date: task.start_date || '',
-                          due_date: task.due_date || '',
-                          name: task.name || '',
+                          title: note.title,
+                          description: note.description,
+                          status: note.status,
+                          priority: note.priority,
+                          due_date: note.due_date ? note.due_date.split(' ')[0] : '', // Extract just the date part
+                          assigned_to: note.assigned_to,
                         });
                         setIsEditMode(true);
+                        setCurrentTaskId(note.name); // Store the task name for editing
                         setShowTaskModal(true);
                       }}
-                      style={{ cursor: 'pointer' }}
-                      title="Double click to edit"
+                      className={`border ${borderColor} rounded-lg p-4`}
                     >
-                      <div className="flex items-center justify-between mb-2">
-                        <h4 className={`font-medium ${textColor}`}>{task.title}</h4>
-                        <div className="flex items-center space-x-2">
-                          <span className={`px-2 py-1 text-sm font-semibold rounded-full ${task.status === 'Completed' ?
-                            theme === 'dark' ? 'bg-green-900 text-green-200' : 'bg-green-100 text-green-800' :
-                            task.status === 'Working' ?
-                              theme === 'dark' ? 'bg-blue-900 text-blue-200' : 'bg-blue-100 text-blue-800' :
-                              task.status === 'Pending Review' ?
-                                theme === 'dark' ? 'bg-yellow-900 text-yellow-200' : 'bg-yellow-100 text-yellow-800' :
-                                task.status === 'Cancelled' ?
-                                  theme === 'dark' ? 'bg-red-900 text-red-200' : 'bg-red-100 text-red-800' :
-                                  theme === 'dark' ? 'bg-purplebg/30 text-white' : 'bg-gray-100 text-gray-800'
-                            }`}>
-                            {task.status}
-                          </span>
-                          <span className={`px-2 py-1 text-sm font-semibold rounded-full ${task.priority === 'High' ?
-                            theme === 'dark' ? 'bg-red-900 text-red-200' : 'bg-red-100 text-red-800' :
-                            task.priority === 'Medium' ?
-                              theme === 'dark' ? 'bg-yellow-900 text-yellow-200' : 'bg-yellow-100 text-yellow-800' :
-                              task.priority === 'Low' ?
-                                theme === 'dark' ? 'bg-green-900 text-green-200' : 'bg-green-100 text-green-800' :
-                                theme === 'dark' ? 'bg-purplebg/30 text-white' : 'bg-gray-100 text-gray-800'
-                            }`}>
-                            {task.priority}
-                          </span>
-                          <button
-                            onClick={e => {
-                              e.stopPropagation();
-                              deleteTask(task.name);
-                            }}
-                            title="Delete"
-                            className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-900 transition-colors"
-                            style={{ lineHeight: 0 }}
-                          >
-                            <Trash2 className="w-4 h-4 text-red-500" />
-                          </button>
-                        </div>
+                      <div className="flex justify-between items-start mb-2">
+                        <h4 className={`font-medium ${textColor}`}>{note.title}</h4>
                       </div>
-                      <p className={`${theme === 'dark' ? 'text-white' : 'text-gray-600'} whitespace-pre-wrap`}>{task.description}</p>
-                      <div className="flex items-center justify-between mt-2 text-sm">
-                        <div className="flex items-center space-x-4">
-                          <span className={textSecondaryColor}>Start: {task.start_date}</span>
-                          <span className={textSecondaryColor}>End: {task.due_date}</span>
+
+                      {/* Row: Left (assigned, date, priority) | Right (status, menu) */}
+                      <div className="mt-1 text-sm flex justify-between items-center flex-wrap gap-2">
+                        {/* Left side */}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {/* Assigned to */}
+                          <div className="relative z-10 w-6 h-6 flex items-center justify-center rounded-full bg-gray-500 text-white text-xs font-semibold">
+                            {note.assigned_to?.charAt(0).toUpperCase() || "U"}
+                          </div>
+                          <span className={textSecondaryColor}>
+                            {note.assigned_to || 'Unassigned'}
+                          </span>
+
+                          {/* Due date */}
+                          {note.due_date && (
+                            <span className={`flex items-center gap-0.5 ${textSecondaryColor}`}>
+                              <LuCalendar className="w-3.5 h-3.5" />
+                              {note.due_date}
+                            </span>
+                          )}
+
+                          {/* Priority */}
+                          <span className="flex items-center gap-1">
+                            <span
+                              className={`w-2.5 h-2.5 rounded-full inline-block ${note.priority === 'High'
+                                ? 'bg-red-500'
+                                : note.priority === 'Medium'
+                                  ? 'bg-yellow-500'
+                                  : note.priority === 'Low'
+                                    ? 'bg-gray-300'
+                                    : 'bg-gray-400'
+                                }`}
+                            ></span>
+                            <span className="text-xs text-white font-medium">{note.priority}</span>
+                          </span>
                         </div>
-                        <span className={textSecondaryColor}>by {task.owner}</span>
+
+                        {/* Right side */}
+                        <div className="flex items-center gap-2">
+                          {/* Status */}
+                          <span
+                            className={`px-1 text-xs font-semibold rounded ${note.status === 'Done'
+                              ? theme === 'dark'
+                                ? 'bg-green-900 text-green-200'
+                                : 'bg-green-100 text-green-800'
+                              : note.status === 'Open'
+                                ? theme === 'dark'
+                                  ? 'bg-blue-900 text-blue-200'
+                                  : 'bg-blue-100 text-blue-800'
+                                : theme === 'dark'
+                                  ? 'bg-gray-700 text-gray-300'
+                                  : 'bg-gray-200 text-gray-800'
+                              }`}
+                          >
+                            {note.status}
+                          </span>
+
+                          {/* Three dots menu */}
+                          <div className="relative">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setOpenMenuId(openMenuId === note.name ? null : note.name);
+                              }}
+                              className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full"
+                            >
+                              <BsThreeDots className="w-4 h-4 text-white" />
+                            </button>
+
+                            {/* Dropdown menu */}
+                            {openMenuId === note.name && (
+                              <div
+                                className="absolute right-0 mt-2 w-28 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-10"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setTaskToDelete(note.name); // Store the task to be deleted
+                                    setShowDeleteTaskPopup(true); // Show the popup
+                                    setOpenMenuId(null); // Close the dropdown
+                                  }}
+                                  className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 hover:rounded-lg w-full text-left"
+                                >
+                                  <Trash2 className="w-4 h-4 text-red-500" />
+                                  <span className='text-white'>Delete</span>
+                                </button>
+                              </div>
+                            )}
+                          </div>
+
+                        </div>
                       </div>
                     </div>
                   ))}
+                  {showDeleteTaskPopup && taskToDelete && (
+                    <DeleteTaskPopup
+                      closePopup={() => setShowDeleteTaskPopup(false)}
+                      task={{ name: taskToDelete }} // Pass as object with name property
+                      theme={theme}
+                      onDeleteSuccess={fetchTasks}
+                    />
+                  )}
                 </div>
               )}
             </div>
@@ -2121,109 +2340,229 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
               
             </div> */}
             {showTaskModal && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-                <div className={`w-full max-w-3xl ${cardBgColor} rounded-lg shadow-lg p-6 relative border ${borderColor}`}>
-                  <button
-                    onClick={() => setShowTaskModal(false)}
-                    className={`absolute top-2 right-3  hover:text-gray-700 dark:hover:text-white ${theme === "dark" ? "text-white" : "text-black"} `}>
-                    ✕
-                  </button>
+              <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto">
+                {/* Overlay */}
+                <div
+                  className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
+                  onClick={() => setShowTaskModal(false)}
+                />
 
-                  <h3 className={`text-lg font-semibold ${textColor} mb-4`}>Add Task</h3>
+                {/* Modal - Increased width to max-w-4xl */}
+                <div className={`relative transform overflow-hidden rounded-lg text-left shadow-xl transition-all sm:my-8 sm:w-11/12 sm:max-w-[600px] border ${theme === 'dark' ? 'border-gray-600 bg-dark-secondary' : 'border-gray-400 bg-white'}`}>
+                  <div className={`px-6 pt-6 pb-4 sm:p-8 sm:pb-6 ${theme === 'dark' ? 'bg-dark-secondary' : 'bg-white'}`}>
+                    {/* Close */}
+                    <div className="absolute top-0 right-0 pt-6 pr-6">
+                      <button
+                        type="button"
+                        className={`rounded-md ${theme === 'dark' ? 'text-white' : 'text-gray-400'} hover:text-gray-500 focus:outline-none`}
+                        onClick={() => {
+                          setShowTaskModal(false);
+                          setIsEditMode(false);
+                        }}
+                      >
+                        <IoCloseOutline size={24} />
+                      </button>
+                    </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="md:col-span-2">
-                      <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>Title *</label>
-                      <input
-                        type="text"
-                        value={taskForm.title}
-                        onChange={(e) => setTaskForm({ ...taskForm, title: e.target.value })}
-                        className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
-                        placeholder="Task title"
-                      />
-                    </div>
-                    <div className="md:col-span-2">
-                      <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>Description *</label>
-                      <textarea
-                        value={taskForm.description}
-                        onChange={(e) => setTaskForm({ ...taskForm, description: e.target.value })}
-                        rows={4}
-                        className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
-                        placeholder="Task description"
-                      />
-                    </div>
-                    <div>
-                      <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>Status</label>
-                      <select
-                        value={taskForm.status}
-                        onChange={(e) => setTaskForm({ ...taskForm, status: e.target.value })}
-                        className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
-                      >
-                        <option value="Open">Open</option>
-                        <option value="Working">Working</option>
-                        <option value="Pending Review">Pending Review</option>
-                        <option value="Completed">Completed</option>
-                        <option value="Cancelled">Cancelled</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>Priority</label>
-                      <select
-                        value={taskForm.priority}
-                        onChange={(e) => setTaskForm({ ...taskForm, priority: e.target.value })}
-                        className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
-                      >
-                        <option value="Low">Low</option>
-                        <option value="Medium">Medium</option>
-                        <option value="High">High</option>
-                        <option value="Urgent">Urgent</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>Start Date</label>
-                      <input
-                        type="date"
-                        value={taskForm.start_date}
-                        onChange={(e) => setTaskForm({ ...taskForm, start_date: e.target.value })}
-                        className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
-                      />
-                    </div>
-                    <div>
-                      <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>End Date</label>
-                      <input
-                        type="date"
-                        value={taskForm.due_date}
-                        onChange={(e) => setTaskForm({ ...taskForm, due_date: e.target.value })}
-                        className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
-                      />
+                    {/* Header */}
+                    <h3 className={`text-xl font-bold mb-6 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                      {isEditMode ? 'Edit Task' : 'Create Task'}
+                    </h3>
+
+                    {/* Form */}
+                    <div className="space-y-6">
+                      <div>
+                        <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                          Title <span className='text-red-500'>*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={taskForm.title}
+                          onChange={(e) => setTaskForm({ ...taskForm, title: e.target.value })}
+                          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
+                            ? 'bg-gray-800 border-gray-600 text-white'
+                            : 'bg-white border-gray-300 text-gray-900'
+                            }`}
+                          placeholder="Task title"
+                        />
+                      </div>
+
+                      <div>
+                        <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                          Description
+                        </label>
+                        <textarea
+                          value={taskForm.description}
+                          onChange={(e) => setTaskForm({ ...taskForm, description: e.target.value })}
+                          rows={6}
+                          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
+                            ? 'bg-gray-800 border-gray-600 text-white'
+                            : 'bg-white border-gray-300 text-gray-900'
+                            }`}
+                          placeholder="Task description"
+                        />
+                      </div>
+
+                      {/* All fields in one row */}
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        {/* Status */}
+                        <div>
+                          <select
+                            value={taskForm.status}
+                            onChange={(e) => setTaskForm({ ...taskForm, status: e.target.value })}
+                            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
+                              ? 'bg-gray-800 border-gray-600 text-white'
+                              : 'bg-white border-gray-300 text-gray-900'
+                              }`}
+                          >
+                            <option
+                              className={theme === 'dark' ? 'bg-gray-800 text-white' : ''}
+                              value="Backlog">Backlog</option>
+                            <option
+                              className={theme === 'dark' ? 'bg-gray-800 text-white' : ''}
+                              value="Todo">Todo</option>
+                            <option
+                              className={theme === 'dark' ? 'bg-gray-800 text-white' : ''}
+                              value="In Progress">In Progress</option>
+                            <option
+                              className={theme === 'dark' ? 'bg-gray-800 text-white' : ''}
+                              value="Done">Done</option>
+                            <option
+                              className={theme === 'dark' ? 'bg-gray-800 text-white' : ''}
+                              value="Canceled">Canceled</option>
+                            <option
+                              className={theme === 'dark' ? 'bg-gray-800 text-white' : ''}
+                              value="Open">Open</option>
+                          </select>
+                        </div>
+
+                        {/* Priority */}
+                        <div>
+                          <select
+                            value={taskForm.priority}
+                            onChange={(e) => setTaskForm({ ...taskForm, priority: e.target.value })}
+                            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
+                              ? 'bg-gray-800 border-gray-600 text-white'
+                              : 'bg-white border-gray-300 text-gray-900'
+                              }`}
+                          >
+                            <option
+                              className={theme === 'dark' ? 'bg-gray-800 text-white' : ''}
+                              value="Low">Low</option>
+                            <option
+                              className={theme === 'dark' ? 'bg-gray-800 text-white' : ''}
+                              value="Medium">Medium</option>
+                            <option
+                              className={theme === 'dark' ? 'bg-gray-800 text-white' : ''}
+                              value="High">High</option>
+                          </select>
+                        </div>
+
+                        {/* Due Date */}
+                        <div>
+
+                          <input
+                            type="date"
+                            value={taskForm.due_date}
+                            onChange={(e) => setTaskForm({ ...taskForm, due_date: e.target.value })}
+                            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
+                              ? 'bg-gray-800 border-gray-600 text-white'
+                              : 'bg-white border-gray-300 text-gray-900'
+                              }`}
+                          />
+                        </div>
+
+                        {/* Assigned To */}
+                        <div>
+                          <select
+                            value={taskForm.assigned_to}
+                            onChange={(e) => setTaskForm({ ...taskForm, assigned_to: e.target.value })}
+                            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
+                              ? 'bg-gray-800 border-gray-600 text-white'
+                              : 'bg-white border-gray-300 text-gray-900'
+                              }`}
+                          >
+                            <option
+                              className={theme === 'dark' ? 'bg-gray-800 text-white' : ''}
+                              value="">Select Assign</option>
+                            <option
+                              className={theme === 'dark' ? 'bg-gray-800 text-white' : ''}
+                              value="hari@psd123.com">Hari</option>
+                            <option
+                              className={theme === 'dark' ? 'bg-gray-800 text-white' : ''}
+                              value="arun@psd.com">Arun</option>
+                            <option
+                              className={theme === 'dark' ? 'bg-gray-800 text-white' : ''}
+                              value="demo@psdigitise.com">DEMO</option>
+                            <option
+                              className={theme === 'dark' ? 'bg-gray-800 text-white' : ''}
+                              value="demo@psdigitise.com">DEMO</option>
+                            <option
+                              className={theme === 'dark' ? 'bg-gray-800 text-white' : ''}
+                              value="fen87joshi@yahoo.com">Feni</option>
+                            <option
+                              className={theme === 'dark' ? 'bg-gray-800 text-white' : ''}
+                              value="fenila@psd.com">Fenila</option>
+                            <option
+                              className={theme === 'dark' ? 'bg-gray-800 text-white' : ''}
+                              value="mx.techies@gmail.com">mx techies</option>
+                            <option
+                              className={theme === 'dark' ? 'bg-gray-800 text-white' : ''}
+                              value="prasad@psd.com">prasad</option>
+                          </select>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="flex justify-end mt-6">
-                    <button
-                      onClick={async () => {
-                        let success = false;
-                        if (isEditMode) {
-                          success = await editTask();
-                        } else {
-                          success = await addTask();
-                        }
-                        if (success) {
-                          setShowTaskModal(false);
-                          setIsEditMode(false);
-                        }
-                      }}
-                      disabled={tasksLoading}
-                      className={`${buttonBgColor} text-white px-4 py-2 rounded-lg transition-colors disabled:opacity-50 flex items-center space-x-2`}
-                    >
-                      {tasksLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                      <span>{isEditMode ? 'Update' : 'Add Task'}</span>
-                    </button>
+                  {/* Footer */}
+                  <div className={`px-6 py-4 sm:px-8 ${theme === 'dark' ? 'bg-dark-tertiary' : 'bg-gray-50'}`}>
+                    <div className="w-full">
+                      <button
+                        onClick={async () => {
+                          if (!taskForm.title.trim()) {
+                            showToast('Title is required', { type: 'error' });
+                            return;
+                          }
+
+                          let success = false;
+                          if (isEditMode) {
+                            success = await editTask(currentTaskId);
+                          } else {
+                            success = await addTask();
+                          }
+                          if (success) {
+                            setTaskForm({
+                              title: '',
+                              description: '',
+                              status: 'Open',
+                              priority: 'Medium',
+                              due_date: '',
+                              assigned_to: ''
+                            });
+                            setShowTaskModal(false);
+                            setIsEditMode(false);
+                          }
+                        }}
+                        disabled={tasksLoading}
+                        className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-3 text-base font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 sm:text-sm ${theme === 'dark'
+                          ? 'bg-purple-600 text-white hover:bg-purple-700 focus:ring-purple-500'
+                          : 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500'
+                          } ${tasksLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      >
+                        {tasksLoading ? (
+                          <span className="flex items-center justify-center">
+                            {isEditMode ? 'Updating...' : 'Creating...'}
+                          </span>
+                        ) : (
+                          isEditMode ? 'Update' : 'Create'
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
             )}
-
           </div>
         )}
 
