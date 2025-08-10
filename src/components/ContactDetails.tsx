@@ -141,6 +141,10 @@ export default function ContactDetails({
     fetchContactDetails();
   }, []);
 
+  // export default function ContactCard({ contact, onImageUpload }) {
+
+
+
   // Focus input when editing starts
   useEffect(() => {
     if (editingField && inputRef.current) {
@@ -225,6 +229,24 @@ export default function ContactDetails({
       setFetchLoading(false);
     }
   };
+
+  const fileInputRef = useRef(null);
+
+  const handleClick = () => {
+    fileInputRef.current.click();
+  };
+
+  const handleFileChange = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      // Convert to preview URL
+      const previewUrl = URL.createObjectURL(file);
+      onImageUpload(file, previewUrl); // send to parent or API
+    }
+  };
+
+
+
 
   const fetchLinkedDeals = async (contactName: string) => {
     try {
@@ -622,6 +644,8 @@ export default function ContactDetails({
     );
   }
 
+
+
   // Render email dropdown field
   const renderEmailDropdownField = () => {
     const emails = contact.email_ids || [];
@@ -633,8 +657,8 @@ export default function ContactDetails({
           {emails.length > 0 ? (
             <select
               className={`flex-1 px-2 py-1 border rounded ${isDark
-                  ? 'bg-dark-secondary text-white border-white/20 focus:border-purple-400'
-                  : 'bg-white text-gray-800 border-gray-300 focus:border-blue-400'
+                ? 'bg-dark-secondary text-white border-white/20 focus:border-purple-400'
+                : 'bg-white text-gray-800 border-gray-300 focus:border-blue-400'
                 } focus:outline-none`}
               defaultValue={emails.find(e => e.is_primary)?.email_id || emails[0]?.email_id || ''}
             >
@@ -672,8 +696,8 @@ export default function ContactDetails({
                   onChange={(e) => setNewEmailValue(e.target.value)}
                   placeholder="Enter email address..."
                   className={`flex-1 px-3 py-2 border rounded ${isDark
-                      ? 'bg-gray-700 text-white border-white/20 focus:border-green-400'
-                      : 'bg-white text-gray-800 border-gray-300 focus:border-green-400'
+                    ? 'bg-gray-700 text-white border-white/20 focus:border-green-400'
+                    : 'bg-white text-gray-800 border-gray-300 focus:border-green-400'
                     } focus:outline-none`}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
@@ -723,8 +747,8 @@ export default function ContactDetails({
           {phones.length > 0 ? (
             <select
               className={`flex-1 px-2 py-1 border rounded ${isDark
-                  ? 'bg-dark-secondary text-white border-white/20 focus:border-purple-400'
-                  : 'bg-white text-gray-800 border-gray-300 focus:border-blue-400'
+                ? 'bg-dark-secondary text-white border-white/20 focus:border-purple-400'
+                : 'bg-white text-gray-800 border-gray-300 focus:border-blue-400'
                 } focus:outline-none`}
               defaultValue={phones.find(p => p.is_primary_phone || p.is_primary_mobile_no)?.phone || phones[0]?.phone || ''}
             >
@@ -761,8 +785,8 @@ export default function ContactDetails({
                   onChange={(e) => setNewPhoneValue(e.target.value)}
                   placeholder="Enter phone number..."
                   className={`flex-1 px-3 py-2 border rounded ${isDark
-                      ? 'bg-gray-700 text-white border-white/20 focus:border-green-400'
-                      : 'bg-white text-gray-800 border-gray-300 focus:border-green-400'
+                    ? 'bg-gray-700 text-white border-white/20 focus:border-green-400'
+                    : 'bg-white text-gray-800 border-gray-300 focus:border-green-400'
                     } focus:outline-none`}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
@@ -823,8 +847,8 @@ export default function ContactDetails({
                 }
               }}
               className={`flex-1 px-2 py-1 border rounded ${isDark
-                  ? 'bg-dark-secondary text-white border-white/20 focus:border-purple-400'
-                  : 'bg-white text-gray-800 border-gray-300 focus:border-blue-400'
+                ? 'bg-dark-secondary text-white border-white/20 focus:border-purple-400'
+                : 'bg-white text-gray-800 border-gray-300 focus:border-blue-400'
                 } focus:outline-none`}
               disabled={loading}
             >
@@ -842,8 +866,8 @@ export default function ContactDetails({
               onBlur={() => handleBlur(field as string)}
               onKeyDown={(e) => handleKeyDown(e, field as string)}
               className={`flex-1 px-2 py-1 border rounded ${isDark
-                  ? 'bg-dark-secondary text-white border-white/20 focus:border-purple-400'
-                  : 'bg-white text-gray-800 border-gray-300 focus:border-blue-400'
+                ? 'bg-dark-secondary text-white border-white/20 focus:border-purple-400'
+                : 'bg-white text-gray-800 border-gray-300 focus:border-blue-400'
                 } focus:outline-none`}
               disabled={loading}
             />
@@ -851,8 +875,8 @@ export default function ContactDetails({
         ) : (
           <p
             className={`flex-1 cursor-pointer px-2 py-1 rounded transition-colors hover:bg-opacity-50 ${isDark
-                ? "text-white hover:bg-white/10"
-                : "text-gray-800 hover:bg-gray-100"
+              ? "text-white hover:bg-white/10"
+              : "text-gray-800 hover:bg-gray-100"
               } ${!value || value === 'N/A' ? 'italic opacity-60' : ''}`}
             onDoubleClick={() => handleDoubleClick(field)}
             title="Double-click to edit"
@@ -884,12 +908,58 @@ export default function ContactDetails({
           {/* Header */}
           <div className={`p-4 border-b ${isDark ? "border-white/20" : "border-gray-300"}`}>
             <div className="flex items-center gap-3 mb-4">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg font-semibold ${isDark ? "bg-purple-800" : "bg-gray-200"}`}>
+              {/* <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg font-semibold ${isDark ? "bg-purple-800" : "bg-gray-200"}`}>
                 {contact.first_name?.[0] || 'C'}
+              </div> */}
+              {/* <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center text-lg font-semibold bg-gray-200">
+                {contact.image_url ? (
+                  <img
+                    src={contact.image_url}
+                    alt={contact.first_name || 'User'}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  contact.first_name?.[0] || 'C'
+                )}
               </div>
+
               <div>
                 <h2 className="text-lg font-semibold">{contact.full_name || contact.name}</h2>
                 <span className="text-xs text-gray-400 block">{contact.company_name || 'No company'}</span>
+              </div> */}
+              <div className="flex items-center gap-3">
+                {/* Avatar */}
+                <div
+                  onClick={handleClick}
+                  className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center text-lg font-semibold bg-gray-200 cursor-pointer"
+                >
+                  {contact.image_url ? (
+                    <img
+                      src={contact.image_url}
+                      alt={contact.first_name || 'User'}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    contact.first_name?.[0] || 'C'
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    ref={fileInputRef}
+                    className="hidden"
+                    onChange={handleFileChange}
+                  />
+                </div>
+
+                {/* Name & Company */}
+                <div>
+                  <h2 className="text-lg font-semibold">
+                    {contact.full_name || contact.name}
+                  </h2>
+                  <span className="text-xs text-gray-400 block">
+                    {contact.company_name || 'No company'}
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -973,12 +1043,12 @@ export default function ContactDetails({
                       <td className="p-3">
                         <div className="flex items-center gap-2">
                           <div className={`w-3 h-3 rounded-full ${deal.status === 'Qualification' ? 'bg-blue-500' :
-                              deal.status === 'Demo/Making' ? 'bg-yellow-500' :
-                                deal.status === 'Proposal/Quotation' ? 'bg-orange-500' :
-                                  deal.status === 'Negotiation' ? 'bg-purple-500' :
-                                    deal.status === 'Won' ? 'bg-green-500' :
-                                      deal.status === 'Lost' ? 'bg-red-500' :
-                                        'bg-gray-500'
+                            deal.status === 'Demo/Making' ? 'bg-yellow-500' :
+                              deal.status === 'Proposal/Quotation' ? 'bg-orange-500' :
+                                deal.status === 'Negotiation' ? 'bg-purple-500' :
+                                  deal.status === 'Won' ? 'bg-green-500' :
+                                    deal.status === 'Lost' ? 'bg-red-500' :
+                                      'bg-gray-500'
                             }`}></div>
                           <span className="text-sm">{deal.status || 'Qualification'}</span>
                         </div>

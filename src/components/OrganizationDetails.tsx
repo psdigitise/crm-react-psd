@@ -198,8 +198,8 @@ export default function OrganizationDetails({
             filters: {
               organization: organization.organization_name
             },
-            limit: 20,
-            limit_page_length: 20,
+            limit: 1000,
+            limit_page_length: 1000,
             limit_start: 0,
             order_by: "modified desc",
             start: 0,
@@ -268,8 +268,8 @@ export default function OrganizationDetails({
             filters: {
               company_name: organization.organization_name
             },
-            limit: 20,
-            limit_page_length: 20,
+            limit: 1000,
+            limit_page_length: 1000,
             limit_start: 0,
             order_by: "modified desc",
             start: 0,

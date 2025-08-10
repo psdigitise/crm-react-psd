@@ -270,6 +270,8 @@
 //   const [addresses, setAddresses] = useState([]);
 //   const [loadingAddresses, setLoadingAddresses] = useState(false);
 //   const [showAddressModal, setShowAddressModal] = useState(false);
+//   const [showAddressDropdown, setShowAddressDropdown] = useState(false);
+//   const [addressSearch, setAddressSearch] = useState('');
 
 //   // Fetch addresses on component mount
 //   useEffect(() => {
@@ -315,6 +317,27 @@
 //     setAddresses(prev => [...prev, newAddress]);
 //     setFormData(prev => ({ ...prev, address: newAddress.name || newAddress.address_title }));
 //     setShowAddressModal(false);
+//   };
+
+//   // Filter addresses based on search
+//   const filteredAddresses = addresses.filter((address: any) =>
+//     address.address_title?.toLowerCase().includes(addressSearch.toLowerCase()) ||
+//     address.address_type?.toLowerCase().includes(addressSearch.toLowerCase()) ||
+//     address.country?.toLowerCase().includes(addressSearch.toLowerCase())
+//   );
+
+//   // Select address from dropdown
+//   const selectAddress = (address: any) => {
+//     setFormData(prev => ({ ...prev, address: address.name }));
+//     setShowAddressDropdown(false);
+//     setAddressSearch('');
+//   };
+
+//   // Clear address selection
+//   const clearAddress = () => {
+//     setFormData(prev => ({ ...prev, address: '' }));
+//     setShowAddressDropdown(false);
+//     setAddressSearch('');
 //   };
 
 //   if (!isOpen) return null;
@@ -406,14 +429,14 @@
 //         <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
 //           <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" onClick={onClose} />
 
-//           <div className={`inline-block align-bottom rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full backdrop-blur-md ${theme === 'dark'
+//           <div className={`inline-block align-bottom rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full backdrop-blur-md ${theme === 'dark'
 //               ? 'bg-custom-gradient border-transparent'
 //               : 'bg-white/90 border border-gray-200'
 //             }`}>
 //             <div className={`flex items-center justify-between px-6 py-4 border-b ${theme === 'dark' ? 'border-purple-500/30' : 'border-gray-200'
 //               }`}>
 //               <h3 className={`text-lg font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-//                 Create Contact
+//                 New Contact
 //               </h3>
 //               <div className="flex items-center space-x-2">
 //                 <button className={`p-1 rounded transition-colors ${theme === 'dark' ? 'hover:bg-purple-800/50' : 'hover:bg-gray-100'
@@ -431,10 +454,10 @@
 //             </div>
 
 //             <form onSubmit={handleSubmit} className="p-6">
-//               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+//               <div className="space-y-4">
 //                 {/* Salutation */}
 //                 <div>
-//                   <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
+//                   <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
 //                     }`}>
 //                     Salutation
 //                   </label>
@@ -448,7 +471,7 @@
 //                         : 'bg-gray-50/80 border-gray-300'
 //                       }`}
 //                   >
-//                     <option value="">Select Salutation</option>
+//                     <option value="">Salutation</option>
 //                     <option value="Mr">Mr</option>
 //                     <option value="Ms">Ms</option>
 //                     <option value="Mrs">Mrs</option>
@@ -457,38 +480,60 @@
 //                   </select>
 //                 </div>
 
-//                 {/* First Name */}
-//                 <div>
-//                   <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
-//                     }`}>
-//                     First Name <span className="text-red-500">*</span>
-//                   </label>
-//                   <input
-//                     type="text"
-//                     name="first_name"
-//                     value={formData.first_name}
-//                     onChange={handleChange}
-//                     placeholder="First Name"
-//                     required
-//                     disabled={loading}
-//                     className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
-//                         ? 'bg-white-31 text-white placeholder-gray-400'
-//                         : 'bg-white/80 border-gray-300 placeholder-gray-500'
-//                       }`}
-//                   />
+//                 {/* First Name and Last Name */}
+//                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+//                   <div>
+//                     <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
+//                       }`}>
+//                       First Name
+//                     </label>
+//                     <input
+//                       type="text"
+//                       name="first_name"
+//                       value={formData.first_name}
+//                       onChange={handleChange}
+//                       placeholder="First Name"
+//                       required
+//                       disabled={loading}
+//                       className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
+//                           ? 'bg-white-31 text-white placeholder-gray-400'
+//                           : 'bg-white/80 border-gray-300 placeholder-gray-500'
+//                         }`}
+//                     />
+//                   </div>
+
+//                   <div>
+//                     <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
+//                       }`}>
+//                       Last Name
+//                     </label>
+//                     <input
+//                       type="text"
+//                       name="last_name"
+//                       value={formData.last_name}
+//                       onChange={handleChange}
+//                       placeholder="Last Name"
+//                       disabled={loading}
+//                       className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
+//                           ? 'bg-white-31 text-white placeholder-gray-400'
+//                           : 'bg-white/80 border-gray-300 placeholder-gray-500'
+//                         }`}
+//                     />
+//                   </div>
 //                 </div>
-//                 {/* Last Name */}
+
+//                 {/* Email Address */}
 //                 <div>
-//                   <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
+//                   <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
 //                     }`}>
-//                     Last Name
+//                     Email Address
 //                   </label>
 //                   <input
-//                     type="text"
-//                     name="last_name"
-//                     value={formData.last_name}
+//                     type="email"
+//                     name="email_id"
+//                     value={formData.email_id}
 //                     onChange={handleChange}
-//                     placeholder="Last Name"
+//                     placeholder="Email Address"
 //                     disabled={loading}
 //                     className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
 //                         ? 'bg-white-31 text-white placeholder-gray-400'
@@ -497,32 +542,53 @@
 //                   />
 //                 </div>
 
-//                 {/* Gender */}
-//                 <div>
-//                   <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
-//                     }`}>
-//                     Gender
-//                   </label>
-//                   <select
-//                     name="gender"
-//                     value={formData.gender}
-//                     onChange={handleChange}
-//                     disabled={loading}
-//                     className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
-//                         ? 'bg-white-31 text-white'
-//                         : 'bg-gray-50/80 border-gray-300'
-//                       }`}
-//                   >
-//                     <option value="">Select Gender</option>
-//                     <option value="Male">Male</option>
-//                     <option value="Female">Female</option>
-//                     <option value="Other">Other</option>
-//                   </select>
+//                 {/* Mobile No and Gender */}
+//                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+//                   <div>
+//                     <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
+//                       }`}>
+//                       Mobile No
+//                     </label>
+//                     <input
+//                       type="tel"
+//                       name="phone"
+//                       value={formData.phone}
+//                       onChange={handleChange}
+//                       placeholder="Mobile No"
+//                       disabled={loading}
+//                       className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
+//                           ? 'bg-white-31 text-white placeholder-gray-400'
+//                           : 'bg-white/80 border-gray-300 placeholder-gray-500'
+//                         }`}
+//                     />
+//                   </div>
+
+//                   <div>
+//                     <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
+//                       }`}>
+//                       Gender
+//                     </label>
+//                     <select
+//                       name="gender"
+//                       value={formData.gender}
+//                       onChange={handleChange}
+//                       disabled={loading}
+//                       className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
+//                           ? 'bg-white-31 text-white'
+//                           : 'bg-gray-50/80 border-gray-300'
+//                         }`}
+//                     >
+//                       <option value="">Gender</option>
+//                       <option value="Male">Male</option>
+//                       <option value="Female">Female</option>
+//                       <option value="Other">Other</option>
+//                     </select>
+//                   </div>
 //                 </div>
 
 //                 {/* Company Name */}
 //                 <div>
-//                   <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
+//                   <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
 //                     }`}>
 //                     Company Name
 //                   </label>
@@ -542,7 +608,7 @@
 
 //                 {/* Designation */}
 //                 <div>
-//                   <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
+//                   <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
 //                     }`}>
 //                     Designation
 //                   </label>
@@ -560,97 +626,158 @@
 //                   />
 //                 </div>
 
-//                 {/* Email */}
+//                 {/* Address with custom searchable dropdown */}
 //                 <div>
-//                   <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
-//                     }`}>
-//                     Email Address
-//                   </label>
-//                   <input
-//                     type="email"
-//                     name="email_id"
-//                     value={formData.email_id}
-//                     onChange={handleChange}
-//                     placeholder="Email Address"
-//                     disabled={loading}
-//                     className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
-//                         ? 'bg-white-31 text-white placeholder-gray-400'
-//                         : 'bg-white/80 border-gray-300 placeholder-gray-500'
-//                       }`}
-//                   />
-//                 </div>
-
-//                 {/* Phone */}
-//                 <div>
-//                   <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
-//                     }`}>
-//                     Phone Number
-//                   </label>
-//                   <input
-//                     type="tel"
-//                     name="phone"
-//                     value={formData.phone}
-//                     onChange={handleChange}
-//                     placeholder="Phone Number"
-//                     disabled={loading}
-//                     className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
-//                         ? 'bg-white-31 text-white placeholder-gray-400'
-//                         : 'bg-white/80 border-gray-300 placeholder-gray-500'
-//                       }`}
-//                   />
-//                 </div>
-
-//                 {/* Address */}
-//                 <div>
-//                   <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
+//                   <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
 //                     }`}>
 //                     Address
 //                   </label>
-//                   <div className="flex">
-//                     <select
-//                       name="address"
-//                       value={formData.address}
-//                       onChange={handleChange}
-//                       disabled={loading || loadingAddresses}
-//                       className={`flex-1 px-3 py-2 border rounded-l-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
-//                           ? 'bg-white-31 text-white'
-//                           : 'bg-gray-50/80 border-gray-300'
-//                         }`}
-//                     >
-//                       <option value="">Select Address</option>
-//                       {addresses.map((address: any) => (
-//                         // <option key={address.name} value={address.name}>
-//                         //   {address.address_title} - {address.address_line1}, {address.city}
-//                         // </option>
-//                         <option key={address.name} value={address.name}>
-//                           {address.name}
-//                         </option>
-
-//                       ))}
-//                     </select>
-//                     <button
-//                       type="button"
-//                       onClick={() => setShowAddressModal(true)}
-//                       disabled={loading}
-//                       className={`px-3 py-2 border-t border-r border-b rounded-r-lg transition-colors ${theme === 'dark'
-//                           ? 'bg-purple-600 hover:bg-purple-700 border-purple-600 text-white'
-//                           : 'bg-gray-600 hover:bg-gray-700 border-gray-300 text-white'
-//                         }`}
-//                     >
-//                       <Plus className="w-4 h-4" />
-//                     </button>
+//                   <div className="relative">
+//                     {/* Custom Searchable Dropdown */}
+//                     <div className="relative">
+//                       <input
+//                         type="text"
+//                         name="address_search"
+//                         placeholder="Address"
+//                         disabled={loading || loadingAddresses}
+//                         className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm cursor-pointer ${theme === 'dark'
+//                             ? 'bg-white-31 text-white placeholder-gray-400'
+//                             : 'bg-white/80 border-gray-300 placeholder-gray-500'
+//                           }`}
+//                         onClick={() => setShowAddressDropdown(true)}
+//                         value={formData.address ? addresses.find(addr => addr.name === formData.address)?.address_title || formData.address : ''}
+//                         readOnly
+//                       />
+                      
+//                       {/* Dropdown arrow */}
+//                       <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
+//                         <svg className={`fill-current h-4 w-4 transition-transform ${showAddressDropdown ? 'rotate-180' : ''} ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+//                           <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/>
+//                         </svg>
+//                       </div>
+                      
+//                       {/* Custom Dropdown */}
+//                       {showAddressDropdown && (
+//                         <div className={`absolute z-50 w-full mt-1 rounded-lg border shadow-lg backdrop-blur-md ${theme === 'dark'
+//                             ? 'bg-white-31 border-purple-500/30'
+//                             : 'bg-white border-gray-200'
+//                           }`}>
+                          
+//                           {/* Search Input */}
+//                           <div className="p-3 border-b border-gray-200">
+//                             <div className="relative">
+//                               <input
+//                                 type="text"
+//                                 placeholder="Search"
+//                                 value={addressSearch}
+//                                 onChange={(e) => setAddressSearch(e.target.value)}
+//                                 autoFocus
+//                                 className={`w-full px-3 py-2 pl-8 border rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
+//                                     ? 'bg-gray-700 text-white border-gray-600 placeholder-gray-400'
+//                                     : 'bg-white border-gray-300 placeholder-gray-500'
+//                                   }`}
+//                               />
+//                               {/* Search icon */}
+//                               <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+//                                 <svg className={`h-4 w-4 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+//                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+//                                 </svg>
+//                               </div>
+//                               {/* Clear search */}
+//                               {addressSearch && (
+//                                 <button
+//                                   type="button"
+//                                   onClick={() => setAddressSearch('')}
+//                                   className="absolute inset-y-0 right-0 pr-2 flex items-center"
+//                                 >
+//                                   <X className={`h-4 w-4 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`} />
+//                                 </button>
+//                               )}
+//                             </div>
+//                           </div>
+                          
+//                           {/* Address List */}
+//                           <div className="max-h-48 overflow-y-auto">
+//                             {filteredAddresses.length > 0 ? (
+//                               filteredAddresses.map((address: any) => (
+//                                 <div
+//                                   key={address.name}
+//                                   className={`px-4 py-3 cursor-pointer border-b border-gray-100 hover:bg-gray-50 transition-colors ${
+//                                     formData.address === address.name ? 'bg-blue-50' : ''
+//                                   } ${theme === 'dark' ? 'hover:bg-gray-700 border-gray-600' : ''
+//                                     }`}
+//                                   onClick={() => selectAddress(address)}
+//                                 >
+//                                   <div className={`font-medium text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+//                                     {address.address_title}-{address.address_type}
+//                                   </div>
+//                                   <div className={`text-xs mt-1 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
+//                                     {address.country}
+//                                   </div>
+//                                 </div>
+//                               ))
+//                             ) : (
+//                               <div className={`px-4 py-3 text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
+//                                 {addressSearch ? 'No addresses found' : 'No addresses available'}
+//                               </div>
+//                             )}
+//                           </div>
+                          
+//                           {/* Actions */}
+//                           <div className={`border-t ${theme === 'dark' ? 'border-gray-600' : 'border-gray-200'}`}>
+//                             <button
+//                               type="button"
+//                               onClick={() => {
+//                                 setShowAddressDropdown(false);
+//                                 setAddressSearch('');
+//                                 setShowAddressModal(true);
+//                               }}
+//                               className={`w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center text-sm font-medium border-b ${theme === 'dark' 
+//                                   ? 'text-white hover:bg-gray-700 border-gray-600' 
+//                                   : 'text-gray-700 border-gray-200'
+//                                 }`}
+//                             >
+//                               <Plus className="w-4 h-4 mr-2" />
+//                               Create New
+//                             </button>
+//                             <button
+//                               type="button"
+//                               onClick={clearAddress}
+//                               className={`w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center text-sm font-medium ${theme === 'dark' 
+//                                   ? 'text-white hover:bg-gray-700' 
+//                                   : 'text-gray-700'
+//                                 }`}
+//                             >
+//                               <X className="w-4 h-4 mr-2" />
+//                               Clear
+//                             </button>
+//                           </div>
+//                         </div>
+//                       )}
+                      
+//                       {/* Click outside handler */}
+//                       {showAddressDropdown && (
+//                         <div 
+//                           className="fixed inset-0 z-40" 
+//                           onClick={() => {
+//                             setShowAddressDropdown(false);
+//                             setAddressSearch('');
+//                           }}
+//                         />
+//                       )}
+//                     </div>
 //                   </div>
 //                 </div>
 //               </div>
 
 //               {/* Submit Button */}
-//               <div className="flex justify-end mt-8">
+//               <div className="flex justify-center mt-8">
 //                 <button
 //                   type="submit"
 //                   disabled={loading}
-//                   className={`px-6 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${theme === 'dark'
-//                       ? 'bg-purplebg hover:bg-purple-700 text-white'
-//                       : 'bg-gray-900 hover:bg-gray-800 text-white'
+//                   className={`w-full px-6 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${theme === 'dark'
+//                       ? 'bg-black hover:bg-gray-900 text-white'
+//                       : 'bg-black hover:bg-gray-900 text-white'
 //                     }`}
 //                 >
 //                   {loading ? 'Creating...' : 'Create'}
@@ -670,8 +797,6 @@
 //     </>
 //   );
 // }
-
-
 
 import React, { useState, useEffect } from 'react';
 import { X, ExternalLink, Plus } from 'lucide-react';
@@ -945,8 +1070,6 @@ export function CreateContactModal({ isOpen, onClose, onSubmit }: CreateContactM
   const [addresses, setAddresses] = useState([]);
   const [loadingAddresses, setLoadingAddresses] = useState(false);
   const [showAddressModal, setShowAddressModal] = useState(false);
-  const [showAddressDropdown, setShowAddressDropdown] = useState(false);
-  const [addressSearch, setAddressSearch] = useState('');
 
   // Fetch addresses on component mount
   useEffect(() => {
@@ -992,27 +1115,6 @@ export function CreateContactModal({ isOpen, onClose, onSubmit }: CreateContactM
     setAddresses(prev => [...prev, newAddress]);
     setFormData(prev => ({ ...prev, address: newAddress.name || newAddress.address_title }));
     setShowAddressModal(false);
-  };
-
-  // Filter addresses based on search
-  const filteredAddresses = addresses.filter((address: any) =>
-    address.address_title?.toLowerCase().includes(addressSearch.toLowerCase()) ||
-    address.address_type?.toLowerCase().includes(addressSearch.toLowerCase()) ||
-    address.country?.toLowerCase().includes(addressSearch.toLowerCase())
-  );
-
-  // Select address from dropdown
-  const selectAddress = (address: any) => {
-    setFormData(prev => ({ ...prev, address: address.name }));
-    setShowAddressDropdown(false);
-    setAddressSearch('');
-  };
-
-  // Clear address selection
-  const clearAddress = () => {
-    setFormData(prev => ({ ...prev, address: '' }));
-    setShowAddressDropdown(false);
-    setAddressSearch('');
   };
 
   if (!isOpen) return null;
@@ -1301,145 +1403,48 @@ export function CreateContactModal({ isOpen, onClose, onSubmit }: CreateContactM
                   />
                 </div>
 
-                {/* Address with custom searchable dropdown */}
+                {/* Address with custom dropdown */}
                 <div>
                   <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
                     }`}>
                     Address
                   </label>
                   <div className="relative">
-                    {/* Custom Searchable Dropdown */}
-                    <div className="relative">
-                      <input
-                        type="text"
-                        name="address_search"
-                        placeholder="Address"
-                        disabled={loading || loadingAddresses}
-                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm cursor-pointer ${theme === 'dark'
-                            ? 'bg-white-31 text-white placeholder-gray-400'
-                            : 'bg-white/80 border-gray-300 placeholder-gray-500'
-                          }`}
-                        onClick={() => setShowAddressDropdown(true)}
-                        value={formData.address ? addresses.find(addr => addr.name === formData.address)?.address_title || formData.address : ''}
-                        readOnly
-                      />
-                      
-                      {/* Dropdown arrow */}
-                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
-                        <svg className={`fill-current h-4 w-4 transition-transform ${showAddressDropdown ? 'rotate-180' : ''} ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                          <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/>
-                        </svg>
-                      </div>
-                      
-                      {/* Custom Dropdown */}
-                      {showAddressDropdown && (
-                        <div className={`absolute z-50 w-full mt-1 rounded-lg border shadow-lg backdrop-blur-md ${theme === 'dark'
-                            ? 'bg-white-31 border-purple-500/30'
-                            : 'bg-white border-gray-200'
-                          }`}>
-                          
-                          {/* Search Input */}
-                          <div className="p-3 border-b border-gray-200">
-                            <div className="relative">
-                              <input
-                                type="text"
-                                placeholder="Search"
-                                value={addressSearch}
-                                onChange={(e) => setAddressSearch(e.target.value)}
-                                autoFocus
-                                className={`w-full px-3 py-2 pl-8 border rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
-                                    ? 'bg-gray-700 text-white border-gray-600 placeholder-gray-400'
-                                    : 'bg-white border-gray-300 placeholder-gray-500'
-                                  }`}
-                              />
-                              {/* Search icon */}
-                              <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
-                                <svg className={`h-4 w-4 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                </svg>
-                              </div>
-                              {/* Clear search */}
-                              {addressSearch && (
-                                <button
-                                  type="button"
-                                  onClick={() => setAddressSearch('')}
-                                  className="absolute inset-y-0 right-0 pr-2 flex items-center"
-                                >
-                                  <X className={`h-4 w-4 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`} />
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                          
-                          {/* Address List */}
-                          <div className="max-h-48 overflow-y-auto">
-                            {filteredAddresses.length > 0 ? (
-                              filteredAddresses.map((address: any) => (
-                                <div
-                                  key={address.name}
-                                  className={`px-4 py-3 cursor-pointer border-b border-gray-100 hover:bg-gray-50 transition-colors ${
-                                    formData.address === address.name ? 'bg-blue-50' : ''
-                                  } ${theme === 'dark' ? 'hover:bg-gray-700 border-gray-600' : ''
-                                    }`}
-                                  onClick={() => selectAddress(address)}
-                                >
-                                  <div className={`font-medium text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                                    {address.address_title}-{address.address_type}
-                                  </div>
-                                  <div className={`text-xs mt-1 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-                                    {address.country}
-                                  </div>
-                                </div>
-                              ))
-                            ) : (
-                              <div className={`px-4 py-3 text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
-                                {addressSearch ? 'No addresses found' : 'No addresses available'}
-                              </div>
-                            )}
-                          </div>
-                          
-                          {/* Actions */}
-                          <div className={`border-t ${theme === 'dark' ? 'border-gray-600' : 'border-gray-200'}`}>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setShowAddressDropdown(false);
-                                setAddressSearch('');
-                                setShowAddressModal(true);
-                              }}
-                              className={`w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center text-sm font-medium border-b ${theme === 'dark' 
-                                  ? 'text-white hover:bg-gray-700 border-gray-600' 
-                                  : 'text-gray-700 border-gray-200'
-                                }`}
-                            >
-                              <Plus className="w-4 h-4 mr-2" />
-                              Create New
-                            </button>
-                            <button
-                              type="button"
-                              onClick={clearAddress}
-                              className={`w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center text-sm font-medium ${theme === 'dark' 
-                                  ? 'text-white hover:bg-gray-700' 
-                                  : 'text-gray-700'
-                                }`}
-                            >
-                              <X className="w-4 h-4 mr-2" />
-                              Clear
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                      
-                      {/* Click outside handler */}
-                      {showAddressDropdown && (
-                        <div 
-                          className="fixed inset-0 z-40" 
-                          onClick={() => {
-                            setShowAddressDropdown(false);
-                            setAddressSearch('');
-                          }}
-                        />
-                      )}
+                    <select
+                      name="address"
+                      value={formData.address}
+                      onChange={(e) => {
+                        if (e.target.value === 'add_new') {
+                          // Immediately reset the select and open modal
+                          e.target.value = formData.address; // Reset to previous value
+                          setShowAddressModal(true);
+                        } else {
+                          handleChange(e);
+                        }
+                      }}
+                      disabled={loading || loadingAddresses}
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm appearance-none ${theme === 'dark'
+                          ? 'bg-white-31 text-white'
+                          : 'bg-gray-50/80 border-gray-300'
+                        }`}
+                      size={addresses.length > 4 ? 4 : undefined}
+                    >
+                      <option value="">Address</option>
+                      {addresses.map((address: any) => (
+                        <option key={address.name} value={address.name}>
+                          {address.name}
+                        </option>
+                      ))}
+                      <option value="add_new" className="font-medium border-t">
+                        + Add New Address
+                      </option>
+                    </select>
+                    
+                    {/* Custom dropdown arrow */}
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
+                      <svg className={`fill-current h-4 w-4 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                        <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/>
+                      </svg>
                     </div>
                   </div>
                 </div>
