@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { ChevronDown, ChevronUp, Globe, Building2, DollarSign, Users, Loader2 } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
@@ -39,70 +40,68 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
     fetchOrganizations();
   }, []);
 
-  // const fetchOrganizations = async () => {
-  //   try {
-  //     setLoading(true);
-  //     setError(null);
-
-  //     // Get company from session
-  //     const sessionCompany = sessionStorage.getItem('company');
-  //     if (!sessionCompany) {
-  //       setOrganizations([]);
-  //       setLoading(false);
-  //       return;
-  //     }
-
-  //     // Add filter for company field
-  //     // const filters = encodeURIComponent(JSON.stringify([["company", "=", sessionCompany]]));
-
-  //     const filters = encodeURIComponent(JSON.stringify([["company", "=", sessionCompany]]));
-  //     const apiUrl = `http://103.214.132.20:8002/api/v2/document/CRM Organization?fields=["name","organization_name","website","territory","industry","no_of_employees","currency","annual_revenue","creation","modified"]&filters=${filters}`;
-
-  //     const response = await fetch(apiUrl, {
-  //       method: 'GET',
-  //       headers: {
-  //         'Content-Type': 'application/json',
-  //         'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6'
-  //       }
-  //     });
-
   const fetchOrganizations = async () => {
     try {
       setLoading(true);
       setError(null);
 
       const session = getUserSession();
-      const sessionCompany = session?.company;
 
-      if (!sessionCompany) {
+      if (!session) {
         setOrganizations([]);
         setLoading(false);
         return;
       }
 
-      const filters = encodeURIComponent(JSON.stringify([
-        ["company", "=", sessionCompany]
-      ]));
+      const apiUrl = `http://103.214.132.20:8002/api/method/crm.api.doc.get_data`;
 
-      const apiUrl = `http://103.214.132.20:8002/api/v2/document/CRM Organization?fields=["name","organization_name","website","territory","industry","no_of_employees","currency","annual_revenue","creation","modified"]&filters=${filters}`;
+      const requestBody = {
+        doctype: "CRM Organization",
+        filters: {},
+        order_by: "modified desc",
+        default_filters: {},
+        column_field: "status",
+        columns: JSON.stringify([
+          { label: "Organization", type: "Data", key: "organization_name", width: "16rem" },
+          { label: "Website", type: "Data", key: "website", width: "14rem" },
+          { label: "Industry", type: "Link", key: "industry", options: "CRM Industry", width: "92px" },
+          { label: "Annual Revenue", type: "Currency", key: "annual_revenue", width: "14rem" },
+          { label: "Last Modified", type: "Datetime", key: "modified", width: "8rem" }
+        ]),
+        kanban_columns: JSON.stringify([]),
+        kanban_fields: JSON.stringify([]),
+        page_length: 20,
+        page_length_count: 20,
+        rows: JSON.stringify([
+          "name", "organization_name", "organization_logo", "website", "industry", 
+          "currency", "annual_revenue", "modified", "owner", "creation", 
+          "modified_by", "_assign", "_liked_by", "territory", "no_of_employees"
+        ]),
+        title_field: "",
+        view: {
+          custom_view_name: 8,
+          view_type: "list",
+          group_by_field: "owner"
+        }
+      };
 
       const response = await fetch(apiUrl, {
-        method: 'GET',
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `token ${session.api_key}:${session.api_secret}`
-        }
+        },
+        body: JSON.stringify(requestBody)
       });
-
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
       const result = await response.json();
-
+      
       // Transform API data to match our Organization interface
-      const transformedOrganizations: Organization[] = result.data.map((apiOrg: any) => ({
+      const transformedOrganizations: Organization[] = result.message.data.map((apiOrg: any) => ({
         id: apiOrg.name || Math.random().toString(),
         name: apiOrg.organization_name || 'Unknown',
         organization_name: apiOrg.organization_name || '',
