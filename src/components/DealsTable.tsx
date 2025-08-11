@@ -4,17 +4,20 @@ import { useTheme } from './ThemeProvider';
 import { getUserSession } from '../utils/session';
 import { FaCircleDot } from 'react-icons/fa6';
 import * as XLSX from 'xlsx';
+import { AUTH_TOKEN } from '../api/apiUrl';
 
 interface Deal {
   id: string;
   name: string;
   organization: string;
+  first_name: string;
   status: string;
   email: string;
   mobileNo: string;
   assignedTo: string;
   lastModified: string;
   annualRevenue: string;
+  closeDate: string;
   website?: string;
   territory?: string;
   industry?: string;
@@ -54,19 +57,20 @@ const statusColors = {
 };
 
 const defaultColumns = [
-  { key: 'name', label: 'Name', visible: true },
-  { key: 'organization', label: 'Organization', visible: true },
+  { key: 'organization', label: 'Organization', visible: true }, // 1st column
+  { key: 'first_name', label: 'First Name', visible: true }, // 2nd column
+  { key: 'name', label: 'Name', visible: false }, // 2nd column
+  { key: 'annualRevenue', label: 'Annual Revenue', visible: true },
   { key: 'status', label: 'Status', visible: true },
   { key: 'email', label: 'Email', visible: true },
   { key: 'mobileNo', label: 'Mobile No', visible: true },
   { key: 'assignedTo', label: 'Assigned To', visible: true },
   { key: 'lastModified', label: 'Last Modified', visible: true },
-  { key: 'annualRevenue', label: 'Annual Revenue', visible: false },
+  { key: 'closeDate', label: 'Close Date', visible: true },
   { key: 'territory', label: 'Territory', visible: false },
   { key: 'industry', label: 'Industry', visible: false },
   { key: 'website', label: 'Website', visible: false }
 ];
-
 export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
   const { theme } = useTheme();
   const [deals, setDeals] = useState<Deal[]>([]);
@@ -114,18 +118,33 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
         return;
       }
 
-      const filters = encodeURIComponent(JSON.stringify([
-        ["company", "=", sessionCompany]
-      ]));
+      const requestData = {
+        doctype: "CRM Deal",
+        filters: { company: sessionCompany }, // Add company filter
+        order_by: "modified desc",
+        default_filters: {},
+        view: {
+          custom_view_name: 1,
+          view_type: "list",
+          group_by_field: "owner"
+        },
+        column_field: "status",
+        title_field: "",
+        kanban_columns: "[]",
+        kanban_fields: "[]",
+        columns: `[{"label": "Organization", "type": "Link", "key": "organization", "options": "CRM Organization", "width": "11rem"}, {"label": "First Name", "type": "Data", "key": "first_name", "width": "10rem", "align": "left"}, {"label": "Annual Revenue", "type": "Currency", "key": "annual_revenue", "align": "right", "width": "9rem"}, {"label": "Status", "type": "Select", "key": "status", "width": "10rem"}, {"label": "Email", "type": "Data", "key": "email", "width": "12rem"}, {"label": "Mobile No", "type": "Data", "key": "mobile_no", "width": "11rem"}, {"label": "Assigned To", "type": "Text", "key": "_assign", "width": "10rem"}, {"label": "Last Modified", "type": "Datetime", "key": "modified", "width": "8rem"}, {"label": "Close Date", "type": "Date", "key": "close_date", "width": "10rem", "align": "left"}]`,
+        rows: `["name", "organization", "annual_revenue", "status", "email", "currency", "mobile_no", "deal_owner", "sla_status", "response_by", "first_response_time", "first_responded_on", "modified", "_assign", "owner", "creation", "modified_by", "_liked_by", null, "first_name"]`,
+        page_length: 20,
+        page_length_count: 20
+      };
 
-      const apiUrl = `http://103.214.132.20:8002/api/v2/document/CRM Deal?fields=["organization_name","website","no_of_employees","territory","annual_revenue","industry","salutation","first_name","last_name","email","mobile_no","gender","status","deal_owner","name","modified"]&filters=${filters}&limit_page_length=1000&limit_start=0`;
-
-      const response = await fetch(apiUrl, {
-        method: 'GET',
+      const response = await fetch("http://103.214.132.20:8002/api/method/crm.api.doc.get_data", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `token ${session.api_key}:${session.api_secret}`
-        }
+          "Content-Type": "application/json",
+          "Authorization": AUTH_TOKEN
+        },
+        body: JSON.stringify(requestData)
       });
 
       if (!response.ok) {
@@ -134,27 +153,28 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
 
       const result = await response.json();
 
-      // Transform API data to match our Deal interface
-      const transformedDeals: Deal[] = result.data.map((apiDeal: ApiDeal) => ({
+      // Transform the API response to match your Deal interface
+      const transformedDeals: Deal[] = result.message.data.map((apiDeal: any) => ({
         id: apiDeal.name || Math.random().toString(),
+        organization: apiDeal.organization || 'N/A', // Ensure this is mapped correctly
+        first_name: apiDeal.first_name || 'Unknown',
         name: apiDeal.name || 'Unknown',
-        organization: apiDeal.organization_name || 'N/A',
         status: apiDeal.status || 'Qualification',
         email: apiDeal.email || 'N/A',
         mobileNo: apiDeal.mobile_no || 'N/A',
-        assignedTo: apiDeal.deal_owner || 'N/A',
+        assignedTo: apiDeal._assign || apiDeal.deal_owner || 'N/A',
         lastModified: formatDate(apiDeal.modified),
         annualRevenue: formatCurrency(apiDeal.annual_revenue),
-        website: apiDeal.website,
+        closeDate: apiDeal.close_date ? formatDate(apiDeal.close_date) : 'N/A',
+        // Optional fields
         territory: apiDeal.territory,
         industry: apiDeal.industry,
-        no_of_employees: apiDeal.no_of_employees,
-        deal_owner: apiDeal.deal_owner
+        website: apiDeal.website
       }));
 
       setDeals(transformedDeals);
 
-      // Set filter options
+      // Update filter options
       setFilterOptions({
         status: Array.from(new Set(transformedDeals.map(d => d.status).filter(Boolean))),
         territory: Array.from(new Set(transformedDeals.map(d => d.territory).filter(Boolean))),
@@ -500,6 +520,8 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
               : 'border-gray-300'
               }`}
           >
+            
+            <option value={5}>5 per page</option>
             <option value={10}>10 per page</option>
             <option value={25}>25 per page</option>
             <option value={50}>50 per page</option>
@@ -659,10 +681,19 @@ function renderCell(deal: Deal, key: keyof Deal, theme: string) {
           </div>
         </div>
       );
+    case 'first_name':
+      return (
+        <div className="flex items-center">
+
+          <div className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+            {deal.first_name}
+          </div>
+        </div>
+      );
     case 'status':
       return (
         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold`}>
-          <FaCircleDot className={`mr-1 ${statusColors[deal.status as keyof typeof statusColors]}`} />
+          <FaCircleDot className={`mr-1 text-white ${statusColors[deal.status as keyof typeof statusColors]}`} />
           {deal.status}
         </span>
       );
@@ -701,6 +732,28 @@ function renderCell(deal: Deal, key: keyof Deal, theme: string) {
           {deal.lastModified}
         </div>
       );
+      case 'email':
+      return (
+        <div className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`}>
+          {deal.email}
+        </div>
+      );
+
+    // case 'status':
+    //   return (
+    //     <div className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`}>
+    //       {deal.status}
+    //     </div>
+    //   );
+
+
+    case 'closeDate':
+      return (
+        <div className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`}>
+          {deal.closeDate}
+        </div>
+      );
+
     default:
       return deal[key]?.toString() || 'N/A';
   }

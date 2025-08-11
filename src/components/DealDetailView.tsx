@@ -21,7 +21,9 @@ import { DeleteAttachmentPopup } from './DealsAttachmentPopups/DeleteAttachmentP
 import { AttachmentPrivatePopup } from './DealsAttachmentPopups/AttachmnetPrivatePopup';
 import { BsThreeDots } from "react-icons/bs";
 import { DeleteTaskPopup } from './TaskPopups/DeleteTaskPopups';
-
+import { SlCallIn, SlCallOut } from "react-icons/sl";
+import { IoIosCalendar } from "react-icons/io";
+import { CallDetailsPopup } from './CallLogPopups/CallDetailsPopup';
 
 export interface Deal {
   id: string;
@@ -72,6 +74,14 @@ interface CallLog {
   reference_name: string;
   creation: string;
   owner: string;
+  _caller?: {
+    label: string | null;
+    image: string | null;
+  };
+  _receiver?: {
+    label: string | null;
+    image: string | null;
+  };
 }
 interface Comment {
   name: string;
@@ -214,6 +224,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
   const [showCommentModal, setShowCommentModal] = useState(false);
   const [CommentModalMode, setCommentModalMode] = useState("comment"); // "reply" or "comment"
   const [showTaskModal, setShowTaskModal] = useState(false);
+  console.log("showTaskModal",showTaskModal)
   const [showEmailModal, setShowEmailModal] = useState(false);
   // const [showEmailModal, setShowEmailModal] = useState(false);
   const [emailModalMode, setEmailModalMode] = useState("reply"); // "reply" or "comment"
@@ -275,11 +286,11 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
     : 'bg-gray-50';
 
   const cardBgColor = theme === 'dark'
-    ? 'bg-white dark:bg-gray-900 border-white'
+    ? 'bg-white dark:bg-gray-900 border-gray-800'
     : 'bg-white';
 
   const borderColor = theme === 'dark'
-    ? 'border-white'
+    ? 'border-gray-600'
     : 'border-gray-200';
 
   const textColor = theme === 'dark'
@@ -360,22 +371,47 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
     setCallsLoading(true);
     try {
       const response = await fetch(
-        `http://103.214.132.20:8002/api/v2/document/CRM Call Log?fields=["name","from","to","status","type","duration","creation","owner"]&filters=[["reference_doctype","=","CRM Deal"],["reference_docname","=","${deal.name}"]]`,
+        'http://103.214.132.20:8002/api/method/crm.api.activities.get_activities',
         {
+          method: 'POST',
           headers: {
             'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6',
             'Content-Type': 'application/json'
-          }
+          },
+          body: JSON.stringify({
+            name: deal.name
+          })
         }
       );
 
       if (response.ok) {
         const result = await response.json();
-        setCallLogs(result.data || []);
+        // Call logs are in the second array of the message array
+        const callLogsData = result.message[1] || [];
+
+        // Transform the call logs data to match your CallLog interface
+        const formattedCallLogs = callLogsData.map((call: any) => ({
+          name: call.name,
+          from: call.from,
+          to: call.to,
+          status: call.status,
+          type: call.type === 'Incoming' ? 'Inbound' : 'Outbound',
+          duration: call._duration || '0s',
+          reference_doctype: 'CRM Deal',
+          reference_name: deal.name,
+          creation: call.creation,
+          owner: call.caller || call.receiver || 'Unknown',
+          _caller: call._caller,  // Add this
+          _receiver: call._receiver  // Add this
+        }));
+
+        setCallLogs(formattedCallLogs);
+      } else {
+        throw new Error('Failed to fetch call logs');
       }
     } catch (error) {
-      console.error('Error fetching call logs:', error);
-      showToast('Failed to fetch call logs', { type: 'error' });
+      console.error("Error fetching call logs:", error);
+      showToast("Failed to fetch call logs", { type: 'error' });
     } finally {
       setCallsLoading(false);
     }
@@ -671,38 +707,37 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
 
     setCallsLoading(true);
     try {
-      // Step 1: Fetch the latest ID
-      const latest = await fetch('http://103.214.132.20:8002/api/resource/CRM Call Log?fields=["id"]&order_by=id desc&limit=1', {
-        headers: {
-          'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6',
-          'Content-Type': 'application/json'
-        }
-      });
+      // Generate a random ID (or you can keep your existing ID generation logic)
+      const randomId = Math.random().toString(36).substring(2, 8).toUpperCase();
 
-      const latestData = await latest.json();
-      const nextId = (latestData.data?.[0]?.id || 0) + 1;
+      // Prepare the document data
+      const docData = {
+        doctype: "CRM Call Log",
+        id: randomId,
+        telephony_medium: "Manual",
+        reference_doctype: "CRM Deal",
+        reference_docname: deal.name,
+        type: callForm.type === 'Outgoing' ? 'Outgoing' : 'Incoming',
+        to: callForm.to,
+        from: callForm.from,
+        status: callForm.status,
+        duration: callForm.duration || "0",
+        receiver: userSession?.email || "Administrator" // Use current user's email
+      };
 
-      // Step 2: Create new Call Log
-      const response = await fetch('http://103.214.132.20:8002/api/v2/document/CRM Call Log', {
+      // Call the frappe.client.insert API
+      const response = await fetch('http://103.214.132.20:8002/api/method/frappe.client.insert', {
         method: 'POST',
         headers: {
           'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6',
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          id: nextId,
-          from: callForm.from,
-          to: callForm.to,
-          status: callForm.status,
-          type: callForm.type,
-          duration: callForm.duration,
-          reference_doctype: 'CRM Deal',
-          reference_docname: deal.name
+          doc: docData
         })
       });
 
       if (response.ok) {
-        showToast('Call log added successfully', { type: 'success' });
         setCallForm({
           from: '',
           to: '',
@@ -711,12 +746,15 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
           duration: ''
         });
         await fetchCallLogs();
+        return true; // Return success status
       } else {
-        throw new Error('Failed to add call log');
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to add call log');
       }
     } catch (error) {
       console.error('Error adding call log:', error);
-      showToast('Failed to add call log', { type: 'error' });
+      showToast(error.message || 'Failed to add call log', { type: 'error' });
+      return false; // Return failure status
     } finally {
       setCallsLoading(false);
     }
@@ -1097,6 +1135,19 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
     return `${diffYear} year${diffYear !== 1 ? "s" : ""} ago`;
   }
 
+  function formatDateRelative(dateString: string): string {
+    const date = new Date(dateString);
+    const options: Intl.DateTimeFormatOptions = {
+      month: 'short',
+      day: 'numeric',
+      weekday: 'long'
+    };
+    return date.toLocaleDateString('en-US', options);
+  }
+
+  // Example usage:
+  // formatCallLogDate("2025-07-05T07:51:57.695425") returns "Jul 5, Saturday"
+
   const fetchDealDetails = useCallback(async () => {
     setLoading(true);
     try {
@@ -1378,8 +1429,23 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
   const [currentTaskId, setCurrentTaskId] = useState(null);
   const [showDeleteTaskPopup, setShowDeleteTaskPopup] = React.useState(false);
   const [taskToDelete, setTaskToDelete] = React.useState<string | null>(null);
+  console.log("taskToDelete", taskToDelete);
+  // Inside your component
+  const [editingCall, setEditingCall] = React.useState<any | null>(null);
+  const [showPopup, setShowPopup] = React.useState(false);
 
-  console.log("taskToDelete", taskToDelete)
+  const handleLabelClick = (call: any) => {
+    setEditingCall(call);
+    setShowPopup(true);
+  };
+
+
+  const handleAddTaskFromCall = () => {
+    console.log("Add Task button clicked!")
+    setShowPopup(false);
+    setShowTaskModal(true);
+  };
+
 
   return (
     <div className={`min-h-screen ${bgColor}`}>
@@ -1878,55 +1944,123 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                 </div>
               ) : (
                 <div className="space-y-4">
-
                   {callLogs.map((call) => (
-                    <div
-                      key={call.name}
-                      className={`border ${borderColor} rounded-lg p-4`}
-                      onDoubleClick={() => {
-                        setCallForm({
-                          from: call.from || '',
-                          to: call.to || '',
-                          status: call.status || 'Ringing',
-                          type: call.type || 'Outgoing',
-                          duration: call.duration || '',
-                          name: call.name || '',
-                        });
-                        setIsEditMode(true);
-                        setShowCallModal(true);
-                      }}
-                      style={{ cursor: 'pointer' }}
-                      title="Double click to edit"
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <div>
-                          <span className={`font-medium ${textColor}`}>{call.from}</span>
-                          <span className={`mx-2 ${textSecondaryColor}`}>→</span>
-                          <span className={`font-medium ${textColor}`}>{call.to}</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <span className={`text-sm ${textSecondaryColor}`}>{formatDate(call.creation)}</span>
-                          <button
-                            onClick={e => {
-                              e.stopPropagation();
-                              deleteCall(call.name);
-                            }}
-                            title="Delete"
-                            className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-900 transition-colors"
-                            style={{ lineHeight: 0 }}
+                    <div key={call.name}>
+                      <div className="flex items-center justify-between mb-3"> {/* Changed to justify-between */}
+                        <div className="flex items-center">
+                          {/* Icon container */}
+                          <div
+                            className={`p-2 rounded-full mr-3 flex items-center justify-center
+                             ${call.type === 'Inbound'
+                                ? 'bg-blue-100 text-blue-600'
+                                : 'bg-green-100 text-green-600'
+                              }`}
+                            style={{ width: '32px', height: '32px' }}
                           >
-                            <BsThreeDots className="w-4 h-4 text-red-500" />
-                          </button>
+                            {call.type === 'Inbound' ? (
+                              <SlCallIn className="w-4 h-4" />
+                            ) : (
+                              <SlCallOut className="w-4 h-4" />
+                            )}
+                          </div>
+
+                          {/* Text on the right */}
+                          <div
+                            className="p-2 rounded-full flex items-center justify-center bg-gray-200 text-gray-700 font-medium"
+                            style={{ width: '32px', height: '32px' }}
+                          >
+                            {call._caller?.label?.charAt(0).toUpperCase() || "U"}
+                          </div>
+
+                          {/* Text */}
+                          <span className="ml-2 text-sm text-white">
+                            {call._caller?.label || "Unknown"} has reached out
+                          </span>
                         </div>
+
+                        {/* Moved the time here to the right side */}
+                        <p className={`text-xs ${textSecondaryColor}`}>
+                          {getRelativeTime(call.creation)}
+                        </p>
                       </div>
-                      <div className="flex items-center space-x-4 text-sm">
-                        <span className={textSecondaryColor}>Status: {call.status}</span>
-                        <span className={textSecondaryColor}>Type: {call.type}</span>
-                        <span className={textSecondaryColor}>Duration: {call.duration} min</span>
+
+                      <div
+                        key={call.name}
+                        className={`relative border ${borderColor} rounded-lg ml-12 p-4 flex flex-col`}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <p className={`text-lg font-medium ${textColor}`}>
+                            {call.type}
+                          </p>
+                        </div>
+
+                        {/* All three in one line */}
+                        <div className="flex items-start justify-start mt-2 gap-4">
+                          <p className={`text-sm ${textSecondaryColor} flex items-center`}>
+                            <IoIosCalendar className="mr-1" />
+                            {formatDateRelative(call.creation)}
+                          </p>
+
+                          <p className={`text-sm ${textSecondaryColor}`}>
+                            {call.duration}
+                          </p>
+
+                          <span
+                            className={`text-xs px-2 py-1 rounded ${call.status === 'Completed'
+                              ? 'bg-green-100 text-green-800'
+                              : call.status === 'Ringing'
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : 'bg-gray-100 text-gray-800'
+                              }`}
+                          >
+                            {call.status}
+                          </span>
+                        </div>
+
+                        {/* Circle floated to the right, vertically centered */}
+                        <div
+                          className="absolute right-4 top-1/2 -translate-y-1/2 flex -space-x-4"
+                        >
+                          {/* Caller */}
+                          <div
+                            onClick={() => handleLabelClick(call)}
+                            className="p-2 rounded-full flex items-center justify-center bg-gray-400 text-gray-700 font-medium"
+                            style={{ width: '32px', height: '32px' }}
+                          >
+                            {call._caller?.label?.charAt(0).toUpperCase() || ""}
+                          </div>
+
+                          {/* Receiver */}
+                          <div
+                            onClick={() => handleLabelClick(call)}
+                            className="p-2 rounded-full flex items-center justify-center bg-gray-400 text-gray-700 font-medium"
+                            style={{ width: '32px', height: '32px' }}
+                          >
+                            {call._receiver?.label?.charAt(0).toUpperCase() || ""}
+                          </div>
+                        </div>
+
                       </div>
-                      <p className={`text-sm ${textSecondaryColor} mt-2`}> {call.owner}</p>
+
                     </div>
+
                   ))}
+                  {showPopup && editingCall && (
+                    <CallDetailsPopup
+                      call={{
+                        type: editingCall.type,
+                        caller: editingCall._caller?.label || "Unknown",
+                        receiver: editingCall._receiver?.label || "Unknown",
+                        date: formatDateRelative(editingCall.creation),
+                        duration: editingCall.duration,
+                        status: editingCall.status
+                      }}
+                      onClose={() => setShowPopup(false)}
+                      onAddTask={handleAddTaskFromCall}
+                      theme={theme}
+                    />
+                  )}
+
                 </div>
               )}
             </div>
@@ -1941,26 +2075,38 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                     ✕
                   </button>
 
-                  <h3 className={`text-lg font-semibold ${textColor} mb-4`}>Add Call Log</h3>
+                  <h3 className={`text-lg font-semibold ${textColor} mb-4`}>New Call Log</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>From *</label>
-                      <input
-                        type="text"
-                        value={callForm.from}
-                        onChange={(e) => setCallForm({ ...callForm, from: e.target.value })}
+                      <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>Type <span className='text-red-500'>*</span></label>
+                      <select
+                        value={callForm.type}
+                        onChange={(e) => setCallForm({ ...callForm, type: e.target.value })}
                         className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
-                        placeholder="Caller number"
-                      />
+                      >
+                        <option value="Outgoing">Outgoing</option>
+                        <option value="Incoming">Incoming</option>
+                      </select>
                     </div>
+
                     <div>
-                      <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>To *</label>
+                      <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>To <span className='text-red-500'>*</span></label>
                       <input
                         type="text"
                         value={callForm.to}
                         onChange={(e) => setCallForm({ ...callForm, to: e.target.value })}
                         className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
-                        placeholder="Recipient number"
+                        placeholder="To"
+                      />
+                    </div>
+                    <div>
+                      <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>From <span className='text-red-500'>*</span></label>
+                      <input
+                        type="text"
+                        value={callForm.from}
+                        onChange={(e) => setCallForm({ ...callForm, from: e.target.value })}
+                        className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
+                        placeholder="From"
                       />
                     </div>
                     <div>
@@ -1976,18 +2122,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                       </select>
                     </div>
                     <div>
-                      <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>Type</label>
-                      <select
-                        value={callForm.type}
-                        onChange={(e) => setCallForm({ ...callForm, type: e.target.value })}
-                        className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
-                      >
-                        <option value="Outgoing">Outgoing</option>
-                        <option value="Incoming">Incoming</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>Duration (minutes)</label>
+                      <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>Duration</label>
                       <input
                         type="number"
                         value={callForm.duration}
@@ -2015,14 +2150,12 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                       disabled={callsLoading}
                       className={`px-4 py-2 rounded-lg text-white flex items-center space-x-2 transition-colors ${theme === 'dark' ? 'bg-purplebg hover:bg-purple-700' : 'bg-green-600 hover:bg-green-700'} disabled:opacity-50`}
                     >
-                      {callsLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                      <span>{isEditMode ? 'Update' : 'Add Call Log'}</span>
+                      <span>{isEditMode ? 'Update' : 'Create'}</span>
                     </button>
                   </div>
                 </div>
               </div>
             )}
-
           </div>
         )}
 
@@ -2226,7 +2359,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                         setShowTaskModal(true);
                       }}
                       className={`border ${borderColor} rounded-lg p-4`}
-                    >
+                     >
                       <div className="flex justify-between items-start mb-2">
                         <h4 className={`font-medium ${textColor}`}>{note.title}</h4>
                       </div>
