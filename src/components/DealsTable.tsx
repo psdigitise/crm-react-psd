@@ -5,7 +5,6 @@ import { getUserSession } from '../utils/session';
 import { FaCircleDot } from 'react-icons/fa6';
 import * as XLSX from 'xlsx';
 import { AUTH_TOKEN } from '../api/apiUrl';
-
 interface Deal {
   id: string;
   name: string;
@@ -119,23 +118,23 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
       }
 
       const requestData = {
-        doctype: "CRM Deal",
-        filters: { company: sessionCompany }, // Add company filter
-        order_by: "modified desc",
-        default_filters: {},
-        view: {
-          custom_view_name: 1,
-          view_type: "list",
-          group_by_field: "owner"
+        "doctype": "CRM Deal",
+        "filters": {}, // You can add filters here, e.g., {"status": "Won"}
+        "order_by": "modified desc",
+        "default_filters": {},
+        "view": {
+          "custom_view_name": 1,
+          "view_type": "list",
+          "group_by_field": "owner"
         },
-        column_field: "status",
-        title_field: "",
-        kanban_columns: "[]",
-        kanban_fields: "[]",
-        columns: `[{"label": "Organization", "type": "Link", "key": "organization", "options": "CRM Organization", "width": "11rem"}, {"label": "First Name", "type": "Data", "key": "first_name", "width": "10rem", "align": "left"}, {"label": "Annual Revenue", "type": "Currency", "key": "annual_revenue", "align": "right", "width": "9rem"}, {"label": "Status", "type": "Select", "key": "status", "width": "10rem"}, {"label": "Email", "type": "Data", "key": "email", "width": "12rem"}, {"label": "Mobile No", "type": "Data", "key": "mobile_no", "width": "11rem"}, {"label": "Assigned To", "type": "Text", "key": "_assign", "width": "10rem"}, {"label": "Last Modified", "type": "Datetime", "key": "modified", "width": "8rem"}, {"label": "Close Date", "type": "Date", "key": "close_date", "width": "10rem", "align": "left"}]`,
-        rows: `["name", "organization", "annual_revenue", "status", "email", "currency", "mobile_no", "deal_owner", "sla_status", "response_by", "first_response_time", "first_responded_on", "modified", "_assign", "owner", "creation", "modified_by", "_liked_by", null, "first_name"]`,
-        page_length: 20,
-        page_length_count: 20
+        "column_field": "status",
+        "title_field": "",
+        "kanban_columns": "[]",
+        "kanban_fields": "[]",
+        "columns": "[{\"label\": \"Organization\", \"type\": \"Link\", \"key\": \"organization\", \"options\": \"CRM Organization\", \"width\": \"11rem\"}, {\"label\": \"First Name\", \"type\": \"Data\", \"key\": \"first_name\", \"width\": \"10rem\", \"align\": \"left\"}, {\"label\": \"Annual Revenue\", \"type\": \"Currency\", \"key\": \"annual_revenue\", \"align\": \"right\", \"width\": \"9rem\"}, {\"label\": \"Status\", \"type\": \"Select\", \"key\": \"status\", \"width\": \"10rem\"}, {\"label\": \"Email\", \"type\": \"Data\", \"key\": \"email\", \"width\": \"12rem\"}, {\"label\": \"Mobile No\", \"type\": \"Data\", \"key\": \"mobile_no\", \"width\": \"11rem\"}, {\"label\": \"Assigned To\", \"type\": \"Text\", \"key\": \"_assign\", \"width\": \"10rem\"}, {\"label\": \"Last Modified\", \"type\": \"Datetime\", \"key\": \"modified\", \"width\": \"8rem\"}, {\"label\": \"Close Date\", \"type\": \"Date\", \"key\": \"close_date\", \"width\": \"10rem\", \"align\": \"left\"}]",
+        "rows": "[\"name\", \"organization\", \"annual_revenue\", \"status\", \"email\", \"currency\", \"mobile_no\", \"deal_owner\", \"sla_status\", \"response_by\", \"first_response_time\", \"first_responded_on\", \"modified\", \"_assign\", \"owner\", \"creation\", \"modified_by\", \"_liked_by\", null, \"first_name\"]",
+        "page_length": 20,
+        "page_length_count": 20
       };
 
       const response = await fetch("http://103.214.132.20:8002/api/method/crm.api.doc.get_data", {
@@ -341,7 +340,8 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
   }
 
   return (
-    <div className="space-y-4">
+   <div className="space-y-4 max-h-[68vh] overflow-y-auto pr-3">
+    
       {/* Action Bar */}
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
         <div className="flex items-center space-x-2">
@@ -520,7 +520,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
               : 'border-gray-300'
               }`}
           >
-            
+
             <option value={5}>5 per page</option>
             <option value={10}>10 per page</option>
             <option value={25}>25 per page</option>
@@ -732,20 +732,12 @@ function renderCell(deal: Deal, key: keyof Deal, theme: string) {
           {deal.lastModified}
         </div>
       );
-      case 'email':
+    case 'email':
       return (
         <div className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`}>
           {deal.email}
         </div>
       );
-
-    // case 'status':
-    //   return (
-    //     <div className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`}>
-    //       {deal.status}
-    //     </div>
-    //   );
-
 
     case 'closeDate':
       return (
@@ -753,6 +745,14 @@ function renderCell(deal: Deal, key: keyof Deal, theme: string) {
           {deal.closeDate}
         </div>
       );
+
+    // case 'status':
+    //   return (
+    //     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${statusColors[deal.status as keyof typeof statusColors] || ''}`}>
+    //       <FaCircleDot className="mr-1" /> {/* The color will now be inherited correctly */}
+    //       {deal.status}
+    //     </span>
+    //   );
 
     default:
       return deal[key]?.toString() || 'N/A';
