@@ -28,6 +28,7 @@ interface Contact {
   email_id?: string;
   mobile_no?: string;
   owner?: string;
+  image_url?: string; // Added property for image URL
   reference_deals?: Array<{
     name: string;
     organization: string;
@@ -125,11 +126,11 @@ export default function ContactDetails({
   const selectRef = useRef<HTMLSelectElement>(null);
   const isDark = theme === "dark";
 
-  // Add state for deal navigation
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [imagePreview, setImagePreview] = useState(null);
   const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
   const [showDealDetail, setShowDealDetail] = useState(false);
 
-  // Notify parent when deal view changes
   useEffect(() => {
     if (onDealViewChange) {
       onDealViewChange(showDealDetail);
@@ -140,10 +141,6 @@ export default function ContactDetails({
   useEffect(() => {
     fetchContactDetails();
   }, []);
-
-  // export default function ContactCard({ contact, onImageUpload }) {
-
-
 
   // Focus input when editing starts
   useEffect(() => {
@@ -187,7 +184,6 @@ export default function ContactDetails({
       const contactData = result.message;
 
       if (contactData) {
-        // Transform the API response to match our Contact interface
         const transformedContact: Contact = {
           id: contactData.name,
           name: contactData.full_name || contactData.first_name || 'Unknown',
@@ -211,6 +207,10 @@ export default function ContactDetails({
           email_id: contactData.email_id,
           mobile_no: contactData.mobile_no,
           owner: contactData.owner,
+
+          // FIX: Map the 'image' field from API to 'image_url' for display
+          image_url: contactData.image ? `http://103.214.132.20:8002${contactData.image}` : null,
+
           reference_deals: [],
           email_ids: contactData.email_ids || [],
           phone_nos: contactData.phone_nos || []
@@ -236,17 +236,123 @@ export default function ContactDetails({
     fileInputRef.current.click();
   };
 
-  const handleFileChange = (event) => {
+  const handleFileChange = async (event) => {
     const file = event.target.files[0];
-    if (file) {
-      // Convert to preview URL
+    if (!file) return;
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+    if (!allowedTypes.includes(file.type)) {
+      showToast('Please select a valid image file (JPEG, PNG, or GIF)', { type: 'error' });
+      return;
+    }
+
+    // Validate file size (e.g., 5MB limit)
+    const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+    if (file.size > maxSize) {
+      showToast('Image size should be less than 5MB', { type: 'error' });
+      return;
+    }
+
+    try {
+      setUploadingImage(true);
+
+      const session = getUserSession();
+      if (!session) {
+        showToast('Session not found', { type: 'error' });
+        return;
+      }
+
+      // Create preview URL for immediate display
       const previewUrl = URL.createObjectURL(file);
-      onImageUpload(file, previewUrl); // send to parent or API
+      setImagePreview(previewUrl);
+
+      // Prepare FormData for file upload
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('is_private', '0'); // Public file
+      formData.append('folder', 'Home/Attachments');
+
+      // Upload file to server
+      const uploadResponse = await fetch('http://103.214.132.20:8002/api/method/upload_file', {
+        method: 'POST',
+        headers: {
+          'Authorization': `token ${session.api_key}:${session.api_secret}`
+        },
+        body: formData
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error(`Upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`);
+      }
+
+      const uploadResult = await uploadResponse.json();
+      const fileData = uploadResult.message;
+
+      if (!fileData || !fileData.file_url) {
+        throw new Error('Upload successful but no file URL returned');
+      }
+
+      // Now update the contact's image field with the uploaded file URL
+      const updateResponse = await fetch('http://103.214.132.20:8002/api/method/frappe.client.set_value', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `token ${session.api_key}:${session.api_secret}`
+        },
+        body: JSON.stringify({
+          doctype: "Contact",
+          name: contact.id,
+          fieldname: "image",
+          value: fileData.file_url
+        })
+      });
+
+      if (!updateResponse.ok) {
+        throw new Error(`Update failed: ${updateResponse.status} ${updateResponse.statusText}`);
+      }
+
+      const updateResult = await updateResponse.json();
+
+      const updatedContact = {
+        ...contact,
+        // Set the image_url for display purposes  
+        image_url: `http://103.214.132.20:8002${fileData.file_url}`,
+        modified: updateResult.message?.modified || contact.modified
+      };
+
+      setContact(updatedContact);
+      onSave(updatedContact);
+
+      // Clean up preview URL
+      if (imagePreview) {
+        URL.revokeObjectURL(imagePreview);
+        setImagePreview(null);
+      }
+
+      showToast('Profile image updated successfully', { type: 'success' });
+
+      // Refresh contact details to ensure we have the latest data
+      await fetchContactDetails();
+
+    } catch (error) {
+      console.error('Error uploading image:', error);
+
+      // Clean up preview on error
+      if (imagePreview) {
+        URL.revokeObjectURL(imagePreview);
+        setImagePreview(null);
+      }
+
+      showToast(`Failed to upload image: ${error.message}`, { type: 'error' });
+    } finally {
+      setUploadingImage(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
-
-
-
 
   const fetchLinkedDeals = async (contactName: string) => {
     try {
@@ -389,7 +495,8 @@ export default function ContactDetails({
     }
   };
 
-  const handleDoubleClick = (field: keyof Contact) => {
+  // Changed from handleDoubleClick to handleSingleClick
+  const handleSingleClick = (field: keyof Contact) => {
     setEditingField(field as string);
     setEditValue(contact[field] as string || '');
   };
@@ -644,11 +751,16 @@ export default function ContactDetails({
     );
   }
 
-
-
-  // Render email dropdown field
   const renderEmailDropdownField = () => {
     const emails = contact.email_ids || [];
+
+    const handleEmailSelectChange = (e) => {
+      const selectedValue = e.target.value;
+      if (selectedValue === 'create_new') {
+        setAddingEmail(true);
+        e.target.value = emails.find(e => e.is_primary)?.email_id || emails[0]?.email_id || '';
+      }
+    }
 
     return (
       <div className="text-sm flex gap-1 group">
@@ -661,30 +773,52 @@ export default function ContactDetails({
                 : 'bg-white text-gray-800 border-gray-300 focus:border-blue-400'
                 } focus:outline-none`}
               defaultValue={emails.find(e => e.is_primary)?.email_id || emails[0]?.email_id || ''}
+              onChange={handleEmailSelectChange}
             >
               {emails.map((emailItem, index) => (
                 <option className="bg-white text-gray-800" key={index} value={emailItem.email_id}>
                   {emailItem.email_id} {emailItem.is_primary ? '(Primary)' : ''}
-
                 </option>
               ))}
+              <option
+                className="bg-white text-gray-800 border-t border-gray-200"
+                value="create_new"
+                style={{
+                  borderTop: '1px solid #e5e7eb',
+                  paddingTop: '8px',
+                  marginTop: '4px'
+                }}
+              >
+                + Create New
+              </option>
             </select>
           ) : (
-            <p className={`flex-1 px-2 py-1 italic opacity-60 ${isDark ? "text-white" : "text-gray-800"}`}>
-              No email addresses
-            </p>
+            <select
+              className={`flex-1 px-2 py-1 border rounded ${isDark
+                ? 'bg-dark-secondary text-white border-white/20 focus:border-purple-400'
+                : 'bg-white text-gray-800 border-gray-300 focus:border-blue-400'
+                } focus:outline-none`}
+              onChange={handleEmailSelectChange}
+            >
+              <option className="bg-white text-gray-800" value="">
+                No email addresses
+              </option>
+              <option
+                className="bg-white text-gray-800 border-t border-gray-200"
+                value="create_new"
+                style={{
+                  borderTop: '1px solid #e5e7eb',
+                  paddingTop: '8px',
+                  marginTop: '4px'
+                }}
+              >
+                + Create New
+              </option>
+            </select>
           )}
-          <button
-            onClick={() => setAddingEmail(true)}
-            className={`p-1 rounded-full hover:bg-opacity-20 ${isDark ? 'hover:bg-white' : 'hover:bg-gray-500'
-              } transition-colors`}
-            title="Add new email"
-          >
-            <Plus size={16} className="text-green-500" />
-          </button>
         </div>
 
-        {/* Add email input */}
+        {/* Add email input modal - keep existing modal code */}
         {addingEmail && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className={`p-4 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-white'} w-96`}>
@@ -751,26 +885,62 @@ export default function ContactDetails({
                 : 'bg-white text-gray-800 border-gray-300 focus:border-blue-400'
                 } focus:outline-none`}
               defaultValue={phones.find(p => p.is_primary_phone || p.is_primary_mobile_no)?.phone || phones[0]?.phone || ''}
+              onChange={(e) => {
+                const selectedValue = e.target.value;
+                if (selectedValue === 'create_new') {
+                  setAddingPhone(true);
+                  // Reset the select to show the first phone or empty
+                  e.target.value = phones.find(p => p.is_primary_phone || p.is_primary_mobile_no)?.phone || phones[0]?.phone || '';
+                }
+              }}
             >
               {phones.map((phoneItem, index) => (
                 <option className="bg-white text-gray-800" key={index} value={phoneItem.phone}>
                   {phoneItem.phone} {(phoneItem.is_primary_phone || phoneItem.is_primary_mobile_no) ? '(Primary)' : ''}
                 </option>
               ))}
+              <option
+                className="bg-white text-gray-800"
+                value="create_new"
+                style={{
+                  borderTop: '1px solid #e5e7eb',
+                  paddingTop: '8px',
+                  marginTop: '4px'
+                }}
+              >
+                + Create New
+              </option>
             </select>
           ) : (
-            <p className={`flex-1 px-2 py-1 italic opacity-60 ${isDark ? "text-white" : "text-gray-800"}`}>
-              No phone numbers
-            </p>
+            <select
+              className={`flex-1 px-2 py-1 border rounded ${isDark
+                ? 'bg-dark-secondary text-white border-white/20 focus:border-purple-400'
+                : 'bg-white text-gray-800 border-gray-300 focus:border-blue-400'
+                } focus:outline-none`}
+              onChange={(e) => {
+                const selectedValue = e.target.value;
+                if (selectedValue === 'create_new') {
+                  setAddingPhone(true);
+                  e.target.value = '';
+                }
+              }}
+            >
+              <option className="bg-white text-gray-800" value="">
+                No phone numbers
+              </option>
+              <option
+                className="bg-white text-gray-800"
+                value="create_new"
+                style={{
+                  borderTop: '1px solid #e5e7eb',
+                  paddingTop: '8px',
+                  marginTop: '4px'
+                }}
+              >
+                + Create New
+              </option>
+            </select>
           )}
-          <button
-            onClick={() => setAddingPhone(true)}
-            className={`p-1 rounded-full hover:bg-opacity-20 ${isDark ? 'hover:bg-white' : 'hover:bg-gray-500'
-              } transition-colors`}
-            title="Add new phone"
-          >
-            <Plus size={16} className="text-green-500" />
-          </button>
         </div>
 
         {/* Add phone input */}
@@ -852,11 +1022,25 @@ export default function ContactDetails({
                 } focus:outline-none`}
               disabled={loading}
             >
-              <option value="">{field === 'salutation' ? 'Select salutation...' : 'Select gender...'}</option>
-              {(field === 'salutation' ? SALUTATION_OPTIONS : GENDER_OPTIONS).map((option) => (
-                <option key={option} value={option}>{option}</option>
-              ))}
+              <option
+                value=""
+                className={isDark ? 'bg-dark-secondary text-white' : ''}
+              >
+                {field === 'salutation' ? 'Select salutation...' : 'Select gender...'}
+              </option>
+              {(field === 'salutation' ? SALUTATION_OPTIONS : GENDER_OPTIONS).map(
+                (option) => (
+                  <option
+                    key={option}
+                    value={option}
+                    className={isDark ? 'bg-dark-secondary text-white' : ''}
+                  >
+                    {option}
+                  </option>
+                )
+              )}
             </select>
+
           ) : (
             <input
               ref={inputRef}
@@ -878,8 +1062,8 @@ export default function ContactDetails({
               ? "text-white hover:bg-white/10"
               : "text-gray-800 hover:bg-gray-100"
               } ${!value || value === 'N/A' ? 'italic opacity-60' : ''}`}
-            onDoubleClick={() => handleDoubleClick(field)}
-            title="Double-click to edit"
+            onClick={() => handleSingleClick(field)}
+            title="Click to edit"
           >
             {value || `Add ${label.toLowerCase()}...`}
           </p>
@@ -908,46 +1092,44 @@ export default function ContactDetails({
           {/* Header */}
           <div className={`p-4 border-b ${isDark ? "border-white/20" : "border-gray-300"}`}>
             <div className="flex items-center gap-3 mb-4">
-              {/* <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg font-semibold ${isDark ? "bg-purple-800" : "bg-gray-200"}`}>
-                {contact.first_name?.[0] || 'C'}
-              </div> */}
-              {/* <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center text-lg font-semibold bg-gray-200">
-                {contact.image_url ? (
-                  <img
-                    src={contact.image_url}
-                    alt={contact.first_name || 'User'}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  contact.first_name?.[0] || 'C'
-                )}
-              </div>
-
-              <div>
-                <h2 className="text-lg font-semibold">{contact.full_name || contact.name}</h2>
-                <span className="text-xs text-gray-400 block">{contact.company_name || 'No company'}</span>
-              </div> */}
               <div className="flex items-center gap-3">
                 {/* Avatar */}
                 <div
                   onClick={handleClick}
-                  className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center text-lg font-semibold bg-gray-200 cursor-pointer"
+                  className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center text-lg font-semibold bg-gray-200 cursor-pointer relative group"
                 >
-                  {contact.image_url ? (
-                    <img
-                      src={contact.image_url}
-                      alt={contact.first_name || 'User'}
-                      className="w-full h-full object-cover"
-                    />
+                  {uploadingImage ? (
+                    <div className="w-full h-full flex items-center justify-center bg-gray-300">
+                      <Loader2 className="w-5 h-5 animate-spin text-gray-600" />
+                    </div>
                   ) : (
-                    contact.first_name?.[0] || 'C'
+                    <>
+                      {imagePreview || contact.image_url ? (
+                        <img
+                          src={imagePreview || contact.image_url}
+                          alt={contact.first_name || 'User'}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-gray-600">
+                          {contact.first_name?.[0]?.toUpperCase() || 'C'}
+                        </span>
+                      )}
+
+                      {/* Upload overlay on hover */}
+                      <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <span className="text-white text-xs font-medium">Upload</span>
+                      </div>
+                    </>
                   )}
+
                   <input
                     type="file"
                     accept="image/*"
                     ref={fileInputRef}
                     className="hidden"
                     onChange={handleFileChange}
+                    disabled={uploadingImage}
                   />
                 </div>
 
@@ -1085,9 +1267,11 @@ export default function ContactDetails({
                 </tbody>
               </table>
             ) : (
-              <div className="flex flex-col items-center gap-2 p-8 text-gray-500">
-                <Zap className="w-8 h-8 text-gray-400" />
-                <p>No deals found</p>
+              <div className="flex items-center justify-center min-h-[calc(100vh-250px)]">
+                <div className="flex flex-col items-center gap-2 p-8 text-gray-500">
+                  <Zap className="w-8 h-8 text-gray-400" />
+                  <p>No Deals Found</p>
+                </div>
               </div>
             )}
           </div>

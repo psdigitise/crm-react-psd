@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, RefreshCw, Filter, ArrowUpDown, Columns, MoreHorizontal, Search, Edit, Trash2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import {Edit, Trash2 } from 'lucide-react';
 import { showToast } from '../utils/toast';
 import { Header } from './Header';
 import { useTheme } from './ThemeProvider';
-
 
 import { getUserSession } from '../utils/session';
 
@@ -56,55 +55,67 @@ export function TasksPage({ onCreateTask, leadName }: TasksPageProps) {
     fetchTasks();
   }, [leadName]);
 
-  // const fetchTasks = async () => {
-  //   try {
-  //     setLoading(true);
-
-  //     // Get company from session
-  //     const sessionCompany = sessionStorage.getItem('company');
-  //     if (!sessionCompany) {
-  //       setTasks([]);
-  //       setLoading(false);
-  //       return;
-  //     }
-
-  //     // Add filter for company field (replace "company" with the correct field if needed)
-  //     const filters = encodeURIComponent(JSON.stringify([["company", "=", sessionCompany]]));
-  //     const apiUrl = `http://103.214.132.20:8002/api/v2/document/CRM Task?fields=["name","title","assigned_to","priority","status","start_date","due_date","description","reference_doctype","reference_docname","creation","modified"]&filters=${filters}`;
-
-  //     const response = await fetch(apiUrl, {
-  //       method: 'GET',
-  //       headers: {
-  //         'Content-Type': 'application/json',
-  //         'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6'
-  //       }
-  //     });
-
   const fetchTasks = async () => {
     try {
       setLoading(true);
 
       const session = getUserSession();
-      const sessionCompany = session?.company;
 
-      if (!sessionCompany) {
+      if (!session) {
         setTasks([]);
         setLoading(false);
         return;
       }
 
-      const filters = encodeURIComponent(
-        JSON.stringify([["company", "=", sessionCompany]])
-      );
+      // Prepare filters
+      let filters = {};
+      
+      // Add leadName filter if provided
+      if (leadName) {
+        filters = {
+          "reference_docname": leadName
+        };
+      }
 
-      const apiUrl = `http://103.214.132.20:8002/api/v2/document/CRM Task?fields=["name","title","assigned_to","priority","status","start_date","due_date","description","reference_doctype","reference_docname","creation","modified"]&filters=${filters}`;
+      const requestBody = {
+        doctype: "CRM Task",
+        filters: filters,
+        order_by: "modified desc",
+        default_filters: {},
+        column_field: "status",
+        columns: JSON.stringify([
+          {"label": "Title", "type": "Data", "key": "title", "width": "16rem"},
+          {"label": "Status", "type": "Select", "key": "status", "width": "8rem"},
+          {"label": "Priority", "type": "Select", "key": "priority", "width": "8rem"},
+          {"label": "Due Date", "type": "Date", "key": "due_date", "width": "8rem"},
+          {"label": "Assigned To", "type": "Link", "key": "assigned_to", "width": "10rem"},
+          {"label": "Last Modified", "type": "Datetime", "key": "modified", "width": "8rem"}
+        ]),
+        kanban_columns: "[]",
+        kanban_fields: "[]",
+        page_length: 20,
+        page_length_count: 20,
+        rows: JSON.stringify([
+          "name", "title", "description", "assigned_to", "due_date", "status", 
+          "priority", "reference_doctype", "reference_docname", "modified", "start_date"
+        ]),
+        title_field: "",
+        view: {
+          custom_view_name: 17,
+          view_type: "list",
+          group_by_field: "owner"
+        }
+      };
+
+      const apiUrl = 'http://103.214.132.20:8002/api/method/crm.api.doc.get_data';
 
       const response = await fetch(apiUrl, {
-        method: 'GET',
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `token ${session.api_key}:${session.api_secret}`
-        }
+        },
+        body: JSON.stringify(requestBody)
       });
 
       if (!response.ok) {
@@ -112,16 +123,11 @@ export function TasksPage({ onCreateTask, leadName }: TasksPageProps) {
       }
 
       const result = await response.json();
-      let filteredTasks = result.data || [];
+      
+      // Extract tasks from the new API response structure
+      const tasksData = result.message?.data || [];
+      setTasks(tasksData);
 
-      // Filter by leadName if provided
-      if (leadName) {
-        filteredTasks = filteredTasks.filter((task: Task) =>
-          task.reference_docname === leadName
-        );
-      }
-
-      setTasks(filteredTasks);
     } catch (error) {
       console.error('Error fetching tasks:', error);
       showToast('Failed to fetch tasks', { type: 'error' });
@@ -137,13 +143,14 @@ export function TasksPage({ onCreateTask, leadName }: TasksPageProps) {
 
   const handleUpdate = async (updatedTask: Task) => {
     try {
+      const session = getUserSession();
       const apiUrl = `http://103.214.132.20:8002/api/v2/document/CRM Task/${updatedTask.name}`;
 
       const response = await fetch(apiUrl, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6'
+          'Authorization': `token ${session.api_key}:${session.api_secret}`
         },
         body: JSON.stringify({
           title: updatedTask.title,
@@ -174,12 +181,13 @@ export function TasksPage({ onCreateTask, leadName }: TasksPageProps) {
     if (!confirm('Are you sure you want to delete this task?')) return;
 
     try {
+      const session = getUserSession();
       const apiUrl = `http://103.214.132.20:8002/api/v2/document/CRM Task/${taskName}`;
 
       const response = await fetch(apiUrl, {
         method: 'DELETE',
         headers: {
-          'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6'
+          'Authorization': `token ${session.api_key}:${session.api_secret}`
         }
       });
 

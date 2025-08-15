@@ -1,10 +1,28 @@
 import { useState, useEffect, useRef } from 'react';
-import { Trash2, Zap, User2, Loader2 } from "lucide-react";
+import { Trash2, Zap, User2, Loader2, X } from "lucide-react";
 import { useTheme } from './ThemeProvider';
 import { showToast } from '../utils/toast';
 import { getUserSession } from '../utils/session';
 import { DealDetailView } from './DealDetailView';
 import { ContactDetailView } from './ContactDetailView';
+
+// Helper function to convert relative image paths to full URLs
+const getFullImageUrl = (imagePath) => {
+  if (!imagePath) return null;
+  
+  // If it's already a full URL, return as is
+  if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+    return imagePath;
+  }
+  
+  // If it starts with /, prepend the base URL (this is your case)
+  if (imagePath.startsWith('/')) {
+    return `http://103.214.132.20:8002${imagePath}`;
+  }
+  
+  // Fallback: assume it needs /files/ prefix
+  return `http://103.214.132.20:8002/files/${imagePath}`;
+};
 
 interface Organization {
   name: string;
@@ -85,8 +103,59 @@ interface OrganizationDetailsProps {
   organizationId: string;
   onBack?: () => void;
   onSave?: (updatedOrg: Organization) => void;
-  onDetailViewNavigation?: (showingDetail: boolean) => void; // Add this prop
+  onDetailViewNavigation?: (showingDetail: boolean) => void;
 }
+
+// Dropdown options
+const TERRITORY_OPTIONS = [
+  'India',
+  'US'
+];
+
+const INDUSTRY_OPTIONS = [
+  'Technology',
+  'Healthcare',
+  'Finance',
+  'Manufacturing',
+  'Retail',
+  'Education',
+  'Real Estate',
+  'Construction',
+  'Automotive',
+  'Energy',
+  'Telecommunications',
+  'Media & Entertainment',
+  'Food & Beverage',
+  'Transportation',
+  'Agriculture',
+  'Consulting',
+  'Government',
+  'Non-Profit',
+  'Other'
+];
+
+const EMPLOYEE_OPTIONS = [
+  '1-10',
+  '11-50',
+  '51-200',
+  '201-500',
+  '501-1000',
+  '1001-5000',
+  '5001-10000',
+  '10000+'
+];
+
+const CURRENCY_OPTIONS = [
+  'INR',
+  'USD',
+  'EUR',
+  'GBP',
+  'AUD',
+  'CAD',
+  'JPY',
+  'SGD',
+  'AED'
+];
 
 export default function OrganizationDetails({
   organizationId,
@@ -103,7 +172,11 @@ export default function OrganizationDetails({
   const [loading, setLoading] = useState(false);
   const [fetchLoading, setFetchLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const selectRef = useRef<HTMLSelectElement>(null);
   const isDark = theme === "dark";
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [imagePreview, setImagePreview] = useState(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Add state for deal detail view
   const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
@@ -112,6 +185,255 @@ export default function OrganizationDetails({
   const [selectedTab, setSelectedTab] = useState<'deals' | 'contacts'>('deals');
 
   const API_BASE = 'http://103.214.132.20:8002/api/method';
+
+  const handleImageClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleImageChange = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+    if (!allowedTypes.includes(file.type)) {
+      showToast('Please select a valid image file (JPEG, PNG, or GIF)', { type: 'error' });
+      return;
+    }
+
+    // Validate file size (e.g., 5MB limit)
+    const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+    if (file.size > maxSize) {
+      showToast('Image size should be less than 5MB', { type: 'error' });
+      return;
+    }
+
+    try {
+      setUploadingImage(true);
+
+      const session = getUserSession();
+      if (!session) {
+        showToast('Session not found', { type: 'error' });
+        return;
+      }
+
+      // Create preview URL for immediate display
+      const previewUrl = URL.createObjectURL(file);
+      setImagePreview(previewUrl);
+
+      // Step 1: Upload file
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('is_private', '0'); // Public file
+      formData.append('folder', 'Home/Attachments');
+
+      console.log('🔄 Step 1: Uploading file...');
+      const uploadResponse = await fetch('http://103.214.132.20:8002/api/method/upload_file', {
+        method: 'POST',
+        headers: {
+          'Authorization': `token ${session.api_key}:${session.api_secret}`
+        },
+        body: formData
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error(`Upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`);
+      }
+
+      const uploadResult = await uploadResponse.json();
+      const fileData = uploadResult.message;
+
+      if (!fileData || !fileData.file_url) {
+        throw new Error('Upload successful but no file URL returned');
+      }
+
+      console.log('✅ Step 1 complete - File uploaded:', fileData.file_url);
+
+      // Step 2: Update organization logo field
+      console.log('🔄 Step 2: Updating organization logo field...');
+      const updateResponse = await fetch(`${API_BASE}/frappe.client.set_value`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `token ${session.api_key}:${session.api_secret}`
+        },
+        body: JSON.stringify({
+          doctype: "CRM Organization",
+          name: organization.name,
+          fieldname: "organization_logo",
+          value: fileData.file_url // This will be something like "/files/filename.jpg"
+        })
+      });
+
+      if (!updateResponse.ok) {
+        throw new Error(`Update failed: ${updateResponse.status} ${updateResponse.statusText}`);
+      }
+
+      const updateResult = await updateResponse.json();
+      console.log('✅ Step 2 complete - Logo field updated:', updateResult);
+
+      // Step 3: Update local state
+      console.log('🔄 Step 3: Updating local state...');
+      const updatedOrganization = {
+        ...organization,
+        organization_logo: fileData.file_url, // Store the relative path
+        modified: updateResult.message?.modified || organization.modified
+      };
+
+      setOrganization(updatedOrganization);
+      if (onSave) onSave(updatedOrganization);
+
+      // Clean up preview URL
+      URL.revokeObjectURL(previewUrl);
+      setImagePreview(null);
+
+      console.log('✅ Step 3 complete - Local state updated');
+      console.log('🖼️ Final image URL will be:', getFullImageUrl(fileData.file_url));
+
+      showToast('Organization logo updated successfully', { type: 'success' });
+
+    } catch (error) {
+      console.error('❌ Error during image upload process:', error);
+
+      // Clean up preview on error
+      if (imagePreview) {
+        URL.revokeObjectURL(imagePreview);
+        setImagePreview(null);
+      }
+
+      showToast(`Failed to upload logo: ${error.message}`, { type: 'error' });
+    } finally {
+      setUploadingImage(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  // Add remove image function
+  const handleRemoveImage = async () => {
+    if (!organization?.organization_logo) return;
+
+    if (!window.confirm('Are you sure you want to remove the organization logo?')) {
+      return;
+    }
+
+    try {
+      setUploadingImage(true);
+
+      const session = getUserSession();
+      if (!session) {
+        showToast('Session not found', { type: 'error' });
+        return;
+      }
+
+      // Set logo field to empty
+      const response = await fetch(`${API_BASE}/frappe.client.set_value`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `token ${session.api_key}:${session.api_secret}`
+        },
+        body: JSON.stringify({
+          doctype: "CRM Organization",
+          name: organization.name,
+          fieldname: "organization_logo",
+          value: ""
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Remove failed: ${response.status} ${response.statusText}`);
+      }
+
+      // Update local state
+      const updatedOrganization = {
+        ...organization,
+        organization_logo: null
+      };
+
+      setOrganization(updatedOrganization);
+      if (onSave) onSave(updatedOrganization);
+
+      showToast('Organization logo removed successfully', { type: 'success' });
+
+    } catch (error) {
+      console.error('Error removing logo:', error);
+      showToast(`Failed to remove logo: ${error.message}`, { type: 'error' });
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  // Image Display Component
+  const ImageDisplay = () => {
+    const imageUrl = imagePreview || (organization.organization_logo ? getFullImageUrl(organization.organization_logo) : null);
+    
+    console.log('Rendering image:', {
+      originalPath: organization.organization_logo,
+      fullUrl: imageUrl,
+      hasPreview: !!imagePreview
+    });
+
+    return (
+      <div
+        onClick={handleImageClick}
+        className={`w-10 h-10 rounded-full flex items-center justify-center text-lg font-semibold cursor-pointer relative group overflow-hidden ${isDark ? "bg-purple-800" : "bg-gray-200"}`}
+      >
+        {uploadingImage ? (
+          <div className="w-full h-full flex items-center justify-center bg-gray-300 rounded-full">
+            <Loader2 className="w-5 h-5 animate-spin text-gray-600" />
+          </div>
+        ) : (
+          <>
+            {imageUrl ? (
+              <img
+                src={imageUrl}
+                alt="Organization Logo"
+                className="w-10 h-10 rounded-full object-cover"
+                onLoad={() => console.log('Image loaded successfully:', imageUrl)}
+                onError={(e) => {
+                  console.error('Image failed to load:', imageUrl);
+                  console.error('Original path:', organization.organization_logo);
+                  // Hide broken image and show fallback
+                  e.target.style.display = 'none';
+                  const fallback = e.target.parentNode.querySelector('.fallback-initials');
+                  if (fallback) {
+                    fallback.style.display = 'flex';
+                    fallback.style.position = 'absolute';
+                    fallback.style.inset = '0';
+                  }
+                }}
+              />
+            ) : null}
+            
+            {/* Fallback initials */}
+            <div 
+              className={`fallback-initials ${imageUrl ? 'hidden' : 'flex'} w-full h-full items-center justify-center ${isDark ? "text-white" : "text-gray-600"}`}
+            >
+              {organization.organization_name?.[0]?.toUpperCase() || 'O'}
+            </div>
+
+            {/* Upload overlay on hover */}
+            <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-full z-10">
+              <span className="text-white text-xs font-medium">Upload</span>
+            </div>
+          </>
+        )}
+        <input
+          type="file"
+          accept="image/*"
+          ref={fileInputRef}
+          className="hidden"
+          onChange={handleImageChange}
+          disabled={uploadingImage}
+        />
+      </div>
+    );
+  };
 
   // Notify parent when detail view state changes
   useEffect(() => {
@@ -125,6 +447,9 @@ export default function OrganizationDetails({
     if (editingField && inputRef.current) {
       inputRef.current.focus();
       inputRef.current.select();
+    }
+    if (editingField && selectRef.current) {
+      selectRef.current.focus();
     }
   }, [editingField]);
 
@@ -155,7 +480,18 @@ export default function OrganizationDetails({
         if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
 
         const data = await response.json();
+        console.log('Fetched organization data:', data.message);
         setOrganization(data.message);
+        
+        // Debug the image URL after setting organization
+        setTimeout(() => {
+          if (data.message?.organization_logo) {
+            console.log('🔍 Debugging image URL...');
+            console.log('Original path:', data.message.organization_logo);
+            console.log('Constructed URL:', getFullImageUrl(data.message.organization_logo));
+          }
+        }, 100);
+        
       } catch (error) {
         console.error('Error fetching organization:', error);
         showToast('Failed to load organization', { type: 'error' });
@@ -300,7 +636,7 @@ export default function OrganizationDetails({
     fetchContacts();
   }, [organization?.organization_name]);
 
-  const handleDoubleClick = (field: keyof Organization) => {
+  const handleClick = (field: keyof Organization) => {
     setEditingField(field as string);
     setEditValue(organization?.[field]?.toString() || '');
   };
@@ -320,21 +656,34 @@ export default function OrganizationDetails({
         return;
       }
 
+      // Ensure we have the name field
+      if (!organization.name) {
+        console.error('Organization name is missing:', organization);
+        showToast('Organization name is missing', { type: 'error' });
+        return;
+      }
+
+      const requestBody = {
+        doctype: "CRM Organization",
+        name: organization.name,
+        fieldname: field,
+        value: value
+      };
+
+      console.log('Updating field:', requestBody);
+
       const response = await fetch(`${API_BASE}/frappe.client.set_value`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `token ${session.api_key}:${session.api_secret}`
         },
-        body: JSON.stringify({
-          doctype: "CRM Organization",
-          name: organization.name,
-          fieldname: field,
-          value: value
-        })
+        body: JSON.stringify(requestBody)
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
@@ -358,7 +707,7 @@ export default function OrganizationDetails({
       setEditingField(null);
     } catch (error) {
       console.error('Error updating organization:', error);
-      showToast('Failed to update organization', { type: 'error' });
+      showToast(`Failed to update organization: ${error.message}`, { type: 'error' });
       setEditingField(null);
     } finally {
       setLoading(false);
@@ -417,35 +766,103 @@ export default function OrganizationDetails({
     }
   };
 
+  const getDropdownOptions = (field: string) => {
+    switch (field) {
+      case 'territory':
+        return TERRITORY_OPTIONS;
+      case 'industry':
+        return INDUSTRY_OPTIONS;
+      case 'no_of_employees':
+        return EMPLOYEE_OPTIONS;
+      case 'currency':
+        return CURRENCY_OPTIONS;
+      default:
+        return [];
+    }
+  };
+
+  const isDropdownField = (field: string) => {
+    return ['territory', 'industry', 'no_of_employees', 'currency'].includes(field);
+  };
+
   const renderEditableField = (label: string, field: keyof Organization) => {
     const value = organization?.[field]?.toString() || '';
     const isEditing = editingField === field;
+    const isDropdown = isDropdownField(field as string);
 
     return (
       <div key={field} className="text-sm flex gap-1 group">
         <p className={`w-32 ${isDark ? "text-white/80" : "text-gray-600"}`}>{label}:</p>
         {isEditing ? (
-          <input
-            ref={inputRef}
-            type="text"
-            value={editValue}
-            onChange={(e) => setEditValue(e.target.value)}
-            onBlur={() => handleBlur(field as string)}
-            onKeyDown={(e) => handleKeyDown(e, field as string)}
-            className={`flex-1 px-2 py-1 border rounded ${isDark
-              ? 'bg-dark-secondary text-white border-white/20 focus:border-purple-400'
-              : 'bg-white text-gray-800 border-gray-300 focus:border-blue-400'
-              } focus:outline-none`}
-            disabled={loading}
-          />
+          isDropdown ? (
+            <select
+              ref={selectRef}
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              onBlur={() => handleBlur(field as string)}
+              onKeyDown={(e) => handleKeyDown(e, field as string)}
+              className={`flex-1 px-2 py-1 border rounded ${isDark
+                ? 'bg-dark-secondary text-white border-white/20 focus:border-purple-400'
+                : 'bg-white text-gray-800 border-gray-300 focus:border-blue-400'
+                } focus:outline-none`}
+              disabled={loading}
+            >
+              <option value="">Select {label.toLowerCase()}...</option>
+              {getDropdownOptions(field as string).map((option) => (
+                <option
+                  key={option}
+                  value={option}
+                  className={isDark ? 'bg-dark-secondary text-white' : ''}
+                >
+                  {option}
+                </option>
+              ))}
+            </select>
+          ) : field === 'address' ? (
+            <textarea
+              ref={inputRef as any}
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              onBlur={() => handleBlur(field as string)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSave(field as string, editValue);
+                } else if (e.key === 'Escape') {
+                  setEditingField(null);
+                }
+              }}
+              className={`flex-1 px-2 py-1 border rounded resize-none ${isDark
+                ? 'bg-dark-secondary text-white border-white/20 focus:border-purple-400'
+                : 'bg-white text-gray-800 border-gray-300 focus:border-blue-400'
+                } focus:outline-none`}
+              rows={3}
+              disabled={loading}
+              placeholder="Enter address..."
+            />
+          ) : (
+            <input
+              ref={inputRef}
+              type="text"
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              onBlur={() => handleBlur(field as string)}
+              onKeyDown={(e) => handleKeyDown(e, field as string)}
+              className={`flex-1 px-2 py-1 border rounded ${isDark
+                ? 'bg-dark-secondary text-white border-white/20 focus:border-purple-400'
+                : 'bg-white text-gray-800 border-gray-300 focus:border-blue-400'
+                } focus:outline-none`}
+              disabled={loading}
+            />
+          )
         ) : (
           <p
             className={`flex-1 cursor-pointer px-2 py-1 rounded transition-colors hover:bg-opacity-50 ${isDark
               ? "text-white hover:bg-white/10"
               : "text-gray-800 hover:bg-gray-100"
               } ${!value || value === 'N/A' ? 'italic opacity-60' : ''}`}
-            onDoubleClick={() => handleDoubleClick(field)}
-            title="Double-click to edit"
+            onClick={() => handleClick(field)}
+            title="Click to edit"
           >
             {value || `Add ${label.toLowerCase()}...`}
           </p>
@@ -570,13 +987,7 @@ export default function OrganizationDetails({
         {/* Header */}
         <div className={`p-4 border-b ${isDark ? "border-white/20" : "border-gray-300"}`}>
           <div className="flex items-center gap-3 mb-4">
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg font-semibold ${isDark ? "bg-purple-800" : "bg-gray-200"}`}>
-              {organization.organization_logo ? (
-                <img src={organization.organization_logo} alt="Logo" className="w-10 h-10 rounded-full object-cover" />
-              ) : (
-                organization.organization_name?.[0]?.toUpperCase() || 'O'
-              )}
-            </div>
+            <ImageDisplay />
             <div>
               <h2 className="text-lg font-semibold">{organization.organization_name || 'No name'}</h2>
               <span className="text-xs text-gray-400 block">{organization.industry || 'No industry'}</span>
@@ -636,6 +1047,7 @@ export default function OrganizationDetails({
             </span>
           </button>
         </div>
+
         {/* Table Data */}
         <div className="p-6 overflow-x-auto">
           {selectedTab === 'deals' ? (
@@ -643,7 +1055,7 @@ export default function OrganizationDetails({
               <table className="min-w-full text-sm border-collapse">
                 <thead>
                   <tr className={`${isDark ? "bg-white/10" : "bg-gray-100"} text-left`}>
-                    <th className="p-3 font-medium">Deal Name</th>
+                    {/* <th className="p-3 font-medium">Deal Name</th> */}
                     <th className="p-3 font-medium">Organization</th>
                     <th className="p-3 font-medium">Amount</th>
                     <th className="p-3 font-medium">Status</th>
@@ -660,14 +1072,14 @@ export default function OrganizationDetails({
                       className={`border-t ${isDark ? 'border-white/10' : 'border-gray-200'} hover:bg-opacity-50 ${isDark ? 'hover:bg-white/5' : 'hover:bg-gray-50'} cursor-pointer transition-colors`}
                       onClick={() => handleDealClick(deal)}
                     >
-                      <td className="p-3">
+                      {/* <td className="p-3">
                         <div className="flex items-center gap-2">
                           <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${isDark ? 'bg-purple-600' : 'bg-gray-300'} text-white`}>
                             {deal.name?.[0]?.toUpperCase() || 'D'}
                           </div>
                           <span className="font-medium">{deal.name}</span>
                         </div>
-                      </td>
+                      </td> */}
                       <td className="p-3">{deal.organization}</td>
                       <td className="p-3">
                         <span className="font-medium">{deal.currency} {deal.annual_revenue?.toLocaleString() || '0.00'}</span>
@@ -705,9 +1117,11 @@ export default function OrganizationDetails({
                 </tbody>
               </table>
             ) : (
-              <div className="flex flex-col items-center gap-2 p-8 text-gray-500">
-                <Zap className="w-8 h-8 text-gray-400" />
-                <p>No Deals Found</p>
+              <div className="flex items-center justify-center min-h-[calc(100vh-250px)]">
+                <div className="flex flex-col items-center gap-2 p-8 text-gray-500">
+                  <Zap className="w-8 h-8 text-gray-400" />
+                  <p>No Deals Found</p>
+                </div>
               </div>
             )
           ) : (
@@ -733,12 +1147,19 @@ export default function OrganizationDetails({
                       <td className="p-3">
                         <div className="flex items-center gap-2">
                           {contact.image ? (
-                            <img src={contact.image} alt="Contact" className="w-8 h-8 rounded-full object-cover" />
-                          ) : (
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${isDark ? 'bg-purple-600' : 'bg-gray-300'} text-white`}>
-                              {contact.name?.[0]?.toUpperCase() || 'C'}
-                            </div>
-                          )}
+                            <img 
+                              src={getFullImageUrl(contact.image)} 
+                              alt="Contact" 
+                              className="w-8 h-8 rounded-full object-cover"
+                              onError={(e) => {
+                                e.target.style.display = 'none';
+                                e.target.nextElementSibling.style.display = 'flex';
+                              }}
+                            />
+                          ) : null}
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${isDark ? 'bg-purple-600' : 'bg-gray-300'} text-white ${contact.image ? 'hidden' : 'flex'}`}>
+                            {contact.name?.[0]?.toUpperCase() || 'C'}
+                          </div>
                           <span className="font-medium">{contact.name}</span>
                         </div>
                       </td>
@@ -756,9 +1177,11 @@ export default function OrganizationDetails({
                 </tbody>
               </table>
             ) : (
-              <div className="flex flex-col items-center gap-2 p-8 text-gray-500">
-                <User2 className="w-8 h-8 text-gray-400" />
-                <p>No Contacts Found</p>
+              <div className="flex items-center justify-center min-h-[calc(100vh-250px)]">
+                <div className="flex flex-col items-center gap-2 p-8 text-gray-500">
+                  <User2 className="w-8 h-8 text-gray-400" />
+                  <p>No Contacts Found</p>
+                </div>
               </div>
             )
           )}

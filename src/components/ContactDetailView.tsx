@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { ArrowLeft, Edit, Trash2, Mail, Phone, Building2, User, Calendar, MapPin } from 'lucide-react';
+import  { useState } from 'react';
+import { ArrowLeft } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import { showToast } from '../utils/toast';
 import ContactDetails from './ContactDetails';
@@ -38,6 +38,8 @@ export function ContactDetailView({ contact, onBack, onSave }: ContactDetailView
     const [editedContact, setEditedContact] = useState<Contact>(contact);
     const [loading, setLoading] = useState(false);
     const [showingDealDetail, setShowingDealDetail] = useState(false);
+
+    
 
     const handleSave = async () => {
         try {

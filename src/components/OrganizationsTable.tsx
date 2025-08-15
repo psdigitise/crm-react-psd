@@ -792,7 +792,7 @@
 
 
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronDown, ChevronUp, Globe, Building2, DollarSign, Users, Loader2, ChevronLeft, ChevronRight, Filter, X, Settings, RefreshCcw, Download } from 'lucide-react';
+import { ChevronDown, ChevronUp, Globe, Building2, IndianRupee , Users, Loader2, ChevronLeft, ChevronRight, Filter, X, Settings, RefreshCcw, Download } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import { showToast } from '../utils/toast';
 import { exportToCSV, exportToExcel } from '../utils/exportUtils';
@@ -1143,7 +1143,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
   };
 
   const handleDeleteSelected = async () => {
-    if (!window.confirm(`Delete ${selectedIds.length} selected organization(s)?`)) return;
+    // if (!window.confirm(`Delete ${selectedIds.length} selected organization(s)?`)) return;
 
     setLoading(true);
     setError(null);
@@ -1487,7 +1487,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
       </div>
 
       {/* Delete selected organizations button - shown when items are selected */}
-      {selectedIds.length > 0 && (
+      {/* {selectedIds.length > 0 && (
         <div className="flex items-center justify-between bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
           <div className="flex items-center space-x-3">
             <span className={`text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-blue-900'}`}>
@@ -1515,7 +1515,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
             </button>
           </div>
         </div>
-      )}
+      )} */}
 
       {/* Floating delete button */}
       {selectedIds.length > 0 && (
@@ -1627,7 +1627,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
                       {column.key === 'annual_revenue' && (
                         <div className={`flex items-center text-sm font-semibold ${theme === 'dark' ? 'text-green-400' : 'text-green-600'
                           }`}>
-                          <DollarSign className="w-4 h-4 mr-1" />
+                          <IndianRupee  className="w-4 h-4 mr-1" />
                           {org.annual_revenue}
                         </div>
                       )}
