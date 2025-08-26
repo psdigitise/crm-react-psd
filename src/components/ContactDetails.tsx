@@ -768,20 +768,20 @@ export default function ContactDetails({
         <div className="flex-1 flex items-center gap-2">
           {emails.length > 0 ? (
             <select
-              className={`flex-1 px-2 py-1 border rounded ${isDark
+              className={`flex-1 px-2 py-1 border rounded w-full ${isDark
                 ? 'bg-dark-secondary text-white border-white/20 focus:border-purple-400'
-                : 'bg-white text-gray-800 border-gray-300 focus:border-blue-400'
+                : 'bg-white w-full text-gray-800 border-gray-300 focus:border-blue-400'
                 } focus:outline-none`}
               defaultValue={emails.find(e => e.is_primary)?.email_id || emails[0]?.email_id || ''}
               onChange={handleEmailSelectChange}
             >
               {emails.map((emailItem, index) => (
-                <option className="bg-white text-gray-800" key={index} value={emailItem.email_id}>
+                <option className="bg-white w-full text-gray-800" key={index} value={emailItem.email_id}>
                   {emailItem.email_id} {emailItem.is_primary ? '(Primary)' : ''}
                 </option>
               ))}
               <option
-                className="bg-white text-gray-800 border-t border-gray-200"
+                className="bg-white w-full text-gray-800 border-t border-gray-200"
                 value="create_new"
                 style={{
                   borderTop: '1px solid #e5e7eb',
@@ -804,7 +804,7 @@ export default function ContactDetails({
                 No email addresses
               </option>
               <option
-                className="bg-white text-gray-800 border-t border-gray-200"
+                className="bg-white w-full text-gray-800 border-t border-gray-200"
                 value="create_new"
                 style={{
                   borderTop: '1px solid #e5e7eb',
