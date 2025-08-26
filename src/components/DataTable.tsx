@@ -241,6 +241,14 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
   ): 'New' | 'Contacted' | 'Qualified' | 'Lost' | 'Unqualified' | 'Junk' | 'Nurture' | string => {
     if (!apiStatus) return 'New';
     const status = apiStatus.toLowerCase();
+
+    // if (status.includes('unqualified')) return 'Unqualified';
+    // if (status.includes('qualified')) return 'Qualified';
+    // if (status.includes('contacted')) return 'Contacted';
+    // if (status.includes('nurture')) return 'Nurture';
+    // if (status.includes('junk')) return 'Junk';
+    // if (status.includes('lost')) return 'Lost';
+    // if (status.includes('new')) return 'New';
     return apiStatus;
   };
 

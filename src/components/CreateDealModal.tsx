@@ -618,19 +618,35 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
         return;
       }
 
-      // Add company to payload
+      // Prepare the payload according to the API requirements
       const apiPayload = {
-        ...formData,
-        company: sessionCompany,
+        args: {
+          organization: sessionCompany, // Using company from session
+          organization_name: formData.organization_name,
+          website: formData.website,
+          no_of_employees: formData.no_of_employees,
+          territory: formData.territory,
+          annual_revenue: formData.annual_revenue,
+          industry: formData.industry,
+          contact: null, // You can modify this if needed
+          salutation: formData.salutation,
+          first_name: formData.first_name,
+          last_name: formData.last_name,
+          email: formData.email,
+          mobile_no: formData.mobile_no,
+          gender: formData.gender,
+          status: formData.status,
+          deal_owner: formData.deal_owner
+        }
       };
 
-      const apiUrl = `${import.meta.env.VITE_API_BASE_URL}/api/v2/document/CRM Deal`;
+      const apiUrl = `http://103.214.132.20:8002/api/method/crm.fcrm.doctype.crm_deal.crm_deal.create_deal`;
 
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6'
+          'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6' // Your token here
         },
         body: JSON.stringify(apiPayload)
       });
@@ -641,9 +657,12 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
       }
 
       const result = await response.json();
+      console.log('Deal created successfully:', result);
+
       setSuccess('Deal created successfully!');
       onSubmit(result);
 
+      // Reset form after successful submission
       setTimeout(() => {
         setFormData({
           name: '',
@@ -669,7 +688,7 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
     } catch (error) {
       let errorMessage = 'Failed to create deal. Please try again.';
       if (error instanceof TypeError && error.message.includes('fetch')) {
-        errorMessage = 'Unable to connect to the server. Please check your network connection and ensure the API server is running.';
+        errorMessage = 'Unable to connect to the server. Please check your network connection.';
       } else if (error instanceof Error) {
         errorMessage = error.message;
       }
