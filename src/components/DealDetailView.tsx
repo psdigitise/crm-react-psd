@@ -1,16 +1,16 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { ArrowLeft, Activity, FileText, Phone, MessageSquare, CheckSquare, Send, Plus, Loader2, Mail, Trash2, Reply, Paperclip, ArrowRightLeft, UserPlus, Layers } from 'lucide-react';
+import { ArrowLeft, Activity, FileText, Phone, MessageSquare, CheckSquare, Send, Plus, Loader2, Mail, Trash2, Reply, Paperclip } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import { showToast } from '../utils/toast';
 import EmailComposer from './EmailComposer';
 import { FaCircleDot, FaRegComment } from 'react-icons/fa6';
 import { Listbox } from '@headlessui/react';
-import { HiOutlineMailOpen, HiOutlinePlus, HiOutlineUsers } from 'react-icons/hi';
-import { IoCloseOutline, IoDocument, IoLockClosedOutline, IoLockOpenOutline } from 'react-icons/io5';
-import { LuCalendar, LuReply, LuReplyAll, LuUpload } from 'react-icons/lu';
+import { HiOutlineMailOpen, HiOutlinePlus } from 'react-icons/hi';
+import { IoDocument, IoLockClosedOutline, IoLockOpenOutline } from 'react-icons/io5';
+import { LuReply, LuReplyAll } from 'react-icons/lu';
 import { PiDotsThreeOutlineBold } from 'react-icons/pi';
 import { TiDocumentText } from 'react-icons/ti';
-import { apiAxios, AUTH_TOKEN } from '../api/apiUrl';
+import { apiAxios } from '../api/apiUrl';
 import axios from 'axios';
 import Select from 'react-select';
 import { darkSelectStyles } from '../components/Dropdownstyles/darkSelectStyles'
@@ -19,22 +19,12 @@ import UploadAttachmentPopup from './DealsAttachmentPopups/AddAttachmentPopups';
 import React from 'react';
 import { DeleteAttachmentPopup } from './DealsAttachmentPopups/DeleteAttachmentPopup';
 import { AttachmentPrivatePopup } from './DealsAttachmentPopups/AttachmnetPrivatePopup';
-import { BsThreeDots } from "react-icons/bs";
-import { DeleteTaskPopup } from './TaskPopups/DeleteTaskPopups';
-import { SlCallIn, SlCallOut } from "react-icons/sl";
-import { IoIosCalendar } from "react-icons/io";
-import { CallDetailsPopup } from './CallLogPopups/CallDetailsPopup';
-import { RxLightningBolt } from "react-icons/rx";
-import { RiShining2Line } from "react-icons/ri";
-import { SiTicktick } from "react-icons/si";
-import { FiChevronDown } from "react-icons/fi";
-
 
 export interface Deal {
   id: string;
   name: string;
   organization: string;
-  status: 'Qualification' | 'Demo/Making' | 'Proposal/Quotation' | 'Negotiation' | 'Ready to Close' | 'Won' | 'Lost';
+  status: 'Qualification' | 'Demo/Making' | 'Proposal/Quotation' | 'Negotiation';
   email: string;
   mobileNo: string;
   assignedTo: string;
@@ -55,6 +45,7 @@ export interface Deal {
   close_date?: string;
   probability?: string;
   next_step?: string;
+
 }
 
 interface Note {
@@ -78,14 +69,6 @@ interface CallLog {
   reference_name: string;
   creation: string;
   owner: string;
-  _caller?: {
-    label: string | null;
-    image: string | null;
-  };
-  _receiver?: {
-    label: string | null;
-    image: string | null;
-  };
 }
 interface Comment {
   name: string;
@@ -111,8 +94,6 @@ interface Task {
   status: string;
   priority: string;
   start_date: string;
-  assigned_to: String;
-  modified: String;
   due_date: string;
   reference_doctype: string;
   reference_docname: string;
@@ -133,14 +114,13 @@ interface DealDetailViewProps {
 }
 interface ActivityItem {
   id: string;
-  type: 'note' | 'call' | 'comment' | 'task' | 'edit' | 'email';
+  type: 'note' | 'call' | 'comment' | 'task' | 'edit';
   title: string;
   description: string;
   timestamp: string;
   user: string;
   icon: React.ReactNode;
   color: string;
-
 }
 
 interface Email {
@@ -166,15 +146,6 @@ interface Email {
   creation: string;
 }
 
-interface TaskForm {
-  title: string;
-  description: string;
-  status: string;
-  priority: string;
-  start_date?: string;  // Make it optional
-  due_date: string;
-  assigned_to: string;
-}
 
 type TabType = 'overview' | 'activity' | 'notes' | 'calls' | 'comments' | 'tasks' | 'emails' | 'attachments';
 
@@ -229,7 +200,6 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
   const [showCommentModal, setShowCommentModal] = useState(false);
   const [CommentModalMode, setCommentModalMode] = useState("comment"); // "reply" or "comment"
   const [showTaskModal, setShowTaskModal] = useState(false);
-  console.log("showTaskModal", showTaskModal)
   const [showEmailModal, setShowEmailModal] = useState(false);
   // const [showEmailModal, setShowEmailModal] = useState(false);
   const [emailModalMode, setEmailModalMode] = useState("reply"); // "reply" or "comment"
@@ -258,27 +228,27 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
     comment_type: 'Comment'
   });
 
-  const [taskForm, setTaskForm] = useState<TaskForm>({
+  const [taskForm, setTaskForm] = useState({
     title: '',
     description: '',
     status: 'Open',
     priority: 'Medium',
-    start_date: '',  // Include here if keeping it
-    due_date: '',
-    assigned_to: ''
+    start_date: '',
+    due_date: ''
   });
+
   const [emailForm, setEmailForm] = useState({
     recipient: '',
     message: ''
   });
 
   const tabs = [
-    { id: 'activity', label: 'Activity', icon: RiShining2Line },
+    { id: 'activity', label: 'Activity', icon: Activity },
     { id: 'emails', label: 'Emails', icon: HiOutlineMailOpen },
     { id: 'comments', label: 'Comments', icon: FaRegComment },
     { id: 'overview', label: 'Data', icon: TiDocumentText },
     { id: 'calls', label: 'Calls', icon: Phone },
-    { id: 'tasks', label: 'Tasks', icon: SiTicktick },
+    { id: 'tasks', label: 'Tasks', icon: CheckSquare },
     { id: 'notes', label: 'Notes', icon: FileText },
     { id: 'attachments', label: 'Attachments', icon: Paperclip },
 
@@ -291,11 +261,11 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
     : 'bg-gray-50';
 
   const cardBgColor = theme === 'dark'
-    ? 'bg-white dark:bg-gray-900 border-gray-800'
+    ? 'bg-white dark:bg-gray-900 border-white'
     : 'bg-white';
 
   const borderColor = theme === 'dark'
-    ? 'border-gray-600'
+    ? 'border-white'
     : 'border-gray-200';
 
   const textColor = theme === 'dark'
@@ -328,45 +298,34 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
   const fetchNotes = useCallback(async () => {
     setNotesLoading(true);
     try {
-
-
-      const response = await fetch(
-        'http://103.214.132.20:8002/api/method/crm.api.activities.get_activities',
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6',
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            name: deal.name
-          })
-        }
-      );
-
-      if (response.ok) {
-        const result = await response.json();
-        // Notes are in the third array of the message array
-        const notesData = result.message[2] || [];
-
-        // Transform the notes data to match your Note interface
-        const formattedNotes = notesData.map((note: any) => ({
-          name: note.name,
-          title: note.title,
-          content: note.content,
-          reference_doctype: 'CRM Deal',
-          reference_docname: deal.name,
-          creation: note.modified, // Using modified since creation isn't in the response
-          owner: note.owner
-        }));
-
-        setNotes(formattedNotes);
-      } else {
-        throw new Error('Failed to fetch notes');
+      if (!deal?.name) {
+        showToast.error("Invalid deal name");
+        return;
       }
+
+      const filters = JSON.stringify([
+        ["reference_doctype", "=", "CRM Deal"],
+        ["reference_docname", "=", deal.name]
+      ]);
+
+      const fields = JSON.stringify([
+        "title", "content", "reference_doctype", "reference_docname", "creation", "owner"
+      ]);
+
+      const url = `http://103.214.132.20:8002/api/v2/document/FCRM Note?fields=${encodeURIComponent(fields)}&filters=${encodeURIComponent(filters)}`;
+
+      const response = await fetch(url, {
+        headers: {
+          Authorization: 'token 1b670b800ace83b:f82627cb56de7f6',
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const result = await response.json();
+      setNotes(result.data || []);
     } catch (error) {
       console.error("Error fetching notes:", error);
-      // showToast.error("Failed to fetch notes");
+      showToast.error("Failed to fetch notes");
     } finally {
       setNotesLoading(false);
     }
@@ -376,47 +335,22 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
     setCallsLoading(true);
     try {
       const response = await fetch(
-        'http://103.214.132.20:8002/api/method/crm.api.activities.get_activities',
+        `http://103.214.132.20:8002/api/v2/document/CRM Call Log?fields=["name","from","to","status","type","duration","creation","owner"]&filters=[["reference_doctype","=","CRM Deal"],["reference_docname","=","${deal.name}"]]`,
         {
-          method: 'POST',
           headers: {
             'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6',
             'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            name: deal.name
-          })
+          }
         }
       );
 
       if (response.ok) {
         const result = await response.json();
-        // Call logs are in the second array of the message array
-        const callLogsData = result.message[1] || [];
-
-        // Transform the call logs data to match your CallLog interface
-        const formattedCallLogs = callLogsData.map((call: any) => ({
-          name: call.name,
-          from: call.from,
-          to: call.to,
-          status: call.status,
-          type: call.type === 'Incoming' ? 'Inbound' : 'Outbound',
-          duration: call._duration || '0s',
-          reference_doctype: 'CRM Deal',
-          reference_name: deal.name,
-          creation: call.creation,
-          owner: call.caller || call.receiver || 'Unknown',
-          _caller: call._caller,  // Add this
-          _receiver: call._receiver  // Add this
-        }));
-
-        setCallLogs(formattedCallLogs);
-      } else {
-        throw new Error('Failed to fetch call logs');
+        setCallLogs(result.data || []);
       }
     } catch (error) {
-      console.error("Error fetching call logs:", error);
-      showToast("Failed to fetch call logs", { type: 'error' });
+      console.error('Error fetching call logs:', error);
+      showToast('Failed to fetch call logs', { type: 'error' });
     } finally {
       setCallsLoading(false);
     }
@@ -470,32 +404,27 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
   }, [deal.name]);
 
   const fetchTasks = useCallback(async () => {
-    setNotesLoading(true);
+    setTasksLoading(true);
     try {
       const response = await fetch(
-        'http://103.214.132.20:8002/api/method/crm.api.activities.get_activities',
+        `http://103.214.132.20:8002/api/v2/document/CRM Task?fields=["name","title","description","status","priority","start_date","due_date","creation","owner"]&filters=[["reference_doctype","=","CRM Deal"],["reference_docname","=","${deal.name}"]]`,
         {
-          method: 'POST',
           headers: {
             'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6',
             'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            name: deal.name // e.g. "CRM-DEAL-2025-00060"
-          })
+          }
         }
       );
 
       if (response.ok) {
         const result = await response.json();
-        // The tasks seem to be in result.message[3] based on the sample response
-        setTasks(result.message[3] || []);
+        setTasks(result.data || []);
       }
     } catch (error) {
-      console.error('Error fetching task notes:', error);
-      showToast('Failed to fetch task notes', { type: 'error' });
+      console.error('Error fetching tasks:', error);
+      showToast('Failed to fetch tasks', { type: 'error' });
     } finally {
-      setNotesLoading(false);
+      setTasksLoading(false);
     }
   }, [deal.name]);
 
@@ -566,72 +495,70 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
   };
 
   const addNote = async () => {
+    if (!noteForm.title.trim() || !noteForm.content.trim()) {
+      showToast('Please fill all required fields', { type: 'error' });
+      return;
+    }
 
     setNotesLoading(true);
     try {
-      const response = await apiAxios.post(
-        '/api/method/frappe.client.insert',
+      const response = await fetch(
+        'http://103.214.132.20:8002/api/v2/document/FCRM Note',
         {
-          doc: {
-            doctype: "FCRM Note",
+          method: 'POST',
+          headers: {
+            'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
             title: noteForm.title,
             content: noteForm.content,
-            reference_doctype: "CRM Deal",
+            reference_doctype: 'CRM Deal',
             reference_docname: deal.name
-          }
-        },
-        {
-          headers: {
-            'Authorization': AUTH_TOKEN,
-            'Content-Type': 'application/json'
-          }
+          })
         }
       );
 
-      if (response.status === 200) {
+      if (response.ok) {
+        showToast('Note added successfully', { type: 'success' });
         setNoteForm({ title: '', content: '' });
-        setShowNoteModal(false);
-        await fetchNotes();  // Refresh the notes list
+        await fetchNotes();
       } else {
-        throw new Error(response.data.message || 'Failed to add note');
+        throw new Error('Failed to add note');
       }
     } catch (error) {
       console.error('Error adding note:', error);
+      showToast('Failed to add note', { type: 'error' });
     } finally {
       setNotesLoading(false);
     }
   };
 
   const editNote = async () => {
-    if (!noteForm.title.trim()) {
-      showToast('Title is required', { type: 'error' });
+    if (!noteForm.title.trim() || !noteForm.content.trim()) {
+      showToast('Please fill all required fields', { type: 'error' });
       return false;
     }
 
     setNotesLoading(true);
     try {
-      const response = await apiAxios.post(
-        '/api/method/frappe.client.set_value',
+      const response = await fetch(
+        `http://103.214.132.20:8002/api/v2/document/FCRM Note/${noteForm.name}`,
         {
-          doctype: "FCRM Note",
-          name: noteForm.name, // The document ID to update
-          fieldname: {
+          method: 'PATCH',
+          headers: {
+            'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
             title: noteForm.title,
             content: noteForm.content,
-            //   modified: "2025-08-09 13:05:15.210597"
-            //   name: "08unvfprli"
-            //  owner: "mx.techies@gmail.com"
-          }
-        },
-        {
-          headers: {
-            'Authorization': AUTH_TOKEN,
-            'Content-Type': 'application/json'
-          }
+          })
         }
       );
 
-      if (response.data && response.data.message) {
+      if (response.ok) {
+        showToast('Note updated successfully', { type: 'success' });
         setNoteForm({ title: '', content: '', name: '' });
         await fetchNotes();
         return true;
@@ -640,44 +567,42 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         return false;
       }
     } catch (error) {
-      showToast(
-        error.response?.data?.message || 'Failed to update note',
-        { type: 'error' }
-      );
+      showToast('Failed to update note', { type: 'error' });
       return false;
     } finally {
       setNotesLoading(false);
     }
   };
 
-  const deleteNote = async (name: string) => {
+  const deleteNote = async (name) => {
+    if (!window.confirm('Are you sure you want to delete this note?')) return;
     setNotesLoading(true);
     try {
-      const response = await apiAxios.post(
-        '/api/method/frappe.client.delete',
+      const response = await fetch(
+        `http://103.214.132.20:8002/api/v2/document/FCRM Note/${name}`,
         {
-          doctype: "FCRM Note",
-          name: name
-        },
-        {
+          method: 'DELETE',
           headers: {
-            'Authorization': AUTH_TOKEN,
+            'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6',
             'Content-Type': 'application/json'
           }
         }
       );
-
-      if (response.status === 200) {
-        await fetchNotes(); // Refresh the notes list
+      if (response.ok) {
+        showToast('Note deleted', { type: 'success' });
+        await fetchNotes();
       } else {
-        throw new Error(response.data?.message || 'Failed to delete note');
+        showToast('Failed to delete note', { type: 'error' });
       }
     } catch (error) {
-      console.error("Error deleting note:", error);
+      showToast('Failed to delete note', { type: 'error' });
     } finally {
       setNotesLoading(false);
     }
   };
+
+
+
 
   const addCall = async () => {
     if (!callForm.from.trim() || !callForm.to.trim()) {
@@ -687,37 +612,38 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
 
     setCallsLoading(true);
     try {
-      // Generate a random ID (or you can keep your existing ID generation logic)
-      const randomId = Math.random().toString(36).substring(2, 8).toUpperCase();
+      // Step 1: Fetch the latest ID
+      const latest = await fetch('http://103.214.132.20:8002/api/resource/CRM Call Log?fields=["id"]&order_by=id desc&limit=1', {
+        headers: {
+          'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6',
+          'Content-Type': 'application/json'
+        }
+      });
 
-      // Prepare the document data
-      const docData = {
-        doctype: "CRM Call Log",
-        id: randomId,
-        telephony_medium: "Manual",
-        reference_doctype: "CRM Deal",
-        reference_docname: deal.name,
-        type: callForm.type === 'Outgoing' ? 'Outgoing' : 'Incoming',
-        to: callForm.to,
-        from: callForm.from,
-        status: callForm.status,
-        duration: callForm.duration || "0",
-        receiver: userSession?.email || "Administrator" // Use current user's email
-      };
+      const latestData = await latest.json();
+      const nextId = (latestData.data?.[0]?.id || 0) + 1;
 
-      // Call the frappe.client.insert API
-      const response = await fetch('http://103.214.132.20:8002/api/method/frappe.client.insert', {
+      // Step 2: Create new Call Log
+      const response = await fetch('http://103.214.132.20:8002/api/v2/document/CRM Call Log', {
         method: 'POST',
         headers: {
           'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6',
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          doc: docData
+          id: nextId,
+          from: callForm.from,
+          to: callForm.to,
+          status: callForm.status,
+          type: callForm.type,
+          duration: callForm.duration,
+          reference_doctype: 'CRM Deal',
+          reference_docname: deal.name
         })
       });
 
       if (response.ok) {
+        showToast('Call log added successfully', { type: 'success' });
         setCallForm({
           from: '',
           to: '',
@@ -726,15 +652,12 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
           duration: ''
         });
         await fetchCallLogs();
-        return true; // Return success status
       } else {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to add call log');
+        throw new Error('Failed to add call log');
       }
     } catch (error) {
       console.error('Error adding call log:', error);
-      showToast(error.message || 'Failed to add call log', { type: 'error' });
-      return false; // Return failure status
+      showToast('Failed to add call log', { type: 'error' });
     } finally {
       setCallsLoading(false);
     }
@@ -820,65 +743,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
 
     setTasksLoading(true);
     try {
-      const response = await apiAxios.post(
-        '/api/method/frappe.client.insert',
-        {
-          doc: {
-            doctype: "CRM Task",
-            reference_doctype: "CRM Deal",
-            reference_docname: deal.name,
-            title: taskForm.title,
-            description: taskForm.description,
-            assigned_to: taskForm.assigned_to,
-            due_date: taskForm.due_date ? `${taskForm.due_date} 23:59:59` : null,
-            priority: taskForm.priority,
-            status: taskForm.status
-          }
-        },
-        {
-          headers: {
-            'Authorization': AUTH_TOKEN,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-
-      if (response.data) {
-        setShowTaskModal(false);
-        setTaskForm({
-          title: '',
-          description: '',
-          status: 'Open',
-          priority: 'Medium',
-          start_date: '',
-          due_date: '',
-          assigned_to: ''
-        });
-        await fetchTasks();
-      }
-    } catch (error) {
-      console.error('Error adding task:', error);
-      showToast(
-        error.response?.data?.message ||
-        error.message ||
-        'Failed to add task',
-        { type: 'error' }
-      );
-    } finally {
-      setTasksLoading(false);
-    }
-  };
-
-  const editTask = async (taskName) => {
-    if (!taskForm.title.trim()) {
-      showToast('Title is required', { type: 'error' });
-      return false;
-    }
-
-    setTasksLoading(true);
-    try {
       const response = await fetch(
-        'http://103.214.132.20:8002/api/method/frappe.client.set_value',
+        'http://103.214.132.20:8002/api/v2/document/CRM Task',
         {
           method: 'POST',
           headers: {
@@ -886,23 +752,79 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            doctype: "CRM Task",
-            name: taskName,
-            fieldname: {
-              name: taskName,
-              title: taskForm.title,
-              description: taskForm.description,
-              assigned_to: taskForm.assigned_to,
-              due_date: taskForm.due_date ? `${taskForm.due_date} 00:00:00` : null,
-              priority: taskForm.priority,
-              status: taskForm.status
-            }
+            title: taskForm.title,
+            description: taskForm.description,
+            status: taskForm.status,
+            priority: taskForm.priority,
+            start_date: taskForm.start_date,
+            due_date: taskForm.due_date,
+            reference_doctype: 'CRM Deal',
+            reference_docname: deal.name
           })
         }
       );
 
       if (response.ok) {
-        await fetchTasks(); // Refresh the task list
+        showToast('Task added successfully', { type: 'success' });
+        setTaskForm({
+          title: '',
+          description: '',
+          status: 'Open',
+          priority: 'Medium',
+          start_date: '',
+          due_date: ''
+        });
+        await fetchTasks();
+      } else {
+        throw new Error('Failed to add task');
+      }
+    } catch (error) {
+      console.error('Error adding task:', error);
+      showToast('Failed to add task', { type: 'error' });
+    } finally {
+      setTasksLoading(false);
+    }
+  };
+
+  const editTask = async () => {
+    if (!taskForm.title.trim() || !taskForm.description.trim()) {
+      showToast('Please fill all required fields', { type: 'error' });
+      return false;
+    }
+
+    setTasksLoading(true);
+    try {
+      const response = await fetch(
+        `http://103.214.132.20:8002/api/v2/document/CRM Task/${taskForm.name}`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            title: taskForm.title,
+            description: taskForm.description,
+            status: taskForm.status,
+            priority: taskForm.priority,
+            start_date: taskForm.start_date,
+            due_date: taskForm.due_date,
+          })
+        }
+      );
+
+      if (response.ok) {
+        showToast('Task updated successfully', { type: 'success' });
+        setTaskForm({
+          title: '',
+          description: '',
+          status: 'Open',
+          priority: 'Medium',
+          start_date: '',
+          due_date: '',
+          name: ''
+        });
+        await fetchTasks();
         return true;
       } else {
         showToast('Failed to update task', { type: 'error' });
@@ -950,9 +872,6 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
     'Demo/Making': 'text-blue-500',
     'Proposal/Quotation': 'text-green-500',
     Negotiation: 'text-purple-500',
-    'Ready to Close': 'text-orange-500',
-    Won: 'text-emerald-500',
-    Lost: 'text-red-500',
   };
 
 
@@ -960,10 +879,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
     'Qualification',
     'Demo/Making',
     'Proposal/Quotation',
-    'Negotiation',
-    'Ready to Close',
-    'Won',
-    'Lost',
+    'Negotiation'
   ];
 
   const handleStatusChange = async (newStatus: Deal['status']) => {
@@ -972,150 +888,102 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
       const updatedDeal = { ...editedDeal, status: newStatus };
 
       const response = await fetch(
-        'http://103.214.132.20:8002/api/method/frappe.client.set_value',
+        `http://103.214.132.20:8002/api/v2/document/CRM Deal/${deal.name}`,
         {
-          method: 'POST',
+          method: 'PUT',
           headers: {
             'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6',
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({
-            doctype: 'CRM Deal',   // Document type
-            name: deal.name,       // The document's name/ID
-            fieldname: {
-              status: newStatus    // Field(s) to update
-            }
-          })
+          body: JSON.stringify({ status: newStatus })
         }
       );
 
       if (response.ok) {
         setEditedDeal(updatedDeal);
         onSave(updatedDeal);
+        showToast('Status updated successfully', { type: 'success' });
       } else {
         throw new Error('Failed to update status');
       }
     } catch (error) {
       console.error('Error updating status:', error);
       showToast('Failed to update status', { type: 'error' });
+      // Revert to previous status in UI
       setEditedDeal({ ...editedDeal });
     } finally {
       setLoading(false);
     }
   };
 
-  const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
-
-  // Replace your entire fetchAllActivities function with this one
-  const fetchAllActivities = useCallback(async () => {
+  // Add this fetch function
+  const fetchAllActivities = async () => {
     setActivityLoading(true);
     try {
-      const response = await fetch(
-        'http://103.214.132.20:8002/api/method/crm.api.activities.get_activities',
-        {
-          method: 'POST',
-          headers: { 'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6', 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: deal.name })
-        }
+      await Promise.all([fetchNotes(), fetchCallLogs(), fetchComments(), fetchTasks()]);
+
+      const allActivities: ActivityItem[] = [
+        ...notes.map(note => ({
+          id: note.name,
+          type: 'note',
+          title: `Note: ${note.title}`,
+          description: note.content,
+          timestamp: note.creation,
+          user: note.owner,
+          icon: <FileText className="w-4 h-4" />,
+          color: 'bg-blue-500'
+        })),
+        ...callLogs.map(call => ({
+          id: call.name,
+          type: 'call',
+          title: `${call.type} Call`,
+          description: `${call.from} → ${call.to} (${call.status})`,
+          timestamp: call.creation,
+          user: call.owner,
+          icon: <Phone className="w-4 h-4" />,
+          color: 'bg-green-500'
+        })),
+        ...comments.map(comment => ({
+          id: comment.name,
+          type: 'comment',
+          title: `Comment (${comment.comment_type})`,
+          description: comment.content,
+          timestamp: comment.creation,
+          user: comment.owner,
+          icon: <MessageSquare className="w-4 h-4" />,
+          color: 'bg-purple-500'
+        })),
+        ...tasks.map(task => ({
+          id: task.name,
+          type: 'task',
+          title: `Task: ${task.title}`,
+          description: task.description,
+          timestamp: task.creation,
+          user: task.owner,
+          icon: <CheckSquare className="w-4 h-4" />,
+          color: 'bg-orange-500'
+        }))
+      ];
+
+      allActivities.sort((a, b) =>
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
       );
 
-      if (!response.ok) throw new Error('Failed to fetch activities');
-
-      const result = await response.json();
-      const message = result.message;
-
-      // 1. Populate states for individual tabs and detailed views
-      const timelineItems = message[0] || [];
-      const rawCallLogs = message[1] || [];
-      const rawNotes = message[2] || [];
-      const rawTasks = message[3] || [];
-
-      setCallLogs(rawCallLogs);
-      setNotes(rawNotes);
-      setTasks(rawTasks);
-
-      // Extract detailed data from timeline items
-      const rawEmails = timelineItems
-        .filter((item: any) => item.activity_type === 'communication')
-        .map((item: any) => ({
-          id: item.name || `comm-${item.creation}`, fromName: item.data.sender_full_name || item.data.sender,
-          from: item.data.sender, to: item.data.recipients, creation: item.creation,
-          subject: item.data.subject, content: item.data.content || '', attachments: item.data.attachments || [],
-        }));
-      setEmails(rawEmails);
-
-      const rawComments = timelineItems.filter((item: any) => item.activity_type === 'comment');
-      setComments(rawComments);
-
-      // 2. Map all data into a single, unified 'activities' list for the timeline view
-      const callActivities = rawCallLogs.map((call: any) => ({
-        id: call.name, type: 'call', title: `${call.type} Call`,
-        description: ``, timestamp: call.creation, user: call.caller || call.receiver || 'Unknown',
-        icon: <Phone className="w-4 h-4 text-green-500" />,
-      }));
-
-      const noteActivities = rawNotes.map((note: any) => ({
-        id: note.name, type: 'note', title: `Note Added: ${note.title}`,
-        description: note.content, timestamp: note.modified, user: note.owner,
-        icon: <FileText className="w-4 h-4 text-white" />,
-      }));
-
-      const taskActivities = rawTasks.map((task: any) => ({
-        id: task.name, type: 'task', title: `Task Created: ${task.title}`,
-        description: ``, timestamp: task.modified, user: task.assigned_to || 'Unassigned',
-        icon: <SiTicktick className="w-4 h-4 text-gray-600" />,
-      }));
-
-      const timelineActivities = timelineItems.map((item: any) => {
-        // Mapping logic for timeline items (creation, comment, communication, changed, added)
-        switch (item.activity_type) {
-          case 'creation':
-            return { id: `creation-${item.creation}`, type: 'edit', title: `${item.owner} ${item.data}`, description: '', timestamp: item.creation, user: item.owner, icon: <UserPlus className="w-4 h-4 text-gray-500" /> };
-          case 'comment':
-            if (item.content?.toLowerCase().includes('converted')) {
-              return { id: item.name, type: 'edit', title: `${item.owner} converted the lead to this deal.`, description: '', timestamp: item.creation, user: item.owner, icon: <RxLightningBolt className="w-4 h-4 text-blue-500" /> };
-            }
-            return { id: item.name, type: 'comment', title: 'New Comment', description: item.content.replace(/<[^>]+>/g, ''), timestamp: item.creation, user: item.owner, icon: <MessageSquare className="w-4 h-4 text-purple-500" /> };
-          case 'communication':
-            return { id: item.name || `comm-${item.creation}`, type: 'email', title: `Email: ${item.data.subject}`, description: ``, timestamp: item.creation, user: item.data.sender_full_name || item.data.sender, icon: <Mail className="w-4 h-4 text-red-500" /> };
-          case 'added':
-          case 'changed':
-            if (item.other_versions?.length > 0) {
-              const allChanges = [item, ...item.other_versions];
-              return { id: `group-${item.creation}`, type: 'grouped_change', timestamp: item.creation, user: item.owner, icon: <Layers className="w-4 h-4 text-white" />, changes: allChanges };
-            }
-            const actionText = item.activity_type === 'added' ? `added value for ${item.data.field_label}: '${item.data.value}'` : `changed ${item.data.field_label} from '${item.data.old_value || "nothing"}' to '${item.data.value}'`;
-            return { id: `change-${item.creation}`, type: 'edit', title: `${item.owner} ${actionText}`, description: '', timestamp: item.creation, user: item.owner, icon: <RxLightningBolt className="w-4 h-4 text-yellow-500" /> };
-          default: return null;
-        }
-      }).filter(Boolean);
-
-      // 3. Combine, sort, and set the final activities list
-      const allActivities = [...callActivities, ...noteActivities, ...taskActivities, ...timelineActivities];
-      allActivities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
       setActivities(allActivities);
-
     } catch (error) {
-      console.error("Error fetching activities:", error);
-      showToast("Failed to load activity timeline", { type: 'error' });
+      console.error('Error fetching activities:', error);
+      showToast('Failed to fetch activities', { type: 'error' });
     } finally {
       setActivityLoading(false);
     }
-  }, [deal.name]); // Add dependencies
+  };
 
   // Add to useEffect
-  // Replace your existing useEffect with this one
   useEffect(() => {
-    // Define which tabs should trigger the all-in-one fetch
-    const activityTabs: TabType[] = ['activity', 'notes', 'calls', 'comments', 'tasks', 'emails'];
-
-    if (activityTabs.includes(activeTab)) {
+    if (activeTab === 'activity') {
       fetchAllActivities();
     }
-
-    // You can keep separate fetches for things not in the main activity feed, like attachments
-
-  }, [activeTab, fetchAllActivities]); // Add fetchAttachments to dependency array
+  }, [activeTab]);
 
   // Add to state variables
   const [currentPage, setCurrentPage] = useState(1);
@@ -1168,19 +1036,6 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
 
     return `${diffYear} year${diffYear !== 1 ? "s" : ""} ago`;
   }
-
-  function formatDateRelative(dateString: string): string {
-    const date = new Date(dateString);
-    const options: Intl.DateTimeFormatOptions = {
-      month: 'short',
-      day: 'numeric',
-      weekday: 'long'
-    };
-    return date.toLocaleDateString('en-US', options);
-  }
-
-  // Example usage:
-  // formatCallLogDate("2025-07-05T07:51:57.695425") returns "Jul 5, Saturday"
 
   const fetchDealDetails = useCallback(async () => {
     setLoading(true);
@@ -1458,27 +1313,6 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
     name: string;
     is_private: number;
   } | null>(null);
-  const [noteFormError, setNoteFormError] = useState(false);
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-  const [currentTaskId, setCurrentTaskId] = useState(null);
-  const [showDeleteTaskPopup, setShowDeleteTaskPopup] = React.useState(false);
-  const [taskToDelete, setTaskToDelete] = React.useState<string | null>(null);
-  console.log("taskToDelete", taskToDelete);
-  // Inside your component
-  const [editingCall, setEditingCall] = React.useState<any | null>(null);
-  const [showPopup, setShowPopup] = React.useState(false);
-
-  const handleLabelClick = (call: any) => {
-    setEditingCall(call);
-    setShowPopup(true);
-  };
-
-
-  const handleAddTaskFromCall = () => {
-    console.log("Add Task button clicked!")
-    setShowPopup(false);
-    setShowTaskModal(true);
-  };
 
 
   return (
@@ -1722,7 +1556,6 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
             </div>
           </div>
         )}
-
         {activeTab === 'notes' && (
           <div className="space-y-6">
             {/* Add Note Form */}
@@ -1731,31 +1564,23 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
               <div className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} p-6`}>
                 <div className='flex justify-between items-center gap-5 mb-6'>
 
-                  <h3 className={`text-lg font-semibold ${textColor} mb-0`}>Notes</h3>
+                  <h3 className={`text-lg font-semibold ${textColor} mb-0`}>Add Note</h3>
                   <button
-                    onClick={() => {
-                      setShowNoteModal(true);
-                      setIsEditMode(false); // Add this line
-                      setNoteForm({ title: '', content: '' }); // Also reset form if needed
-                    }}
+                    onClick={() => setShowNoteModal(true)}
                     className={`${buttonBgColor} text-white px-4 py-2 rounded-lg flex items-center space-x-2`}
                   >
                     <Plus className="w-4 h-4" />
-                    <span>New Note</span>
+                    <span>Add Note</span>
                   </button>
                 </div>
                 {notes.length === 0 ? (
                   <div className="text-center py-8">
                     <FileText className={`w-12 h-12 mx-auto mb-4 ${textSecondaryColor}`} />
-                    <p className={textSecondaryColor}>No Notes</p>
+                    <p className={textSecondaryColor}>No notes yet</p>
                     <span
-                      onClick={() => {
-                        setShowNoteModal(true);
-                        setIsEditMode(false); // Add this line
-                        setNoteForm({ title: '', content: '' }); // Also reset form if needed
-                      }}
+                      onClick={() => setShowNoteModal(true)}
                       className="text-white cursor-pointer bg-gray-400 rounded-md inline-block text-center px-6 py-2"
-                    >Create Note </span>
+                    >Add Note </span>
                   </div>
                 ) : (
                   <div className="grid grid-cols-3 gap-5">
@@ -1763,158 +1588,79 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                     {notes.map((note) => (
                       <div
                         key={note.name}
-                        className={`border ${borderColor} rounded-lg p-4 relative`} // ✅ relative here
+                        className={`border ${borderColor} rounded-lg p-4`}
                         onDoubleClick={() => {
                           setNoteForm({
-                            name: note.name || '',
                             title: note.title || '',
-                            content: note.content || ''
+                            content: note.content || '',
+                            name: note.name || '',
                           });
                           setIsEditMode(true);
                           setShowNoteModal(true);
                         }}
                         style={{ cursor: 'pointer' }}
-
+                        title="Double click to edit"
                       >
-                        {/* Title & Menu Button */}
                         <div className="flex items-center justify-between mb-2">
                           <h4 className={`text-lg font-semibold ${textColor}`}>{note.title}</h4>
-                          <div className="relative"> {/* ✅ relative so dropdown anchors here */}
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setOpenMenuId(openMenuId === note.name ? null : note.name);
-                              }}
-                              className="p-1 rounded transition-colors"
-                              style={{ lineHeight: 0 }}
-                            >
-                              <BsThreeDots className="w-4 h-4 text-white" />
-                            </button>
-
-                            {/* Dropdown */}
-                            {openMenuId === note.name && (
-                              <div className="absolute right-0 mt-2 w-28 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    deleteNote(note.name);
-                                    setOpenMenuId(null);
-                                  }}
-                                  className="flex items-center gap-2 px-3 py-2 hover:bg-gray-300 hover:rounded-lg w-full text-left"
-                                >
-                                  <Trash2 className="w-4 h-4 text-red-500" />
-                                  <span>Delete</span>
-                                </button>
-                              </div>
-                            )}
-                          </div>
+                          <button
+                            onClick={e => {
+                              e.stopPropagation();
+                              deleteNote(note.name);
+                            }}
+                            title="Delete"
+                            className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-900 transition-colors"
+                            style={{ lineHeight: 0 }}
+                          >
+                            <Trash2 className="w-4 h-4 text-red-500" />
+                          </button>
                         </div>
-
-                        {/* Content */}
-                        <p
-                          className={`text-base font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-600'
-                            } whitespace-pre-wrap`}
-                        >
-                          {note.content}
-                        </p>
-
-                        {/* Footer */}
-                        <div className="flex justify-between items-center mt-20 text-sm gap-2">
-                          <div className="flex items-center gap-2">
-                            <span className="flex items-center justify-center w-6 h-6 rounded-full bg-gray-500 text-gray-300 font-bold text-xs">
-                              {note.owner?.charAt(0).toUpperCase() || "-"}
-                            </span>
-                            <span className={textSecondaryColor}>{note.owner}</span>
-                          </div>
-                          <span className={`${textSecondaryColor} font-medium`}>
-                            {getRelativeTime(note.creation)}
-                          </span>
-                        </div>
+                        <p className={`text-base font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-600'} whitespace-pre-wrap`}>{note.content}</p>
+                        <p className={`text-bse font-semibold ${textSecondaryColor} mt-2`}>by {note.owner}</p>
+                        <p className={`text-sm mt-2 ${textSecondaryColor}`}>{formatDate(note.creation)}</p>
                       </div>
                     ))}
-
                   </div>
                 )}
               </div>
             </div>
 
             {showNoteModal && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto">
-                {/* Overlay */}
-                <div
-                  className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
-                  onClick={() => setShowNoteModal(false)}
-                />
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                <div className={`w-full max-w-lg ${cardBgColor} rounded-lg shadow-lg p-6 relative border ${borderColor}`}>
+                  <button
+                    onClick={() => setShowNoteModal(false)}
+                    className={`absolute top-2 right-3  hover:text-gray-700 dark:hover:text-white ${theme === "dark" ? "text-white" : "text-black"} `}
+                  >
+                    ✕
+                  </button>
 
-                {/* Modal */}
-                <div
-                  className={`relative transform overflow-hidden rounded-lg text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg border border-gray-400 ${theme === 'dark' ? 'bg-dark-secondary' : 'bg-white'}`}
-                >
-                  <div className={`px-4 pt-5 pb-4 sm:p-6 sm:pb-4 ${theme === 'dark' ? 'bg-dark-secondary' : 'bg-white'}`}>
-                    {/* Close */}
-                    <div className="absolute top-0 right-0 pt-4 pr-4">
-                      <button
-                        type="button"
-                        className={`rounded-md ${theme === 'dark' ? 'text-white' : 'text-gray-400'} hover:text-gray-500 focus:outline-none`}
-                        onClick={() => {
-                          setShowNoteModal(false);
-                          setIsEditMode(false); // Add this line
-                        }}
-                      >
-                        <IoCloseOutline size={24} />
-                      </button>
+                  <h3 className={`text-lg font-semibold mb-4 ${textColor}`}>Add Note</h3>
+                  <div className="space-y-4">
+                    <div>
+                      <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>Title *</label>
+                      <input
+                        type="text"
+                        value={noteForm.title}
+                        onChange={(e) => setNoteForm({ ...noteForm, title: e.target.value })}
+                        className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
+                        placeholder="Enter note title"
+                      />
                     </div>
-
-                    {/* Header */}
-                    <h3 className={`text-xl font-bold mb-4 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                      {isEditMode ? 'Edit Note' : 'Create Note'}
-                    </h3>
-
-                    {/* Form */}
-                    <div className="space-y-4">
-                      <div>
-                        <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                          Title <span className='text-red-500'>*</span>
-                        </label>
-                        <input
-                          type="text"
-                          value={noteForm.title}
-                          onChange={(e) => setNoteForm({ ...noteForm, title: e.target.value })}
-                          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark' ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'
-                            } ${noteForm.title === '' && noteFormError ? 'border-red-500' : ''
-                            }`}
-                          placeholder="Call with John Doe"
-                        />
-                        {noteForm.title === '' && noteFormError && (
-                          <p className="mt-1 text-sm text-red-500">Title is required</p>
-                        )}
-                      </div>
-                      <div>
-                        <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                          Content
-                        </label>
-                        <textarea
-                          value={noteForm.content}
-                          onChange={(e) => setNoteForm({ ...noteForm, content: e.target.value })}
-                          rows={8}  // Increased from 4 to 8
-                          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark' ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'
-                            }`}
-                          placeholder="Took a call with John Doe and discussed the new project"
-                        />
-                      </div>
+                    <div>
+                      <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>Content *</label>
+                      <textarea
+                        value={noteForm.content}
+                        onChange={(e) => setNoteForm({ ...noteForm, content: e.target.value })}
+                        rows={4}
+                        className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
+                        placeholder="Enter note content"
+                      />
                     </div>
-                  </div>
+                    <div className="flex justify-end">
 
-                  {/* Footer */}
-                  <div className={`px-4 py-3 sm:px-6 ${theme === 'dark' ? 'bg-dark-tertiary' : 'bg-gray-50'}`}>
-                    <div className="w-full">
                       <button
                         onClick={async () => {
-                          if (noteForm.title === '') {
-                            setNoteFormError(true);
-                            return;
-                          }
-
                           let success = false;
                           if (isEditMode) {
                             success = await editNote();
@@ -1924,29 +1670,20 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                           if (success) {
                             setShowNoteModal(false);
                             setIsEditMode(false);
-                            setNoteFormError(false);
                           }
                         }}
                         disabled={notesLoading}
-                        className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 sm:text-sm ${theme === 'dark'
-                          ? 'bg-purple-600 text-white hover:bg-purple-700 focus:ring-purple-500'
-                          : 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500'
-                          } ${notesLoading ? 'opacity-50 cursor-not-allowed' : ''
-                          }`}
+                        className={`${buttonBgColor} text-white px-4 py-2 rounded-lg flex items-center space-x-2 disabled:opacity-50`}
                       >
-                        {notesLoading ? (
-                          <span className="flex items-center justify-center">
-                            {isEditMode ? 'Updating...' : 'Creating...'}
-                          </span>
-                        ) : (
-                          isEditMode ? 'Update' : 'Create'
-                        )}
+                        {notesLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                        <span>{isEditMode ? 'Update' : 'Add Note'}</span>
                       </button>
                     </div>
                   </div>
                 </div>
               </div>
             )}
+
           </div>
         )}
 
@@ -1978,124 +1715,55 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                 </div>
               ) : (
                 <div className="space-y-4">
+
                   {callLogs.map((call) => (
-                    <div key={call.name} >
-                      <div className="flex items-center justify-between mb-3"> {/* Changed to justify-between */}
-                        <div className="flex items-center">
-                          {/* Icon container */}
-                          <div
-                            className={`p-2 rounded-full mr-3 flex items-center justify-center
-                             ${call.type === 'Inbound'
-                                ? 'bg-blue-100 text-blue-600'
-                                : 'bg-green-100 text-green-600'
-                              }`}
-                            style={{ width: '32px', height: '32px' }}
-                          >
-                            {call.type === 'Inbound' ? (
-                              <SlCallIn className="w-4 h-4" />
-                            ) : (
-                              <SlCallOut className="w-4 h-4" />
-                            )}
-                          </div>
-
-                          {/* Text on the right */}
-                          <div
-                            className="p-2 rounded-full flex items-center justify-center bg-gray-200 text-gray-700 font-medium"
-                            style={{ width: '32px', height: '32px' }}
-                          >
-                            {call._caller?.label?.charAt(0).toUpperCase() || "U"}
-                          </div>
-
-                          {/* Text */}
-                          <span className="ml-2 text-sm text-white">
-                            {call._caller?.label || "Unknown"} has reached out
-                          </span>
-                        </div>
-
-                        {/* Moved the time here to the right side */}
-                        <p className={`text-xs ${textSecondaryColor}`}>
-                          {getRelativeTime(call.creation)}
-                        </p>
-                      </div>
-
-                      <div
-                        onClick={() => handleLabelClick(call)}
-                        key={call.name}
-                        className={`relative border ${borderColor} rounded-lg ml-12 p-4 flex flex-col`}
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <p className={`text-lg font-medium ${textColor}`}>
-                            {call.type}
-                          </p>
-                        </div>
-
-                        {/* All three in one line */}
-                        <div className="flex items-start justify-start mt-2 gap-4">
-                          <p className={`text-sm ${textSecondaryColor} flex items-center`}>
-                            <IoIosCalendar className="mr-1" />
-                            {formatDateRelative(call.creation)}
-                          </p>
-
-                          <p className={`text-sm ${textSecondaryColor}`}>
-                            {call.duration}
-                          </p>
-
-                          <span
-                            className={`text-xs px-2 py-1 rounded ${call.status === 'Completed'
-                              ? 'bg-green-100 text-green-800'
-                              : call.status === 'Ringing'
-                                ? 'bg-yellow-100 text-yellow-800'
-                                : 'bg-gray-100 text-gray-800'
-                              }`}
-                          >
-                            {call.status}
-                          </span>
-                        </div>
-
-                        {/* Circle floated to the right, vertically centered */}
-                        <div
-                          className="absolute right-4 top-1/2 -translate-y-1/2 flex -space-x-4"
-                        >
-                          {/* Caller */}
-                          <div
-                            onClick={() => handleLabelClick(call)}
-                            className="p-2 rounded-full flex items-center justify-center bg-gray-400 text-gray-700 font-medium"
-                            style={{ width: '32px', height: '32px' }}
-                          >
-                            {call._caller?.label?.charAt(0).toUpperCase() || ""}
-                          </div>
-
-                          {/* Receiver */}
-                          <div
-                            onClick={() => handleLabelClick(call)}
-                            className="p-2 rounded-full flex items-center justify-center bg-gray-400 text-gray-700 font-medium"
-                            style={{ width: '32px', height: '32px' }}
-                          >
-                            {call._receiver?.label?.charAt(0).toUpperCase() || ""}
-                          </div>
-                        </div>
-
-                      </div>
-
-                    </div>
-
-                  ))}
-                  {showPopup && editingCall && (
-                    <CallDetailsPopup
-                      call={{
-                        type: editingCall.type,
-                        caller: editingCall._caller?.label || "Unknown",
-                        receiver: editingCall._receiver?.label || "Unknown",
-                        date: formatDateRelative(editingCall.creation),
-                        duration: editingCall.duration,
-                        status: editingCall.status
+                    <div
+                      key={call.name}
+                      className={`border ${borderColor} rounded-lg p-4`}
+                      onDoubleClick={() => {
+                        setCallForm({
+                          from: call.from || '',
+                          to: call.to || '',
+                          status: call.status || 'Ringing',
+                          type: call.type || 'Outgoing',
+                          duration: call.duration || '',
+                          name: call.name || '',
+                        });
+                        setIsEditMode(true);
+                        setShowCallModal(true);
                       }}
-                      onClose={() => setShowPopup(false)}
-                      onAddTask={handleAddTaskFromCall}
-                      theme={theme}
-                    />
-                  )}
-
+                      style={{ cursor: 'pointer' }}
+                      title="Double click to edit"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div>
+                          <span className={`font-medium ${textColor}`}>{call.from}</span>
+                          <span className={`mx-2 ${textSecondaryColor}`}>→</span>
+                          <span className={`font-medium ${textColor}`}>{call.to}</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <span className={`text-sm ${textSecondaryColor}`}>{formatDate(call.creation)}</span>
+                          <button
+                            onClick={e => {
+                              e.stopPropagation();
+                              deleteCall(call.name);
+                            }}
+                            title="Delete"
+                            className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-900 transition-colors"
+                            style={{ lineHeight: 0 }}
+                          >
+                            <Trash2 className="w-4 h-4 text-red-500" />
+                          </button>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-4 text-sm">
+                        <span className={textSecondaryColor}>Status: {call.status}</span>
+                        <span className={textSecondaryColor}>Type: {call.type}</span>
+                        <span className={textSecondaryColor}>Duration: {call.duration} min</span>
+                      </div>
+                      <p className={`text-sm ${textSecondaryColor} mt-2`}>by {call.owner}</p>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -2110,38 +1778,26 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                     ✕
                   </button>
 
-                  <h3 className={`text-lg font-semibold ${textColor} mb-4`}>New Call Log</h3>
+                  <h3 className={`text-lg font-semibold ${textColor} mb-4`}>Add Call Log</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>Type <span className='text-red-500'>*</span></label>
-                      <select
-                        value={callForm.type}
-                        onChange={(e) => setCallForm({ ...callForm, type: e.target.value })}
-                        className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
-                      >
-                        <option value="Outgoing">Outgoing</option>
-                        <option value="Incoming">Incoming</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>To <span className='text-red-500'>*</span></label>
-                      <input
-                        type="text"
-                        value={callForm.to}
-                        onChange={(e) => setCallForm({ ...callForm, to: e.target.value })}
-                        className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
-                        placeholder="To"
-                      />
-                    </div>
-                    <div>
-                      <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>From <span className='text-red-500'>*</span></label>
+                      <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>From *</label>
                       <input
                         type="text"
                         value={callForm.from}
                         onChange={(e) => setCallForm({ ...callForm, from: e.target.value })}
                         className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
-                        placeholder="From"
+                        placeholder="Caller number"
+                      />
+                    </div>
+                    <div>
+                      <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>To *</label>
+                      <input
+                        type="text"
+                        value={callForm.to}
+                        onChange={(e) => setCallForm({ ...callForm, to: e.target.value })}
+                        className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
+                        placeholder="Recipient number"
                       />
                     </div>
                     <div>
@@ -2157,7 +1813,18 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                       </select>
                     </div>
                     <div>
-                      <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>Duration</label>
+                      <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>Type</label>
+                      <select
+                        value={callForm.type}
+                        onChange={(e) => setCallForm({ ...callForm, type: e.target.value })}
+                        className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
+                      >
+                        <option value="Outgoing">Outgoing</option>
+                        <option value="Incoming">Incoming</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>Duration (minutes)</label>
                       <input
                         type="number"
                         value={callForm.duration}
@@ -2185,12 +1852,14 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                       disabled={callsLoading}
                       className={`px-4 py-2 rounded-lg text-white flex items-center space-x-2 transition-colors ${theme === 'dark' ? 'bg-purplebg hover:bg-purple-700' : 'bg-green-600 hover:bg-green-700'} disabled:opacity-50`}
                     >
-                      <span>{isEditMode ? 'Update' : 'Create'}</span>
+                      {callsLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                      <span>{isEditMode ? 'Update' : 'Add Call Log'}</span>
                     </button>
                   </div>
                 </div>
               </div>
             )}
+
           </div>
         )}
 
@@ -2239,7 +1908,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                   >New Comment</span>
                 </div>
               ) : (
-                <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+                <div className="space-y-4">
                   {comments.map((comment) => (
                     <div key={comment.name} className="relative ">
                       <div className="flex justify-between items-center mb-2">
@@ -2320,8 +1989,6 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                     onClick={() => {
                       setEmailModalMode("reply");
                       setShowEmailModal(true);
-                      setSelectedEmail(null);                // Clear selected email
-                      setEmailModalMode("new");
                     }}
                   >
                     <Mail size={14} /> Reply
@@ -2359,18 +2026,18 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
             {/* <h3 className={`text-lg font-semibold ${textColor} mb-4`}>Add Task</h3> */}
             <div className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} p-6`}>
               <div className='flex justify-between items-center gap-5 mb-6'>
-                <h3 className={`text-lg font-semibold ${textColor} mb-0`}> Tasks</h3>
+                <h3 className={`text-lg font-semibold ${textColor} mb-0`}>New Task</h3>
                 <button
                   onClick={() => setShowTaskModal(true)}
                   className={`px-4 py-2 rounded-lg flex items-center space-x-2 text-white ${theme === 'dark' ? 'bg-purplebg hover:bg-purple-700' : 'bg-blue-600 hover:bg-blue-700'}`}
                 >
                   <Plus className="w-4 h-4" />
-                  <span>New Task</span>
+                  <span>Add Task</span>
                 </button>
               </div>
               {tasks.length === 0 ? (
                 <div className="text-center py-8">
-                  <SiTicktick className={`w-12 h-12 mx-auto mb-4 ${textSecondaryColor}`} />
+                  <CheckSquare className={`w-12 h-12 mx-auto mb-4 ${textSecondaryColor}`} />
                   <p className={textSecondaryColor}>No tasks yet</p>
                   <span
                     onClick={() => setShowTaskModal(true)}
@@ -2379,130 +2046,74 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {tasks.map((note) => (
+                  {tasks.map((task) => (
                     <div
-                      key={note.name}
-                      onClick={() => {
+                      key={task.name}
+                      className={`border ${borderColor} rounded-lg p-4`}
+                      onDoubleClick={() => {
                         setTaskForm({
-                          title: note.title,
-                          description: note.description,
-                          status: note.status,
-                          priority: note.priority,
-                          due_date: note.due_date ? note.due_date.split(' ')[0] : '', // Extract just the date part
-                          assigned_to: note.assigned_to,
+                          title: task.title || '',
+                          description: task.description || '',
+                          status: task.status || 'Open',
+                          priority: task.priority || 'Medium',
+                          start_date: task.start_date || '',
+                          due_date: task.due_date || '',
+                          name: task.name || '',
                         });
                         setIsEditMode(true);
-                        setCurrentTaskId(note.name); // Store the task name for editing
                         setShowTaskModal(true);
                       }}
-                      className={`border ${borderColor} rounded-lg p-4`}
+                      style={{ cursor: 'pointer' }}
+                      title="Double click to edit"
                     >
-                      <div className="flex justify-between items-start mb-2">
-                        <h4 className={`font-medium ${textColor}`}>{note.title}</h4>
-                      </div>
-
-                      {/* Row: Left (assigned, date, priority) | Right (status, menu) */}
-                      <div className="mt-1 text-sm flex justify-between items-center flex-wrap gap-2">
-                        {/* Left side */}
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {/* Assigned to */}
-                          <div className="relative z-10 w-6 h-6 flex items-center justify-center rounded-full bg-gray-500 text-white text-xs font-semibold">
-                            {note.assigned_to?.charAt(0).toUpperCase() || "U"}
-                          </div>
-                          <span className={textSecondaryColor}>
-                            {note.assigned_to || 'Unassigned'}
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className={`font-medium ${textColor}`}>{task.title}</h4>
+                        <div className="flex items-center space-x-2">
+                          <span className={`px-2 py-1 text-sm font-semibold rounded-full ${task.status === 'Completed' ?
+                            theme === 'dark' ? 'bg-green-900 text-green-200' : 'bg-green-100 text-green-800' :
+                            task.status === 'Working' ?
+                              theme === 'dark' ? 'bg-blue-900 text-blue-200' : 'bg-blue-100 text-blue-800' :
+                              task.status === 'Pending Review' ?
+                                theme === 'dark' ? 'bg-yellow-900 text-yellow-200' : 'bg-yellow-100 text-yellow-800' :
+                                task.status === 'Cancelled' ?
+                                  theme === 'dark' ? 'bg-red-900 text-red-200' : 'bg-red-100 text-red-800' :
+                                  theme === 'dark' ? 'bg-purplebg/30 text-white' : 'bg-gray-100 text-gray-800'
+                            }`}>
+                            {task.status}
                           </span>
-
-                          {/* Due date */}
-                          {note.due_date && (
-                            <span className={`flex items-center gap-0.5 ${textSecondaryColor}`}>
-                              <LuCalendar className="w-3.5 h-3.5" />
-                              {note.due_date}
-                            </span>
-                          )}
-
-                          {/* Priority */}
-                          <span className="flex items-center gap-1">
-                            <span
-                              className={`w-2.5 h-2.5 rounded-full inline-block ${note.priority === 'High'
-                                ? 'bg-red-500'
-                                : note.priority === 'Medium'
-                                  ? 'bg-yellow-500'
-                                  : note.priority === 'Low'
-                                    ? 'bg-gray-300'
-                                    : 'bg-gray-400'
-                                }`}
-                            ></span>
-                            <span className="text-xs text-white font-medium">{note.priority}</span>
+                          <span className={`px-2 py-1 text-sm font-semibold rounded-full ${task.priority === 'High' ?
+                            theme === 'dark' ? 'bg-red-900 text-red-200' : 'bg-red-100 text-red-800' :
+                            task.priority === 'Medium' ?
+                              theme === 'dark' ? 'bg-yellow-900 text-yellow-200' : 'bg-yellow-100 text-yellow-800' :
+                              task.priority === 'Low' ?
+                                theme === 'dark' ? 'bg-green-900 text-green-200' : 'bg-green-100 text-green-800' :
+                                theme === 'dark' ? 'bg-purplebg/30 text-white' : 'bg-gray-100 text-gray-800'
+                            }`}>
+                            {task.priority}
                           </span>
-                        </div>
-
-                        {/* Right side */}
-                        <div className="flex items-center gap-2">
-                          {/* Status */}
-                          <span
-                            className={`px-1 text-xs font-semibold rounded ${note.status === 'Done'
-                              ? theme === 'dark'
-                                ? 'bg-green-900 text-green-200'
-                                : 'bg-green-100 text-green-800'
-                              : note.status === 'Open'
-                                ? theme === 'dark'
-                                  ? 'bg-blue-900 text-blue-200'
-                                  : 'bg-blue-100 text-blue-800'
-                                : theme === 'dark'
-                                  ? 'bg-gray-700 text-gray-300'
-                                  : 'bg-gray-200 text-gray-800'
-                              }`}
+                          <button
+                            onClick={e => {
+                              e.stopPropagation();
+                              deleteTask(task.name);
+                            }}
+                            title="Delete"
+                            className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-900 transition-colors"
+                            style={{ lineHeight: 0 }}
                           >
-                            {note.status}
-                          </span>
-
-                          {/* Three dots menu */}
-                          <div className="relative">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setOpenMenuId(openMenuId === note.name ? null : note.name);
-                              }}
-                              className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full"
-                            >
-                              <BsThreeDots className="w-4 h-4 text-white" />
-                            </button>
-
-                            {/* Dropdown menu */}
-                            {openMenuId === note.name && (
-                              <div
-                                className="absolute right-0 mt-2 w-28 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-10"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setTaskToDelete(note.name); // Store the task to be deleted
-                                    setShowDeleteTaskPopup(true); // Show the popup
-                                    setOpenMenuId(null); // Close the dropdown
-                                  }}
-                                  className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 hover:rounded-lg w-full text-left"
-                                >
-                                  <Trash2 className="w-4 h-4 text-red-500" />
-                                  <span className='text-white'>Delete</span>
-                                </button>
-                              </div>
-                            )}
-                          </div>
-
+                            <Trash2 className="w-4 h-4 text-red-500" />
+                          </button>
                         </div>
+                      </div>
+                      <p className={`${theme === 'dark' ? 'text-white' : 'text-gray-600'} whitespace-pre-wrap`}>{task.description}</p>
+                      <div className="flex items-center justify-between mt-2 text-sm">
+                        <div className="flex items-center space-x-4">
+                          <span className={textSecondaryColor}>Start: {task.start_date}</span>
+                          <span className={textSecondaryColor}>End: {task.due_date}</span>
+                        </div>
+                        <span className={textSecondaryColor}>by {task.owner}</span>
                       </div>
                     </div>
                   ))}
-                  {showDeleteTaskPopup && taskToDelete && (
-                    <DeleteTaskPopup
-                      closePopup={() => setShowDeleteTaskPopup(false)}
-                      task={{ name: taskToDelete }} // Pass as object with name property
-                      theme={theme}
-                      onDeleteSuccess={fetchTasks}
-                    />
-                  )}
                 </div>
               )}
             </div>
@@ -2510,229 +2121,109 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
               
             </div> */}
             {showTaskModal && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto">
-                {/* Overlay */}
-                <div
-                  className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
-                  onClick={() => setShowTaskModal(false)}
-                />
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                <div className={`w-full max-w-3xl ${cardBgColor} rounded-lg shadow-lg p-6 relative border ${borderColor}`}>
+                  <button
+                    onClick={() => setShowTaskModal(false)}
+                    className={`absolute top-2 right-3  hover:text-gray-700 dark:hover:text-white ${theme === "dark" ? "text-white" : "text-black"} `}>
+                    ✕
+                  </button>
 
-                {/* Modal - Increased width to max-w-4xl */}
-                <div className={`relative transform overflow-hidden rounded-lg text-left shadow-xl transition-all sm:my-8 sm:w-11/12 sm:max-w-[600px] border ${theme === 'dark' ? 'border-gray-600 bg-dark-secondary' : 'border-gray-400 bg-white'}`}>
-                  <div className={`px-6 pt-6 pb-4 sm:p-8 sm:pb-6 ${theme === 'dark' ? 'bg-dark-secondary' : 'bg-white'}`}>
-                    {/* Close */}
-                    <div className="absolute top-0 right-0 pt-6 pr-6">
-                      <button
-                        type="button"
-                        className={`rounded-md ${theme === 'dark' ? 'text-white' : 'text-gray-400'} hover:text-gray-500 focus:outline-none`}
-                        onClick={() => {
-                          setShowTaskModal(false);
-                          setIsEditMode(false);
-                        }}
-                      >
-                        <IoCloseOutline size={24} />
-                      </button>
+                  <h3 className={`text-lg font-semibold ${textColor} mb-4`}>Add Task</h3>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="md:col-span-2">
+                      <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>Title *</label>
+                      <input
+                        type="text"
+                        value={taskForm.title}
+                        onChange={(e) => setTaskForm({ ...taskForm, title: e.target.value })}
+                        className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
+                        placeholder="Task title"
+                      />
                     </div>
-
-                    {/* Header */}
-                    <h3 className={`text-xl font-bold mb-6 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                      {isEditMode ? 'Edit Task' : 'Create Task'}
-                    </h3>
-
-                    {/* Form */}
-                    <div className="space-y-6">
-                      <div>
-                        <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                          Title <span className='text-red-500'>*</span>
-                        </label>
-                        <input
-                          type="text"
-                          value={taskForm.title}
-                          onChange={(e) => setTaskForm({ ...taskForm, title: e.target.value })}
-                          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
-                            ? 'bg-gray-800 border-gray-600 text-white'
-                            : 'bg-white border-gray-300 text-gray-900'
-                            }`}
-                          placeholder="Task title"
-                        />
-                      </div>
-
-                      <div>
-                        <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                          Description
-                        </label>
-                        <textarea
-                          value={taskForm.description}
-                          onChange={(e) => setTaskForm({ ...taskForm, description: e.target.value })}
-                          rows={6}
-                          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
-                            ? 'bg-gray-800 border-gray-600 text-white'
-                            : 'bg-white border-gray-300 text-gray-900'
-                            }`}
-                          placeholder="Task description"
-                        />
-                      </div>
-
-                      {/* All fields in one row */}
-                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        {/* Status */}
-                        <div>
-                          <select
-                            value={taskForm.status}
-                            onChange={(e) => setTaskForm({ ...taskForm, status: e.target.value })}
-                            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
-                              ? 'bg-gray-800 border-gray-600 text-white'
-                              : 'bg-white border-gray-300 text-gray-900'
-                              }`}
-                          >
-                            <option
-                              className={theme === 'dark' ? 'bg-gray-800 text-white' : ''}
-                              value="Backlog">Backlog</option>
-                            <option
-                              className={theme === 'dark' ? 'bg-gray-800 text-white' : ''}
-                              value="Todo">Todo</option>
-                            <option
-                              className={theme === 'dark' ? 'bg-gray-800 text-white' : ''}
-                              value="In Progress">In Progress</option>
-                            <option
-                              className={theme === 'dark' ? 'bg-gray-800 text-white' : ''}
-                              value="Done">Done</option>
-                            <option
-                              className={theme === 'dark' ? 'bg-gray-800 text-white' : ''}
-                              value="Canceled">Canceled</option>
-                            <option
-                              className={theme === 'dark' ? 'bg-gray-800 text-white' : ''}
-                              value="Open">Open</option>
-                          </select>
-                        </div>
-
-                        {/* Priority */}
-                        <div>
-                          <select
-                            value={taskForm.priority}
-                            onChange={(e) => setTaskForm({ ...taskForm, priority: e.target.value })}
-                            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
-                              ? 'bg-gray-800 border-gray-600 text-white'
-                              : 'bg-white border-gray-300 text-gray-900'
-                              }`}
-                          >
-                            <option
-                              className={theme === 'dark' ? 'bg-gray-800 text-white' : ''}
-                              value="Low">Low</option>
-                            <option
-                              className={theme === 'dark' ? 'bg-gray-800 text-white' : ''}
-                              value="Medium">Medium</option>
-                            <option
-                              className={theme === 'dark' ? 'bg-gray-800 text-white' : ''}
-                              value="High">High</option>
-                          </select>
-                        </div>
-
-                        {/* Due Date */}
-                        <div>
-
-                          <input
-                            type="date"
-                            value={taskForm.due_date}
-                            onChange={(e) => setTaskForm({ ...taskForm, due_date: e.target.value })}
-                            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
-                              ? 'bg-gray-800 border-gray-600 text-white'
-                              : 'bg-white border-gray-300 text-gray-900'
-                              }`}
-                          />
-                        </div>
-
-                        {/* Assigned To */}
-                        <div>
-                          <select
-                            value={taskForm.assigned_to}
-                            onChange={(e) => setTaskForm({ ...taskForm, assigned_to: e.target.value })}
-                            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
-                              ? 'bg-gray-800 border-gray-600 text-white'
-                              : 'bg-white border-gray-300 text-gray-900'
-                              }`}
-                          >
-                            <option
-                              className={theme === 'dark' ? 'bg-gray-800 text-white' : ''}
-                              value="">Select Assign</option>
-                            <option
-                              className={theme === 'dark' ? 'bg-gray-800 text-white' : ''}
-                              value="hari@psd123.com">Hari</option>
-                            <option
-                              className={theme === 'dark' ? 'bg-gray-800 text-white' : ''}
-                              value="arun@psd.com">Arun</option>
-                            <option
-                              className={theme === 'dark' ? 'bg-gray-800 text-white' : ''}
-                              value="demo@psdigitise.com">DEMO</option>
-                            <option
-                              className={theme === 'dark' ? 'bg-gray-800 text-white' : ''}
-                              value="demo@psdigitise.com">DEMO</option>
-                            <option
-                              className={theme === 'dark' ? 'bg-gray-800 text-white' : ''}
-                              value="fen87joshi@yahoo.com">Feni</option>
-                            <option
-                              className={theme === 'dark' ? 'bg-gray-800 text-white' : ''}
-                              value="fenila@psd.com">Fenila</option>
-                            <option
-                              className={theme === 'dark' ? 'bg-gray-800 text-white' : ''}
-                              value="mx.techies@gmail.com">mx techies</option>
-                            <option
-                              className={theme === 'dark' ? 'bg-gray-800 text-white' : ''}
-                              value="prasad@psd.com">prasad</option>
-                          </select>
-                        </div>
-                      </div>
+                    <div className="md:col-span-2">
+                      <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>Description *</label>
+                      <textarea
+                        value={taskForm.description}
+                        onChange={(e) => setTaskForm({ ...taskForm, description: e.target.value })}
+                        rows={4}
+                        className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
+                        placeholder="Task description"
+                      />
+                    </div>
+                    <div>
+                      <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>Status</label>
+                      <select
+                        value={taskForm.status}
+                        onChange={(e) => setTaskForm({ ...taskForm, status: e.target.value })}
+                        className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
+                      >
+                        <option value="Open">Open</option>
+                        <option value="Working">Working</option>
+                        <option value="Pending Review">Pending Review</option>
+                        <option value="Completed">Completed</option>
+                        <option value="Cancelled">Cancelled</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>Priority</label>
+                      <select
+                        value={taskForm.priority}
+                        onChange={(e) => setTaskForm({ ...taskForm, priority: e.target.value })}
+                        className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
+                      >
+                        <option value="Low">Low</option>
+                        <option value="Medium">Medium</option>
+                        <option value="High">High</option>
+                        <option value="Urgent">Urgent</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>Start Date</label>
+                      <input
+                        type="date"
+                        value={taskForm.start_date}
+                        onChange={(e) => setTaskForm({ ...taskForm, start_date: e.target.value })}
+                        className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
+                      />
+                    </div>
+                    <div>
+                      <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>End Date</label>
+                      <input
+                        type="date"
+                        value={taskForm.due_date}
+                        onChange={(e) => setTaskForm({ ...taskForm, due_date: e.target.value })}
+                        className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
+                      />
                     </div>
                   </div>
 
-                  {/* Footer */}
-                  <div className={`px-6 py-4 sm:px-8 ${theme === 'dark' ? 'bg-dark-tertiary' : 'bg-gray-50'}`}>
-                    <div className="w-full">
-                      <button
-                        onClick={async () => {
-                          if (!taskForm.title.trim()) {
-                            showToast('Title is required', { type: 'error' });
-                            return;
-                          }
-
-                          let success = false;
-                          if (isEditMode) {
-                            success = await editTask(currentTaskId);
-                          } else {
-                            success = await addTask();
-                          }
-                          if (success) {
-                            setTaskForm({
-                              title: '',
-                              description: '',
-                              status: 'Open',
-                              priority: 'Medium',
-                              due_date: '',
-                              assigned_to: ''
-                            });
-                            setShowTaskModal(false);
-                            setIsEditMode(false);
-                          }
-                        }}
-                        disabled={tasksLoading}
-                        className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-3 text-base font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 sm:text-sm ${theme === 'dark'
-                          ? 'bg-purple-600 text-white hover:bg-purple-700 focus:ring-purple-500'
-                          : 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500'
-                          } ${tasksLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                      >
-                        {tasksLoading ? (
-                          <span className="flex items-center justify-center">
-                            {isEditMode ? 'Updating...' : 'Creating...'}
-                          </span>
-                        ) : (
-                          isEditMode ? 'Update' : 'Create'
-                        )}
-                      </button>
-                    </div>
+                  <div className="flex justify-end mt-6">
+                    <button
+                      onClick={async () => {
+                        let success = false;
+                        if (isEditMode) {
+                          success = await editTask();
+                        } else {
+                          success = await addTask();
+                        }
+                        if (success) {
+                          setShowTaskModal(false);
+                          setIsEditMode(false);
+                        }
+                      }}
+                      disabled={tasksLoading}
+                      className={`${buttonBgColor} text-white px-4 py-2 rounded-lg transition-colors disabled:opacity-50 flex items-center space-x-2`}
+                    >
+                      {tasksLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                      <span>{isEditMode ? 'Update' : 'Add Task'}</span>
+                    </button>
                   </div>
                 </div>
               </div>
             )}
+
           </div>
         )}
 
@@ -2780,7 +2271,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                   >New Email</span>
                 </div>
               ) : (
-                <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+                <div className="space-y-4">
                   {emails.map((email) => (
                     <div key={email.id} className="flex items-start w-full">
                       {/* Avatar Circle */}
@@ -2859,6 +2350,21 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                                   <IoDocument className="w-3 h-3 mr-1" />
                                   {attachment.file_name}
                                 </a>
+
+                                {/* {isImage && (
+                                  <a
+                                    href={fullURL}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-block"
+                                  >
+                                    <img
+                                      src={fullURL}
+                                      alt={attachment.file_name}
+                                      className="w-10 h-10 object-cover rounded border border-gray-400 hover:opacity-80"
+                                    />
+                                  </a>
+                                )} */}
                               </div>
                             );
                           })}
@@ -2907,9 +2413,6 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                     onClick={() => {
                       setEmailModalMode("reply");
                       setShowEmailModal(true);
-                      setSelectedEmail(null);                // Clear selected email
-                      setEmailModalMode("new");             // Set mode to 'new'
-
                     }}
                   >
                     <Mail size={14} /> Reply
@@ -2939,10 +2442,9 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
             </div>
           </div>
         )}
-
         {activeTab === 'activity' && (
-          <div className={`relative rounded-lg shadow-sm border p-6 pb-24 ${theme === 'dark' ? `bg-gray-900 border-gray-700` : 'bg-white border-gray-200'}`}>
-            <h3 className={`text-lg font-semibold mb-6 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Activity</h3>
+          <div className={`rounded-lg shadow-sm border p-6 ${theme === 'dark' ? 'bg-custom-gradient border-white' : 'bg-white border-gray-200'}`}>
+            <h3 className={`text-lg font-semibold mb-6 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Activity Timeline</h3>
 
             {activityLoading ? (
               <div className="flex items-center justify-center py-8">
@@ -2950,480 +2452,38 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
               </div>
             ) : activities.length === 0 ? (
               <div className="text-center py-8">
-                <RiShining2Line className={`w-12 h-12 ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'} mx-auto mb-4`} />
+                <Activity className={`w-12 h-12 ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'} mx-auto mb-4`} />
                 <p className={`${theme === 'dark' ? 'text-white' : 'text-gray-500'}`}>No activities yet</p>
               </div>
             ) : (
               <>
-                <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
-                  {/* {activities.slice(activityStartIndex, activityEndIndex).map((activity) => { */}
-                  {activities.map((activity) => {
-                    // Conditionally render the detailed style ONLY for calls
-                    if (activity.type === 'call') {
-                      // Find the original call data to access detailed fields like _caller, _receiver etc.
-                      const callData = callLogs.find(c => c.name === activity.id);
-                      if (!callData) return null; // Or a fallback UI
-
-                      return (
-                        <div key={activity.id}>
-                          {/* Top section: Icon, user avatar, and timestamp */}
-                          <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center">
-                              <div
-                                className={`p-2 rounded-full mr-3 flex items-center justify-center
-                                ${callData.type === 'Inbound' || callData.type === 'Incoming'
-                                    ? 'bg-blue-100 text-blue-600'
-                                    : 'bg-green-100 text-green-600'
-                                  }`}
-                                style={{ width: '32px', height: '32px' }}
-                              >
-                                {callData.type === 'Inbound' || callData.type === 'Incoming' ? (
-                                  <SlCallIn className="w-4 h-4" />
-                                ) : (
-                                  <SlCallOut className="w-4 h-4" />
-                                )}
-                              </div>
-                              <div
-                                className={`p-2 rounded-full flex items-center justify-center mr-3 ${theme === 'dark' ? 'bg-gray-700 text-gray-200' : 'bg-gray-200 text-gray-700'} font-medium`}
-                                style={{ width: '32px', height: '32px' }}
-                              >
-                                {(callData._caller?.label || callData.from)?.charAt(0).toUpperCase() || "U"}
-                              </div>
-                              <span className={`ml-2 text-sm ${textColor}`}>
-                                {callData._caller?.label || callData.from} has reached out
-                              </span>
-                            </div>
-                            <p className={`text-xs ${textSecondaryColor}`}>
-                              {getRelativeTime(activity.timestamp)}
-                            </p>
-                          </div>
-
-                          {/* Card body with call details */}
-                          <div 
-                           onClick={() => handleLabelClick(callData)}
-                          className={`relative border ${borderColor} rounded-lg ml-12 p-4 flex flex-col`}>
-                            <div className="flex items-center justify-between mb-2">
-                              <p className={`text-lg font-medium ${textColor}`}>
-                                {callData.type} Call
-                              </p>
-                            </div>
-                            <div className="flex items-start justify-start mt-2 gap-4">
-                              <p className={`text-sm ${textSecondaryColor} flex items-center`}>
-                                <IoIosCalendar className="mr-1" />
-                                {formatDateRelative(callData.creation)}
-                              </p>
-                              <p className={`text-sm ${textSecondaryColor}`}>
-                                {callData.duration}
-                              </p>
-                              <span
-                                className={`text-xs px-2 py-1 rounded ${callData.status === 'Completed'
-                                  ? 'bg-green-100 text-green-800'
-                                  : callData.status === 'Ringing'
-                                    ? 'bg-yellow-100 text-yellow-800'
-                                    : 'bg-gray-100 text-gray-800'
-                                  }`}
-                              >
-                                {callData.status}
-                              </span>
-                            </div>
-                            {/* Overlapping avatars for caller/receiver */}
-                            <div className="absolute right-4 top-1/2 -translate-y-1/2 flex -space-x-4">
-                              <div
-                              onClick={() => handleLabelClick(callData)}
-                                className={`p-2 rounded-full flex items-center justify-center cursor-pointer ${theme === 'dark' ? 'bg-gray-600 text-gray-100' : 'bg-gray-400 text-gray-800'} font-medium`}
-                                style={{ width: '32px', height: '32px' }}
-                                title={callData._caller?.label || callData.from}
-                              >
-                                {(callData._caller?.label || callData.from)?.charAt(0).toUpperCase()}
-                              </div>
-                              <div
-                                onClick={() => handleLabelClick(callData)}
-                                className={`p-2 rounded-full flex items-center justify-center cursor-pointer ${theme === 'dark' ? 'bg-gray-600 text-gray-100' : 'bg-gray-400 text-gray-800'} font-medium`}
-                                style={{ width: '32px', height: '32px' }}
-                                title={callData._receiver?.label || callData.to}
-                              >
-                                {(callData._receiver?.label || callData.to)?.charAt(0).toUpperCase()}
-                              </div>
-                            </div>
-                          </div>
+                <div className="space-y-4 mb-6">
+                  {activities.slice(activityStartIndex, activityEndIndex).map((activity) => (
+                    <div key={activity.id} className="flex items-start space-x-3">
+                      <div className={`p-2 rounded-full ${theme === 'dark' ? 'bg-purple-900' : 'bg-purple-100'}`}>
+                        {activity.icon}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <p className={`text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                            {activity.title}
+                          </p>
+                          <p className={`text-xs ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`}>
+                            {formatDate(activity.timestamp)}
+                          </p>
                         </div>
-                      );
-                    }
-                    else if (activity.type === 'note') {
-                      const noteData = notes.find(n => n.name === activity.id);
-                      if (!noteData) return null;
-
-                      return (
-                        <div key={activity.id} className="flex items-start space-x-3">
-                          {/* Icon */}
-                          <div className={`p-2 rounded-full ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-100'}`}>
-                            {activity.icon}
-                          </div>
-                          {/* Note Card */}
-                          <div className={`flex-1 border ${borderColor} rounded-lg p-4 relative`}>
-                            <div className="flex items-center justify-between mb-2">
-                              <h4 className={`text-lg font-semibold ${textColor}`}>{noteData.title}</h4>
-                              <div className="relative">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setOpenMenuId(openMenuId === noteData.name ? null : noteData.name);
-                                  }}
-                                  className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600"
-                                >
-                                  <BsThreeDots className="w-4 h-4" />
-                                </button>
-                                {/* Dropdown Menu for the note */}
-                                {openMenuId === noteData.name && (
-                                  <div className={`absolute right-0 mt-2 w-28 rounded-lg shadow-lg z-10 ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border'}`}>
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        // deleteNote(noteData.name); // Ensure you have this function
-                                        setOpenMenuId(null);
-                                      }}
-                                      className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 w-full text-left text-red-500"
-                                    >
-                                      <Trash2 className="w-4 h-4" />
-                                      <span>Delete</span>
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                            <p className={`text-base font-semibold ${textSecondaryColor} whitespace-pre-wrap`}>
-                              {noteData.content}
-                            </p>
-                            <div className="flex justify-between items-center mt-4 pt-2 border-t dark:border-gray-700 text-sm gap-2">
-                              <div className="flex items-center gap-2">
-                                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-gray-500 text-white font-bold text-xs">
-                                  {noteData.owner?.charAt(0).toUpperCase() || "-"}
-                                </span>
-                                <span className={textSecondaryColor}>{noteData.owner}</span>
-                              </div>
-                              <span className={`${textSecondaryColor} font-medium`}>
-                                {getRelativeTime(noteData.creation)}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    }
-                    else if (activity.type === 'comment') {
-                      const commentData = comments.find(c => c.name === activity.id);
-                      if (!commentData) return null;
-
-                      return (
-                        <div key={activity.id} className="relative">
-                          <div className="flex justify-between items-center mb-2">
-                            <div className="flex items-center gap-4">
-                              <div className="mt-1 text-gray-400">
-                                <FaRegComment size={18} />
-                              </div>
-                              <div className={`w-8 h-8 flex items-center justify-center rounded-full ${theme === 'dark' ? 'bg-gray-400' : 'bg-gray-200'} text-sm font-semibold`}>
-                                {commentData.owner?.charAt(0).toUpperCase() || "?"}
-                              </div>
-                              <p className={`text-sm font-medium ${textSecondaryColor}`}>
-                                {commentData.owner} added a comment
-                              </p>
-                            </div>
-                            <p className={`text-xs ${textSecondaryColor}`}>
-                              {getRelativeTime(commentData.creation)}
-                            </p>
-                          </div>
-                          <div className={`border ${borderColor} rounded-lg p-4 ml-9 mt-2`}>
-                            <div className={`${textColor} mb-2 whitespace-pre-wrap`}>
-                              {commentData.content.replace(/<[^>]+>/g, '')}
-                            </div>
-                            {/* Attachments Section */}
-                            {commentData.attachments && commentData.attachments.length > 0 && (
-                              <div className="mt-4">
-                                <div className="flex flex-wrap gap-3">
-                                  {commentData.attachments.map((attachment, index) => {
-                                    const baseURL = "http://103.214.132.20:8002";
-                                    const fullURL = attachment.file_url.startsWith("http")
-                                      ? attachment.file_url
-                                      : `${baseURL}${attachment.file_url}`;
-                                    return (
-                                      <a
-                                        key={index}
-                                        href={fullURL}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className={`flex items-center border ${borderColor} px-3 py-1 rounded-md ${theme === 'dark' ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-50 hover:bg-gray-100'} transition-colors`}
-                                      >
-                                        <span className="mr-2 flex items-center gap-1 truncate max-w-[200px] text-sm">
-                                          <IoDocument className="w-3 h-3 mr-1" />
-                                          {attachment.file_name}
-                                        </span>
-                                      </a>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    }
-                    else if (activity.type === 'email') {
-                      // Find the corresponding detailed email data
-                      const emailData = emails.find(e => e.id === activity.id);
-                      if (!emailData) return null; // Fallback if data not found
-
-                      return (
-                        <div key={emailData.id} className="flex items-start w-full">
-                          {/* Avatar Circle */}
-                          <div className={`w-8 h-8 flex items-center justify-center rounded-full ${theme === 'dark' ? 'bg-gray-400' : 'bg-gray-200'} text-sm font-semibold`}>
-                            {emailData.fromName?.charAt(0).toUpperCase() || "?"}
-                          </div>
-
-                          {/* Email Card */}
-                          <div className={`flex-1 border ${borderColor} rounded-lg p-4 hover:shadow-md transition-shadow`}>
-                            <div className="flex justify-between items-start mb-2">
-                              <h4 className={`font-medium ${textColor}`}>
-                                {emailData.fromName} &lt;{emailData.from}&gt;
-                              </h4>
-
-                              {/* Right-side controls */}
-                              <div className="flex items-center gap-3 ml-auto">
-                                <span className={`text-xs ${textSecondaryColor}`}>
-                                  {getRelativeTime(emailData.creation)} {/* Use your existing formatDate function */}
-                                </span>
-                                <button
-                                  onClick={() => {
-                                    setSelectedEmail(emailData);
-                                    setEmailModalMode("reply");
-                                    setShowEmailModal(true);
-                                  }}
-                                  className={`${textColor}`}
-                                  title="Reply"
-                                >
-                                  <LuReply className="w-4 h-4" />
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setSelectedEmail(emailData);
-                                    setEmailModalMode("reply-all");
-                                    setShowEmailModal(true);
-                                  }}
-                                  className={`${textColor}`}
-                                  title="Reply All"
-                                >
-                                  <LuReplyAll className="w-4 h-4" />
-                                </button>
-                              </div>
-                            </div>
-
-                            <h4 className={`font-medium ${textColor}`}>{emailData.subject}</h4>
-
-                            <div className="mb-2">
-                              <span className={`text-sm ${textColor}`}>
-                                <strong>To:</strong> {emailData.to}
-                              </span>
-                            </div>
-
-                            <div className={`mt-4 pt-2 border-t ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'} flex flex-col items-start`}>
-                              <div
-                                className={`${textColor} mb-2 whitespace-pre-wrap mt-4 w-full`}
-                                dangerouslySetInnerHTML={{
-                                  __html: emailData.content.includes('\n\n---\n\n')
-                                    ? emailData.content.split('\n\n---\n\n')[1]
-                                    : emailData.content
-                                }}
-                              />
-
-                              {/* Attachments */}
-                              {emailData.attachments.map((attachment, index) => {
-                                const baseURL = "http://103.214.132.20:8002";
-                                const fullURL = attachment.file_url.startsWith("http") ? attachment.file_url : `${baseURL}${attachment.file_url}`;
-                                return (
-                                  <a key={index} href={fullURL} target="_blank" rel="noopener noreferrer" className={`px-3 py-1 border ${borderColor} rounded-md text-sm flex items-center ${theme === "dark" ? "bg-gray-700 text-white" : "bg-gray-200 text-gray-800"}`}>
-                                    <IoDocument className="w-3 h-3 mr-1" />
-                                    {attachment.file_name}
-                                  </a>
-                                );
-                              })}
-
-                              {/* Expand original message button */}
-                              {emailData.content.includes('\n\n---\n\n') && (
-                                <div className="mt-2">
-                                  <button
-                                    className={`text-sm ${textColor} inline-flex items-center justify-center w-10 h-6 rounded-full ${theme === "dark" ? "bg-gray-700" : "bg-gray-200"}`}
-                                    onClick={() => setExpandedEmailId(prev => (prev === emailData.id ? null : emailData.id))}
-                                    title="Show original message"
-                                  >
-                                    <PiDotsThreeOutlineBold />
-                                  </button>
-
-                                  {/* Conditionally show original content */}
-                                  {expandedEmailId === emailData.id && (
-                                    <div
-                                      className={`mt-4 border-l-4 pl-4 italic font-semibold text-sm ${theme === "dark" ? "border-gray-500 text-gray-300" : "border-gray-600 text-gray-700"}`}
-                                      dangerouslySetInnerHTML={{ __html: emailData.content.split('\n\n---\n\n')[0] }}
-                                    />
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    } else if (activity.type === 'task') {
-                      // Find the corresponding detailed task data from the `tasks` state
-                      const taskData = tasks.find(t => t.name === activity.id);
-                      if (!taskData) return null; // Fallback if data not found
-
-                      return (
-                        <div key={taskData.name} className="flex items-start w-full space-x-3">
-                          {/* Icon on the left */}
-                          <div className={`p-2 rounded-full mt-1 ${theme === 'dark' ? 'bg-orange-900' : 'bg-orange-100'}`}>
-                            <SiTicktick className="w-4 h-4 text-white" />
-                          </div>
-
-                          {/* Detailed Task Card */}
-                          <div
-                            onClick={() => {
-                              // Your existing logic to open the edit modal
-                              setTaskForm({
-                                title: taskData.title,
-                                description: taskData.description,
-                                status: taskData.status,
-                                priority: taskData.priority,
-                                due_date: taskData.due_date ? taskData.due_date.split(' ')[0] : '',
-                                assigned_to: taskData.assigned_to,
-                              });
-                              setIsEditMode(true);
-                              setCurrentTaskId(taskData.name);
-                              setShowTaskModal(true);
-                            }}
-                            className={`flex-1 border ${borderColor} rounded-lg p-4 cursor-pointer hover:shadow-md`}
-                          >
-                            <div className="flex justify-between items-start mb-2">
-                              <h4 className={`font-medium ${textColor}`}>{taskData.title}</h4>
-                            </div>
-
-                            <div className="mt-1 text-sm flex justify-between items-center flex-wrap gap-2">
-                              {/* Left side: Assignee, Date, Priority */}
-                              <div className="flex items-center gap-4 flex-wrap">
-                                <div className="flex items-center gap-1">
-                                 <div className={`w-8 h-8 flex items-center justify-center rounded-full ${theme === 'dark' ? 'bg-gray-400' : 'bg-gray-200'} text-sm font-semibold`}>
-                                    {taskData.assigned_to?.charAt(0).toUpperCase() || "U"}
-                                  </div>
-                                  <span className={textSecondaryColor}>{taskData.assigned_to || 'Unassigned'}</span>
-                                </div>
-
-                                {taskData.due_date && (
-                                  <span className={`flex items-center gap-1 ${textSecondaryColor}`}>
-                                    <LuCalendar className="w-3.5 h-3.5" />
-                                    {formatDate(taskData.due_date)}
-                                  </span>
-                                )}
-
-                                <span className="flex items-center gap-1.5">
-                                  <span className={`w-2.5 h-2.5 rounded-full ${taskData.priority === 'High' ? 'bg-red-500'
-                                    : taskData.priority === 'Medium' ? 'bg-yellow-500'
-                                      : 'bg-gray-400'
-                                    }`}></span>
-                                  <span className={`text-xs font-medium ${textSecondaryColor}`}>{taskData.priority}</span>
-                                </span>
-                              </div>
-
-                              {/* Right side: Status and Menu */}
-                              <div className="flex items-center gap-2">
-                                <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${taskData.status === 'Done'
-                                  ? (theme === 'dark' ? 'bg-green-900 text-green-200' : 'bg-green-100 text-green-800')
-                                  : (theme === 'dark' ? 'bg-blue-900 text-blue-200' : 'bg-blue-100 text-blue-800')
-                                  }`}>
-                                  {taskData.status}
-                                </span>
-                                <div className="relative">
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setOpenMenuId(openMenuId === taskData.name ? null : taskData.name);
-                                    }}
-                                    className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full"
-                                  >
-                                    <BsThreeDots className={`w-4 h-4 ${textColor}`} />
-                                  </button>
-                                  {openMenuId === taskData.name && (
-                                    <div className="absolute right-0 mt-2 w-28 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-10">
-                                      {/* Your delete button logic here */}
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    }
-                    else if (activity.type === 'grouped_change') {
-                      const isExpanded = expandedGroup === activity.id;
-                      const changeCount = activity.changes.length;
-
-                      return (
-                        <div key={activity.id} className="flex items-start space-x-3">
-                          {/* Icon */}
-                          <div className={`p-2 rounded-full text-white ${theme === 'dark' ? 'bg-gray-600' : 'bg-gray-100'}`}>
-                            {activity.icon}
-                          </div>
-
-                          {/* Content */}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between">
-                              <button onClick={() => setExpandedGroup(isExpanded ? null : activity.id)} className={`text-sm text-left ${textColor} flex items-center gap-2`}>
-                                {isExpanded ? 'Hide' : 'Show'} +{changeCount} changes from <span className="font-medium">{activity.user}</span>
-                                <FiChevronDown className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-                              </button>
-                              <p className={`text-xs ${textSecondaryColor}`}>{getRelativeTime(activity.timestamp)}</p>
-                            </div>
-
-                            {/* Expanded List of Changes */}
-                            {isExpanded && (
-                              <div className="mt-2 pl-4 border-l-2 border-gray-300 dark:border-gray-700 space-y-1">
-                                {activity.changes.map((change: any) => (
-                                  <p key={change.creation} className={`text-sm ${textSecondaryColor}`}>
-                                    <span className="font-semibold text-gray-700 dark:text-gray-300">{change.data.field_label}:</span>
-                                    {change.data.old_value != null
-                                      ? <> Changed from '{change.data.old_value}' to <span className="font-semibold text-gray-700 dark:text-gray-300">'{change.data.value}'</span></>
-                                      : <> Added <span className="font-semibold text-gray-700 dark:text-gray-300">'{change.data.value}'</span></>
-                                    }
-                                  </p>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    }
-                    else {
-                      // Default style for all other activities (Notes, Tasks, Comments, etc.)
-                      return (
-                        <div key={activity.id} className="flex items-start space-x-3">
-                          <div className={`p-2 rounded-full text-white  ${theme === 'dark' ? 'bg-gray-600' : 'bg-gray-100'}`}>
-                            {React.isValidElement(activity.icon)
-                              ? React.cloneElement(activity.icon, { style: { color: 'white' } })
-                              : activity.icon}
-                          </div>
-                          <div className="flex-1 min-w-0 pt-1.5">
-                            <div className="flex items-center justify-between">
-                              <p className={`text-sm ${textColor}`}>
-                                <span className="font-medium">{activity.user}</span> {activity.description.split(activity.user)[1] || activity.title}
-                              </p>
-                              <p className={`text-xs ${textSecondaryColor}`}>
-                                {getRelativeTime(activity.timestamp)}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    }
-                  })}
+                        <p className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-600'} mt-1`}>
+                          {activity.description}
+                        </p>
+                        <p className={`text-xs ${theme === 'dark' ? 'text-white' : 'text-gray-500'} mt-1`}>
+                          by {activity.user}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
 
-                {/* <div className="flex justify-between items-center">
+                <div className="flex justify-between items-center">
                   <button
                     onClick={handlePrevious}
                     disabled={currentPage === 1}
@@ -3449,67 +2509,10 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                   >
                     Next
                   </button>
-                </div> */}
+                </div>
               </>
             )}
-            {/* Sticky Action Footer */}
-            <div
-              ref={composerRef}
-              className={`absolute bottom-0 left-0 right-0 p-4 border-t ${theme === 'dark' ? `bg-gray-900 border-gray-700` : `bg-gray-50 border-gray-200`} rounded-b-lg`}
-            >
-              {!showEmailModal ? (
-                <div className="flex gap-4">
-                  <button
-                    className={`flex items-center gap-2 px-3 py-1 rounded-md text-sm ${theme === "dark" ? "text-gray-300 hover:bg-gray-700" : "text-gray-600 hover:bg-gray-200"}`}
-                    onClick={() => {
-                      setEmailModalMode("reply");
-                      setShowEmailModal(true);
-                      setSelectedEmail(null);                // Clear selected email
-                      setEmailModalMode("new");
-                    }}
-                  >
-                    <Mail size={16} /> Reply
-                  </button>
-                  <button
-                    className={`flex items-center gap-2 px-3 py-1 rounded-md text-sm ${theme === "dark" ? "text-gray-300 hover:bg-gray-700" : "text-gray-400 hover:bg-gray-200"}`}
-                    onClick={() => {
-                      setEmailModalMode("comment");
-                      setShowEmailModal(true);
-                    }}
-                  >
-                    <FaRegComment size={14} /> Comment
-                  </button>
-                </div>
-              ) : (
-                <EmailComposer
-                  mode={emailModalMode}
-                  dealName={deal.name}
-                  fetchEmails={fetchAllActivities}
-                  fetchComments={fetchAllActivities}
-                  selectedEmail={selectedEmail}
-                  clearSelectedEmail={() => setSelectedEmail(null)}
-                  deal={deal}
-                  onClose={() => setShowEmailModal(false)}
-                />
-              )}
-            </div>
- {showPopup && editingCall && (
-                    <CallDetailsPopup
-                      call={{
-                        type: editingCall.type,
-                        caller: editingCall._caller?.label || "Unknown",
-                        receiver: editingCall._receiver?.label || "Unknown",
-                        date: formatDateRelative(editingCall.creation),
-                        duration: editingCall.duration,
-                        status: editingCall.status
-                      }}
-                      onClose={() => setShowPopup(false)}
-                      onAddTask={handleAddTaskFromCall}
-                      theme={theme}
-                    />
-                  )}
           </div>
-          
         )}
 
 

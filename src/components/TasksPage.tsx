@@ -1,10 +1,19 @@
 import { useState, useEffect } from 'react';
-import {Edit, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { showToast } from '../utils/toast';
 import { Header } from './Header';
 import { useTheme } from './ThemeProvider';
+import { Calendar } from "lucide-react";
 
 import { getUserSession } from '../utils/session';
+import {
+  XCircle,
+  CheckCircle2,
+  Circle,
+  CircleDashed,
+  Loader2,
+  Dot
+} from "lucide-react";
 
 interface Task {
   name: string;
@@ -26,21 +35,7 @@ interface TasksPageProps {
   leadName?: string;
 }
 
-const statusColors = {
-  'Open': 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
-  'Working': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
-  'Pending Review': 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
-  'Overdue': 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
-  'Template': 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-white',
-  'Completed': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
-  'Cancelled': 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-white'
-};
 
-const priorityColors = {
-  'Low': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
-  'Medium': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
-  'High': 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
-};
 
 export function TasksPage({ onCreateTask, leadName }: TasksPageProps) {
   const { theme } = useTheme();
@@ -69,7 +64,7 @@ export function TasksPage({ onCreateTask, leadName }: TasksPageProps) {
 
       // Prepare filters
       let filters = {};
-      
+
       // Add leadName filter if provided
       if (leadName) {
         filters = {
@@ -84,19 +79,19 @@ export function TasksPage({ onCreateTask, leadName }: TasksPageProps) {
         default_filters: {},
         column_field: "status",
         columns: JSON.stringify([
-          {"label": "Title", "type": "Data", "key": "title", "width": "16rem"},
-          {"label": "Status", "type": "Select", "key": "status", "width": "8rem"},
-          {"label": "Priority", "type": "Select", "key": "priority", "width": "8rem"},
-          {"label": "Due Date", "type": "Date", "key": "due_date", "width": "8rem"},
-          {"label": "Assigned To", "type": "Link", "key": "assigned_to", "width": "10rem"},
-          {"label": "Last Modified", "type": "Datetime", "key": "modified", "width": "8rem"}
+          { "label": "Title", "type": "Data", "key": "title", "width": "16rem" },
+          { "label": "Status", "type": "Select", "key": "status", "width": "8rem" },
+          { "label": "Priority", "type": "Select", "key": "priority", "width": "8rem" },
+          { "label": "Due Date", "type": "Date", "key": "due_date", "width": "8rem" },
+          { "label": "Assigned To", "type": "Link", "key": "assigned_to", "width": "10rem" },
+          { "label": "Last Modified", "type": "Datetime", "key": "modified", "width": "8rem" }
         ]),
         kanban_columns: "[]",
         kanban_fields: "[]",
         page_length: 20,
         page_length_count: 20,
         rows: JSON.stringify([
-          "name", "title", "description", "assigned_to", "due_date", "status", 
+          "name", "title", "description", "assigned_to", "due_date", "status",
           "priority", "reference_doctype", "reference_docname", "modified", "start_date"
         ]),
         title_field: "",
@@ -123,7 +118,7 @@ export function TasksPage({ onCreateTask, leadName }: TasksPageProps) {
       }
 
       const result = await response.json();
-      
+
       // Extract tasks from the new API response structure
       const tasksData = result.message?.data || [];
       setTasks(tasksData);
@@ -377,6 +372,26 @@ export function TasksPage({ onCreateTask, leadName }: TasksPageProps) {
       </div>
     );
   }
+  const priorityDisplay: Record<Task["priority"], { color: string; label: string }> = {
+  Low: { color: "bg-gray-300", label: "Low" },
+  Medium: { color: "bg-yellow-400", label: "Medium" },
+  High: { color: "bg-red-500", label: "High" },
+};
+const statusDisplay: Record<string, { icon: JSX.Element; label: string }> = {
+  Canceled: { icon: <XCircle className="w-4 h-4 text-white" />, label: "Canceled" },
+  Done: { icon: <CheckCircle2 className="w-4 h-4 text-green-600" />, label: "Done" },
+  Todo: { icon: <Circle className="w-4 h-4 text-white" />, label: "Todo" },
+  Backlog: { icon: <CircleDashed className="w-4 h-4 text-white" />, label: "Backlog" },
+  "In Progress": { 
+    icon: <Loader2 className="w-4 h-4 text-white animate-spin" />, 
+    label: "In Progress" 
+  },
+  Open: { 
+    icon: <span className="inline-block w-3 h-3 rounded-full bg-white"></span>, 
+    label: "Open" 
+  },
+};
+
 
   return (
     <div className={`min-h-screen ${theme === 'dark'
@@ -434,7 +449,7 @@ export function TasksPage({ onCreateTask, leadName }: TasksPageProps) {
                   </th>
                 </tr>
               </thead>
-              <tbody className={`divide-y ${theme === 'dark' ? 'divide-white' : 'divide-gray-200'
+              {/* <tbody className={`divide-y ${theme === 'dark' ? 'divide-white' : 'divide-gray-200'
                 }`}>
                 {filteredTasks.map((task) => (
                   <tr key={task.name} className={`transition-colors ${theme === 'dark' ? 'hover:bg-purple-800/20' : 'hover:bg-gray-50'
@@ -483,7 +498,89 @@ export function TasksPage({ onCreateTask, leadName }: TasksPageProps) {
                     </td>
                   </tr>
                 ))}
+              </tbody> */}
+              <tbody className={`divide-y ${theme === 'dark' ? 'divide-white' : 'divide-gray-200'}`}>
+                {filteredTasks.map((task) => (
+                  <tr
+                    key={task.name}
+                    onClick={() => handleEdit(task)}
+                    className={`cursor-pointer transition-colors ${theme === 'dark' ? 'hover:bg-purple-800/20' : 'hover:bg-gray-50'
+                      }`}
+                  >
+                    <td className="px-6 py-4">
+                      <div className={`text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                        {task.title}
+                      </div>
+                      {task.description && (
+                        <div className={`text-sm truncate max-w-xs ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`}>
+                          {task.description}
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center space-x-3">
+                        {/* Circle Avatar */}
+                        <div className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-300 text-gray-800 font-bold">
+                          {task.assigned_to?.charAt(0).toUpperCase()}
+                        </div>
+                        {/* Name */}
+                        <span className={`text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                          {task.assigned_to || "N/A"}
+                        </span>
+                      </div>
+                    </td>
+
+                    {/* Priority display */}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center space-x-2">
+                        <span
+                          className={`inline-block w-3 h-3 rounded-full ${priorityDisplay[task.priority].color}`}
+                        ></span>
+                        <span className="text-sm font-medium text-white">
+                          {priorityDisplay[task.priority].label}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center space-x-2 text-white">
+                        {statusDisplay[task.status]?.icon}
+                        <span className="text-sm font-medium text-white">
+                          {statusDisplay[task.status]?.label || task.status}
+                        </span>
+                      </div>
+                    </td>
+
+                    
+                    <td className="px-6 py-8 whitespace-nowrap text-sm font-semibold flex items-center space-x-2">
+                      <Calendar className="w-4 h-4 text-white" />
+                      <span className='text-white'>
+                        {task.due_date
+                          ? new Date(task.due_date).toLocaleString("en-GB", {
+                              day: "2-digit",
+                              month: "short",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                              hour12: true,
+                            })
+                          : "N/A"}
+                      </span>
+                    </td>
+                    {/* Remove edit button, only keep delete if you want */}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation(); // prevent triggering row edit
+                          handleDelete(task.name);
+                        }}
+                        className={theme === 'dark' ? 'text-red-400 hover:text-red-300' : 'text-red-600 hover:text-red-900'}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
+
             </table>
           </div>
         </div>
