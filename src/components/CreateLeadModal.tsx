@@ -88,53 +88,28 @@ export function CreateLeadModal({ isOpen, onClose, onSubmit }: CreateLeadModalPr
         return;
       }
 
-      // 1. Create Organization if organization name is provided
-      let organizationName = formData.organization;
-      if (formData.organization) {
-        const orgPayload = {
-          organization_name: formData.organization,
-          website: formData.website,
-          no_of_employees: formData.employees,
-          territory: formData.territory,
-          annual_revenue: formData.annualRevenue,
-          currency: "INR", // or get from a field if you have
-          industry: formData.industry,
-          company: sessionCompany,
-        };
-        const orgResponse = await fetch(
-          'http://103.214.132.20:8002/api/v2/document/CRM Organization/',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6'
-            },
-            body: JSON.stringify(orgPayload)
-          }
-        );
-        if (orgResponse.ok) {
-          const orgResult = await orgResponse.json();
-          organizationName = orgResult.data?.organization_name || formData.organization;
-        }
-        // (Optional) handle orgResponse error if needed
-      }
-
-      // 2. Create Lead
-      const apiPayload = {
+      // Prepare the document payload for Frappe API
+      const docPayload = {
+        doctype: "CRM Lead",
+        salutation: formData.salutation,
         first_name: formData.firstName,
         last_name: formData.lastName,
-        organization: organizationName,
-        website: formData.website,
         email: formData.email,
         mobile_no: formData.mobile,
         gender: formData.gender,
+        organization: formData.organization,
+        website: formData.website,
         no_of_employees: formData.employees,
+        territory: formData.territory,
         annual_revenue: formData.annualRevenue,
+        industry: formData.industry,
+        status: formData.status,
         lead_owner: formData.leadOwner,
-        company: sessionCompany,
+        company: sessionCompany, // Add company field if needed
       };
 
-      const apiUrl = `${import.meta.env.VITE_API_BASE_URL}/api/v2/document/CRM Lead`;
+      // Call the Frappe client insert API
+      const apiUrl = 'http://103.214.132.20:8002/api/method/frappe.client.insert';
 
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -142,7 +117,9 @@ export function CreateLeadModal({ isOpen, onClose, onSubmit }: CreateLeadModalPr
           'Content-Type': 'application/json',
           'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6'
         },
-        body: JSON.stringify(apiPayload)
+        body: JSON.stringify({
+          doc: docPayload
+        })
       });
 
       if (!response.ok) {
@@ -151,33 +128,35 @@ export function CreateLeadModal({ isOpen, onClose, onSubmit }: CreateLeadModalPr
       }
 
       const result = await response.json();
-      setSuccess('Lead created successfully!');
-      // onSubmit(result);
-      onSubmit({
-        ...result.data,
-        id: result.data.name, // or result.data.id if your API returns id
-      });
 
-      setTimeout(() => {
-        setFormData({
-          salutation: '',
-          firstName: '',
-          lastName: '',
-          email: '',
-          mobile: '',
-          gender: '',
-          organization: '',
-          website: '',
-          employees: '',
-          territory: '',
-          annualRevenue: '0.00',
-          industry: '',
-          status: 'New',
-          leadOwner: 'Administrator'
-        });
-        setSuccess('');
-        onClose();
-      }, 2000);
+      // Frappe API returns data in result.message
+      if (result.message) {
+        setSuccess('Lead created successfully!');
+        onSubmit(result.message); // Pass the created document to parent component
+
+        setTimeout(() => {
+          setFormData({
+            salutation: '',
+            firstName: '',
+            lastName: '',
+            email: '',
+            mobile: '',
+            gender: '',
+            organization: '',
+            website: '',
+            employees: '',
+            territory: '',
+            annualRevenue: '0.00',
+            industry: '',
+            status: 'New',
+            leadOwner: 'Administrator'
+          });
+          setSuccess('');
+          onClose();
+        }, 2000);
+      } else {
+        throw new Error('No data returned from API');
+      }
 
     } catch (error) {
       console.error('Error creating lead:', error);

@@ -1,10 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronDown, ChevronUp, Phone, Loader2, ChevronLeft, ChevronRight, Filter, X, Check, Settings, RefreshCcw, Disc } from 'lucide-react';
+import { ChevronDown, ChevronUp, Phone, Loader2, ChevronLeft, ChevronRight, Filter, X, Settings, RefreshCcw } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
-import { exportToCSV, exportToExcel } from '../utils/exportUtils';
+import { exportToExcel } from '../utils/exportUtils';
 import { Download } from 'lucide-react';
 import { getUserSession } from '../utils/session';
 import { FaCircleDot } from 'react-icons/fa6';
+import { DeleteLeadPopup } from './LeadsPopup/DeleteLeadPopup';
+import { BsThreeDots } from 'react-icons/bs';
+import { AssignToPopup } from './LeadsPopup/AssignToLeadPopup';
+import { ClearAssignmentPopup } from './LeadsPopup/ClearAssignmentPopup';
+import { BulkEditPopup } from './LeadsPopup/EditLeadPopup';
 
 interface Lead {
   id: string;
@@ -92,6 +97,11 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
   const [error, setError] = useState<string | null>(null);
   const [sortField, setSortField] = useState<keyof Lead | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [isDeletePopupOpen, setIsDeletePopupOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isAssignPopupOpen, setIsAssignPopupOpen] = useState(false);
+  const [isClearAssignmentPopupOpen, setIsClearAssignmentPopupOpen] = useState(false);
 
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -104,6 +114,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
   const [totalItems, setTotalItems] = useState(0);
   // const selectedLeads = data.filter(d => selectedIds.includes(d.id));
   const [filteredData, setFilteredData] = useState<Lead[]>([]);
+  const [isBulkEditPopupOpen, setIsBulkEditPopupOpen] = useState(false);
 
   // Filter state
   const [showFilters, setShowFilters] = useState(false);
@@ -481,17 +492,208 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
   const visibleColumns = getVisibleColumns();
   const filteredDataLength = getFilteredAndSortedData().length;
 
+  const handleDeleteConfirmation = async () => {
+    if (selectedIds.length === 0) {
+      console.error("No leads selected for deletion.");
+      setIsDeletePopupOpen(false);
+      return;
+    }
+
+    setIsDeleting(true);
+
+    try {
+      const session = getUserSession();
+
+      // Use frappe.desk.reportview.delete_items to delete all selected items
+      const deleteApiUrl = `http://103.214.132.20:8002/api/method/frappe.desk.reportview.delete_items`;
+
+      const deletePayload = {
+        items: JSON.stringify(selectedIds),
+        doctype: "CRM Lead"
+      };
+
+      const deleteResponse = await fetch(deleteApiUrl, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `token ${session.api_key}:${session.api_secret}`
+        },
+        body: JSON.stringify(deletePayload)
+      });
+
+      if (!deleteResponse.ok) {
+        throw new Error(`Failed to delete leads: ${deleteResponse.statusText}`);
+      }
+
+      // Instead of making a second API call, just refetch the leads using your existing function
+      await fetchLeads();
+
+      setIsDeletePopupOpen(false);
+      setSelectedIds([]);
+      setShowDropdown(false);
+
+    } catch (error) {
+      console.error("Failed to delete leads:", error);
+      setError(error instanceof Error ? error.message : 'Failed to delete leads');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // Helper function to transform API data
+  const transformApiData = (apiData: any[]): Lead[] => {
+    return apiData
+      .filter((apiLead: any) => apiLead.converted === 0)
+      .map((apiLead: any) => ({
+        id: apiLead.name || apiLead.idx?.toString() || Math.random().toString(),
+        name: apiLead.name || 'Unknown',
+        firstName: apiLead.first_name || apiLead.lead_name?.split(' ')[0] || 'Unknown',
+        lastName: apiLead.last_name || apiLead.lead_name?.split(' ').slice(1).join(' ') || '',
+        leadId: apiLead.name || 'N/A',
+        organization: apiLead.organization || 'N/A',
+        status: mapApiStatus(apiLead.status),
+        email: apiLead.email || 'N/A',
+        mobile: apiLead.mobile_no || 'N/A',
+        assignedTo: apiLead.lead_owner || apiLead.owner || 'N/A',
+        lastModified: formatDate(apiLead.modified),
+        website: apiLead.website || '',
+        territory: apiLead.territory || '',
+        industry: apiLead.industry || '',
+        jobTitle: '',
+        source: '',
+        salutation: apiLead.salutation || '',
+        converted: apiLead.converted || 0,
+        owner: apiLead.owner,
+        creation: apiLead.creation,
+        modified: apiLead.modified,
+        modified_by: apiLead.modified_by,
+        docstatus: apiLead.docstatus,
+        idx: apiLead.idx,
+        mobile_no: apiLead.mobile_no,
+        naming_series: apiLead.naming_series,
+        lead_name: apiLead.lead_name,
+        gender: apiLead.gender,
+        no_of_employees: apiLead.no_of_employees,
+        annual_revenue: apiLead.annual_revenue,
+        image: apiLead.image,
+        first_name: apiLead.first_name,
+        last_name: apiLead.last_name,
+        lead_owner: apiLead.lead_owner
+      }));
+  };
+
+  // Handler for individual row selection
+  const handleRowSelection = (leadId: string) => {
+    setSelectedIds(prevSelected =>
+      prevSelected.includes(leadId)
+        ? prevSelected.filter(id => id !== leadId)
+        : [...prevSelected, leadId]
+    );
+  };
+
+  // Handler for the "Select All" checkbox
+  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.checked) {
+      const currentPageIds = paginatedData.map(d => d.id);
+      setSelectedIds(currentPageIds);
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  // Handler to select all filtered results
+  const handleSelectAllFiltered = () => {
+    const allFilteredIds = getFilteredAndSortedData().map(d => d.id);
+    setSelectedIds(allFilteredIds);
+  };
+
   return (
     <div className="space-y-4">
       {/* Action Bar */}
 
       {selectedIds.length > 0 && (
-        <button
-          onClick={handleDeleteSelected}
-          className="px-3 py-2 text-sm border rounded-lg transition-colors bg-red-600 text-white hover:bg-red-700"
-        >
-          Delete ({selectedIds.length})
-        </button>
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2
+       bg-white dark:bg-gray-800 shadow-2xl rounded-lg
+       border dark:border-gray-700 p-2
+       flex items-center justify-between
+       w-[90%] max-w-md
+       z-50 transition-all duration-300 ease-out">
+          {/* Left Section - Count */}
+          <span className="ml-4 font-semibold text-sm text-gray-800 dark:text-white">
+            {selectedIds.length} Row{selectedIds.length > 1 ? "s" : ""} selected
+          </span>
+
+          {/* Right Section - Actions */}
+          <div className="flex items-center space-x-3 relative">
+            {/* Three dots button */}
+            <button
+              className="text-gray-500 hover:text-gray-800 dark:hover:text-white"
+              onClick={() => setShowDropdown(prev => !prev)}
+            >
+              <BsThreeDots className="w-5 h-5" />
+            </button>
+
+            {/* Dropdown menu */}
+            {showDropdown && (
+              <div className="absolute right-0 bottom-10 bg-white dark:bg-gray-700 shadow-lg rounded-md border dark:border-gray-600 py-1 w-40 z-50">
+                <button
+                  onClick={() => {
+                    setIsBulkEditPopupOpen(true);
+                    setShowDropdown(false);
+                  }}
+                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => {
+                    setIsDeletePopupOpen(true);
+                    setShowDropdown(false);
+                  }}
+                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">
+                  Delete
+                </button>
+                <button
+                  onClick={() => {
+                    setIsAssignPopupOpen(true);
+                    setShowDropdown(false);
+                  }}
+                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600"
+                >
+                  Assign To
+                </button>
+                <button
+                  onClick={() => {
+                    setIsClearAssignmentPopupOpen(true);
+                    setShowDropdown(false);
+                  }}
+                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600"
+                >
+                  Clear Assignment
+                </button>
+              </div>
+            )}
+
+            {/* Select all button */}
+            <button
+              onClick={handleSelectAllFiltered}
+              className="text-sm text-white font-medium hover:underline"
+            >
+              Select all
+            </button>
+
+            {/* Clear selection */}
+            <button
+              onClick={() => {
+                setSelectedIds([]);
+                setShowDropdown(false);
+              }}
+              className="text-gray-500 hover:text-gray-800 dark:hover:text-white"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
       )}
 
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
@@ -685,23 +887,13 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
               }`}>
               <tr className="divide-x-[1px]">
                 <th className="px-6 py-3 text-left">
-                  {/* <input
-                    type="checkbox"
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  /> */}
                   <input
                     type="checkbox"
-                    checked={paginatedData.length > 0 && paginatedData.every(lead => selectedIds.includes(lead.id))}
-                    onChange={e => {
-                      if (e.target.checked) {
-                        setSelectedIds([
-                          ...selectedIds,
-                          ...paginatedData
-                            .map(lead => lead.id)
-                            .filter(id => !selectedIds.includes(id))
-                        ]);
-                      } else {
-                        setSelectedIds(selectedIds.filter(id => !paginatedData.map(lead => lead.id).includes(id)));
+                    checked={paginatedData.length > 0 && selectedIds.length === paginatedData.length}
+                    onChange={handleSelectAll}
+                    ref={el => {
+                      if (el) {
+                        el.indeterminate = selectedIds.length > 0 && selectedIds.length < paginatedData.length;
                       }
                     }}
                     className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
@@ -727,26 +919,17 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
                     }`}
                   onClick={() => onLeadClick(lead)}
                 >
+                  {/* Replace the existing checkbox in table rows */}
                   <td className="px-6 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                    {/* <input
-                      type="checkbox"
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    /> */}
                     <input
                       type="checkbox"
                       checked={selectedIds.includes(lead.id)}
-                      onChange={e => {
+                      onChange={(e) => {
                         e.stopPropagation();
-                        if (e.target.checked) {
-                          setSelectedIds([...selectedIds, lead.id]);
-                        } else {
-                          setSelectedIds(selectedIds.filter(id => id !== lead.id));
-                        }
+                        handleRowSelection(lead.id);
                       }}
                       className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
-
-
                   </td>
                   {visibleColumns.map(column => (
                     <td key={column.key} className="px-6 py-4 whitespace-nowrap">
@@ -886,6 +1069,46 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
           </div>
         </div>
       )}
+      <DeleteLeadPopup
+        isOpen={isDeletePopupOpen}
+        onClose={() => setIsDeletePopupOpen(false)}
+        onConfirm={handleDeleteConfirmation}
+        isLoading={isDeleting}
+        theme={theme}
+      />
+      <AssignToPopup
+        isOpen={isAssignPopupOpen}
+        onClose={() => setIsAssignPopupOpen(false)}
+        selectedIds={selectedIds}
+        theme={theme}
+        onSuccess={() => {
+          // Refresh the leads after successful assignment
+          fetchLeads();
+          setSelectedIds([]);
+        }}
+      />
+      <ClearAssignmentPopup
+        isOpen={isClearAssignmentPopupOpen}
+        onClose={() => setIsClearAssignmentPopupOpen(false)}
+        selectedIds={selectedIds}
+        theme={theme}
+        onSuccess={() => {
+          // Refresh the leads after successful assignment clearing
+          fetchLeads();
+          setSelectedIds([]);
+        }}
+      />
+      <BulkEditPopup
+        isOpen={isBulkEditPopupOpen}
+        onClose={() => setIsBulkEditPopupOpen(false)}
+        selectedIds={selectedIds}
+        theme={theme}
+        onSuccess={() => {
+          // Refresh the leads after successful bulk edit
+          fetchLeads();
+          setSelectedIds([]);
+        }}
+      />
     </div>
   );
 }
