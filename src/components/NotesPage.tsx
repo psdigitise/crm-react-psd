@@ -226,6 +226,7 @@ export function NotesPage({ onCreateNote, leadName }: NotesPageProps) {
       setLoading(true);
 
       const session = getUserSession();
+      const sessionCompany = session?.company;
 
       if (!session) {
         setNotes([]);
@@ -236,6 +237,10 @@ export function NotesPage({ onCreateNote, leadName }: NotesPageProps) {
       let filters: any = {};
       if (leadName) {
         filters.reference_docname = leadName;
+      }
+
+      if (sessionCompany) {
+        filters.company = sessionCompany;
       }
 
       const payload = {

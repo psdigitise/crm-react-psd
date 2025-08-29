@@ -589,7 +589,7 @@
 //   const [editingCallLog, setEditingCallLog] = useState<CallLog | null>(null);
 //   const [showEditModal, setShowEditModal] = useState(false);
 //   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
-  
+
 //   // New state for edit form functionality
 //   const [callForm, setCallForm] = useState<CallForm>({
 //     from: '',
@@ -1100,700 +1100,700 @@
 //       )}
 //     </div>
 //   );
-  // }
+// }
 
-  // import React, { useState, useEffect } from 'react';
-  // import { Plus, RefreshCw, Filter, ArrowUpDown, Columns, MoreHorizontal, Search, Edit, Trash2, Phone, Clock, X, User, Calendar, Timer } from 'lucide-react';
-  // import { showToast } from '../utils/toast';
-  // import { Header } from './Header';
-  // import { useTheme } from './ThemeProvider';
-  // import { getUserSession } from '../utils/session';
+// import React, { useState, useEffect } from 'react';
+// import { Plus, RefreshCw, Filter, ArrowUpDown, Columns, MoreHorizontal, Search, Edit, Trash2, Phone, Clock, X, User, Calendar, Timer } from 'lucide-react';
+// import { showToast } from '../utils/toast';
+// import { Header } from './Header';
+// import { useTheme } from './ThemeProvider';
+// import { getUserSession } from '../utils/session';
 
-  // interface CallLog {
-  //   name: string;
-  //   from: string;
-  //   to: string;
-  //   status: 'Ringing' | 'Answered' | 'Busy' | 'No Answer' | 'Failed';
-  //   type: 'Incoming' | 'Outgoing' | 'Missed';
-  //   duration?: string;
-  //   reference_doctype?: string;
-  //   id?: string;
-  //   creation?: string;
-  //   modified?: string;
-  // }
+// interface CallLog {
+//   name: string;
+//   from: string;
+//   to: string;
+//   status: 'Ringing' | 'Answered' | 'Busy' | 'No Answer' | 'Failed';
+//   type: 'Incoming' | 'Outgoing' | 'Missed';
+//   duration?: string;
+//   reference_doctype?: string;
+//   id?: string;
+//   creation?: string;
+//   modified?: string;
+// }
 
-  // interface CallLogsPageProps {
-  //   onCreateCallLog: () => void;
-  //   leadName?: string;
-  // }
+// interface CallLogsPageProps {
+//   onCreateCallLog: () => void;
+//   leadName?: string;
+// }
 
-  // interface CallForm {
-  //   from: string;
-  //   to: string;
-  //   status: string;
-  //   type: string;
-  //   duration: string;
-  //   receiver: string;
-  //   name: string;
-  // }
+// interface CallForm {
+//   from: string;
+//   to: string;
+//   status: string;
+//   type: string;
+//   duration: string;
+//   receiver: string;
+//   name: string;
+// }
 
-  // const statusColors = {
-  //   'Ringing': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
-  //   'Answered': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
-  //   'Busy': 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
-  //   'No Answer': 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-white',
-  //   'Failed': 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
-  // };
+// const statusColors = {
+//   'Ringing': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
+//   'Answered': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+//   'Busy': 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
+//   'No Answer': 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-white',
+//   'Failed': 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+// };
 
-  // const typeColors = {
-  //   'Incoming': 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
-  //   'Outgoing': 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
-  //   'Missed': 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
-  // };
+// const typeColors = {
+//   'Incoming': 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
+//   'Outgoing': 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
+//   'Missed': 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+// };
 
-  // // Call Details Popup Component
-  // interface CallDetailsPopupProps {
-  //   call: {
-  //     type: string;
-  //     caller: string;
-  //     receiver: string;
-  //     date: string;
-  //     duration: string;
-  //     status: string;
-  //     name: string;
-  //   };
-  //   onClose: () => void;
-  //   onAddTask: () => void;
-  //   onEdit: () => void;
-  //   theme: string;
-  // }
+// // Call Details Popup Component
+// interface CallDetailsPopupProps {
+//   call: {
+//     type: string;
+//     caller: string;
+//     receiver: string;
+//     date: string;
+//     duration: string;
+//     status: string;
+//     name: string;
+//   };
+//   onClose: () => void;
+//   onAddTask: () => void;
+//   onEdit: () => void;
+//   theme: string;
+// }
 
-  // const CallDetailsPopup: React.FC<CallDetailsPopupProps> = ({ call, onClose, onAddTask, onEdit, theme }) => {
-  //   const formatDuration = (seconds: string) => {
-  //     if (!seconds) return "N/A";
-  //     const total = parseInt(seconds, 10);
-  //     if (isNaN(total)) return "N/A";
+// const CallDetailsPopup: React.FC<CallDetailsPopupProps> = ({ call, onClose, onAddTask, onEdit, theme }) => {
+//   const formatDuration = (seconds: string) => {
+//     if (!seconds) return "N/A";
+//     const total = parseInt(seconds, 10);
+//     if (isNaN(total)) return "N/A";
 
-  //     const mins = Math.floor(total / 60);
-  //     const secs = total % 60;
+//     const mins = Math.floor(total / 60);
+//     const secs = total % 60;
 
-  //     if (mins > 0) {
-  //       return `${mins}m ${secs}s`;
-  //     }
-  //     return `${secs}s`;
-  //   };
+//     if (mins > 0) {
+//       return `${mins}m ${secs}s`;
+//     }
+//     return `${secs}s`;
+//   };
 
-  //   return (
-  //     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-  //       <div className={`w-full max-w-md mx-4 rounded-lg shadow-xl border ${
-  //         theme === 'dark' 
-  //           ? 'bg-dark-secondary border-gray-700' 
-  //           : 'bg-white border-gray-200'
-  //       }`}>
-  //         {/* Header */}
-  //         <div className={`flex items-center justify-between p-4 border-b ${
-  //           theme === 'dark' ? 'border-gray-700' : 'border-gray-200'
-  //         }`}>
-  //           <h3 className={`text-lg font-semibold ${
-  //             theme === 'dark' ? 'text-white' : 'text-gray-900'
-  //           }`}>
-  //             Call Details
-  //           </h3>
-  //           <button
-  //             onClick={onClose}
-  //             className={`p-1 rounded-full hover:bg-gray-100 ${
-  //               theme === 'dark' ? 'hover:bg-gray-700 text-gray-400' : 'text-gray-500'
-  //             }`}
-  //           >
-  //             <X className="w-5 h-5" />
-  //           </button>
-  //         </div>
+//   return (
+//     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+//       <div className={`w-full max-w-md mx-4 rounded-lg shadow-xl border ${
+//         theme === 'dark' 
+//           ? 'bg-dark-secondary border-gray-700' 
+//           : 'bg-white border-gray-200'
+//       }`}>
+//         {/* Header */}
+//         <div className={`flex items-center justify-between p-4 border-b ${
+//           theme === 'dark' ? 'border-gray-700' : 'border-gray-200'
+//         }`}>
+//           <h3 className={`text-lg font-semibold ${
+//             theme === 'dark' ? 'text-white' : 'text-gray-900'
+//           }`}>
+//             Call Details
+//           </h3>
+//           <button
+//             onClick={onClose}
+//             className={`p-1 rounded-full hover:bg-gray-100 ${
+//               theme === 'dark' ? 'hover:bg-gray-700 text-gray-400' : 'text-gray-500'
+//             }`}
+//           >
+//             <X className="w-5 h-5" />
+//           </button>
+//         </div>
 
-  //         {/* Content */}
-  //         <div className="p-4 space-y-4">
-  //           {/* Call Type */}
-  //           <div className="flex items-center justify-between">
-  //             <span className={`text-sm font-medium ${
-  //               theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
-  //             }`}>
-  //               Type
-  //             </span>
-  //             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-  //               call.type === 'Incoming' 
-  //                 ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
-  //                 : call.type === 'Outgoing'
-  //                 ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-  //                 : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
-  //             }`}>
-  //               {call.type}
-  //             </span>
-  //           </div>
+//         {/* Content */}
+//         <div className="p-4 space-y-4">
+//           {/* Call Type */}
+//           <div className="flex items-center justify-between">
+//             <span className={`text-sm font-medium ${
+//               theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+//             }`}>
+//               Type
+//             </span>
+//             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+//               call.type === 'Incoming' 
+//                 ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+//                 : call.type === 'Outgoing'
+//                 ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+//                 : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+//             }`}>
+//               {call.type}
+//             </span>
+//           </div>
 
-  //           {/* Caller */}
-  //           <div className="flex items-center justify-between">
-  //             <span className={`text-sm font-medium ${
-  //               theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
-  //             }`}>
-  //               From
-  //             </span>
-  //             <div className="flex items-center space-x-2">
-  //               <User className={`w-4 h-4 ${
-  //                 theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-  //               }`} />
-  //               <span className={`text-sm font-medium ${
-  //                 theme === 'dark' ? 'text-white' : 'text-gray-900'
-  //               }`}>
-  //                 {call.caller}
-  //               </span>
-  //             </div>
-  //           </div>
+//           {/* Caller */}
+//           <div className="flex items-center justify-between">
+//             <span className={`text-sm font-medium ${
+//               theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+//             }`}>
+//               From
+//             </span>
+//             <div className="flex items-center space-x-2">
+//               <User className={`w-4 h-4 ${
+//                 theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+//               }`} />
+//               <span className={`text-sm font-medium ${
+//                 theme === 'dark' ? 'text-white' : 'text-gray-900'
+//               }`}>
+//                 {call.caller}
+//               </span>
+//             </div>
+//           </div>
 
-  //           {/* Receiver */}
-  //           <div className="flex items-center justify-between">
-  //             <span className={`text-sm font-medium ${
-  //               theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
-  //             }`}>
-  //               To
-  //             </span>
-  //             <div className="flex items-center space-x-2">
-  //               <User className={`w-4 h-4 ${
-  //                 theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-  //               }`} />
-  //               <span className={`text-sm font-medium ${
-  //                 theme === 'dark' ? 'text-white' : 'text-gray-900'
-  //               }`}>
-  //                 {call.receiver}
-  //               </span>
-  //             </div>
-  //           </div>
+//           {/* Receiver */}
+//           <div className="flex items-center justify-between">
+//             <span className={`text-sm font-medium ${
+//               theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+//             }`}>
+//               To
+//             </span>
+//             <div className="flex items-center space-x-2">
+//               <User className={`w-4 h-4 ${
+//                 theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+//               }`} />
+//               <span className={`text-sm font-medium ${
+//                 theme === 'dark' ? 'text-white' : 'text-gray-900'
+//               }`}>
+//                 {call.receiver}
+//               </span>
+//             </div>
+//           </div>
 
-  //           {/* Date */}
-  //           <div className="flex items-center justify-between">
-  //             <span className={`text-sm font-medium ${
-  //               theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
-  //             }`}>
-  //               Date & Time
-  //             </span>
-  //             <div className="flex items-center space-x-2">
-  //               <Calendar className={`w-4 h-4 ${
-  //                 theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-  //               }`} />
-  //               <span className={`text-sm font-medium ${
-  //                 theme === 'dark' ? 'text-white' : 'text-gray-900'
-  //               }`}>
-  //                 {call.date}
-  //               </span>
-  //             </div>
-  //           </div>
+//           {/* Date */}
+//           <div className="flex items-center justify-between">
+//             <span className={`text-sm font-medium ${
+//               theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+//             }`}>
+//               Date & Time
+//             </span>
+//             <div className="flex items-center space-x-2">
+//               <Calendar className={`w-4 h-4 ${
+//                 theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+//               }`} />
+//               <span className={`text-sm font-medium ${
+//                 theme === 'dark' ? 'text-white' : 'text-gray-900'
+//               }`}>
+//                 {call.date}
+//               </span>
+//             </div>
+//           </div>
 
-  //           {/* Duration */}
-  //           <div className="flex items-center justify-between">
-  //             <span className={`text-sm font-medium ${
-  //               theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
-  //             }`}>
-  //               Duration
-  //             </span>
-  //             <div className="flex items-center space-x-2">
-  //               <Timer className={`w-4 h-4 ${
-  //                 theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-  //               }`} />
-  //               <span className={`text-sm font-medium ${
-  //                 theme === 'dark' ? 'text-white' : 'text-gray-900'
-  //               }`}>
-  //                 {formatDuration(call.duration)}
-  //               </span>
-  //             </div>
-  //           </div>
+//           {/* Duration */}
+//           <div className="flex items-center justify-between">
+//             <span className={`text-sm font-medium ${
+//               theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+//             }`}>
+//               Duration
+//             </span>
+//             <div className="flex items-center space-x-2">
+//               <Timer className={`w-4 h-4 ${
+//                 theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+//               }`} />
+//               <span className={`text-sm font-medium ${
+//                 theme === 'dark' ? 'text-white' : 'text-gray-900'
+//               }`}>
+//                 {formatDuration(call.duration)}
+//               </span>
+//             </div>
+//           </div>
 
-  //           {/* Status */}
-  //           <div className="flex items-center justify-between">
-  //             <span className={`text-sm font-medium ${
-  //               theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
-  //             }`}>
-  //               Status
-  //             </span>
-  //             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-  //               call.status === 'Answered' || call.status === 'Completed'
-  //                 ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-  //                 : call.status === 'Ringing'
-  //                 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
-  //                 : 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300'
-  //             }`}>
-  //               {call.status}
-  //             </span>
-  //           </div>
-  //         </div>
+//           {/* Status */}
+//           <div className="flex items-center justify-between">
+//             <span className={`text-sm font-medium ${
+//               theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+//             }`}>
+//               Status
+//             </span>
+//             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+//               call.status === 'Answered' || call.status === 'Completed'
+//                 ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+//                 : call.status === 'Ringing'
+//                 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
+//                 : 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300'
+//             }`}>
+//               {call.status}
+//             </span>
+//           </div>
+//         </div>
 
-  //         {/* Actions */}
-  //         <div className={`flex space-x-3 p-4 border-t ${
-  //           theme === 'dark' ? 'border-gray-700' : 'border-gray-200'
-  //         }`}>
-  //           <button
-  //             onClick={onAddTask}
-  //             className={`flex-1 px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${
-  //               theme === 'dark'
-  //                 ? 'border-gray-600 text-gray-300 hover:bg-gray-700'
-  //                 : 'border-gray-300 text-gray-700 hover:bg-gray-50'
-  //             }`}
-  //           >
-  //             Add Task
-  //           </button>
-  //           <button
-  //             onClick={onEdit}
-  //             className={`flex-1 px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors ${
-  //               theme === 'dark'
-  //                 ? 'bg-purple-600 hover:bg-purple-700'
-  //                 : 'bg-blue-600 hover:bg-blue-700'
-  //             }`}
-  //           >
-  //             Edit Call
-  //           </button>
-  //         </div>
-  //       </div>
-  //     </div>
-  //   );
-  // };
+//         {/* Actions */}
+//         <div className={`flex space-x-3 p-4 border-t ${
+//           theme === 'dark' ? 'border-gray-700' : 'border-gray-200'
+//         }`}>
+//           <button
+//             onClick={onAddTask}
+//             className={`flex-1 px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${
+//               theme === 'dark'
+//                 ? 'border-gray-600 text-gray-300 hover:bg-gray-700'
+//                 : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+//             }`}
+//           >
+//             Add Task
+//           </button>
+//           <button
+//             onClick={onEdit}
+//             className={`flex-1 px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors ${
+//               theme === 'dark'
+//                 ? 'bg-purple-600 hover:bg-purple-700'
+//                 : 'bg-blue-600 hover:bg-blue-700'
+//             }`}
+//           >
+//             Edit Call
+//           </button>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// };
 
-  // export function CallLogsPage({ onCreateCallLog, leadName }: CallLogsPageProps) {
-  //   const { theme } = useTheme();
-  //   const [searchTerm, setSearchTerm] = useState('');
-  //   const [callLogs, setCallLogs] = useState<CallLog[]>([]);
-  //   const [loading, setLoading] = useState(true);
-  //   const [editingCallLog, setEditingCallLog] = useState<CallLog | null>(null);
-  //   const [showEditModal, setShowEditModal] = useState(false);
-  //   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
-    
-  //   // New state for edit form functionality
-  //   const [callForm, setCallForm] = useState<CallForm>({
-  //     from: '',
-  //     to: '',
-  //     status: 'Ringing',
-  //     type: 'Outgoing',
-  //     duration: '',
-  //     receiver: '',
-  //     name: ''
-  //   });
-  //   const [isEditMode, setIsEditMode] = useState(false);
-  //   const [callsLoading, setCallsLoading] = useState(false);
-    
-  //   // New state for Call Details popup
-  //   const [showPopup, setShowPopup] = useState(false);
-  //   const [selectedCall, setSelectedCall] = useState<CallLog | null>(null);
+// export function CallLogsPage({ onCreateCallLog, leadName }: CallLogsPageProps) {
+//   const { theme } = useTheme();
+//   const [searchTerm, setSearchTerm] = useState('');
+//   const [callLogs, setCallLogs] = useState<CallLog[]>([]);
+//   const [loading, setLoading] = useState(true);
+//   const [editingCallLog, setEditingCallLog] = useState<CallLog | null>(null);
+//   const [showEditModal, setShowEditModal] = useState(false);
+//   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
-  //   // Theme-based styling classes
-  //   const textColor = theme === 'dark' ? 'text-white' : 'text-gray-900';
-  //   const textSecondaryColor = theme === 'dark' ? 'text-gray-400' : 'text-gray-600';
-  //   const cardBgColor = theme === 'dark' ? 'bg-dark-secondary' : 'bg-white';
-  //   const borderColor = theme === 'dark' ? 'border-gray-700' : 'border-gray-200';
-  //   const inputBgColor = theme === 'dark' ? 'bg-dark-tertiary text-white' : 'bg-white';
+//   // New state for edit form functionality
+//   const [callForm, setCallForm] = useState<CallForm>({
+//     from: '',
+//     to: '',
+//     status: 'Ringing',
+//     type: 'Outgoing',
+//     duration: '',
+//     receiver: '',
+//     name: ''
+//   });
+//   const [isEditMode, setIsEditMode] = useState(false);
+//   const [callsLoading, setCallsLoading] = useState(false);
 
-  //   useEffect(() => {
-  //     fetchCallLogs();
-  //   }, [leadName]);
+//   // New state for Call Details popup
+//   const [showPopup, setShowPopup] = useState(false);
+//   const [selectedCall, setSelectedCall] = useState<CallLog | null>(null);
 
-  //   const fetchCallLogs = async () => {
-  //     try {
-  //       setLoading(true);
+//   // Theme-based styling classes
+//   const textColor = theme === 'dark' ? 'text-white' : 'text-gray-900';
+//   const textSecondaryColor = theme === 'dark' ? 'text-gray-400' : 'text-gray-600';
+//   const cardBgColor = theme === 'dark' ? 'bg-dark-secondary' : 'bg-white';
+//   const borderColor = theme === 'dark' ? 'border-gray-700' : 'border-gray-200';
+//   const inputBgColor = theme === 'dark' ? 'bg-dark-tertiary text-white' : 'bg-white';
 
-  //       const session = getUserSession();
+//   useEffect(() => {
+//     fetchCallLogs();
+//   }, [leadName]);
 
-  //       if (!session) {
-  //         setCallLogs([]);
-  //         setLoading(false);
-  //         return;
-  //       }
+//   const fetchCallLogs = async () => {
+//     try {
+//       setLoading(true);
 
-  //       const apiUrl = 'http://103.214.132.20:8002/api/method/crm.api.doc.get_data';
+//       const session = getUserSession();
 
-  //       const requestBody = {
-  //         doctype: "CRM Call Log",
-  //         filters: {},
-  //         order_by: "modified desc",
-  //         default_filters: {},
-  //         column_field: "status",
-  //         columns: "[{\"label\": \"Caller\", \"type\": \"Link\", \"key\": \"caller\", \"options\": \"User\", \"width\": \"9rem\"}, {\"label\": \"Receiver\", \"type\": \"Link\", \"key\": \"receiver\", \"options\": \"User\", \"width\": \"9rem\"}, {\"label\": \"Type\", \"type\": \"Select\", \"key\": \"type\", \"width\": \"9rem\"}, {\"label\": \"Status\", \"type\": \"Select\", \"key\": \"status\", \"width\": \"9rem\"}, {\"label\": \"Duration\", \"type\": \"Duration\", \"key\": \"duration\", \"width\": \"6rem\"}, {\"label\": \"From (number)\", \"type\": \"Data\", \"key\": \"from\", \"width\": \"9rem\"}, {\"label\": \"To (number)\", \"type\": \"Data\", \"key\": \"to\", \"width\": \"9rem\"}, {\"label\": \"Created On\", \"type\": \"Datetime\", \"key\": \"creation\", \"width\": \"8rem\"}]",
-  //         kanban_columns: "[]",
-  //         kanban_fields: "[]",
-  //         page_length: 20,
-  //         page_length_count: 20,
-  //         rows: "[\"name\", \"caller\", \"receiver\", \"type\", \"status\", \"duration\", \"from\", \"to\", \"note\", \"recording_url\", \"reference_doctype\", \"reference_docname\", \"creation\"]",
-  //         title_field: "",
-  //         view: {
-  //           custom_view_name: "20",
-  //           view_type: "list",
-  //           group_by_field: "owner"
-  //         }
-  //       };
+//       if (!session) {
+//         setCallLogs([]);
+//         setLoading(false);
+//         return;
+//       }
 
-  //       const response = await fetch(apiUrl, {
-  //         method: 'POST',
-  //         headers: {
-  //           'Content-Type': 'application/json',
-  //           'Authorization': `token ${session.api_key}:${session.api_secret}`
-  //         },
-  //         body: JSON.stringify(requestBody)
-  //       });
+//       const apiUrl = 'http://103.214.132.20:8002/api/method/crm.api.doc.get_data';
 
-  //       if (!response.ok) {
-  //         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-  //       }
+//       const requestBody = {
+//         doctype: "CRM Call Log",
+//         filters: {},
+//         order_by: "modified desc",
+//         default_filters: {},
+//         column_field: "status",
+//         columns: "[{\"label\": \"Caller\", \"type\": \"Link\", \"key\": \"caller\", \"options\": \"User\", \"width\": \"9rem\"}, {\"label\": \"Receiver\", \"type\": \"Link\", \"key\": \"receiver\", \"options\": \"User\", \"width\": \"9rem\"}, {\"label\": \"Type\", \"type\": \"Select\", \"key\": \"type\", \"width\": \"9rem\"}, {\"label\": \"Status\", \"type\": \"Select\", \"key\": \"status\", \"width\": \"9rem\"}, {\"label\": \"Duration\", \"type\": \"Duration\", \"key\": \"duration\", \"width\": \"6rem\"}, {\"label\": \"From (number)\", \"type\": \"Data\", \"key\": \"from\", \"width\": \"9rem\"}, {\"label\": \"To (number)\", \"type\": \"Data\", \"key\": \"to\", \"width\": \"9rem\"}, {\"label\": \"Created On\", \"type\": \"Datetime\", \"key\": \"creation\", \"width\": \"8rem\"}]",
+//         kanban_columns: "[]",
+//         kanban_fields: "[]",
+//         page_length: 20,
+//         page_length_count: 20,
+//         rows: "[\"name\", \"caller\", \"receiver\", \"type\", \"status\", \"duration\", \"from\", \"to\", \"note\", \"recording_url\", \"reference_doctype\", \"reference_docname\", \"creation\"]",
+//         title_field: "",
+//         view: {
+//           custom_view_name: "20",
+//           view_type: "list",
+//           group_by_field: "owner"
+//         }
+//       };
 
-  //       const result = await response.json();
-  //       let callLogsData = result.message?.data || [];
+//       const response = await fetch(apiUrl, {
+//         method: 'POST',
+//         headers: {
+//           'Content-Type': 'application/json',
+//           'Authorization': `token ${session.api_key}:${session.api_secret}`
+//         },
+//         body: JSON.stringify(requestBody)
+//       });
 
-  //       // Map the response data to match our CallLog interface
-  //       const mappedCallLogs = callLogsData.map((item: any) => ({
-  //         name: item.name,
-  //         from: item.from,
-  //         to: item.to,
-  //         status: item.status,
-  //         type: item.type,
-  //         duration: item.duration,
-  //         reference_doctype: item.reference_doctype,
-  //         id: item.reference_docname,
-  //         creation: item.creation,
-  //         modified: item.modified
-  //       }));
+//       if (!response.ok) {
+//         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+//       }
 
-  //       // Filter by leadName if provided
-  //       let filteredCallLogs = mappedCallLogs;
-  //       if (leadName) {
-  //         filteredCallLogs = mappedCallLogs.filter((callLog: CallLog) =>
-  //           callLog.id === leadName
-  //         );
-  //       }
+//       const result = await response.json();
+//       let callLogsData = result.message?.data || [];
 
-  //       setCallLogs(filteredCallLogs);
-  //     } catch (error) {
-  //       // console.error('Error fetching call logs:', error);
-  //       // showToast('Failed to fetch call logs', { type: 'error' });
-  //     } finally {
-  //       setLoading(false);
-  //     }
-  //   };
+//       // Map the response data to match our CallLog interface
+//       const mappedCallLogs = callLogsData.map((item: any) => ({
+//         name: item.name,
+//         from: item.from,
+//         to: item.to,
+//         status: item.status,
+//         type: item.type,
+//         duration: item.duration,
+//         reference_doctype: item.reference_doctype,
+//         id: item.reference_docname,
+//         creation: item.creation,
+//         modified: item.modified
+//       }));
 
-  //   const handleEdit = (callLog: CallLog) => {
-  //     setCallForm({
-  //       from: callLog.from || '',
-  //       to: callLog.to || '',
-  //       status: callLog.status || 'Ringing',
-  //       type: callLog.type || 'Outgoing',
-  //       duration: callLog.duration || '',
-  //       receiver: callLog.to || '',
-  //       name: callLog.name || '',
-  //     });
-  //     setIsEditMode(true);
-  //     setShowPopup(false); // Close popup when opening edit modal
-  //     setShowEditModal(true);
-  //   };
+//       // Filter by leadName if provided
+//       let filteredCallLogs = mappedCallLogs;
+//       if (leadName) {
+//         filteredCallLogs = mappedCallLogs.filter((callLog: CallLog) =>
+//           callLog.id === leadName
+//         );
+//       }
 
-  //   const handleRowClick = (callLog: CallLog) => {
-  //     setSelectedCall(callLog);
-  //     setShowPopup(true);
-  //   };
+//       setCallLogs(filteredCallLogs);
+//     } catch (error) {
+//       // console.error('Error fetching call logs:', error);
+//       // showToast('Failed to fetch call logs', { type: 'error' });
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
 
-  //   const formatDateRelative = (dateString: string) => {
-  //     if (!dateString) return "N/A";
-  //     return new Date(dateString).toLocaleString("en-GB", {
-  //       day: "2-digit",
-  //       month: "short",
-  //       year: "numeric",
-  //       hour: "2-digit",
-  //       minute: "2-digit",
-  //       hour12: true,
-  //     });
-  //   };
+//   const handleEdit = (callLog: CallLog) => {
+//     setCallForm({
+//       from: callLog.from || '',
+//       to: callLog.to || '',
+//       status: callLog.status || 'Ringing',
+//       type: callLog.type || 'Outgoing',
+//       duration: callLog.duration || '',
+//       receiver: callLog.to || '',
+//       name: callLog.name || '',
+//     });
+//     setIsEditMode(true);
+//     setShowPopup(false); // Close popup when opening edit modal
+//     setShowEditModal(true);
+//   };
 
-  //   const editCall = async (): Promise<boolean> => {
-  //     try {
-  //       setCallsLoading(true);
-  //       const session = getUserSession();
+//   const handleRowClick = (callLog: CallLog) => {
+//     setSelectedCall(callLog);
+//     setShowPopup(true);
+//   };
 
-  //       if (!session) {
-  //         showToast('Session expired. Please login again.', { type: 'error' });
-  //         return false;
-  //       }
+//   const formatDateRelative = (dateString: string) => {
+//     if (!dateString) return "N/A";
+//     return new Date(dateString).toLocaleString("en-GB", {
+//       day: "2-digit",
+//       month: "short",
+//       year: "numeric",
+//       hour: "2-digit",
+//       minute: "2-digit",
+//       hour12: true,
+//     });
+//   };
 
-  //       const apiUrl = `http://103.214.132.20:8002/api/v2/document/CRM Call Log/${callForm.name}`;
+//   const editCall = async (): Promise<boolean> => {
+//     try {
+//       setCallsLoading(true);
+//       const session = getUserSession();
 
-  //       const response = await fetch(apiUrl, {
-  //         method: 'PATCH',
-  //         headers: {
-  //           'Content-Type': 'application/json',
-  //           'Authorization': `token ${session.api_key}:${session.api_secret}`
-  //         },
-  //         body: JSON.stringify({
-  //           from: callForm.from,
-  //           to: callForm.to,
-  //           status: callForm.status,
-  //           type: callForm.type,
-  //           duration: callForm.duration
-  //         })
-  //       });
+//       if (!session) {
+//         showToast('Session expired. Please login again.', { type: 'error' });
+//         return false;
+//       }
 
-  //       if (!response.ok) {
-  //         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-  //       }
+//       const apiUrl = `http://103.214.132.20:8002/api/v2/document/CRM Call Log/${callForm.name}`;
 
-  //       showToast('Call log updated successfully', { type: 'success' });
-  //       fetchCallLogs();
-  //       return true;
-  //     } catch (error) {
-  //       console.error('Error updating call log:', error);
-  //       showToast('Failed to update call log', { type: 'error' });
-  //       return false;
-  //     } finally {
-  //       setCallsLoading(false);
-  //     }
-  //   };
+//       const response = await fetch(apiUrl, {
+//         method: 'PATCH',
+//         headers: {
+//           'Content-Type': 'application/json',
+//           'Authorization': `token ${session.api_key}:${session.api_secret}`
+//         },
+//         body: JSON.stringify({
+//           from: callForm.from,
+//           to: callForm.to,
+//           status: callForm.status,
+//           type: callForm.type,
+//           duration: callForm.duration
+//         })
+//       });
 
-  //   const handleDelete = async (callLogName: string) => {
-  //     if (!confirm('Are you sure you want to delete this call log?')) return;
+//       if (!response.ok) {
+//         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+//       }
 
-  //     try {
-  //       const session = getUserSession();
+//       showToast('Call log updated successfully', { type: 'success' });
+//       fetchCallLogs();
+//       return true;
+//     } catch (error) {
+//       console.error('Error updating call log:', error);
+//       showToast('Failed to update call log', { type: 'error' });
+//       return false;
+//     } finally {
+//       setCallsLoading(false);
+//     }
+//   };
 
-  //       if (!session) {
-  //         showToast('Session expired. Please login again.', { type: 'error' });
-  //         return;
-  //       }
+//   const handleDelete = async (callLogName: string) => {
+//     if (!confirm('Are you sure you want to delete this call log?')) return;
 
-  //       const apiUrl = `http://103.214.132.20:8002/api/v2/document/CRM Call Log/${callLogName}`;
+//     try {
+//       const session = getUserSession();
 
-  //       const response = await fetch(apiUrl, {
-  //         method: 'DELETE',
-  //         headers: {
-  //           'Authorization': `token ${session.api_key}:${session.api_secret}`
-  //         }
-  //       });
+//       if (!session) {
+//         showToast('Session expired. Please login again.', { type: 'error' });
+//         return;
+//       }
 
-  //       if (!response.ok) {
-  //         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-  //       }
+//       const apiUrl = `http://103.214.132.20:8002/api/v2/document/CRM Call Log/${callLogName}`;
 
-  //       showToast('Call log deleted successfully', { type: 'success' });
-  //       fetchCallLogs();
-  //     } catch (error) {
-  //       console.error('Error deleting call log:', error);
-  //       showToast('Failed to delete call log', { type: 'error' });
-  //     }
-  //   };
+//       const response = await fetch(apiUrl, {
+//         method: 'DELETE',
+//         headers: {
+//           'Authorization': `token ${session.api_key}:${session.api_secret}`
+//         }
+//       });
 
-  //   const filteredCallLogs = callLogs.filter(callLog =>
-  //     Object.values(callLog).some(value =>
-  //       value?.toString().toLowerCase().includes(searchTerm.toLowerCase())
-  //     )
-  //   );
+//       if (!response.ok) {
+//         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+//       }
 
-  //   const formatDuration = (seconds?: string) => {
-  //     if (!seconds) return "N/A";
-  //     const total = parseInt(seconds, 10);
-  //     if (isNaN(total)) return "N/A";
+//       showToast('Call log deleted successfully', { type: 'success' });
+//       fetchCallLogs();
+//     } catch (error) {
+//       console.error('Error deleting call log:', error);
+//       showToast('Failed to delete call log', { type: 'error' });
+//     }
+//   };
 
-  //     const mins = Math.floor(total / 60);
-  //     const secs = total % 60;
+//   const filteredCallLogs = callLogs.filter(callLog =>
+//     Object.values(callLog).some(value =>
+//       value?.toString().toLowerCase().includes(searchTerm.toLowerCase())
+//     )
+//   );
 
-  //     if (mins > 0) {
-  //       return `${mins}m ${secs}s`;
-  //     }
-  //     return `${secs}s`;
-  //   };
+//   const formatDuration = (seconds?: string) => {
+//     if (!seconds) return "N/A";
+//     const total = parseInt(seconds, 10);
+//     if (isNaN(total)) return "N/A";
 
-  //   if (loading) {
-  //     return (
-  //       <div className={`min-h-screen ${theme === 'dark'
-  //         ? 'bg-gradient-to-br from-dark-primary via-dark-secondary to-dark-tertiary'
-  //         : 'bg-gray-50'
-  //         }`}>
-  //         <Header
-  //           title="Call Logs"
-  //           subtitle={leadName ? `For Lead: ${leadName}` : undefined}
-  //           onRefresh={fetchCallLogs}
-  //           onFilter={() => { }}
-  //           onSort={() => { }}
-  //           onColumns={() => { }}
-  //           onCreate={onCreateCallLog}
-  //           searchValue={searchTerm}
-  //           onSearchChange={setSearchTerm}
-  //           viewMode={viewMode}
-  //           onViewModeChange={setViewMode}
-  //         />
-  //         <div className="p-4 sm:p-6">
-  //           <div className="flex items-center justify-center">
-  //             <div className={theme === 'dark' ? 'text-white' : 'text-gray-600'}>Loading call logs...</div>
-  //           </div>
-  //         </div>
-  //       </div>
-  //     );
-  //   }
+//     const mins = Math.floor(total / 60);
+//     const secs = total % 60;
 
-  //   return (
-  //     <div className={`min-h-screen ${theme === 'dark'
-  //       ? 'bg-gradient-to-br from-dark-primary via-dark-secondary to-dark-tertiary'
-  //       : 'bg-gray-50'
-  //       }`}>
-  //       <Header
-  //         title="Call Logs"
-  //         subtitle={leadName ? `For Lead: ${leadName}` : undefined}
-  //         onRefresh={fetchCallLogs}
-  //         onFilter={() => { }}
-  //         onSort={() => { }}
-  //         onColumns={() => { }}
-  //         onCreate={onCreateCallLog}
-  //         searchValue={searchTerm}
-  //         onSearchChange={setSearchTerm}
-  //         viewMode={viewMode}
-  //         onViewModeChange={setViewMode}
-  //       />
+//     if (mins > 0) {
+//       return `${mins}m ${secs}s`;
+//     }
+//     return `${secs}s`;
+//   };
 
-  //       <div className="p-4 sm:p-6">
-  //         {/* Call Logs Table */}
-  //         <div className={`rounded-lg shadow-sm border overflow-hidden ${theme === 'dark'
-  //           ? 'bg-custom-gradient border-transparent !rounded-none'
-  //           : 'bg-white border-gray-200'
-  //           }`}>
-  //           <div className="overflow-x-auto">
-  //             <table className="w-full">
-  //               <thead className={`border-b ${theme === 'dark' ? 'bg-purplebg border-transparent divide-x-2' : 'bg-gray-50 border-gray-200'
-  //                 }`}>
-  //                 <tr className="">
-  //                   <th className={`px-6 py-3 text-left text-sm font-semibold tracking-wider ${theme === 'dark' ? 'text-white' : 'text-gray-500'
-  //                     }`}>
-  //                     Type
-  //                   </th>
-  //                   <th className={`px-6 py-3 text-left text-sm font-semibold tracking-wider ${theme === 'dark' ? 'text-white' : 'text-gray-500'
-  //                     }`}>
-  //                     From
-  //                   </th>
-  //                   <th className={`px-6 py-3 text-left text-sm font-semibold tracking-wider ${theme === 'dark' ? 'text-white' : 'text-gray-500'
-  //                     }`}>
-  //                     To
-  //                   </th>
-  //                   <th className={`px-6 py-3 text-left text-sm font-semibold tracking-wider ${theme === 'dark' ? 'text-white' : 'text-gray-500'
-  //                     }`}>
-  //                     Status
-  //                   </th>
-  //                   <th className={`px-6 py-3 text-left text-sm font-semibold tracking-wider ${theme === 'dark' ? 'text-white' : 'text-gray-500'
-  //                     }`}>
-  //                     Duration
-  //                   </th>
-  //                   <th className={`px-6 py-3 text-left text-sm font-semibold tracking-wider ${theme === 'dark' ? 'text-white' : 'text-gray-500'
-  //                     }`}>
-  //                     Date
-  //                   </th>
-  //                   <th className={`px-6 py-3 text-left text-sm font-semibold tracking-wider ${theme === 'dark' ? 'text-white' : 'text-gray-500'
-  //                     }`}>
-  //                     Actions
-  //                   </th>
-  //                 </tr>
-  //               </thead>
-  //               <tbody
-  //                 className={`divide-y ${theme === 'dark' ? 'divide-white' : 'divide-gray-200'}`}
-  //               >
-  //                 {filteredCallLogs.map((callLog) => (
-  //                   <tr
-  //                     key={callLog.name}
-  //                     className={`transition-colors cursor-pointer ${theme === 'dark' ? 'hover:bg-purple-800/20' : 'hover:bg-gray-50'
-  //                       }`}
-  //                     onClick={() => handleRowClick(callLog)} // open popup when row clicked
-  //                   >
-  //                     <td className="px-6 py-4 whitespace-nowrap">
-  //                       <div className="flex items-center">
-  //                         <Phone
-  //                           className={`w-4 h-4 mr-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}
-  //                         />
-  //                         <span
-  //                           className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${typeColors[callLog.type]
-  //                             }`}
-  //                         >
-  //                           {callLog.type}
-  //                         </span>
-  //                       </div>
-  //                     </td>
-  //                     <td
-  //                       className={`px-6 py-4 whitespace-nowrap text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'
-  //                         }`}
-  //                     >
-  //                       {callLog.from || 'N/A'}
-  //                     </td>
-  //                     <td
-  //                       className={`px-6 py-4 whitespace-nowrap text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'
-  //                         }`}
-  //                     >
-  //                       {callLog.to || 'N/A'}
-  //                     </td>
-  //                     <td className="px-6 py-4 whitespace-nowrap">
-  //                       <span
-  //                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs text-white font-semibold ${statusColors[callLog.status]
-  //                           }`}
-  //                       >
-  //                         {callLog.status}
-  //                       </span>
-  //                     </td>
-  //                     <td
-  //                       className={`px-6 py-4 whitespace-nowrap text-sm font-semibold ${theme === "dark" ? "text-white" : "text-gray-900"
-  //                         }`}
-  //                     >
-  //                       {callLog.duration ? (
-  //                         <div className="flex items-center space-x-1">
-  //                           <Clock className="w-4 h-4 text-white" />
-  //                           <span>{formatDuration(callLog.duration)}</span>
-  //                         </div>
-  //                       ) : (
-  //                         "N/A"
-  //                       )}
-  //                     </td>
-  //                     <td
-  //                       className={`px-6 py-4 whitespace-nowrap text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'
-  //                         }`}
-  //                     >
-  //                       {callLog.creation
-  //                         ? new Date(callLog.creation).toLocaleString("en-GB", {
-  //                           day: "2-digit",
-  //                           month: "short",
-  //                           hour: "2-digit",
-  //                           minute: "2-digit",
-  //                           hour12: true,
-  //                         })
-  //                         : "N/A"}
-  //                     </td>
+//   if (loading) {
+//     return (
+//       <div className={`min-h-screen ${theme === 'dark'
+//         ? 'bg-gradient-to-br from-dark-primary via-dark-secondary to-dark-tertiary'
+//         : 'bg-gray-50'
+//         }`}>
+//         <Header
+//           title="Call Logs"
+//           subtitle={leadName ? `For Lead: ${leadName}` : undefined}
+//           onRefresh={fetchCallLogs}
+//           onFilter={() => { }}
+//           onSort={() => { }}
+//           onColumns={() => { }}
+//           onCreate={onCreateCallLog}
+//           searchValue={searchTerm}
+//           onSearchChange={setSearchTerm}
+//           viewMode={viewMode}
+//           onViewModeChange={setViewMode}
+//         />
+//         <div className="p-4 sm:p-6">
+//           <div className="flex items-center justify-center">
+//             <div className={theme === 'dark' ? 'text-white' : 'text-gray-600'}>Loading call logs...</div>
+//           </div>
+//         </div>
+//       </div>
+//     );
+//   }
 
-  //                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-  //                       <div className="flex items-center space-x-2">
-  //                         {/* Delete button only */}
-  //                         <button
-  //                           onClick={(e) => {
-  //                             e.stopPropagation(); // prevent row click
-  //                             handleDelete(callLog.name);
-  //                           }}
-  //                           className={
-  //                             theme === 'dark'
-  //                               ? 'text-red-400 hover:text-red-300'
-  //                               : 'text-red-600 hover:text-red-900'
-  //                           }
-  //                         >
-  //                           <Trash2 className="w-4 h-4" />
-  //                         </button>
-  //                       </div>
-  //                     </td>
-  //                   </tr>
-  //                 ))}
-  //               </tbody>
+//   return (
+//     <div className={`min-h-screen ${theme === 'dark'
+//       ? 'bg-gradient-to-br from-dark-primary via-dark-secondary to-dark-tertiary'
+//       : 'bg-gray-50'
+//       }`}>
+//       <Header
+//         title="Call Logs"
+//         subtitle={leadName ? `For Lead: ${leadName}` : undefined}
+//         onRefresh={fetchCallLogs}
+//         onFilter={() => { }}
+//         onSort={() => { }}
+//         onColumns={() => { }}
+//         onCreate={onCreateCallLog}
+//         searchValue={searchTerm}
+//         onSearchChange={setSearchTerm}
+//         viewMode={viewMode}
+//         onViewModeChange={setViewMode}
+//       />
 
-  //             </table>
-  //           </div>
-  //         </div>
+//       <div className="p-4 sm:p-6">
+//         {/* Call Logs Table */}
+//         <div className={`rounded-lg shadow-sm border overflow-hidden ${theme === 'dark'
+//           ? 'bg-custom-gradient border-transparent !rounded-none'
+//           : 'bg-white border-gray-200'
+//           }`}>
+//           <div className="overflow-x-auto">
+//             <table className="w-full">
+//               <thead className={`border-b ${theme === 'dark' ? 'bg-purplebg border-transparent divide-x-2' : 'bg-gray-50 border-gray-200'
+//                 }`}>
+//                 <tr className="">
+//                   <th className={`px-6 py-3 text-left text-sm font-semibold tracking-wider ${theme === 'dark' ? 'text-white' : 'text-gray-500'
+//                     }`}>
+//                     Type
+//                   </th>
+//                   <th className={`px-6 py-3 text-left text-sm font-semibold tracking-wider ${theme === 'dark' ? 'text-white' : 'text-gray-500'
+//                     }`}>
+//                     From
+//                   </th>
+//                   <th className={`px-6 py-3 text-left text-sm font-semibold tracking-wider ${theme === 'dark' ? 'text-white' : 'text-gray-500'
+//                     }`}>
+//                     To
+//                   </th>
+//                   <th className={`px-6 py-3 text-left text-sm font-semibold tracking-wider ${theme === 'dark' ? 'text-white' : 'text-gray-500'
+//                     }`}>
+//                     Status
+//                   </th>
+//                   <th className={`px-6 py-3 text-left text-sm font-semibold tracking-wider ${theme === 'dark' ? 'text-white' : 'text-gray-500'
+//                     }`}>
+//                     Duration
+//                   </th>
+//                   <th className={`px-6 py-3 text-left text-sm font-semibold tracking-wider ${theme === 'dark' ? 'text-white' : 'text-gray-500'
+//                     }`}>
+//                     Date
+//                   </th>
+//                   <th className={`px-6 py-3 text-left text-sm font-semibold tracking-wider ${theme === 'dark' ? 'text-white' : 'text-gray-500'
+//                     }`}>
+//                     Actions
+//                   </th>
+//                 </tr>
+//               </thead>
+//               <tbody
+//                 className={`divide-y ${theme === 'dark' ? 'divide-white' : 'divide-gray-200'}`}
+//               >
+//                 {filteredCallLogs.map((callLog) => (
+//                   <tr
+//                     key={callLog.name}
+//                     className={`transition-colors cursor-pointer ${theme === 'dark' ? 'hover:bg-purple-800/20' : 'hover:bg-gray-50'
+//                       }`}
+//                     onClick={() => handleRowClick(callLog)} // open popup when row clicked
+//                   >
+//                     <td className="px-6 py-4 whitespace-nowrap">
+//                       <div className="flex items-center">
+//                         <Phone
+//                           className={`w-4 h-4 mr-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}
+//                         />
+//                         <span
+//                           className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${typeColors[callLog.type]
+//                             }`}
+//                         >
+//                           {callLog.type}
+//                         </span>
+//                       </div>
+//                     </td>
+//                     <td
+//                       className={`px-6 py-4 whitespace-nowrap text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+//                         }`}
+//                     >
+//                       {callLog.from || 'N/A'}
+//                     </td>
+//                     <td
+//                       className={`px-6 py-4 whitespace-nowrap text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+//                         }`}
+//                     >
+//                       {callLog.to || 'N/A'}
+//                     </td>
+//                     <td className="px-6 py-4 whitespace-nowrap">
+//                       <span
+//                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs text-white font-semibold ${statusColors[callLog.status]
+//                           }`}
+//                       >
+//                         {callLog.status}
+//                       </span>
+//                     </td>
+//                     <td
+//                       className={`px-6 py-4 whitespace-nowrap text-sm font-semibold ${theme === "dark" ? "text-white" : "text-gray-900"
+//                         }`}
+//                     >
+//                       {callLog.duration ? (
+//                         <div className="flex items-center space-x-1">
+//                           <Clock className="w-4 h-4 text-white" />
+//                           <span>{formatDuration(callLog.duration)}</span>
+//                         </div>
+//                       ) : (
+//                         "N/A"
+//                       )}
+//                     </td>
+//                     <td
+//                       className={`px-6 py-4 whitespace-nowrap text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+//                         }`}
+//                     >
+//                       {callLog.creation
+//                         ? new Date(callLog.creation).toLocaleString("en-GB", {
+//                           day: "2-digit",
+//                           month: "short",
+//                           hour: "2-digit",
+//                           minute: "2-digit",
+//                           hour12: true,
+//                         })
+//                         : "N/A"}
+//                     </td>
 
-  //         {filteredCallLogs.length === 0 && (
-  //           <div className="text-center py-12">
-  //             <div className={theme === 'dark' ? 'text-white' : 'text-gray-500'}>No call logs found</div>
-  //             <div className={`text-sm mt-1 ${theme === 'dark' ? 'text-gray-500' : 'text-white'}`}>
-  //               {leadName ? 'No call logs for this lead' : 'Create your first call log to get started'}
-  //             </div>
-  //           </div>
-  //         )}
+//                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+//                       <div className="flex items-center space-x-2">
+//                         {/* Delete button only */}
+//                         <button
+//                           onClick={(e) => {
+//                             e.stopPropagation(); // prevent row click
+//                             handleDelete(callLog.name);
+//                           }}
+//                           className={
+//                             theme === 'dark'
+//                               ? 'text-red-400 hover:text-red-300'
+//                               : 'text-red-600 hover:text-red-900'
+//                           }
+//                         >
+//                           <Trash2 className="w-4 h-4" />
+//                         </button>
+//                       </div>
+//                     </td>
+//                   </tr>
+//                 ))}
+//               </tbody>
+
+//             </table>
+//           </div>
+//         </div>
+
+//         {filteredCallLogs.length === 0 && (
+//           <div className="text-center py-12">
+//             <div className={theme === 'dark' ? 'text-white' : 'text-gray-500'}>No call logs found</div>
+//             <div className={`text-sm mt-1 ${theme === 'dark' ? 'text-gray-500' : 'text-white'}`}>
+//               {leadName ? 'No call logs for this lead' : 'Create your first call log to get started'}
+//             </div>
+//           </div>
+//         )}
 //   //       </div>
-  
+
 //   import React, { useState, useEffect } from 'react';
 // import { Plus, RefreshCw, Filter, ArrowUpDown, Columns, MoreHorizontal, Search, Edit, Trash2, Phone, Clock, X, User, Calendar, Timer } from 'lucide-react';
 // import { SlCallIn, SlCallOut } from 'react-icons/sl';
@@ -1890,7 +1890,7 @@
 //     const now = new Date();
 //     const date = new Date(dateString);
 //     const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
-    
+
 //     if (diffInMinutes < 1) return "Just now";
 //     if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
 //     if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
@@ -2051,7 +2051,7 @@
 //   const [editingCallLog, setEditingCallLog] = useState<CallLog | null>(null);
 //   const [showEditModal, setShowEditModal] = useState(false);
 //   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
-  
+
 //   // New state for edit form functionality
 //   const [callForm, setCallForm] = useState<CallForm>({
 //     from: '',
@@ -2064,7 +2064,7 @@
 //   });
 //   const [isEditMode, setIsEditMode] = useState(false);
 //   const [callsLoading, setCallsLoading] = useState(false);
-  
+
 //   // New state for Call Details popup
 //   const [showPopup, setShowPopup] = useState(false);
 //   const [selectedCall, setSelectedCall] = useState<CallLog | null>(null);
@@ -2460,7 +2460,7 @@ const CallDetailsPopup: React.FC<CallDetailsPopupProps> = ({ call, onClose, onAd
     const now = new Date();
     const date = new Date(dateString);
     const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
-    
+
     if (diffInMinutes < 1) return "Just now";
     if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
     if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
@@ -2512,10 +2512,10 @@ const CallDetailsPopup: React.FC<CallDetailsPopupProps> = ({ call, onClose, onAd
               </div>
               <span className={`ml-2 text-sm ${textColor}`}>{call.caller}</span>
             </div>
-            
+
             {/* Arrow */}
             <div className={`text-${textSecondaryColor}`}>→</div>
-            
+
             {/* To */}
             <div className="flex items-center">
               <div className="w-8 h-8 bg-gray-500 rounded-full flex items-center justify-center text-white font-medium text-sm">
@@ -2552,11 +2552,10 @@ const CallDetailsPopup: React.FC<CallDetailsPopupProps> = ({ call, onClose, onAd
           {/* Status */}
           <div className="flex items-center space-x-3">
             <div className={`w-5 h-5 rounded-full flex items-center justify-center`}>
-              <div className={`w-3 h-3 rounded-full ${
-                call.status === 'Completed' || call.status === 'Answered' ? 'bg-green-500' :
-                call.status === 'Queued' || call.status === 'Ringing' ? 'bg-yellow-500' :
-                'bg-gray-500'
-              }`}></div>
+              <div className={`w-3 h-3 rounded-full ${call.status === 'Completed' || call.status === 'Answered' ? 'bg-green-500' :
+                  call.status === 'Queued' || call.status === 'Ringing' ? 'bg-yellow-500' :
+                    'bg-gray-500'
+                }`}></div>
             </div>
             <span className={`${textColor}`}>{call.status}</span>
           </div>
@@ -2702,9 +2701,8 @@ const EditCallModal: React.FC<EditCallModalProps> = ({
           <button
             onClick={onSave}
             disabled={isLoading}
-            className={`px-6 py-2.5 rounded-lg text-white font-medium transition-colors ${
-              theme === 'dark' ? 'bg-purple-600 hover:bg-purple-700' : 'bg-purple-600 hover:bg-purple-700'
-            } disabled:opacity-50 disabled:cursor-not-allowed`}
+            className={`px-6 py-2.5 rounded-lg text-white font-medium transition-colors ${theme === 'dark' ? 'bg-purple-600 hover:bg-purple-700' : 'bg-purple-600 hover:bg-purple-700'
+              } disabled:opacity-50 disabled:cursor-not-allowed`}
           >
             {isLoading ? 'Updating...' : 'Update'}
           </button>
@@ -2722,7 +2720,7 @@ export function CallLogsPage({ onCreateCallLog, leadName }: CallLogsPageProps) {
   const [editingCallLog, setEditingCallLog] = useState<CallLog | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
-  
+
   // Form state
   const [callForm, setCallForm] = useState<CallForm>({
     from: '',
@@ -2735,17 +2733,17 @@ export function CallLogsPage({ onCreateCallLog, leadName }: CallLogsPageProps) {
   });
   const [isEditMode, setIsEditMode] = useState(false);
   const [callsLoading, setCallsLoading] = useState(false);
-  
   // Popup state
   const [showPopup, setShowPopup] = useState(false);
   const [selectedCall, setSelectedCall] = useState<CallLog | null>(null);
-
   // Theme-based styling classes
   const textColor = theme === 'dark' ? 'text-white' : 'text-gray-900';
   const textSecondaryColor = theme === 'dark' ? 'text-gray-400' : 'text-gray-600';
   const cardBgColor = theme === 'dark' ? 'bg-dark-secondary' : 'bg-white';
   const borderColor = theme === 'dark' ? 'border-gray-700' : 'border-gray-200';
   const inputBgColor = theme === 'dark' ? 'bg-dark-tertiary text-white' : 'bg-white';
+  const userSession = getUserSession();
+  const Company = userSession?.company;
 
   useEffect(() => {
     fetchCallLogs();
@@ -2767,7 +2765,9 @@ export function CallLogsPage({ onCreateCallLog, leadName }: CallLogsPageProps) {
 
       const requestBody = {
         doctype: "CRM Call Log",
-        filters: {},
+        filters: {
+          company: Company
+        },
         order_by: "modified desc",
         default_filters: {},
         column_field: "status",
@@ -3172,128 +3172,128 @@ export function CallLogsPage({ onCreateCallLog, leadName }: CallLogsPageProps) {
         )}
       </div>
 
-        {/* Call Details Popup */}
-        {showPopup && selectedCall && (
-          <CallDetailsPopup
-            call={{
-              type: selectedCall.type,
-              caller: selectedCall.from || "Unknown",
-              receiver: selectedCall.to || "Unknown",
-              date: formatDateRelative(selectedCall.creation || ''),
-              duration: selectedCall.duration || '0',
-              status: selectedCall.status,
-              name: selectedCall.name
-            }}
-            onClose={() => setShowPopup(false)}
-            onAddTask={() => {
-              // Handle add task functionality if needed
-              console.log('Add task from call:', selectedCall);
-              setShowPopup(false);
-            }}
-            onEdit={() => handleEdit(selectedCall)}
-            theme={theme}
-          />
-        )}
+      {/* Call Details Popup */}
+      {showPopup && selectedCall && (
+        <CallDetailsPopup
+          call={{
+            type: selectedCall.type,
+            caller: selectedCall.from || "Unknown",
+            receiver: selectedCall.to || "Unknown",
+            date: formatDateRelative(selectedCall.creation || ''),
+            duration: selectedCall.duration || '0',
+            status: selectedCall.status,
+            name: selectedCall.name
+          }}
+          onClose={() => setShowPopup(false)}
+          onAddTask={() => {
+            // Handle add task functionality if needed
+            console.log('Add task from call:', selectedCall);
+            setShowPopup(false);
+          }}
+          onEdit={() => handleEdit(selectedCall)}
+          theme={theme}
+        />
+      )}
 
-        {/* Edit Call Modal - Using the same style as the first document */}
-        {showEditModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-            <div className={`w-full max-w-2xl ${cardBgColor} rounded-lg shadow-lg p-6 relative border ${borderColor}`}>
-              <button
-                onClick={() => {
-                  setShowEditModal(false);
-                  setCallForm({ from: '', to: '', status: 'Ringing', type: 'Outgoing', duration: '', receiver: '', name: '' });
-                  setIsEditMode(false);
-                }}
-                className="absolute top-2 right-3 text-gray-500 hover:text-gray-700 dark:hover:text-white"
-              >
-                ✕
-              </button>
+      {/* Edit Call Modal - Using the same style as the first document */}
+      {showEditModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className={`w-full max-w-2xl ${cardBgColor} rounded-lg shadow-lg p-6 relative border ${borderColor}`}>
+            <button
+              onClick={() => {
+                setShowEditModal(false);
+                setCallForm({ from: '', to: '', status: 'Ringing', type: 'Outgoing', duration: '', receiver: '', name: '' });
+                setIsEditMode(false);
+              }}
+              className="absolute top-2 right-3 text-gray-500 hover:text-gray-700 dark:hover:text-white"
+            >
+              ✕
+            </button>
 
-              <h3 className={`text-lg font-semibold ${textColor} mb-4`}>
-                Edit Call Log
-              </h3>
+            <h3 className={`text-lg font-semibold ${textColor} mb-4`}>
+              Edit Call Log
+            </h3>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>Type <span className='text-red-500'>*</span></label>
-                  <select
-                    value={callForm.type}
-                    onChange={(e) => setCallForm({ ...callForm, type: e.target.value })}
-                    className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
-                  >
-                    <option value="Outgoing">Outgoing</option>
-                    <option value="Incoming">Incoming</option>
-                    <option value="Missed">Missed</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>To <span className='text-red-500'>*</span></label>
-                  <input
-                    type="text"
-                    value={callForm.to}
-                    onChange={(e) => setCallForm({ ...callForm, to: e.target.value })}
-                    className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
-                    placeholder="To"
-                  />
-                </div>
-
-                <div>
-                  <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>From <span className='text-red-500'>*</span></label>
-                  <input
-                    type="text"
-                    value={callForm.from}
-                    onChange={(e) => setCallForm({ ...callForm, from: e.target.value })}
-                    className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
-                    placeholder="From"
-                  />
-                </div>
-
-                <div>
-                  <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>Status</label>
-                  <select
-                    value={callForm.status}
-                    onChange={(e) => setCallForm({ ...callForm, status: e.target.value })}
-                    className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
-                  >
-                    {["Ringing", "Answered", "Busy", "No Answer", "Failed"].map(status => (
-                      <option key={status} value={status}>{status}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>Duration (seconds)</label>
-                  <input
-                    type="number"
-                    value={callForm.duration}
-                    onChange={(e) => setCallForm({ ...callForm, duration: e.target.value })}
-                    className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
-                    placeholder="Call duration"
-                  />
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>Type <span className='text-red-500'>*</span></label>
+                <select
+                  value={callForm.type}
+                  onChange={(e) => setCallForm({ ...callForm, type: e.target.value })}
+                  className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
+                >
+                  <option value="Outgoing">Outgoing</option>
+                  <option value="Incoming">Incoming</option>
+                  <option value="Missed">Missed</option>
+                </select>
               </div>
 
-              <div className="flex justify-end mt-6">
-                <button
-                  onClick={async () => {
-                    const success = await editCall();
-                    if (success) {
-                      setShowEditModal(false);
-                      setIsEditMode(false);
-                      setCallForm({ from: '', to: '', status: 'Ringing', type: 'Outgoing', duration: '', receiver: '', name: '' });
-                    }
-                  }}
-                  disabled={callsLoading}
-                  className={`px-4 py-2 rounded-lg text-white flex items-center space-x-2 transition-colors ${theme === 'dark' ? 'bg-purple-600 hover:bg-purple-700' : 'bg-green-600 hover:bg-green-700'} disabled:opacity-50`}
+              <div>
+                <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>To <span className='text-red-500'>*</span></label>
+                <input
+                  type="text"
+                  value={callForm.to}
+                  onChange={(e) => setCallForm({ ...callForm, to: e.target.value })}
+                  className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
+                  placeholder="To"
+                />
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>From <span className='text-red-500'>*</span></label>
+                <input
+                  type="text"
+                  value={callForm.from}
+                  onChange={(e) => setCallForm({ ...callForm, from: e.target.value })}
+                  className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
+                  placeholder="From"
+                />
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>Status</label>
+                <select
+                  value={callForm.status}
+                  onChange={(e) => setCallForm({ ...callForm, status: e.target.value })}
+                  className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
                 >
-                  <span>Update</span>
-                </button>
+                  {["Ringing", "Answered", "Busy", "No Answer", "Failed"].map(status => (
+                    <option key={status} value={status}>{status}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>Duration (seconds)</label>
+                <input
+                  type="number"
+                  value={callForm.duration}
+                  onChange={(e) => setCallForm({ ...callForm, duration: e.target.value })}
+                  className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
+                  placeholder="Call duration"
+                />
               </div>
             </div>
+
+            <div className="flex justify-end mt-6">
+              <button
+                onClick={async () => {
+                  const success = await editCall();
+                  if (success) {
+                    setShowEditModal(false);
+                    setIsEditMode(false);
+                    setCallForm({ from: '', to: '', status: 'Ringing', type: 'Outgoing', duration: '', receiver: '', name: '' });
+                  }
+                }}
+                disabled={callsLoading}
+                className={`px-4 py-2 rounded-lg text-white flex items-center space-x-2 transition-colors ${theme === 'dark' ? 'bg-purple-600 hover:bg-purple-700' : 'bg-green-600 hover:bg-green-700'} disabled:opacity-50`}
+              >
+                <span>Update</span>
+              </button>
+            </div>
           </div>
-        )}
-      </div>
-    );
-  }
+        </div>
+      )}
+    </div>
+  );
+}

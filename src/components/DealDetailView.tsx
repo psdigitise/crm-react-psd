@@ -250,7 +250,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
     to: '',
     status: 'Ringing',
     type: 'Outgoing',
-    duration: ''
+    duration: '',
+    name: ''
   });
 
   const [commentForm, setCommentForm] = useState({
@@ -743,41 +744,44 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
 
   const editCall = async () => {
     if (!callForm.from.trim() || !callForm.to.trim()) {
-      showToast('Please fill all required fields', { type: 'error' });
+      showToast('Please fill in all required fields', { type: 'warning' });
       return false;
     }
 
     setCallsLoading(true);
     try {
-      const response = await fetch(`http://103.214.132.20:8002/api/v2/document/CRM Call Log/${callForm.name}`, {
-        method: 'PATCH',
+      const response = await fetch('http://103.214.132.20:8002/api/method/frappe.client.set_value', {
+        method: 'POST',
         headers: {
           'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6',
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          from: callForm.from,
-          to: callForm.to,
-          status: callForm.status,
-          type: callForm.type,
-          duration: callForm.duration,
+          doctype: "CRM Call Log",
+          name: callForm.name, // Existing document name
+          fieldname: {
+            telephony_medium: "Manual",
+            reference_doctype: "CRM Deal",
+            reference_docname: deal.name,
+            type: callForm.type === 'Outgoing' ? 'Outgoing' : 'Incoming',
+            to: callForm.to,
+            from: callForm.from,
+            status: callForm.status,
+            duration: callForm.duration || "0",
+            receiver: userSession?.email || "Administrator"
+          }
         })
       });
 
       if (response.ok) {
         showToast('Call log updated successfully', { type: 'success' });
-        setCallForm({
-          from: '',
-          to: '',
-          status: 'Ringing',
-          type: 'Outgoing',
-          duration: '',
-          name: ''
-        });
+        setCallForm({ from: '', to: '', status: 'Ringing', type: 'Outgoing', duration: '', receiver: '', name: '' });
         await fetchCallLogs();
+        setShowCallModal(false);
         return true;
       } else {
-        showToast('Failed to update call log', { type: 'error' });
+        const errorData = await response.json();
+        showToast(errorData.message || 'Failed to update call log', { type: 'error' });
         return false;
       }
     } catch (error) {
@@ -1288,12 +1292,14 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
   useEffect(() => {
     const fetchOrganizations = async () => {
       try {
+        const session = getUserSession();
+        const sessionCompany = session?.company;
         const response = await apiAxios.post(
           '/api/method/frappe.desk.search.search_link',
           {
             txt: "",
             doctype: "CRM Organization",
-            filters: null
+            filters: sessionCompany ? { company: sessionCompany } : null
           },
           {
             headers: {
@@ -1324,12 +1330,14 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
   useEffect(() => {
     const fetchOwners = async () => {
       try {
+        const session = getUserSession();
+        const sessionCompany = session?.company;
         const response = await apiAxios.post(
           '/api/method/frappe.desk.search.search_link',
           {
             txt: "",
             doctype: "User",
-            filters: null
+            filters: sessionCompany ? { company: sessionCompany } : null
           },
           {
             headers: {
@@ -1360,12 +1368,14 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
   useEffect(() => {
     const fetchTerritory = async () => {
       try {
+        const session = getUserSession();
+        const sessionCompany = session?.company;
         const response = await apiAxios.post(
           '/api/method/frappe.desk.search.search_link',
           {
             txt: "",
             doctype: "CRM Territory",
-            filters: null
+            filters: sessionCompany ? { company: sessionCompany } : null
           },
           {
             headers: {
@@ -1959,8 +1969,21 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
 
                 <h3 className={`text-lg font-semibold ${textColor} mb-0`}>Calls</h3>
                 <button
-                  onClick={() => setShowCallModal(true)}
-                  className={`text-white px-4 py-2 rounded-lg flex items-center space-x-2 ${theme === 'dark' ? 'bg-purplebg hover:bg-purple-800' : 'bg-green-600 hover:bg-green-700'}`}
+                  // onClick={() => setShowCallModal(true)}
+                  onClick={() => {
+                    setIsEditMode(false); // <-- ADD THIS LINE
+                    setCallForm({
+                      from: '',
+                      to: '',
+                      status: 'Ringing',
+                      type: 'Outgoing',
+                      duration: '',
+                      name: ''
+                    });
+                    setShowCallModal(true);
+                  }}
+                  className={`text-white px-4 py-2 rounded-lg flex items-center space-x-2 ${theme === 'dark' ? 'bg-purplebg hover:bg-purple-800' : 'bg-green-600 hover:bg-green-700'}`
+                  }
                 >
                   <Plus className="w-4 h-4" />
                   <span>Create Call Log</span>
@@ -1972,7 +1995,18 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                   <Phone className={`w-12 h-12 mx-auto mb-4 ${textSecondaryColor}`} />
                   <p className={textSecondaryColor}>No call logs yet</p>
                   <span
-                    onClick={() => setShowCallModal(true)}
+                    onClick={() => {
+                      setIsEditMode(false); // <-- ADD THIS LINE
+                      setCallForm({
+                        from: '',
+                        to: '',
+                        status: 'Ringing',
+                        type: 'Outgoing',
+                        duration: '',
+                        name: ''
+                      });
+                      setShowCallModal(true);
+                    }}
                     className="text-white cursor-pointer bg-gray-400 rounded-md inline-block text-center px-6 py-2"
                   >Create Call Log</span>
                 </div>
@@ -2092,6 +2126,19 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                       }}
                       onClose={() => setShowPopup(false)}
                       onAddTask={handleAddTaskFromCall}
+                      onEdit={() => {
+                        setCallForm({
+                          from: editingCall.from || editingCall._caller?.label || '',
+                          to: editingCall.to || editingCall._receiver?.label || '',
+                          status: editingCall.status || 'Ringing',
+                          type: editingCall.type || 'Outgoing',
+                          duration: editingCall.duration || '',
+                          name: editingCall.name || '',
+                        });
+                        setIsEditMode(true);
+                        setShowPopup(false);
+                        setShowCallModal(true);
+                      }}
                       theme={theme}
                     />
                   )}
@@ -2110,7 +2157,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                     ✕
                   </button>
 
-                  <h3 className={`text-lg font-semibold ${textColor} mb-4`}>New Call Log</h3>
+                  <h3 className={`text-lg font-semibold ${textColor} mb-4`}>{isEditMode ? 'Edit Call Log' : 'New Call Log'}</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>Type <span className='text-red-500'>*</span></label>
@@ -2361,7 +2408,19 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
               <div className='flex justify-between items-center gap-5 mb-6'>
                 <h3 className={`text-lg font-semibold ${textColor} mb-0`}> Tasks</h3>
                 <button
-                  onClick={() => setShowTaskModal(true)}
+                  onClick={() => {
+                    setTaskForm({
+                      title: '',
+                      description: '',
+                      status: 'Open',
+                      priority: 'Medium',
+                      due_date: '',
+                      assigned_to: ''
+                    }); // reset form
+                    setIsEditMode(false); // reset to create mode
+                    setCurrentTaskId(null); // clear task id
+                    setShowTaskModal(true);
+                  }}
                   className={`px-4 py-2 rounded-lg flex items-center space-x-2 text-white ${theme === 'dark' ? 'bg-purplebg hover:bg-purple-700' : 'bg-blue-600 hover:bg-blue-700'}`}
                 >
                   <Plus className="w-4 h-4" />
@@ -2373,7 +2432,19 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                   <SiTicktick className={`w-12 h-12 mx-auto mb-4 ${textSecondaryColor}`} />
                   <p className={textSecondaryColor}>No tasks yet</p>
                   <span
-                    onClick={() => setShowTaskModal(true)}
+                    onClick={() => {
+                      setTaskForm({
+                        title: '',
+                        description: '',
+                        status: 'Open',
+                        priority: 'Medium',
+                        due_date: '',
+                        assigned_to: ''
+                      });
+                      setIsEditMode(false);
+                      setCurrentTaskId(null);
+                      setShowTaskModal(true);
+                    }}
                     className="text-white cursor-pointer bg-gray-400 rounded-md inline-block text-center px-6 py-2"
                   >New Task</span>
                 </div>
@@ -2999,9 +3070,9 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                           </div>
 
                           {/* Card body with call details */}
-                          <div 
-                           onClick={() => handleLabelClick(callData)}
-                          className={`relative border ${borderColor} rounded-lg ml-12 p-4 flex flex-col`}>
+                          <div
+                            onClick={() => handleLabelClick(callData)}
+                            className={`relative border ${borderColor} rounded-lg ml-12 p-4 flex flex-col`}>
                             <div className="flex items-center justify-between mb-2">
                               <p className={`text-lg font-medium ${textColor}`}>
                                 {callData.type} Call
@@ -3029,7 +3100,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                             {/* Overlapping avatars for caller/receiver */}
                             <div className="absolute right-4 top-1/2 -translate-y-1/2 flex -space-x-4">
                               <div
-                              onClick={() => handleLabelClick(callData)}
+                                onClick={() => handleLabelClick(callData)}
                                 className={`p-2 rounded-full flex items-center justify-center cursor-pointer ${theme === 'dark' ? 'bg-gray-600 text-gray-100' : 'bg-gray-400 text-gray-800'} font-medium`}
                                 style={{ width: '32px', height: '32px' }}
                                 title={callData._caller?.label || callData.from}
@@ -3307,7 +3378,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                               {/* Left side: Assignee, Date, Priority */}
                               <div className="flex items-center gap-4 flex-wrap">
                                 <div className="flex items-center gap-1">
-                                 <div className={`w-8 h-8 flex items-center justify-center rounded-full ${theme === 'dark' ? 'bg-gray-400' : 'bg-gray-200'} text-sm font-semibold`}>
+                                  <div className={`w-8 h-8 flex items-center justify-center rounded-full ${theme === 'dark' ? 'bg-gray-400' : 'bg-gray-200'} text-sm font-semibold`}>
                                     {taskData.assigned_to?.charAt(0).toUpperCase() || "U"}
                                   </div>
                                   <span className={textSecondaryColor}>{taskData.assigned_to || 'Unassigned'}</span>
@@ -3493,23 +3564,23 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                 />
               )}
             </div>
- {showPopup && editingCall && (
-                    <CallDetailsPopup
-                      call={{
-                        type: editingCall.type,
-                        caller: editingCall._caller?.label || "Unknown",
-                        receiver: editingCall._receiver?.label || "Unknown",
-                        date: formatDateRelative(editingCall.creation),
-                        duration: editingCall.duration,
-                        status: editingCall.status
-                      }}
-                      onClose={() => setShowPopup(false)}
-                      onAddTask={handleAddTaskFromCall}
-                      theme={theme}
-                    />
-                  )}
+            {showPopup && editingCall && (
+              <CallDetailsPopup
+                call={{
+                  type: editingCall.type,
+                  caller: editingCall._caller?.label || "Unknown",
+                  receiver: editingCall._receiver?.label || "Unknown",
+                  date: formatDateRelative(editingCall.creation),
+                  duration: editingCall.duration,
+                  status: editingCall.status
+                }}
+                onClose={() => setShowPopup(false)}
+                onAddTask={handleAddTaskFromCall}
+                theme={theme}
+              />
+            )}
           </div>
-          
+
         )}
 
 

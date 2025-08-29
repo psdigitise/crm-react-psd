@@ -1806,6 +1806,10 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
       case 'Completed':
       case 'Qualified':
         return theme === 'dark' ? 'bg-green-900/30 text-green-300' : 'bg-green-100 text-green-800';
+      case 'Unqualified':
+        return theme === 'dark' ? 'bg-gray-800 text-green-300' : 'bg-gray-800 text-green-800';
+      case 'Qualified':
+        return theme === 'dark' ? 'bg-green-900/30 text-green-300' : 'bg-green-100 text-green-800';
       case 'Working':
       case 'Contacted':
         return theme === 'dark' ? 'bg-blue-900/30 text-blue-300' : 'bg-blue-100 text-blue-800';
@@ -1944,14 +1948,35 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
             )}
             <Listbox
               value={editedLead.status}
-              onChange={(newStatus: Lead['status']) => {
-                setEditedLead(prev => {
-                  const updated = { ...prev, status: newStatus };
+              onChange={async (newStatus: Lead['status']) => {
+                const updated = { ...editedLead, status: newStatus };
+
+                // Make the API call to update the status
+                try {
+                  await fetch('http://103.214.132.20:8002/api/method/frappe.client.set_value', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': AUTH_TOKEN,
+                    },
+                    body: JSON.stringify({
+                      doctype: 'CRM Lead',
+                      name: updated.name, // Assuming editedLead.name is the correct ID like "CRM-LEAD-2025-00063"
+                      fieldname: 'status',
+                      value: newStatus,
+                    }),
+                  });
+
+                  // Update local state only if API call is successful
+                  setEditedLead(updated);
                   handleSave(updated);
-                  return updated;
-                });
+                } catch (error) {
+                  console.error('Failed to update lead status:', error);
+                  // Optionally show a toast or error message here
+                }
               }}
             >
+
               <div className="relative inline-block w-48">
                 <Listbox.Button
                   className={`pl-8 pr-4 py-2 rounded-lg transition-colors appearance-none w-full text-left ${theme === 'dark' ? 'bg-purplebg text-white' : 'bg-black text-white'}`}

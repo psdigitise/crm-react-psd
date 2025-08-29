@@ -636,7 +636,8 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
           mobile_no: formData.mobile_no,
           gender: formData.gender,
           status: formData.status,
-          deal_owner: formData.deal_owner
+          deal_owner: formData.deal_owner,
+          company: sessionCompany,
         }
       };
 

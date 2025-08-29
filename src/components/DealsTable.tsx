@@ -163,7 +163,9 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
 
       const requestData = {
         "doctype": "CRM Deal",
-        "filters": {}, // You can add filters here, e.g., {"status": "Won"}
+        "filters": {
+          "company":sessionCompany
+        }, // You can add filters here, e.g., {"status": "Won"}
         "order_by": "modified desc",
         "default_filters": {},
         "view": {

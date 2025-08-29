@@ -87,6 +87,8 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
   // Column management
   const [columns, setColumns] = useState<ColumnConfig[]>(defaultColumns);
   const [showColumnSettings, setShowColumnSettings] = useState(false);
+  const userSession = getUserSession();
+  const Company = userSession?.company;
 
   // Available filter options
   const [filterOptions, setFilterOptions] = useState({
@@ -97,7 +99,7 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
 
   useEffect(() => {
     fetchContacts();
-    
+
     // Start the soft refresh interval (every 1 second)
     intervalRef.current = setInterval(() => {
       softRefreshContacts();
@@ -124,7 +126,7 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
       setError(null);
 
       const session = getUserSession();
-      
+
       if (!session) {
         setContacts([]);
         setLoading(false);
@@ -132,19 +134,21 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
       }
 
       const apiUrl = 'http://103.214.132.20:8002/api/method/crm.api.doc.get_data';
-      
+
       const requestBody = {
         doctype: "Contact",
-        filters: {},
+        filters: {
+          company: Company
+        },
         order_by: "modified desc",
         default_filters: {},
         column_field: "status",
         columns: JSON.stringify([
-          {"label": "Name", "type": "Data", "key": "full_name", "width": "17rem"},
-          {"label": "Email", "type": "Data", "key": "email_id", "width": "12rem"},
-          {"label": "Phone", "type": "Data", "key": "mobile_no", "width": "12rem"},
-          {"label": "Organization", "type": "Data", "key": "company_name", "width": "12rem"},
-          {"label": "Last Modified", "type": "Datetime", "key": "modified", "width": "8rem"}
+          { "label": "Name", "type": "Data", "key": "full_name", "width": "17rem" },
+          { "label": "Email", "type": "Data", "key": "email_id", "width": "12rem" },
+          { "label": "Phone", "type": "Data", "key": "mobile_no", "width": "12rem" },
+          { "label": "Organization", "type": "Data", "key": "company_name", "width": "12rem" },
+          { "label": "Last Modified", "type": "Datetime", "key": "modified", "width": "8rem" }
         ]),
         kanban_columns: "[]",
         kanban_fields: "[]",
@@ -228,25 +232,27 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
   const softRefreshContacts = async () => {
     try {
       const session = getUserSession();
-      
+
       if (!session) {
         return;
       }
 
       const apiUrl = 'http://103.214.132.20:8002/api/method/crm.api.doc.get_data';
-      
+
       const requestBody = {
         doctype: "Contact",
-        filters: {},
+        filters: {
+          company: Company
+        },
         order_by: "modified desc",
         default_filters: {},
         column_field: "status",
         columns: JSON.stringify([
-          {"label": "Name", "type": "Data", "key": "full_name", "width": "17rem"},
-          {"label": "Email", "type": "Data", "key": "email_id", "width": "12rem"},
-          {"label": "Phone", "type": "Data", "key": "mobile_no", "width": "12rem"},
-          {"label": "Organization", "type": "Data", "key": "company_name", "width": "12rem"},
-          {"label": "Last Modified", "type": "Datetime", "key": "modified", "width": "8rem"}
+          { "label": "Name", "type": "Data", "key": "full_name", "width": "17rem" },
+          { "label": "Email", "type": "Data", "key": "email_id", "width": "12rem" },
+          { "label": "Phone", "type": "Data", "key": "mobile_no", "width": "12rem" },
+          { "label": "Organization", "type": "Data", "key": "company_name", "width": "12rem" },
+          { "label": "Last Modified", "type": "Datetime", "key": "modified", "width": "8rem" }
         ]),
         kanban_columns: "[]",
         kanban_fields: "[]",

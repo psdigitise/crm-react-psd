@@ -99,7 +99,7 @@
 // //       }
 
 // //       const result = await response.json();
-      
+
 // //       // Transform API data to match our Organization interface
 // //       const transformedOrganizations: Organization[] = result.message.data.map((apiOrg: any) => ({
 // //         id: apiOrg.name || Math.random().toString(),
@@ -387,7 +387,7 @@
 
 //   useEffect(() => {
 //     fetchOrganizations();
-    
+
 //     // Start the soft refresh interval (every 1 second)
 //     intervalRef.current = setInterval(() => {
 //       softRefreshOrganizations();
@@ -460,7 +460,7 @@
 //       }
 
 //       const result = await response.json();
-      
+
 //       // Transform API data to match our Organization interface
 //       const transformedOrganizations: Organization[] = result.message.data.map((apiOrg: any) => ({
 //         id: apiOrg.name || Math.random().toString(),
@@ -545,7 +545,7 @@
 //       }
 
 //       const result = await response.json();
-      
+
 //       // Transform API data to match our Organization interface
 //       const transformedOrganizations: Organization[] = result.message.data.map((apiOrg: any) => ({
 //         id: apiOrg.name || Math.random().toString(),
@@ -792,7 +792,7 @@
 
 
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronDown, ChevronUp, Globe, Building2, IndianRupee , Users, Loader2, ChevronLeft, ChevronRight, Filter, X, Settings, RefreshCcw, Download } from 'lucide-react';
+import { ChevronDown, ChevronUp, Globe, Building2, IndianRupee, Users, Loader2, ChevronLeft, ChevronRight, Filter, X, Settings, RefreshCcw, Download } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import { showToast } from '../utils/toast';
 import { exportToCSV, exportToExcel } from '../utils/exportUtils';
@@ -881,7 +881,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
 
   useEffect(() => {
     fetchOrganizations();
-    
+
     // Start the soft refresh interval (every 1 second)
     intervalRef.current = setInterval(() => {
       softRefreshOrganizations();
@@ -908,6 +908,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
       setError(null);
 
       const session = getUserSession();
+      const sessionCompany = session?.company;
 
       if (!session) {
         setOrganizations([]);
@@ -919,7 +920,9 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
 
       const requestBody = {
         doctype: "CRM Organization",
-        filters: {},
+        filters: {
+          company: sessionCompany
+        },
         order_by: "modified desc",
         default_filters: {},
         column_field: "status",
@@ -935,8 +938,8 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
         page_length: 1000,
         page_length_count: 1000,
         rows: JSON.stringify([
-          "name", "organization_name", "organization_logo", "website", "industry", 
-          "currency", "annual_revenue", "modified", "owner", "creation", 
+          "name", "organization_name", "organization_logo", "website", "industry",
+          "currency", "annual_revenue", "modified", "owner", "creation",
           "modified_by", "_assign", "_liked_by", "territory", "no_of_employees"
         ]),
         title_field: "",
@@ -961,7 +964,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
       }
 
       const result = await response.json();
-      
+
       // Transform API data to match our Organization interface
       const transformedOrganizations: Organization[] = result.message.data.map((apiOrg: any) => ({
         id: apiOrg.name || Math.random().toString(),
@@ -1006,6 +1009,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
   const softRefreshOrganizations = async () => {
     try {
       const session = getUserSession();
+      const sessionCompany = session?.company;
 
       if (!session) {
         return;
@@ -1015,7 +1019,9 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
 
       const requestBody = {
         doctype: "CRM Organization",
-        filters: {},
+        filters: {
+          company: sessionCompany
+        },
         order_by: "modified desc",
         default_filters: {},
         column_field: "status",
@@ -1031,8 +1037,8 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
         page_length: 1000,
         page_length_count: 1000,
         rows: JSON.stringify([
-          "name", "organization_name", "organization_logo", "website", "industry", 
-          "currency", "annual_revenue", "modified", "owner", "creation", 
+          "name", "organization_name", "organization_logo", "website", "industry",
+          "currency", "annual_revenue", "modified", "owner", "creation",
           "modified_by", "_assign", "_liked_by", "territory", "no_of_employees"
         ]),
         title_field: "",
@@ -1058,7 +1064,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
       }
 
       const result = await response.json();
-      
+
       // Transform API data to match our Organization interface
       const transformedOrganizations: Organization[] = result.message.data.map((apiOrg: any) => ({
         id: apiOrg.name || Math.random().toString(),
@@ -1627,7 +1633,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
                       {column.key === 'annual_revenue' && (
                         <div className={`flex items-center text-sm font-semibold ${theme === 'dark' ? 'text-green-400' : 'text-green-600'
                           }`}>
-                          <IndianRupee  className="w-4 h-4 mr-1" />
+                          <IndianRupee className="w-4 h-4 mr-1" />
                           {org.annual_revenue}
                         </div>
                       )}

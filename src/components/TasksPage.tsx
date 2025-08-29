@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import {Edit, Trash2 } from 'lucide-react';
+import { Edit, Trash2 } from 'lucide-react';
 import { showToast } from '../utils/toast';
 import { Header } from './Header';
 import { useTheme } from './ThemeProvider';
@@ -60,6 +60,7 @@ export function TasksPage({ onCreateTask, leadName }: TasksPageProps) {
       setLoading(true);
 
       const session = getUserSession();
+      const sessionCompany = session?.company;
 
       if (!session) {
         setTasks([]);
@@ -69,11 +70,18 @@ export function TasksPage({ onCreateTask, leadName }: TasksPageProps) {
 
       // Prepare filters
       let filters = {};
-      
+
       // Add leadName filter if provided
       if (leadName) {
         filters = {
           "reference_docname": leadName
+        };
+      }
+
+      if (sessionCompany) {
+        filters = {
+          ...filters,
+          "company": sessionCompany
         };
       }
 
@@ -84,19 +92,19 @@ export function TasksPage({ onCreateTask, leadName }: TasksPageProps) {
         default_filters: {},
         column_field: "status",
         columns: JSON.stringify([
-          {"label": "Title", "type": "Data", "key": "title", "width": "16rem"},
-          {"label": "Status", "type": "Select", "key": "status", "width": "8rem"},
-          {"label": "Priority", "type": "Select", "key": "priority", "width": "8rem"},
-          {"label": "Due Date", "type": "Date", "key": "due_date", "width": "8rem"},
-          {"label": "Assigned To", "type": "Link", "key": "assigned_to", "width": "10rem"},
-          {"label": "Last Modified", "type": "Datetime", "key": "modified", "width": "8rem"}
+          { "label": "Title", "type": "Data", "key": "title", "width": "16rem" },
+          { "label": "Status", "type": "Select", "key": "status", "width": "8rem" },
+          { "label": "Priority", "type": "Select", "key": "priority", "width": "8rem" },
+          { "label": "Due Date", "type": "Date", "key": "due_date", "width": "8rem" },
+          { "label": "Assigned To", "type": "Link", "key": "assigned_to", "width": "10rem" },
+          { "label": "Last Modified", "type": "Datetime", "key": "modified", "width": "8rem" }
         ]),
         kanban_columns: "[]",
         kanban_fields: "[]",
         page_length: 20,
         page_length_count: 20,
         rows: JSON.stringify([
-          "name", "title", "description", "assigned_to", "due_date", "status", 
+          "name", "title", "description", "assigned_to", "due_date", "status",
           "priority", "reference_doctype", "reference_docname", "modified", "start_date"
         ]),
         title_field: "",
@@ -123,7 +131,7 @@ export function TasksPage({ onCreateTask, leadName }: TasksPageProps) {
       }
 
       const result = await response.json();
-      
+
       // Extract tasks from the new API response structure
       const tasksData = result.message?.data || [];
       setTasks(tasksData);

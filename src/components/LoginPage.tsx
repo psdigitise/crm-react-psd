@@ -71,7 +71,6 @@ export function LoginPage({ onLogin }: LoginPageProps) {
     company_name: '',
     no_employees:''
   });
-  const [showCrmModal, setShowCrmModal] = useState(false); // Add state for modal
 
   const validatePassword = (password: string) => {
     const capitalRegex = /[A-Z]/;
@@ -237,8 +236,8 @@ export function LoginPage({ onLogin }: LoginPageProps) {
         setEmail(registerData.email);
         setIsRegisterMode(false);
         setError("");
-        onLogin();
-        setShowCrmModal(true);
+        //onLogin();
+        // setShowCrmModal(true);
       } else {
         throw new Error("Registration failed: No response message");
       }
@@ -267,12 +266,6 @@ export function LoginPage({ onLogin }: LoginPageProps) {
       const error = validatePassword(value);
       setPasswordError(error);
     }
-  };
-
-  const handleCrmSetupComplete = () => {
-    // Close the modal and proceed to the main app
-    setShowCrmModal(false);
-    onLogin();
   };
 
   return (
@@ -553,10 +546,6 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           )}
         </div>
       </div>
-      <CrmSetupModal
-        isOpen={showCrmModal}
-        onClose={handleCrmSetupComplete}
-      />
     </div>
   );
 }

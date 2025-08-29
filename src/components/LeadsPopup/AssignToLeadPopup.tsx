@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Search, User } from 'lucide-react';
+import { getUserSession } from '../../utils/session';
 
 interface AssignToPopupProps {
     isOpen: boolean;
@@ -45,7 +46,7 @@ export function AssignToPopup({ isOpen, onClose, selectedIds, theme, onSuccess }
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (
-                dropdownRef.current && 
+                dropdownRef.current &&
                 !dropdownRef.current.contains(event.target as Node) &&
                 searchRef.current &&
                 !searchRef.current.contains(event.target as Node)
@@ -63,12 +64,14 @@ export function AssignToPopup({ isOpen, onClose, selectedIds, theme, onSuccess }
     const fetchUsers = async (searchText: string) => {
         setIsLoading(true);
         try {
+            const session = getUserSession();
+            const sessionCompany = session?.company;
             const apiUrl = 'http://103.214.132.20:8002/api/method/frappe.desk.search.search_link';
 
             const payload = {
                 txt: searchText,
                 doctype: "User",
-                filters: []
+                filters: sessionCompany ? { company: sessionCompany } : null
             };
 
             const response = await fetch(apiUrl, {
@@ -210,7 +213,7 @@ export function AssignToPopup({ isOpen, onClose, selectedIds, theme, onSuccess }
 
                         {/* User List Dropdown */}
                         {showDropdown && (
-                            <div 
+                            <div
                                 ref={dropdownRef}
                                 className={`max-h-60 overflow-y-auto mt-4 rounded ${theme === 'dark' ? 'bg-gray-800 border border-gray-700' : 'bg-gray-50 border border-gray-200'}`}
                             >
@@ -241,7 +244,7 @@ export function AssignToPopup({ isOpen, onClose, selectedIds, theme, onSuccess }
                                                     </div>
                                                     <div>
                                                         <div className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                                                            { user.value}
+                                                            {user.value}
                                                         </div>
                                                         <div className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
                                                             {user.description}
@@ -255,9 +258,9 @@ export function AssignToPopup({ isOpen, onClose, selectedIds, theme, onSuccess }
                             </div>
                         )}
                     </div>
-                    
+
                 </div>
-                
+
 
                 {/* Footer */}
                 <div className={` w-full px-3 py-4 border-t ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>

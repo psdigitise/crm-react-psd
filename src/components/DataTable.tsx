@@ -10,6 +10,8 @@ import { BsThreeDots } from 'react-icons/bs';
 import { AssignToPopup } from './LeadsPopup/AssignToLeadPopup';
 import { ClearAssignmentPopup } from './LeadsPopup/ClearAssignmentPopup';
 import { BulkEditPopup } from './LeadsPopup/EditLeadPopup';
+import { ConvertToDealPopup } from './LeadsPopup/ConvertToDealPopup';
+import { AUTH_TOKEN } from '../api/apiUrl';
 
 interface Lead {
   id: string;
@@ -114,6 +116,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
   const [totalItems, setTotalItems] = useState(0);
   // const selectedLeads = data.filter(d => selectedIds.includes(d.id));
   const [filteredData, setFilteredData] = useState<Lead[]>([]);
+  const [isConvertToDealPopupOpen, setIsConvertToDealPopupOpen] = useState(false);
   const [isBulkEditPopupOpen, setIsBulkEditPopupOpen] = useState(false);
 
   // Filter state
@@ -156,36 +159,71 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
       const session = getUserSession();
       const sessionCompany = session?.company;
 
-      if (!sessionCompany) {
+      if (!session?.api_key || !session?.api_secret) {
+        setError("User session or API credentials not found.");
         setLeads([]);
         setLoading(false);
         return;
       }
 
-      const filters = encodeURIComponent(JSON.stringify([["company", "=", sessionCompany]]));
-      const apiUrl = `http://103.214.132.20:8002/api/v2/document/CRM Lead?fields=["name","first_name","email","status","organization","mobile_no","lead_owner","modified","territory","industry","website","salutation","last_name","converted"]&filters=${filters}&Limit=1000&order_by=modified asc`;
+      // The new API endpoint for the POST request
+      const apiUrl = 'http://103.214.132.20:8002/api/method/crm.api.doc.get_data';
+
+      // The payload (body) for the POST request, as you provided
+      const payload = {
+        "doctype": "CRM Lead",
+        "filters": {
+          "company": sessionCompany
+        },
+        "order_by": "modified desc",
+        "default_filters": {
+          "converted": 0
+        },
+        "view": {
+          "custom_view_name": 2,
+          "view_type": "list",
+          "group_by_field": "owner"
+        },
+        "column_field": "status",
+        "title_field": "",
+        "kanban_columns": "[]",
+        "kanban_fields": "[]",
+        "columns": "[{\"label\": \"Name\", \"type\": \"Data\", \"key\": \"lead_name\", \"width\": \"12rem\"}, {\"label\": \"Organization\", \"type\": \"Link\", \"key\": \"organization\", \"options\": \"CRM Organization\", \"width\": \"10rem\"}, {\"label\": \"Status\", \"type\": \"Select\", \"key\": \"status\", \"width\": \"8rem\"}, {\"label\": \"Email\", \"type\": \"Data\", \"key\": \"email\", \"width\": \"12rem\"}, {\"label\": \"Mobile No\", \"type\": \"Data\", \"key\": \"mobile_no\", \"width\": \"11rem\"}, {\"label\": \"Assigned To\", \"type\": \"Text\", \"key\": \"_assign\", \"width\": \"10rem\"}, {\"label\": \"Last Modified\", \"type\": \"Datetime\", \"key\": \"modified\", \"width\": \"8rem\"}]",
+        "rows": "[\"name\", \"lead_name\", \"organization\", \"status\", \"email\", \"mobile_no\", \"lead_owner\", \"first_name\", \"last_name\", \"salutation\", \"converted\", \"sla_status\", \"response_by\", \"first_response_time\", \"first_responded_on\", \"modified\", \"_assign\", \"image\", \"owner\", \"creation\", \"modified_by\", \"docstatus\", \"idx\", \"naming_series\", \"gender\", \"no_of_employees\", \"annual_revenue\", \"website\", \"territory\", \"industry\"]",
+        "page_length": 20,
+        "page_length_count": 20
+      };
 
       const response = await fetch(apiUrl, {
-        method: 'GET',
+        method: 'POST', // Changed method to POST
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token ${session.api_key}:${session.api_secret}`
-        }
+          // Authorization token remains the same
+          'Authorization': AUTH_TOKEN
+        },
+        // Added the body with the JSON payload
+        body: JSON.stringify(payload)
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        // Try to get more specific error info from the response body
+        const errorBody = await response.text();
+        throw new Error(`HTTP ${response.status}: ${response.statusText}. Body: ${errorBody}`);
       }
 
       const result = await response.json();
       console.log('API Response:', result);
 
-      // Transform API data to match our Lead interface and filter by converted = 0
-      const transformedLeads: Lead[] = result.data
-        .filter((apiLead: any) => apiLead.converted === 0) // Only show leads with converted = 0
+      // IMPORTANT: The response structure from the new API might be different.
+      // The leads data may be in `result.message` or `result.message.data` instead of `result.data`.
+      // Please inspect the `console.log` output and adjust the line below if necessary.
+      const leadsData = result.message?.data || result.data || [];
+
+      // The transformation logic below assumes the field names (e.g., apiLead.first_name) are still correct.
+      // You may need to update these based on the new API's response.
+      const transformedLeads: Lead[] = leadsData
+        // The converted filter is now in the payload, but filtering again here is safe.
+        .filter((apiLead: any) => apiLead.converted === 0)
         .map((apiLead: any) => ({
           id: apiLead.name || apiLead.idx?.toString() || Math.random().toString(),
           name: apiLead.name || 'Unknown',
@@ -206,28 +244,13 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
           salutation: apiLead.salutation || '',
           converted: apiLead.converted || 0,
           // Keep original API fields
-          owner: apiLead.owner,
-          creation: apiLead.creation,
-          modified: apiLead.modified,
-          modified_by: apiLead.modified_by,
-          docstatus: apiLead.docstatus,
-          idx: apiLead.idx,
-          mobile_no: apiLead.mobile_no,
-          naming_series: apiLead.naming_series,
-          lead_name: apiLead.lead_name,
-          gender: apiLead.gender,
-          no_of_employees: apiLead.no_of_employees,
-          annual_revenue: apiLead.annual_revenue,
-          image: apiLead.image,
-          first_name: apiLead.first_name,
-          last_name: apiLead.last_name,
-          lead_owner: apiLead.lead_owner
+          ...apiLead // A simpler way to keep all original fields
         }));
 
       setLeads(transformedLeads);
       setTotalItems(transformedLeads.length);
 
-      // Extract unique values for filter options
+      // Extract unique values for filter options (this logic remains the same)
       const territories = [...new Set(transformedLeads.map(lead => lead.territory).filter(Boolean))];
       const industries = [...new Set(transformedLeads.map(lead => lead.industry).filter(Boolean))];
       const assignedUsers = [...new Set(transformedLeads.map(lead => lead.assignedTo).filter(Boolean))];
@@ -246,6 +269,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
       setLoading(false);
     }
   };
+
 
   const mapApiStatus = (
     apiStatus: string
@@ -670,6 +694,15 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
                   className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600"
                 >
                   Clear Assignment
+                </button>
+                <button
+                  onClick={() => {
+                    setIsConvertToDealPopupOpen(true);
+                    setShowDropdown(false);
+                  }}
+                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600"
+                >
+                  Convert To Deal
                 </button>
               </div>
             )}
@@ -1105,6 +1138,17 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
         theme={theme}
         onSuccess={() => {
           // Refresh the leads after successful bulk edit
+          fetchLeads();
+          setSelectedIds([]);
+        }}
+      />
+      <ConvertToDealPopup
+        isOpen={isConvertToDealPopupOpen}
+        onClose={() => setIsConvertToDealPopupOpen(false)}
+        selectedIds={selectedIds}
+        theme={theme}
+        onSuccess={() => {
+          // Refresh the leads after successful conversion
           fetchLeads();
           setSelectedIds([]);
         }}
