@@ -2589,7 +2589,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
               {!showEmailModal ? (
                 <div className="flex gap-4">
                   <button onClick={() => { setShowEmailModal(true); setReplyData(undefined); }} className={`flex items-center gap-2 px-3 py-1 rounded-md text-sm ${theme === "dark" ? "text-gray-300 hover:bg-gray-700" : "text-gray-600 hover:bg-gray-200"}`}><Mail size={16} /> Reply</button>
-                  <button onClick={handleCommentNavigate} className={`flex items-center gap-2 px-3 py-1 rounded-md text-sm ${theme === "dark" ? "text-gray-300 hover:bg-gray-700" : "text-gray-400 hover:bg-gray-200"}`}><FaRegComment size={14} /> Comment</button>
+                  <button onClick={() => { setShowEmailModal(true); setReplyData(undefined); }} className={`flex items-center gap-2 px-3 py-1 rounded-md text-sm ${theme === "dark" ? "text-gray-300 hover:bg-gray-700" : "text-gray-600 hover:bg-gray-200"}`}><FaRegComment size={16} /> Comment</button>
                 </div>
               ) : (
                 <EmailComposerleads onClose={() => { setShowEmailModal(false); setReplyData(undefined); }} lead={lead} deal={undefined} setListSuccess={() => { }} refreshEmails={refreshEmails} replyData={replyData} />

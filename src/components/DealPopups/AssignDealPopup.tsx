@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { IoCloseOutline } from 'react-icons/io5';
-import { useTheme } from '../ThemeProvider';
 
 interface AssignDealPopupProps {
     isOpen: boolean;
@@ -10,6 +9,7 @@ interface AssignDealPopupProps {
     isLoading?: boolean;
     assignOptions: string[]; // Array of possible assignees
     currentAssignee?: string; // Currently assigned person
+    dealNames: string[]; // Array of deal names to assign
 }
 
 export const AssignDealPopup: React.FC<AssignDealPopupProps> = ({
@@ -17,11 +17,50 @@ export const AssignDealPopup: React.FC<AssignDealPopupProps> = ({
     onClose,
     theme = 'dark',
     onAssign,
-    isLoading = false,
     assignOptions,
-    currentAssignee = ''
+    currentAssignee = '',
+    dealNames = []
 }) => {
     const [selectedAssignee, setSelectedAssignee] = useState(currentAssignee);
+    const [isApiLoading, setIsApiLoading] = useState(false);
+
+    const handleAssign = async () => {
+        if (!selectedAssignee) return;
+        
+        setIsApiLoading(true);
+        
+        try {
+            const response = await fetch('http://103.214.132.20:8002/api/method/frappe.desk.form.assign_to.add_multiple', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6' // You'll need to add your auth token
+                },
+                body: JSON.stringify({
+                    doctype: "CRM Deal",
+                    name: JSON.stringify(dealNames), // Format as required
+                    assign_to: [selectedAssignee],
+                    bulk_assign: true,
+                    re_assign: true
+                })
+            });
+            
+            if (response.ok) {
+                const result = await response.json();
+                console.log('Assignment successful:', result);
+                onAssign(selectedAssignee);
+                onClose();
+            } else {
+                console.error('Assignment failed:', response.statusText);
+                // Handle error (show message to user, etc.)
+            }
+        } catch (error) {
+            console.error('Error assigning deal:', error);
+            // Handle error (show message to user, etc.)
+        } finally {
+            setIsApiLoading(false);
+        }
+    };
 
     if (!isOpen) return null;
 
@@ -70,7 +109,7 @@ export const AssignDealPopup: React.FC<AssignDealPopupProps> = ({
                                         : 'border-gray-300 text-gray-900 focus:ring-blue-500 focus:border-blue-500'
                                     }`}
                             >
-                                <option value="" className="text-white">Select an assignee</option>
+                                <option value="">Select an assignee</option>
                                 {assignOptions.map((option) => (
                                     <option
                                         key={option}
@@ -91,19 +130,19 @@ export const AssignDealPopup: React.FC<AssignDealPopupProps> = ({
                     }`}>
                     <button
                         type="button"
-                        onClick={() => onAssign(selectedAssignee)}
-                        disabled={isLoading || !selectedAssignee}
-                        className={`inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-1.5 text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 ${isLoading || !selectedAssignee
+                        onClick={handleAssign}
+                        disabled={isApiLoading || !selectedAssignee}
+                        className={`inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-1.5 text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 ${isApiLoading || !selectedAssignee
                                 ? 'bg-blue-400 cursor-not-allowed'
                                 : 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500'
                             }`}
                     >
-                        {isLoading ? 'Assigning...' : 'Update'}
+                        {isApiLoading ? 'Assigning...' : 'Update'}
                     </button>
                     <button
                         type="button"
                         onClick={onClose}
-                        disabled={isLoading}
+                        disabled={isApiLoading}
                         className={`inline-flex justify-center rounded-md border shadow-sm px-4 py-1.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 ${theme === 'dark'
                                 ? 'border-purple-500/30 bg-dark-accent text-white hover:bg-purple-800/50'
                                 : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'

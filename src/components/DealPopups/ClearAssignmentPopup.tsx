@@ -1,23 +1,32 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { IoCloseOutline } from 'react-icons/io5';
-import { useTheme } from '../ThemeProvider';
 
 interface ClearAssignmentPopupProps {
   isOpen: boolean;
   onClose: () => void;
-  theme?: 'light' | 'dark';
   onConfirm: () => void;
   isLoading?: boolean;
+  theme?: 'light' | 'dark';
 }
 
 export const ClearAssignmentPopup: React.FC<ClearAssignmentPopupProps> = ({
   isOpen,
   onClose,
-  theme = 'dark',
   onConfirm,
   isLoading = false,
+  theme = 'dark'
 }) => {
+  const [error, setError] = useState<string | null>(null);
+
   if (!isOpen) return null;
+
+  const handleClearAssignment = async () => {
+    try {
+      onConfirm();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to clear assignment');
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto">
@@ -64,6 +73,13 @@ export const ClearAssignmentPopup: React.FC<ClearAssignmentPopupProps> = ({
               Are you sure you want to clear the assignment for the selected deal(s)?
             </p>
           </div>
+          
+          {/* Error Message */}
+          {error && (
+            <div className="mt-4 p-2 rounded bg-red-100 text-red-800">
+              {error}
+            </div>
+          )}
         </div>
         
         {/* Footer with action buttons */}
@@ -72,9 +88,9 @@ export const ClearAssignmentPopup: React.FC<ClearAssignmentPopupProps> = ({
         }`}>
           <button
             type="button"
-            onClick={onConfirm}
+            onClick={handleClearAssignment}
             disabled={isLoading}
-            className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-500 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50"
+            className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50"
           >
             {isLoading ? 'Clearing...' : 'Clear Assignment'}
           </button>

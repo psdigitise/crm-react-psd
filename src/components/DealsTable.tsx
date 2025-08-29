@@ -164,7 +164,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
       const requestData = {
         "doctype": "CRM Deal",
         "filters": {
-          "company":sessionCompany
+          "company": sessionCompany
         }, // You can add filters here, e.g., {"status": "Won"}
         "order_by": "modified desc",
         "default_filters": {},
@@ -388,7 +388,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
 
   // Add these handler functions
   const handleEditClick = (deal: Deal) => {
-    setCurrentEditDeal(deal);
+    setSelectedDeals([deal.id]);
     setIsEditPopupOpen(true);
     setShowDropdown(false); // Close the dropdown when opening edit popup
   };
@@ -401,7 +401,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
 
 
   // Add this function to handle the delete confirmation
-     const handleDeleteConfirmation = async () => {
+  const handleDeleteConfirmation = async () => {
     if (selectedDeals.length === 0) {
       console.error("No deals selected for deletion.");
       setIsDeletePopupOpen(false);
@@ -432,13 +432,13 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
       // 3. Handle success
       console.log("Deals deleted successfully:", response.data);
       // The actual data is in response.data, not response.json()
-      
+
       setIsDeletePopupOpen(false);
-      setSelectedDeals([]); 
+      setSelectedDeals([]);
       setShowDropdown(false);
-      
+
       // Refresh the deals list
-      await fetchDeals(); 
+      await fetchDeals();
 
     } catch (error) {
       // 4. Handle errors (axios provides more detailed errors)
@@ -449,10 +449,10 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
       } else if (error instanceof Error) {
         errorMessage = error.message;
       }
-      
+
       console.error("Failed to delete deals:", errorMessage);
       setError(errorMessage);
-      
+
     } finally {
       // 5. Always turn off the loading state
       setIsDeleting(false);
@@ -474,19 +474,52 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
     }, 1000);
   };
 
-  const handleClearAssignmentConfirmation = () => {
+  const handleClearAssignmentConfirmation = async () => {
     setIsClearingAssignment(true);
-    // Here you would normally make your API call to clear assignment
-    console.log('Clearing assignment for selected deals:', selectedDeals);
+    setError(null);
 
-    // Simulate API call delay
-    setTimeout(() => {
+    try {
+      if (selectedDeals.length === 0) {
+        throw new Error("No deals selected for clearing assignment.");
+      }
+
+      const apiUrl = "http://103.214.132.20:8002/api/method/frappe.desk.form.assign_to.remove_multiple";
+
+      // Format the payload
+      const payload = {
+        doctype: "CRM Deal", // Fixed typo from "CRM Dead" to "CRM Deal"
+        names: JSON.stringify(selectedDeals),
+        ignore_permissions: true
+      };
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': AUTH_TOKEN
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || `Failed to clear assignment: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      console.log('Clear assignment successful:', result);
+
+      // Clear selection and refresh data
+      setSelectedDeals([]);
+      await fetchDeals();
+
+    } catch (error) {
+      console.error("Failed to clear assignment:", error);
+      setError(error instanceof Error ? error.message : 'Failed to clear assignment');
+    } finally {
       setIsClearingAssignment(false);
       setIsClearAssignmentPopupOpen(false);
-      setSelectedDeals([]); // Clear selection after clearing assignment
-      // You might want to refresh the deals list here
-      fetchDeals();
-    }, 1000);
+    }
   };
   return (
     <div className="space-y-4 max-h-[68vh] overflow-y-auto pr-3">
@@ -908,7 +941,12 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
       <EditDealPopup
         isOpen={isEditPopupOpen}
         onClose={handleCloseEditPopup}
+        selectedIds={selectedDeals}
         theme={theme}
+        onSuccess={() => {
+          fetchDeals(); // Refresh the deals list after successful edit
+          setSelectedDeals([]); // Clear selection
+        }}
       />
       <DeleteDealPopup
         isOpen={isDeletePopupOpen}
