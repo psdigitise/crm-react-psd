@@ -1125,6 +1125,7 @@ export function CreateContactModal({ isOpen, onClose, onSubmit }: CreateContactM
 
     try {
       const session = getUserSession();
+      const sessionCompany = session?.company || ''; 
       if (!session) {
         showToast('Session not found', { type: 'error' });
         return;
@@ -1135,6 +1136,7 @@ export function CreateContactModal({ isOpen, onClose, onSubmit }: CreateContactM
         first_name: formData.first_name,
         last_name: formData.last_name,
         gender: formData.gender,
+        company:sessionCompany,
         company_name: formData.company_name,
         designation: formData.designation,
         ...(formData.middle_name && { middle_name: formData.middle_name }),
