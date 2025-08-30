@@ -11,6 +11,7 @@ import { DeleteDealPopup } from './DealPopups/DeleteDealPopup';
 import { AssignDealPopup } from './DealPopups/AssignDealPopup';
 import { ClearAssignmentPopup } from './DealPopups/ClearAssignmentPopup';
 import axios from 'axios';
+
 interface Deal {
   id: string;
   name: string;
@@ -62,9 +63,9 @@ const statusColors = {
 };
 
 const defaultColumns = [
-  { key: 'organization', label: 'Organization', visible: true }, // 1st column
-  { key: 'first_name', label: 'First Name', visible: true }, // 2nd column
-  { key: 'name', label: 'Name', visible: false }, // 2nd column
+  { key: 'organization', label: 'Organization', visible: true },
+  { key: 'first_name', label: 'First Name', visible: true },
+  { key: 'name', label: 'Name', visible: false },
   { key: 'annualRevenue', label: 'Annual Revenue', visible: true },
   { key: 'status', label: 'Status', visible: true },
   { key: 'email', label: 'Email', visible: true },
@@ -76,6 +77,7 @@ const defaultColumns = [
   { key: 'industry', label: 'Industry', visible: false },
   { key: 'website', label: 'Website', visible: false }
 ];
+
 export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
   const { theme } = useTheme();
   const [deals, setDeals] = useState<Deal[]>([]);
@@ -88,7 +90,6 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
   const [showFilters, setShowFilters] = useState(false);
   const [showColumnSettings, setShowColumnSettings] = useState(false);
   const [columns, setColumns] = useState(defaultColumns);
-  // Add this to your state declarations
   const [selectedDeals, setSelectedDeals] = useState<string[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [isEditPopupOpen, setIsEditPopupOpen] = useState(false);
@@ -97,36 +98,9 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isAssignPopupOpen, setIsAssignPopupOpen] = useState(false);
   const [isAssigning, setIsAssigning] = useState(false);
-  // Add to your state declarations
   const [isClearAssignmentPopupOpen, setIsClearAssignmentPopupOpen] = useState(false);
   const [isClearingAssignment, setIsClearingAssignment] = useState(false);
 
-  // Handler for individual row selection
-  const handleRowSelection = (dealId: string) => {
-    setSelectedDeals(prevSelected =>
-      prevSelected.includes(dealId)
-        ? prevSelected.filter(id => id !== dealId) // Uncheck: remove ID
-        : [...prevSelected, dealId]               // Check: add ID
-    );
-  };
-
-  // Handler for the "Select All" checkbox
-  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.checked) {
-      // If checking the box, select all deals on the current page
-      const currentPageIds = paginatedData.map(d => d.id);
-      setSelectedDeals(currentPageIds);
-    } else {
-      // If unchecking, clear all selections
-      setSelectedDeals([]);
-    }
-  };
-
-  // NEW: Handler to select all filtered results (not just the current page)
-  const handleSelectAllFiltered = () => {
-    const allFilteredIds = sortedData.map(d => d.id);
-    setSelectedDeals(allFilteredIds);
-  };
   // Filter state
   const [filters, setFilters] = useState({
     status: [] as string[],
@@ -165,7 +139,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
         "doctype": "CRM Deal",
         "filters": {
           "company": sessionCompany
-        }, // You can add filters here, e.g., {"status": "Won"}
+        },
         "order_by": "modified desc",
         "default_filters": {},
         "view": {
@@ -201,7 +175,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
       // Transform the API response to match your Deal interface
       const transformedDeals: Deal[] = result.message.data.map((apiDeal: any) => ({
         id: apiDeal.name || Math.random().toString(),
-        organization: apiDeal.organization || 'N/A', // Ensure this is mapped correctly
+        organization: apiDeal.organization || 'N/A',
         first_name: apiDeal.first_name || 'Unknown',
         name: apiDeal.name || 'Unknown',
         status: apiDeal.status || 'Qualification',
@@ -211,7 +185,6 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
         lastModified: formatDate(apiDeal.modified),
         annualRevenue: formatCurrency(apiDeal.annual_revenue),
         closeDate: apiDeal.close_date ? formatDate(apiDeal.close_date) : 'N/A',
-        // Optional fields
         territory: apiDeal.territory,
         industry: apiDeal.industry,
         website: apiDeal.website
@@ -257,6 +230,31 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
       style: 'currency',
       currency: 'INR'
     }).format(numValue);
+  };
+
+  // Handler for individual row selection
+  const handleRowSelection = (dealId: string) => {
+    setSelectedDeals(prevSelected =>
+      prevSelected.includes(dealId)
+        ? prevSelected.filter(id => id !== dealId)
+        : [...prevSelected, dealId]
+    );
+  };
+
+  // Handler for the "Select All" checkbox
+  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.checked) {
+      const currentPageIds = paginatedData.map(d => d.id);
+      setSelectedDeals(currentPageIds);
+    } else {
+      setSelectedDeals([]);
+    }
+  };
+
+  // Handler to select all filtered results
+  const handleSelectAllFiltered = () => {
+    const allFilteredIds = sortedData.map(d => d.id);
+    setSelectedDeals(allFilteredIds);
   };
 
   // Filtering, sorting, and pagination
@@ -348,6 +346,269 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
     </div>
   );
 
+  // Handler functions
+  const handleEditClick = (deal: Deal) => {
+    setSelectedDeals([deal.id]);
+    setIsEditPopupOpen(true);
+    setShowDropdown(false);
+  };
+
+  const handleCloseEditPopup = () => {
+    setIsEditPopupOpen(false);
+    setCurrentEditDeal(null);
+  };
+
+  const handleDeleteConfirmation = async () => {
+    if (selectedDeals.length === 0) {
+      console.error("No deals selected for deletion.");
+      setIsDeletePopupOpen(false);
+      return;
+    }
+
+    setIsDeleting(true);
+
+    try {
+      const requestBody = {
+        doctype: "CRM Deal",
+        items: JSON.stringify(selectedDeals),
+      };
+
+      const response = await apiAxios.post(
+        "/api/method/frappe.desk.reportview.delete_items",
+        requestBody,
+        {
+          headers: {
+            "Authorization": AUTH_TOKEN,
+          },
+        }
+      );
+
+      console.log("Deals deleted successfully:", response.data);
+      setIsDeletePopupOpen(false);
+      setSelectedDeals([]);
+      setShowDropdown(false);
+      await fetchDeals();
+
+    } catch (error) {
+      let errorMessage = "An unknown error occurred during deletion.";
+      if (axios.isAxiosError(error) && error.response) {
+        errorMessage = error.response.data?.message || `API Error: ${error.response.status}`;
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+
+      console.error("Failed to delete deals:", errorMessage);
+      setError(errorMessage);
+
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleAssignConfirmation = (assignee: string) => {
+    setIsAssigning(true);
+    console.log(`Assigning deals to ${assignee}`);
+
+    setTimeout(() => {
+      setIsAssigning(false);
+      setIsAssignPopupOpen(false);
+      setSelectedDeals([]);
+      fetchDeals();
+    }, 1000);
+  };
+
+  const handleClearAssignmentConfirmation = async () => {
+    setIsClearingAssignment(true);
+    setError(null);
+
+    try {
+      if (selectedDeals.length === 0) {
+        throw new Error("No deals selected for clearing assignment.");
+      }
+
+      const apiUrl = "http://103.214.132.20:8002/api/method/frappe.desk.form.assign_to.remove_multiple";
+
+      const payload = {
+        doctype: "CRM Deal",
+        names: JSON.stringify(selectedDeals),
+        ignore_permissions: true
+      };
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': AUTH_TOKEN
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || `Failed to clear assignment: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      console.log('Clear assignment successful:', result);
+
+      setSelectedDeals([]);
+      await fetchDeals();
+
+    } catch (error) {
+      console.error("Failed to clear assignment:", error);
+      setError(error instanceof Error ? error.message : 'Failed to clear assignment');
+    } finally {
+      setIsClearingAssignment(false);
+      setIsClearAssignmentPopupOpen(false);
+    }
+  };
+
+  // Render cell function with updated assignedTo logic
+  const renderCell = (deal: Deal, key: keyof Deal, theme: string) => {
+    switch (key) {
+      case 'name':
+        return (
+          <div className="flex items-center">
+            <div className={`w-6 h-6 rounded-full flex items-center justify-center mr-3 ${theme === 'dark' ? 'bg-purplebg' : 'bg-gray-200'
+              }`}>
+              <span className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-700'
+                }`}>
+                {deal.name.charAt(0).toUpperCase()}
+              </span>
+            </div>
+            <div className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+              {deal.name}
+            </div>
+          </div>
+        );
+      case 'organization':
+        return (
+          <div className="flex items-center">
+            <div className={`w-6 h-6 rounded flex items-center justify-center mr-2 ${theme === 'dark' ? 'bg-purplebg' : 'bg-blue-100'
+              }`}>
+              <span className={`text-xs font-semibold ${theme === 'dark' ? 'text-white' : 'text-blue-600'
+                }`}>
+                {deal.organization.charAt(0).toUpperCase()}
+              </span>
+            </div>
+            <div className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+              {deal.organization}
+            </div>
+          </div>
+        );
+      case 'first_name':
+        return (
+          <div className="flex items-center">
+            <div className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+              {deal.first_name}
+            </div>
+          </div>
+        );
+      case 'status':
+        return (
+          <span className={`inline-flex text-white items-center px-2.5 py-0.5 rounded-full text-xs font-semibold`}>
+            <FaCircleDot className={`mr-1 text-white ${statusColors[deal.status as keyof typeof statusColors]}`} />
+            {deal.status}
+          </span>
+        );
+      case 'mobileNo':
+        return (
+          <div className={`flex items-center text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+            <Phone className={`w-4 h-4 mr-2 ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`} />
+            {deal.mobileNo}
+          </div>
+        );
+      case 'assignedTo':
+        // Check if the assignedTo contains multiple names
+        const assignedNames = deal.assignedTo.split(',').map(name => name.trim());
+
+        if (assignedNames.length === 1) {
+          // Single name - show as before
+          return (
+            <div className="flex items-center">
+              <div className={`w-6 h-6 rounded-full flex items-center justify-center mr-2 ${theme === 'dark' ? 'bg-purplebg' : 'bg-gray-200'
+                }`}>
+                <span className={`text-xs font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-700'
+                  }`}>
+                  {deal.assignedTo.charAt(0).toUpperCase()}
+                </span>
+              </div>
+              <div className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                {deal.assignedTo}
+              </div>
+            </div>
+          );
+        } else {
+          // Multiple names - show in the format from your image
+          return (
+            <div className="flex items-center">
+              {assignedNames.slice(0, 3).map((name, index) => (
+                <div
+                  key={index}
+                  className={`w-6 h-6 rounded-full flex items-center justify-center border-2 ${theme === "dark" ? "bg-purplebg border-purplebg" : "bg-gray-200 border-white"
+                    }`}
+                  style={{
+                    marginLeft: index === 0 ? "0px" : "-8px", // overlap effect
+                    zIndex: 10 - index, // keep order visible
+                  }}
+                >
+                  <span
+                    className={`text-xs font-semibold ${theme === "dark" ? "text-white" : "text-gray-700"
+                      }`}
+                  >
+                    {name.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+              ))}
+
+              {assignedNames.length > 3 && (
+                <div
+                  className={`w-6 h-6 rounded-full flex items-center justify-center border-2 ${theme === "dark" ? "bg-purplebg border-purplebg" : "bg-gray-200 border-white"
+                    }`}
+                  style={{ marginLeft: "-8px" }}
+                >
+                  <span
+                    className={`text-xs font-semibold ${theme === "dark" ? "text-white" : "text-gray-700"
+                      }`}
+                  >
+                    +{assignedNames.length - 3}
+                  </span>
+                </div>
+              )}
+            </div>
+          );
+
+        }
+      case 'annualRevenue':
+        return (
+          <div className={`text-sm font-semibold ${theme === 'dark' ? 'text-green-400' : 'text-green-600'
+            }`}>
+            {deal.annualRevenue}
+          </div>
+        );
+      case 'lastModified':
+        return (
+          <div className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`}>
+            {deal.lastModified}
+          </div>
+        );
+      case 'email':
+        return (
+          <div className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`}>
+            {deal.email}
+          </div>
+        );
+      case 'closeDate':
+        return (
+          <div className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`}>
+            {deal.closeDate}
+          </div>
+        );
+      default:
+        return deal[key]?.toString() || 'N/A';
+    }
+  };
+
   if (loading) {
     return (
       <div className={`rounded-lg shadow-sm border p-8 ${theme === 'dark'
@@ -385,145 +646,8 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
     );
   }
 
-
-  // Add these handler functions
-  const handleEditClick = (deal: Deal) => {
-    setSelectedDeals([deal.id]);
-    setIsEditPopupOpen(true);
-    setShowDropdown(false); // Close the dropdown when opening edit popup
-  };
-
-  const handleCloseEditPopup = () => {
-    setIsEditPopupOpen(false);
-    setCurrentEditDeal(null);
-  };
-
-
-
-  // Add this function to handle the delete confirmation
-  const handleDeleteConfirmation = async () => {
-    if (selectedDeals.length === 0) {
-      console.error("No deals selected for deletion.");
-      setIsDeletePopupOpen(false);
-      return;
-    }
-
-    setIsDeleting(true); // Show loading state
-
-    try {
-      // 1. Prepare the request body (same as before)
-      const requestBody = {
-        doctype: "CRM Deal",
-        items: JSON.stringify(selectedDeals),
-      };
-
-      // 2. Make the API call using axios.post
-      const response = await apiAxios.post(
-        "/api/method/frappe.desk.reportview.delete_items",
-        requestBody, // axios handles stringifying the main object
-        {
-          headers: {
-            "Authorization": AUTH_TOKEN,
-            // 'Content-Type': 'application/json' is default for axios POST
-          },
-        }
-      );
-
-      // 3. Handle success
-      console.log("Deals deleted successfully:", response.data);
-      // The actual data is in response.data, not response.json()
-
-      setIsDeletePopupOpen(false);
-      setSelectedDeals([]);
-      setShowDropdown(false);
-
-      // Refresh the deals list
-      await fetchDeals();
-
-    } catch (error) {
-      // 4. Handle errors (axios provides more detailed errors)
-      let errorMessage = "An unknown error occurred during deletion.";
-      if (axios.isAxiosError(error) && error.response) {
-        // Use the specific error message from the API if available
-        errorMessage = error.response.data?.message || `API Error: ${error.response.status}`;
-      } else if (error instanceof Error) {
-        errorMessage = error.message;
-      }
-
-      console.error("Failed to delete deals:", errorMessage);
-      setError(errorMessage);
-
-    } finally {
-      // 5. Always turn off the loading state
-      setIsDeleting(false);
-    }
-  };
-
-  const handleAssignConfirmation = (assignee: string) => {
-    setIsAssigning(true);
-    // Here you would normally make your API call to assign the deal(s)
-    console.log(`Assigning deals to ${assignee}`);
-
-    // Simulate API call delay
-    setTimeout(() => {
-      setIsAssigning(false);
-      setIsAssignPopupOpen(false);
-      setSelectedDeals([]); // Clear selection after assignment
-      // You might want to refresh the deals list here
-      fetchDeals();
-    }, 1000);
-  };
-
-  const handleClearAssignmentConfirmation = async () => {
-    setIsClearingAssignment(true);
-    setError(null);
-
-    try {
-      if (selectedDeals.length === 0) {
-        throw new Error("No deals selected for clearing assignment.");
-      }
-
-      const apiUrl = "http://103.214.132.20:8002/api/method/frappe.desk.form.assign_to.remove_multiple";
-
-      // Format the payload
-      const payload = {
-        doctype: "CRM Deal", // Fixed typo from "CRM Dead" to "CRM Deal"
-        names: JSON.stringify(selectedDeals),
-        ignore_permissions: true
-      };
-
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
-        },
-        body: JSON.stringify(payload)
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || `Failed to clear assignment: ${response.statusText}`);
-      }
-
-      const result = await response.json();
-      console.log('Clear assignment successful:', result);
-
-      // Clear selection and refresh data
-      setSelectedDeals([]);
-      await fetchDeals();
-
-    } catch (error) {
-      console.error("Failed to clear assignment:", error);
-      setError(error instanceof Error ? error.message : 'Failed to clear assignment');
-    } finally {
-      setIsClearingAssignment(false);
-      setIsClearAssignmentPopupOpen(false);
-    }
-  };
   return (
     <div className="space-y-4 max-h-[68vh] overflow-y-auto pr-3">
-
       {/* Action Bar */}
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
         <div className="flex items-center space-x-2">
@@ -702,7 +826,6 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
               : 'border-gray-300'
               }`}
           >
-
             <option value={5}>5 per page</option>
             <option value={10}>10 per page</option>
             <option value={25}>25 per page</option>
@@ -725,9 +848,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
                   <input
                     type="checkbox"
                     onChange={handleSelectAll}
-                    // Checked if paginated data exists and all items on the page are selected
                     checked={paginatedData.length > 0 && selectedDeals.length === paginatedData.length}
-                    // Indeterminate if some (but not all) items are selected
                     ref={el => {
                       if (el) {
                         el.indeterminate = selectedDeals.length > 0 && selectedDeals.length < paginatedData.length;
@@ -767,7 +888,6 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
                       type="checkbox"
                       checked={selectedDeals.includes(deal.id)}
                       onChange={() => handleRowSelection(deal.id)}
-                      // This is crucial to prevent the row's onClick from firing
                       onClick={(e) => e.stopPropagation()}
                       className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
@@ -929,7 +1049,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
             <button
               onClick={() => {
                 setSelectedDeals([]);
-                setShowDropdown(false); // close dropdown
+                setShowDropdown(false);
               }}
               className="text-gray-500 hover:text-gray-800 dark:hover:text-white"
             >
@@ -944,8 +1064,8 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
         selectedIds={selectedDeals}
         theme={theme}
         onSuccess={() => {
-          fetchDeals(); // Refresh the deals list after successful edit
-          setSelectedDeals([]); // Clear selection
+          fetchDeals();
+          setSelectedDeals([]);
         }}
       />
       <DeleteDealPopup
@@ -960,7 +1080,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
         onClose={() => setIsAssignPopupOpen(false)}
         onAssign={handleAssignConfirmation}
         isLoading={isAssigning}
-        assignOptions={filterOptions.assignedTo} // Using the same assign options from your filters
+        assignOptions={filterOptions.assignedTo}
         currentAssignee={selectedDeals.length === 1
           ? deals.find(d => d.id === selectedDeals[0])?.assignedTo || ''
           : ''}
@@ -975,116 +1095,4 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
       />
     </div>
   );
-}
-
-
-
-function renderCell(deal: Deal, key: keyof Deal, theme: string) {
-  switch (key) {
-    case 'name':
-      return (
-        <div className="flex items-center">
-          <div className={`w-6 h-6 rounded-full flex items-center justify-center mr-3 ${theme === 'dark' ? 'bg-purplebg' : 'bg-gray-200'
-            }`}>
-            <span className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-700'
-              }`}>
-              {deal.name.charAt(0).toUpperCase()}
-            </span>
-          </div>
-          <div className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-            {deal.name}
-          </div>
-        </div>
-      );
-    case 'organization':
-      return (
-        <div className="flex items-center">
-          <div className={`w-6 h-6 rounded flex items-center justify-center mr-2 ${theme === 'dark' ? 'bg-purplebg' : 'bg-blue-100'
-            }`}>
-            <span className={`text-xs font-semibold ${theme === 'dark' ? 'text-white' : 'text-blue-600'
-              }`}>
-              {deal.organization.charAt(0).toUpperCase()}
-            </span>
-          </div>
-          <div className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-            {deal.organization}
-          </div>
-        </div>
-      );
-    case 'first_name':
-      return (
-        <div className="flex items-center">
-
-          <div className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-            {deal.first_name}
-          </div>
-        </div>
-      );
-    case 'status':
-      return (
-        <span className={`inline-flex text-white items-center px-2.5 py-0.5 rounded-full text-xs font-semibold`}>
-          <FaCircleDot className={`mr-1 text-white ${statusColors[deal.status as keyof typeof statusColors]}`} />
-          {deal.status}
-        </span>
-      );
-    case 'mobileNo':
-      return (
-        <div className={`flex items-center text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-          <Phone className={`w-4 h-4 mr-2 ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`} />
-          {deal.mobileNo}
-        </div>
-      );
-    case 'assignedTo':
-      return (
-        <div className="flex items-center">
-          <div className={`w-6 h-6 rounded-full flex items-center justify-center mr-2 ${theme === 'dark' ? 'bg-purplebg' : 'bg-gray-200'
-            }`}>
-            <span className={`text-xs font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-700'
-              }`}>
-              {deal.assignedTo.charAt(0).toUpperCase()}
-            </span>
-          </div>
-          <div className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-            {deal.assignedTo}
-          </div>
-        </div>
-      );
-    case 'annualRevenue':
-      return (
-        <div className={`text-sm font-semibold ${theme === 'dark' ? 'text-green-400' : 'text-green-600'
-          }`}>
-          {deal.annualRevenue}
-        </div>
-      );
-    case 'lastModified':
-      return (
-        <div className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`}>
-          {deal.lastModified}
-        </div>
-      );
-    case 'email':
-      return (
-        <div className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`}>
-          {deal.email}
-        </div>
-      );
-
-    case 'closeDate':
-      return (
-        <div className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`}>
-          {deal.closeDate}
-        </div>
-      );
-
-    // case 'status':
-    //   return (
-    //     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${statusColors[deal.status as keyof typeof statusColors] || ''}`}>
-    //       <FaCircleDot className="mr-1" /> {/* The color will now be inherited correctly */}
-    //       {deal.status}
-    //     </span>
-    //   );
-
-    default:
-      return deal[key]?.toString() || 'N/A';
-  }
 }

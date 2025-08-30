@@ -214,6 +214,11 @@ interface EmailReplyData {
   message: string;
 }
 
+interface SalutationOption {
+  value: string;
+  label: string;
+}
+
 const API_BASE_URL = 'http://103.214.132.20:8002/api';
 const AUTH_TOKEN = 'token 1b670b800ace83b:f82627cb56de7f6';
 
@@ -263,12 +268,15 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
   const [notes, setNotes] = useState<Note[]>([]);
   const [callLogs, setCallLogs] = useState<CallLog[]>([]);
   const [comments, setComments] = useState<Comment[]>([]);
+  const [sourceOptions, setSourceOptions] = useState<string[]>([]);
   const [commentAttachment, setCommentAtachment] = useState<any>([]);
   const [, setCommentsNew] = useState<any>([]);
   const [showNoteModal, setShowNoteModal] = useState(false);
   const [changes, setChanges] = useState([]);
   const [incomingCalls, setIncomingCalls] = useState([]);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [territoryOptions, setTerritoryOptions] = useState<string[]>([]);
+  const [options, setOptions] = useState<SalutationOption[]>([]);
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [activityLoading, setActivityLoading] = useState(false);
   const [emails, setEmails] = useState<Email[]>([]);
@@ -285,6 +293,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
   const [showCallModal, setShowCallModal] = useState(false);
   const [showCommentModal, setShowCommentModal] = useState(false);
   const [showTaskModal, setShowTaskModal] = useState(false);
+  const [selectedOrganization, setSelectedOrganization] = useState('');
   const [currentTaskId, setCurrentTaskId] = useState(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
@@ -331,6 +340,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
   const [notesPage, setNotesPage] = useState(1);
   const [callLogsPage, setCallLogsPage] = useState(1);
   const [currentPage, setCurrentPage] = useState(1);
+  const [leadOwners, setLeadOwners] = useState<string[]>([]);
   const [emailPage, setEmailPage] = useState(1);
   const [orgToggle, setOrgToggle] = useState(false);
   const [contactToggle, setContactToggle] = useState(false);
@@ -760,6 +770,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
   const fetchNotes = async () => {
     setNotesLoading(true);
     try {
+      
       const response = await fetch(`${API_BASE_URL}/method/frappe.client.get_list`, {
         method: 'POST',
         headers: {
@@ -1066,6 +1077,39 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
     }
   };
 
+
+  const fetchTerritoryOptions = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/method/frappe.desk.search.search_link`, {
+        method: 'POST',
+        headers: {
+          'Authorization': AUTH_TOKEN,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          txt: "",
+          doctype: "CRM Territory"
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        // Extract territory names from the response
+        const territories = result.message.map((territory: any) => territory.value);
+        setTerritoryOptions(territories);
+      }
+    } catch (error) {
+      console.error('Error fetching territories:', error);
+      // Fallback to static options if API fails
+      setTerritoryOptions(["US", "India"]);
+    }
+  };
+
+  // Call this function in useEffect
+  useEffect(() => {
+    fetchTerritoryOptions();
+  }, []);
+
   const fetchOrganizationOptions = async () => {
     try {
       const session = getUserSession();
@@ -1076,22 +1120,22 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
         return;
       }
 
-      const response = await fetch(`${API_BASE_URL}/method/frappe.client.get_list`, {
+      const response = await fetch(`${API_BASE_URL}/method/frappe.desk.search.search_link`, {
         method: 'POST',
         headers: {
           'Authorization': AUTH_TOKEN,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          doctype: 'CRM Organization',
-          filters: JSON.stringify([['company', '=', sessionCompany]]),
-          fields: JSON.stringify(['organization_name'])
+          txt: "",
+          doctype: "CRM Organization",
+          filters: []
         })
       });
 
       if (response.ok) {
         const result = await response.json();
-        setOrganizationOptions(result.message?.map((org: any) => org.organization_name) || []);
+        setOrganizationOptions(result.message?.map((org: any) => org.value) || []);
       }
     } catch (error) {
       console.error('Error fetching organizations:', error);
@@ -1108,24 +1152,28 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
         return;
       }
 
-      const response = await fetch(`${API_BASE_URL}/method/frappe.client.get_list`, {
+      const response = await fetch(`${API_BASE_URL}/method/frappe.desk.search.search_link`, {
         method: 'POST',
         headers: {
           'Authorization': AUTH_TOKEN,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          doctype: 'Contact',
-          filters: JSON.stringify([['company', '=', sessionCompany]]),
-          fields: JSON.stringify(['first_name'])
+          txt: "", // Search text (empty to get all)
+          doctype: "Contact",
+          filters: []
         })
       });
 
       if (response.ok) {
         const result = await response.json();
-        const names = (result.message || [])
-          .map((c: any) => c.first_name)
+
+        // The new API returns results in a different format
+        const contacts = result.message || [];
+        const names = contacts
+          .map((contact: any) => contact.value) // Extract the contact name from value field
           .filter((name: string | undefined) => !!name && name.trim() !== "");
+
         setContactOptions(Array.from(new Set(names)));
       }
     } catch (error) {
@@ -1172,12 +1220,47 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
     fetchContactOptions();
   }, []);
 
-  const handleConvert = async () => {
+  const handleConvert = async (params: {
+    lead: string;
+    deal?: any;
+    existing_contact?: string;
+    existing_organization?: string;
+  }) => {
     try {
       setLoading(true);
       const session = getUserSession();
       const sessionCompany = session?.company || '';
+      const {
+        lead: leadName,
+        deal: dealData = {},
+        existing_contact,
+        existing_organization
+      } = params;
 
+      // First, fetch the lead details using the lead name
+      const leadResponse = await fetch(`${API_BASE_URL}/method/crm.fcrm.doctype.crm_lead.crm_lead.convert_to_deal`, {
+        method: 'POST',
+        headers: {
+          'Authorization': AUTH_TOKEN,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          // doctype: 'CRM Lead',
+          // name: leadName
+          lead: leadName,
+          deal: {},
+          existing_contact,
+          existing_organization
+        })
+      });
+
+      if (!leadResponse.ok) {
+        throw new Error('Failed to fetch lead details');
+      }
+
+      const leadData = await leadResponse.json();
+
+      // Create deal with the provided parameters
       const dealResponse = await fetch(`${API_BASE_URL}/method/frappe.client.insert`, {
         method: 'POST',
         headers: {
@@ -1187,14 +1270,17 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
         body: JSON.stringify({
           doc: JSON.stringify({
             doctype: 'CRM Deal',
-            organization: lead.organization,
-            website: lead.website,
-            industry: lead.industry,
-            territory: lead.territory,
-            annual_revenue: lead.annual_revenue,
-            salutation: lead.salutation,
-            first_name: lead.firstName,
-            company: sessionCompany
+            organization: existing_organization || leadData.message.organization,
+            contact: existing_contact || null,
+            website: leadData.message.website,
+            industry: leadData.message.industry,
+            territory: leadData.message.territory,
+            annual_revenue: leadData.message.annual_revenue,
+            salutation: leadData.message.salutation,
+            first_name: leadData.message.first_name,
+            company: sessionCompany,
+            // Include any additional deal data passed in the params
+            ...dealData
           })
         })
       });
@@ -1203,7 +1289,8 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
         throw new Error('Failed to create deal');
       }
 
-      const leadResponse = await fetch(`${API_BASE_URL}/method/frappe.client.set_value`, {
+      // Update lead as converted
+      const updateLeadResponse = await fetch(`${API_BASE_URL}/method/frappe.client.set_value`, {
         method: 'POST',
         headers: {
           'Authorization': AUTH_TOKEN,
@@ -1211,13 +1298,13 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
         },
         body: JSON.stringify({
           doctype: 'CRM Lead',
-          name: lead.name,
+          name: leadName,
           fieldname: 'converted',
           value: "1"
         })
       });
 
-      if (!leadResponse.ok) {
+      if (!updateLeadResponse.ok) {
         throw new Error('Deal created, but failed to update lead');
       }
 
@@ -1231,6 +1318,26 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
     }
   };
 
+  // Usage example:
+  // handleConvert({
+  //   lead: "CRM-LEAD-2025-00001", 
+  //   deal: {}, 
+  //   existing_contact: "hari", 
+  //   existing_organization: "g"
+  // });
+
+  // Usage example:
+  // handleConvert({
+  //   lead: "CRM-LEAD-2025-00001", 
+  //   deal: {
+  //     deal_name: "New Deal",
+  //     expected_close: "2025-12-31",
+  //     deal_value: 50000
+  //   }, 
+  //   existing_contact: "hari", 
+  //   existing_organization: "g"
+  // });
+
   const addNote = async () => {
     if (!noteForm.title.trim() || !noteForm.content.trim()) {
       showToast('Please fill in all required fields', { type: 'warning' });
@@ -1239,6 +1346,8 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
 
     setNotesLoading(true);
     try {
+      const session = getUserSession();
+      const sessionCompany = session?.company || ''; 
       const response = await fetch(`${API_BASE_URL}/method/frappe.client.insert`, {
         method: 'POST',
         headers: {
@@ -1249,6 +1358,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
           doc: JSON.stringify({
             doctype: 'FCRM Note',
             title: noteForm.title,
+            company:sessionCompany,
             content: noteForm.content,
             reference_doctype: 'CRM Lead',
             reference_docname: lead.name
@@ -1349,6 +1459,8 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
 
     setNotesLoading(true);
     try {
+      const session = getUserSession();
+      const sessionCompany = session?.company || ''; 
       const response = await fetch(`${API_BASE_URL}/method/frappe.client.set_value`, {
         method: 'POST',
         headers: {
@@ -1358,6 +1470,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
         body: JSON.stringify({
           doctype: 'FCRM Note',
           name: noteForm.name,
+          company:sessionCompany,
           fieldname: {
             title: noteForm.title,
             content: noteForm.content
@@ -1412,6 +1525,8 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
 
     setCallsLoading(true);
     try {
+      const session = getUserSession();
+      const sessionCompany = session?.company || ''; 
       // Generate a random ID (or you can keep your existing ID generation logic)
       const randomId = Math.random().toString(36).substring(2, 8).toUpperCase();
 
@@ -1421,6 +1536,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
         id: randomId,
         telephony_medium: "Manual",
         reference_doctype: "CRM Lead",
+        company:sessionCompany,
         reference_docname: lead.name,
         type: callForm.type === 'Outgoing' ? 'Outgoing' : 'Incoming',
         to: callForm.to,
@@ -1473,6 +1589,8 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
 
     setCallsLoading(true);
     try {
+      const session = getUserSession();
+      const sessionCompany = session?.company || ''; 
       const response = await fetch('http://103.214.132.20:8002/api/method/frappe.client.set_value', {
         method: 'POST',
         headers: {
@@ -1486,6 +1604,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
             telephony_medium: "Manual",
             reference_doctype: "CRM Lead",
             reference_docname: lead.name,
+            company:sessionCompany,
             type: callForm.type === 'Outgoing' ? 'Outgoing' : 'Incoming',
             to: callForm.to,
             from: callForm.from,
@@ -1525,11 +1644,14 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
 
     setTasksLoading(true);
     try {
+      const session = getUserSession();
+      const sessionCompany = session?.company || ''; 
       // Prepare the task data
       const taskData: any = {
         reference_doctype: 'CRM Lead',
         reference_docname: lead.name,
         assigned_to: formData.assigned_to,
+        company:sessionCompany,
         description: formData.description,
         priority: formData.priority,
         status: formData.status,
@@ -1592,11 +1714,14 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
 
     setTasksLoading(true);
     try {
+      const session = getUserSession();
+      const sessionCompany = session?.company || ''; 
       // Prepare the update data
       const updateData: any = {
         title: formData.title,
         description: formData.description,
         assigned_to: formData.assigned_to,
+        company:sessionCompany,
         priority: formData.priority,
         status: formData.status
       };
@@ -1648,7 +1773,41 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
     }
   };
 
+  useEffect(() => {
+    const fetchSalutations = async () => {
+      setLoading(true);
+      try {
+        const response = await fetch("http://103.214.132.20:8002/api/method/frappe.desk.search.search_link", {
+          method: "POST",
+          headers: {
+            'Authorization': AUTH_TOKEN,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            txt: "",
+            doctype: "Salutation",
+          }),
+        });
 
+        const data = await response.json();
+
+        if (data && data.results) {
+          setOptions(
+            data.results.map((item: any) => ({
+              value: item.value,
+              label: item.value,
+            }))
+          );
+        }
+      } catch (error) {
+        console.error("Error fetching salutations:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSalutations();
+  }, []);
 
 
   const handleSave = async (e: { status?: string; id?: string; name?: string; firstName?: string; lastName?: string | undefined; organization?: string; email?: string; mobile?: string; assignedTo?: string; lastModified?: string; website?: string | undefined; territory?: string | undefined; industry?: string | undefined; jobTitle?: string | undefined; source?: string | undefined; salutation?: string | undefined; leadId?: string; owner?: string | undefined; creation?: string | undefined; modified?: string | undefined; modified_by?: string | undefined; docstatus?: number | undefined; idx?: number | undefined; mobile_no?: string | undefined; naming_series?: string | undefined; lead_name?: string | undefined; gender?: string | undefined; no_of_employees?: string | undefined; annual_revenue?: number | undefined; image?: string | undefined; first_name?: string | undefined; last_name?: string | undefined; lead_owner?: string | undefined; converted?: string | undefined; preventDefault?: any; }) => {
@@ -1701,6 +1860,99 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
     div.innerHTML = html
     return div.textContent || div.innerHTML || "";
   }
+
+  useEffect(() => {
+    fetchLeadOwners();
+  }, []);
+
+  // Add function to fetch lead owners
+  const fetchLeadOwners = async () => {
+    try {
+      const session = getUserSession();
+      const sessionCompany = session?.company;
+
+      if (!sessionCompany) {
+        setLeadOwners([]);
+        return;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/method/frappe.desk.search.search_link`, {
+        method: 'POST',
+        headers: {
+          'Authorization': AUTH_TOKEN,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          txt: "",
+          doctype: "User",
+          filters: JSON.stringify({
+            company: sessionCompany
+          })
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        // Extract email values from the response
+        const owners = result.message.map((user: any) => user.value);
+        setLeadOwners(owners);
+      }
+    } catch (error) {
+      console.error('Error fetching lead owners:', error);
+      // Fallback to static options if API fails
+      setLeadOwners([
+        "Administrator",
+        "arun@psd.com",
+        "demo@psdigitise.com",
+        "fen87joshi@yahoo.com",
+        "fenila@psd.com",
+        "hariprasad@psd.com"
+      ]);
+    }
+  };
+
+  const fetchSourceOptions = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/method/frappe.desk.search.search_link`, {
+        method: 'POST',
+        headers: {
+          'Authorization': AUTH_TOKEN,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          txt: "",
+          doctype: "CRM Lead Source"
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        // Extract source names from the response
+        const sources = result.message.map((source: any) => source.value);
+        setSourceOptions(sources);
+      } else {
+        // Fallback to static options if API fails
+        setSourceOptions([
+          "Advertisement", "Campaign", "Cold Calling", "Customer's Vendor",
+          "Exhibition", "Existing Customer", "From Fenila", "Reference",
+          "Supplier Reference", "Walk In"
+        ]);
+      }
+    } catch (error) {
+      console.error('Error fetching source options:', error);
+      // Fallback to static options if API fails
+      setSourceOptions([
+        "Advertisement", "Campaign", "Cold Calling", "Customer's Vendor",
+        "Exhibition", "Existing Customer", "From Fenila", "Reference",
+        "Supplier Reference", "Walk In"
+      ]);
+    }
+  };
+
+  // Call this function in useEffect
+  useEffect(() => {
+    fetchSourceOptions();
+  }, []);
 
   const handleReply = (email: any, replyAll: boolean) => {
     setTimeout(() => {
@@ -1883,7 +2135,11 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                         />
                       </div>
                       {orgToggle ? (
-                        <select className="mt-2 w-full border rounded px-3 py-2">
+                        <select
+                          value={selectedOrganization}
+                          onChange={(e) => setSelectedOrganization(e.target.value)}
+                          className="mt-2 w-full border rounded px-3 py-2"
+                        >
                           <option value="">Choose Existing Organization</option>
                           {organizationOptions.map(org => (
                             <option key={org} value={org}>{org}</option>
@@ -1924,7 +2180,12 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                     </div>
 
                     <button
-                      onClick={handleConvert}
+                      onClick={() => handleConvert({
+                        lead: lead.name,
+                        deal: {},
+                        existing_contact: selectedContact,
+                        existing_organization: orgToggle ? selectedOrganization : undefined
+                      })}
                       className="mt-4 w-full bg-black text-white py-2 rounded hover:bg-gray-800"
                       disabled={loading}
                     >
@@ -2108,9 +2369,9 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                         className={`p-[2px] pl-2 mt-1 block w-full rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
                       >
                         <option value="">Select Territory</option>
-                        <option value="US">US</option>
-                        <option value="India">India</option>
-
+                        {territoryOptions.map(territory => (
+                          <option key={territory} value={territory}>{territory}</option>
+                        ))}
                       </select>
                     </div>
 
@@ -2143,16 +2404,9 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                         className={`p-[2px] pl-2 mt-1 block w-full rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
                       >
                         <option value="">Select Source</option>
-                        <option value="Advertisement">Advertisement</option>
-                        <option value="Campaign">Campaign</option>
-                        <option value="Cold Calling">Cold Calling</option>
-                        <option value="Customer's Vendor">Customer's Vendor</option>
-                        <option value="Exhibition">Exhibition</option>
-                        <option value="Existing Customer">Existing Customer</option>
-                        <option value="From Fenila">From Fenila</option>
-                        <option value="Reference">Reference</option>
-                        <option value="Supplier Reference">Supplier Reference</option>
-                        <option value="Walk In">Walk In</option>
+                        {sourceOptions.map(source => (
+                          <option key={source} value={source}>{source}</option>
+                        ))}
                       </select>
                     </div>
                     <div>
@@ -2164,12 +2418,12 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                         onChange={(e) => handleInputChange("lead_owner", e.target.value)}
                         className={`p-[2px] pl-2 mt-1 block w-full rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
                       >
-                        <option value="Administrator">Administrator</option>
-                        <option value="arun@psd.com">arun</option>
-                        <option value="demo@psdigitise.com">DEMO</option>
-                        <option value="fen87joshi@yahoo.com">feni</option>
-                        <option value="fenila@psd.com">fenila</option>
-                        <option value="hariprasad@psd.com">hari</option>
+                        <option value="">Select Lead Owner</option>
+                        {leadOwners.map((owner) => (
+                          <option key={owner} value={owner}>
+                            {owner}
+                          </option>
+                        ))}
                       </select>
                     </div>
 
@@ -2205,12 +2459,18 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
 
                     <div>
                       <label className={`block text-sm font-medium ${textSecondaryColor}`}>Salutation</label>
-                      <input
-                        type="text"
-                        value={editedLead.salutation || ''}
-                        onChange={(e) => handleInputChange('salutation', e.target.value)}
-                        className={`p-[2px] pl-2 mt-1 block w-full rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
-                      />
+                      <select
+                        value={editedLead.salutation || ""}
+                        onChange={(e) => handleInputChange("salutation", e.target.value)}
+                        className={`p-[6px] mt-1 block w-full rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
+                      >
+                        <option value="">{loading ? "Loading..." : "Select Salutation"}</option>
+                        {options.map((opt) => (
+                          <option key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                     <div>
                       <label className={`block text-sm font-medium ${textSecondaryColor}`}>First Name</label>

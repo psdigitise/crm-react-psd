@@ -570,6 +570,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
 
     setNotesLoading(true);
     try {
+      const session = getUserSession();
+      const sessionCompany = session?.company || ''; 
       const response = await apiAxios.post(
         '/api/method/frappe.client.insert',
         {
@@ -577,6 +579,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
             doctype: "FCRM Note",
             title: noteForm.title,
             content: noteForm.content,
+            company:sessionCompany,
             reference_doctype: "CRM Deal",
             reference_docname: deal.name
           }
@@ -611,11 +614,14 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
 
     setNotesLoading(true);
     try {
+      const session = getUserSession();
+      const sessionCompany = session?.company || ''; 
       const response = await apiAxios.post(
         '/api/method/frappe.client.set_value',
         {
           doctype: "FCRM Note",
           name: noteForm.name, // The document ID to update
+          company:sessionCompany, 
           fieldname: {
             title: noteForm.title,
             content: noteForm.content,
@@ -688,6 +694,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
 
     setCallsLoading(true);
     try {
+      const session = getUserSession();
+      const sessionCompany = session?.company || ''; 
       // Generate a random ID (or you can keep your existing ID generation logic)
       const randomId = Math.random().toString(36).substring(2, 8).toUpperCase();
 
@@ -700,6 +708,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         reference_docname: deal.name,
         type: callForm.type === 'Outgoing' ? 'Outgoing' : 'Incoming',
         to: callForm.to,
+        company:sessionCompany,
         from: callForm.from,
         status: callForm.status,
         duration: callForm.duration || "0",
@@ -750,6 +759,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
 
     setCallsLoading(true);
     try {
+      const session = getUserSession();
+      const sessionCompany = session?.company || ''; 
       const response = await fetch('http://103.214.132.20:8002/api/method/frappe.client.set_value', {
         method: 'POST',
         headers: {
@@ -765,6 +776,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
             reference_docname: deal.name,
             type: callForm.type === 'Outgoing' ? 'Outgoing' : 'Incoming',
             to: callForm.to,
+            company:sessionCompany,
             from: callForm.from,
             status: callForm.status,
             duration: callForm.duration || "0",
@@ -824,6 +836,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
 
     setTasksLoading(true);
     try {
+      const session = getUserSession();
+      const sessionCompany = session?.company || ''; 
       const response = await apiAxios.post(
         '/api/method/frappe.client.insert',
         {
@@ -832,6 +846,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
             reference_doctype: "CRM Deal",
             reference_docname: deal.name,
             title: taskForm.title,
+            company:sessionCompany,
             description: taskForm.description,
             assigned_to: taskForm.assigned_to,
             due_date: taskForm.due_date ? `${taskForm.due_date} 23:59:59` : null,
@@ -881,6 +896,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
 
     setTasksLoading(true);
     try {
+      const session = getUserSession();
+      const sessionCompany = session?.company || ''; 
       const response = await fetch(
         'http://103.214.132.20:8002/api/method/frappe.client.set_value',
         {
@@ -896,6 +913,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
               name: taskName,
               title: taskForm.title,
               description: taskForm.description,
+              company:sessionCompany,
               assigned_to: taskForm.assigned_to,
               due_date: taskForm.due_date ? `${taskForm.due_date} 00:00:00` : null,
               priority: taskForm.priority,
