@@ -72,7 +72,8 @@ function AppContent() {
   const [selectedContact, setSelectedContact] = useState<any>(null);
   const [selectedOrganization, setSelectedOrganization] = useState<any>(null);
   const [leads, setLeads] = useState(sampleLeads);
-  
+  const [deals, setDeals] = useState(sampleDeals);
+
   // Add state to track if we're in a nested view (like deal detail from contact)
   const [isInNestedView, setIsInNestedView] = useState(false);
 
@@ -429,6 +430,11 @@ function AppContent() {
   };
 
   const handleDealSave = (updatedDeal: any) => {
+    setDeals(prevdeals =>
+      prevdeals.map(deals =>
+        deals.id === updatedDeal.id ? updatedDeal : deals
+      )
+    );
     setSelectedDeal(updatedDeal);
   };
 
@@ -494,7 +500,96 @@ function AppContent() {
 
   const handleCreateSubmit = (data: any) => {
     console.log(`${createModalType} created successfully:`, data);
+    console.log(leads, "g");
+
+    if (createModalType === 'lead' && data) {
+      setShowCreateModal(false);
+
+      // The data is already the lead object with name property
+      // No need to extract from data.message
+      setSelectedLead(data);
+      setActiveMenuItem('leads');
+
+      // Use the lead name (ID) for the URL
+      // window.history.pushState({}, '', `/leads/${data.name}`);
+      // window.history.pushState({}, '', `/leads/${lead.id}`);
+    }
   };
+  const handleCreateLead = (data: any) => {
+    console.log(`${createModalType} created successfully:`, data);
+    console.log(leads, "g");
+
+    if (createModalType === 'lead' && data) {
+      setShowCreateModal(false);
+
+      setSelectedLead(data);
+      setActiveMenuItem('leads');
+
+    }
+  };
+  const handleCreateDeal = async (data: any) => {
+    console.log("Deal creation response:", data);
+
+    if (data) {
+      setShowCreateModal(false);
+
+      let dealId: string | undefined;
+
+      // ✅ Always handle string case first
+      if (typeof data.message === "string") {
+        dealId = data.message; // backend returned docname directly
+      } else if (data.message && data.message.name) {
+        dealId = data.message.name; // handle object case if frappe sends object
+      }
+
+      if (!dealId) {
+        console.error("Deal name missing in response:", data);
+        return;
+      }
+
+      try {
+        // 🔥 Fetch full deal details
+        const response = await fetch(
+          "http://103.214.132.20:8002/api/method/frappe.client.get",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "token 1b670b800ace83b:f82627cb56de7f6",
+            },
+            body: JSON.stringify({
+              doctype: "CRM Deal",
+              name: dealId, // <-- pass docname here
+            }),
+          }
+        );
+
+        const dealData = await response.json();
+        let fullDeal = dealData.message || { name: dealId, id: dealId };
+
+
+        fullDeal = { ...fullDeal, id: fullDeal.name };
+        // Update state
+        setDeals((prevDeals: any) => [
+          ...prevDeals,
+          { ...fullDeal, id: fullDeal.name } // ensure id exists
+        ]);
+        setSelectedDeal({ ...fullDeal, id: fullDeal.name });
+        setActiveMenuItem("deals");
+
+        // Navigate
+        window.history.pushState({}, "", `/deals/${dealId}`);
+      } catch (err) {
+        console.error("Failed to fetch deal details:", err);
+        // fallback
+        window.history.pushState({}, "", `/deals/${dealId}`);
+      }
+    }
+  };
+
+
+
+
 
   const getCreateModalType = (): 'lead' | 'deal' | 'contact' | 'organization' | 'reminder' | 'todo' | 'note' | 'task' | 'calllog' | 'email' => {
     switch (activeMenuItem) {
@@ -570,6 +665,7 @@ function AppContent() {
           lead={selectedLead}
           onBack={handleLeadBack}
           onSave={handleLeadSave}
+
         />
       );
     }
@@ -680,7 +776,7 @@ function AppContent() {
           <CreateLeadModal
             isOpen={showCreateModal}
             onClose={() => setShowCreateModal(false)}
-            onSubmit={handleCreateSubmit}
+            onSubmit={handleCreateLead}
           />
         );
       case 'deal':
@@ -688,7 +784,7 @@ function AppContent() {
           <CreateDealModal
             isOpen={showCreateModal}
             onClose={() => setShowCreateModal(false)}
-            onSubmit={handleCreateSubmit}
+            onSubmit={handleCreateDeal}
           />
         );
       case 'contact':

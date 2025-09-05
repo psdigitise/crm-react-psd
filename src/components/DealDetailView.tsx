@@ -10,7 +10,7 @@ import { IoCloseOutline, IoDocument, IoLockClosedOutline, IoLockOpenOutline } fr
 import { LuCalendar, LuReply, LuReplyAll, LuUpload } from 'react-icons/lu';
 import { PiDotsThreeOutlineBold } from 'react-icons/pi';
 import { TiDocumentText } from 'react-icons/ti';
-import { apiAxios, AUTH_TOKEN } from '../api/apiUrl';
+import { apiAxios } from '../api/apiUrl';
 import axios from 'axios';
 import Select from 'react-select';
 import { darkSelectStyles } from '../components/Dropdownstyles/darkSelectStyles'
@@ -133,7 +133,7 @@ interface DealDetailViewProps {
 }
 interface ActivityItem {
   id: string;
-  type: 'note' | 'call' | 'comment' | 'task' | 'edit' | 'email';
+  type: 'note' | 'call' | 'comment' | 'task' | 'edit' | 'email' | 'attachments';
   title: string;
   description: string;
   timestamp: string;
@@ -200,6 +200,8 @@ const commentTypes = [
   'Edit'
 ];
 
+const API_BASE_URL = 'http://103.214.132.20:8002/api';
+const AUTH_TOKEN = 'token 1b670b800ace83b:f82627cb56de7f6';
 
 
 export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
@@ -207,7 +209,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedDeal, setEditedDeal] = useState<Deal>(deal);
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<TabType>('overview');
+  const [activeTab, setActiveTab] = useState<TabType>('activity');
 
   // Data states
   const [notes, setNotes] = useState<Note[]>([]);
@@ -332,7 +334,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
 
 
       const response = await fetch(
-        'http://103.214.132.20:8002/api/method/crm.api.activities.get_activities',
+        `${API_BASE_URL}/method/crm.api.activities.get_activities`,
         {
           method: 'POST',
           headers: {
@@ -377,7 +379,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
     setCallsLoading(true);
     try {
       const response = await fetch(
-        'http://103.214.132.20:8002/api/method/crm.api.activities.get_activities',
+        `${API_BASE_URL}/method/crm.api.activities.get_activities`,
         {
           method: 'POST',
           headers: {
@@ -426,7 +428,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
   const fetchComments = useCallback(async () => {
     setCommentsLoading(true);
     try {
-      const url = 'http://103.214.132.20:8002/api/method/crm.api.activities.get_activities';
+      const url = `${API_BASE_URL}/method/crm.api.activities.get_activities`;
 
       const response = await fetch(url, {
         method: 'POST',
@@ -474,7 +476,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
     setNotesLoading(true);
     try {
       const response = await fetch(
-        'http://103.214.132.20:8002/api/method/crm.api.activities.get_activities',
+        `${API_BASE_URL}/method/crm.api.activities.get_activities`,
         {
           method: 'POST',
           headers: {
@@ -504,7 +506,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
     setEmailsLoading(true);
     try {
       const response = await fetch(
-        `http://103.214.132.20:8002/api/method/crm.api.activities.get_activities`,
+        `${API_BASE_URL}/method/crm.api.activities.get_activities`,
         {
           method: 'POST',
           headers: {
@@ -549,6 +551,13 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
     }
   }, [deal.name]);
 
+  const [showAttachmentModal, setShowAttachmentModal] = useState(false);
+  const [selectedAttachment, setSelectedAttachment] = useState<{
+    url: string;
+    name: string;
+    isImage: boolean;
+  } | null>(null);
+
 
   useEffect(() => {
     if (activeTab === 'notes') fetchNotes();
@@ -571,7 +580,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
     setNotesLoading(true);
     try {
       const session = getUserSession();
-      const sessionCompany = session?.company || ''; 
+      const sessionCompany = session?.company || '';
       const response = await apiAxios.post(
         '/api/method/frappe.client.insert',
         {
@@ -579,7 +588,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
             doctype: "FCRM Note",
             title: noteForm.title,
             content: noteForm.content,
-            company:sessionCompany,
+            company: sessionCompany,
             reference_doctype: "CRM Deal",
             reference_docname: deal.name
           }
@@ -615,13 +624,13 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
     setNotesLoading(true);
     try {
       const session = getUserSession();
-      const sessionCompany = session?.company || ''; 
+      const sessionCompany = session?.company || '';
       const response = await apiAxios.post(
         '/api/method/frappe.client.set_value',
         {
           doctype: "FCRM Note",
           name: noteForm.name, // The document ID to update
-          company:sessionCompany, 
+          company: sessionCompany,
           fieldname: {
             title: noteForm.title,
             content: noteForm.content,
@@ -695,7 +704,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
     setCallsLoading(true);
     try {
       const session = getUserSession();
-      const sessionCompany = session?.company || ''; 
+      const sessionCompany = session?.company || '';
       // Generate a random ID (or you can keep your existing ID generation logic)
       const randomId = Math.random().toString(36).substring(2, 8).toUpperCase();
 
@@ -708,7 +717,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         reference_docname: deal.name,
         type: callForm.type === 'Outgoing' ? 'Outgoing' : 'Incoming',
         to: callForm.to,
-        company:sessionCompany,
+        company: sessionCompany,
         from: callForm.from,
         status: callForm.status,
         duration: callForm.duration || "0",
@@ -716,7 +725,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
       };
 
       // Call the frappe.client.insert API
-      const response = await fetch('http://103.214.132.20:8002/api/method/frappe.client.insert', {
+      const response = await fetch(`${API_BASE_URL}/method/frappe.client.insert`, {
         method: 'POST',
         headers: {
           'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6',
@@ -750,6 +759,19 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
     }
   };
 
+  const refreshAllActivities = useCallback(async () => {
+    await Promise.all([
+      fetchAllActivities(),      // Refresh the main activity timeline
+      fetchCallLogs(),       // Refresh calls
+      fetchComments(),       // Refresh comments
+      fetchEmails(),        // Refresh emails
+      fetchNotes(),         // Refresh notes
+      fetchTasks(),         // Refresh tasks
+      fetchAttachments(),         // Refresh files
+    ]);
+  }, [fetchCallLogs, fetchComments, fetchEmails,
+    fetchNotes, fetchTasks]);
+
 
   const editCall = async () => {
     if (!callForm.from.trim() || !callForm.to.trim()) {
@@ -760,8 +782,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
     setCallsLoading(true);
     try {
       const session = getUserSession();
-      const sessionCompany = session?.company || ''; 
-      const response = await fetch('http://103.214.132.20:8002/api/method/frappe.client.set_value', {
+      const sessionCompany = session?.company || '';
+      const response = await fetch(`${API_BASE_URL}/method/frappe.client.set_value`, {
         method: 'POST',
         headers: {
           'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6',
@@ -776,7 +798,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
             reference_docname: deal.name,
             type: callForm.type === 'Outgoing' ? 'Outgoing' : 'Incoming',
             to: callForm.to,
-            company:sessionCompany,
+            company: sessionCompany,
             from: callForm.from,
             status: callForm.status,
             duration: callForm.duration || "0",
@@ -790,6 +812,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         setCallForm({ from: '', to: '', status: 'Ringing', type: 'Outgoing', duration: '', receiver: '', name: '' });
         await fetchCallLogs();
         setShowCallModal(false);
+        await refreshAllActivities();
         return true;
       } else {
         const errorData = await response.json();
@@ -808,7 +831,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
     if (!window.confirm('Are you sure you want to delete this call log?')) return;
     setCallsLoading(true);
     try {
-      const response = await fetch(`http://103.214.132.20:8002/api/v2/document/CRM Call Log/${name}`, {
+      const response = await fetch(`${API_BASE_URL}/v2/document/CRM Call Log/${name}`, {
         method: 'DELETE',
         headers: {
           'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6',
@@ -837,7 +860,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
     setTasksLoading(true);
     try {
       const session = getUserSession();
-      const sessionCompany = session?.company || ''; 
+      const sessionCompany = session?.company || '';
       const response = await apiAxios.post(
         '/api/method/frappe.client.insert',
         {
@@ -846,7 +869,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
             reference_doctype: "CRM Deal",
             reference_docname: deal.name,
             title: taskForm.title,
-            company:sessionCompany,
+            company: sessionCompany,
             description: taskForm.description,
             assigned_to: taskForm.assigned_to,
             due_date: taskForm.due_date ? `${taskForm.due_date} 23:59:59` : null,
@@ -897,9 +920,9 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
     setTasksLoading(true);
     try {
       const session = getUserSession();
-      const sessionCompany = session?.company || ''; 
+      const sessionCompany = session?.company || '';
       const response = await fetch(
-        'http://103.214.132.20:8002/api/method/frappe.client.set_value',
+        `${API_BASE_URL}/method/frappe.client.set_value`,
         {
           method: 'POST',
           headers: {
@@ -913,7 +936,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
               name: taskName,
               title: taskForm.title,
               description: taskForm.description,
-              company:sessionCompany,
+              company: sessionCompany,
               assigned_to: taskForm.assigned_to,
               due_date: taskForm.due_date ? `${taskForm.due_date} 00:00:00` : null,
               priority: taskForm.priority,
@@ -944,7 +967,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
     setTasksLoading(true);
     try {
       const response = await fetch(
-        `http://103.214.132.20:8002/api/v2/document/CRM Task/${name}`,
+        `${API_BASE_URL}/v2/document/CRM Task/${name}`,
         {
           method: 'DELETE',
           headers: {
@@ -994,7 +1017,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
       const updatedDeal = { ...editedDeal, status: newStatus };
 
       const response = await fetch(
-        'http://103.214.132.20:8002/api/method/frappe.client.set_value',
+        `${API_BASE_URL}/method/frappe.client.set_value`,
         {
           method: 'POST',
           headers: {
@@ -1033,11 +1056,13 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
     setActivityLoading(true);
     try {
       const response = await fetch(
-        'http://103.214.132.20:8002/api/method/crm.api.activities.get_activities',
+        `${API_BASE_URL}/method/crm.api.activities.get_activities`,
         {
           method: 'POST',
           headers: { 'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6', 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: deal.name })
+          body: JSON.stringify({
+            name: deal.name
+          })
         }
       );
 
@@ -1076,16 +1101,30 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         icon: <Phone className="w-4 h-4 text-green-500" />,
       }));
 
-      const noteActivities = rawNotes.map((note: any) => ({
-        id: note.name, type: 'note', title: `Note Added: ${note.title}`,
-        description: note.content, timestamp: note.modified, user: note.owner,
-        icon: <FileText className="w-4 h-4 text-white" />,
-      }));
+      // const noteActivities = rawNotes.map((note: any) => ({
+      //   id: note.name, type: 'note', title: `Note Added: ${note.title}`,
+      //   description: note.content, timestamp: note.modified, user: note.owner,
+      //   icon: <FileText className="w-4 h-4 text-white" />,
+      // }));
 
       const taskActivities = rawTasks.map((task: any) => ({
         id: task.name, type: 'task', title: `Task Created: ${task.title}`,
         description: ``, timestamp: task.modified, user: task.assigned_to || 'Unassigned',
         icon: <SiTicktick className="w-4 h-4 text-gray-600" />,
+      }));
+
+      const rawAttachments = message[message.length - 1] || [];
+      setAttachments(rawAttachments);
+
+      const attachmentActivities = rawAttachments.map((attachment: any) => ({
+        id: attachment.name,
+        type: 'attachments',
+        title: 'Attachment Added',
+        description: attachment.file_name,
+        timestamp: attachment.creation,
+        user: attachment.owner,
+        icon: <Paperclip className="w-4 h-4 text-gray-500" />,
+        attachmentData: attachment // Include the full attachment data
       }));
 
       const timelineActivities = timelineItems.map((item: any) => {
@@ -1113,7 +1152,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
       }).filter(Boolean);
 
       // 3. Combine, sort, and set the final activities list
-      const allActivities = [...callActivities, ...noteActivities, ...taskActivities, ...timelineActivities];
+      const allActivities = [...callActivities, ...taskActivities, ...timelineActivities, ...attachmentActivities];
       allActivities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
       setActivities(allActivities);
 
@@ -1211,7 +1250,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         '/api/method/frappe.client.get',
         {
           doctype: "CRM Deal",
-          name: deal.name
+          name: deal?.name
         },
         {
           headers: {
@@ -1226,7 +1265,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
       // Update the editedDeal state with the fetched data
       setEditedDeal(prev => ({
         ...prev,
-        organization: dealData.organization || '',
+        organization: dealData.organization_name || '',
         organization_name: dealData.organization_name || '',
         website: dealData.website || '',
         no_of_employees: dealData.no_of_employees || '',
@@ -1259,7 +1298,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
     if (deal.name) {
       fetchDealDetails();
     }
-  }, [deal.name, fetchDealDetails]);
+  }, [fetchDealDetails]);
 
   //Edit Deals
   const handleSave = async () => {
@@ -1495,10 +1534,16 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
   // Inside your component
   const [editingCall, setEditingCall] = React.useState<any | null>(null);
   const [showPopup, setShowPopup] = React.useState(false);
+  const [showCallDetailsPopup, setShowCallDetailsPopup] = React.useState(false);
+  const [editingCallFromActivity, setEditingCallFromActivity] = React.useState<any | null>(null);
 
-  const handleLabelClick = (call: any) => {
-    setEditingCall(call);
-    setShowPopup(true);
+  const handleLabelClick = (call: any, fromActivityTab: boolean = false) => {
+    if (fromActivityTab) {
+      setEditingCallFromActivity(call);
+    } else {
+      setEditingCall(call);
+    }
+    setShowCallDetailsPopup(true);
   };
 
 
@@ -1919,7 +1964,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                       </div>
                       <div>
                         <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                          Content
+                          Content <span className='text-red-500'>*</span>
                         </label>
                         <textarea
                           value={noteForm.content}
@@ -2011,7 +2056,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
               {callLogs.length === 0 ? (
                 <div className="text-center py-8">
                   <Phone className={`w-12 h-12 mx-auto mb-4 ${textSecondaryColor}`} />
-                  <p className={textSecondaryColor}>No call logs yet</p>
+                  <p className={textSecondaryColor}>No call logs</p>
                   <span
                     onClick={() => {
                       setIsEditMode(false); // <-- ADD THIS LINE
@@ -2165,97 +2210,98 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
               )}
             </div>
 
-            {showCallModal && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-                <div className={`w-full max-w-2xl ${cardBgColor} rounded-lg shadow-lg p-6 relative border ${borderColor}`}>
-                  <button
-                    onClick={() => setShowCallModal(false)}
-                    className="absolute top-2 right-3 text-gray-500 hover:text-gray-700 dark:hover:text-white"
+
+          </div>
+        )}
+        {showCallModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+            <div className={`w-full max-w-2xl ${cardBgColor} rounded-lg shadow-lg p-6 relative border ${borderColor}`}>
+              <button
+                onClick={() => setShowCallModal(false)}
+                className="absolute top-2 right-3 text-gray-500 hover:text-gray-700 dark:hover:text-white"
+              >
+                ✕
+              </button>
+
+              <h3 className={`text-lg font-semibold ${textColor} mb-4`}>{isEditMode ? 'Edit Call Log' : 'New Call Log'}</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>Type <span className='text-red-500'>*</span></label>
+                  <select
+                    value={callForm.type}
+                    onChange={(e) => setCallForm({ ...callForm, type: e.target.value })}
+                    className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
                   >
-                    ✕
-                  </button>
+                    <option value="Outgoing">Outgoing</option>
+                    <option value="Incoming">Incoming</option>
+                  </select>
+                </div>
 
-                  <h3 className={`text-lg font-semibold ${textColor} mb-4`}>{isEditMode ? 'Edit Call Log' : 'New Call Log'}</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>Type <span className='text-red-500'>*</span></label>
-                      <select
-                        value={callForm.type}
-                        onChange={(e) => setCallForm({ ...callForm, type: e.target.value })}
-                        className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
-                      >
-                        <option value="Outgoing">Outgoing</option>
-                        <option value="Incoming">Incoming</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>To <span className='text-red-500'>*</span></label>
-                      <input
-                        type="text"
-                        value={callForm.to}
-                        onChange={(e) => setCallForm({ ...callForm, to: e.target.value })}
-                        className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
-                        placeholder="To"
-                      />
-                    </div>
-                    <div>
-                      <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>From <span className='text-red-500'>*</span></label>
-                      <input
-                        type="text"
-                        value={callForm.from}
-                        onChange={(e) => setCallForm({ ...callForm, from: e.target.value })}
-                        className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
-                        placeholder="From"
-                      />
-                    </div>
-                    <div>
-                      <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>Status</label>
-                      <select
-                        value={callForm.status}
-                        onChange={(e) => setCallForm({ ...callForm, status: e.target.value })}
-                        className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
-                      >
-                        {["Initiated", "Ringing", "In Progress", "Completed", "Failed", "Busy", "No Answer", "Queued", "Canceled"].map(status => (
-                          <option key={status} value={status}>{status}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>Duration</label>
-                      <input
-                        type="number"
-                        value={callForm.duration}
-                        onChange={(e) => setCallForm({ ...callForm, duration: e.target.value })}
-                        className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
-                        placeholder="Call duration"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex justify-end mt-6">
-                    <button
-                      onClick={async () => {
-                        let success = false;
-                        if (isEditMode) {
-                          success = await editCall();
-                        } else {
-                          success = await addCall();
-                        }
-                        if (success) {
-                          setShowCallModal(false);
-                          setIsEditMode(false);
-                        }
-                      }}
-                      disabled={callsLoading}
-                      className={`px-4 py-2 rounded-lg text-white flex items-center space-x-2 transition-colors ${theme === 'dark' ? 'bg-purplebg hover:bg-purple-700' : 'bg-green-600 hover:bg-green-700'} disabled:opacity-50`}
-                    >
-                      <span>{isEditMode ? 'Update' : 'Create'}</span>
-                    </button>
-                  </div>
+                <div>
+                  <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>To <span className='text-red-500'>*</span></label>
+                  <input
+                    type="text"
+                    value={callForm.to}
+                    onChange={(e) => setCallForm({ ...callForm, to: e.target.value })}
+                    className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
+                    placeholder="To"
+                  />
+                </div>
+                <div>
+                  <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>From <span className='text-red-500'>*</span></label>
+                  <input
+                    type="text"
+                    value={callForm.from}
+                    onChange={(e) => setCallForm({ ...callForm, from: e.target.value })}
+                    className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
+                    placeholder="From"
+                  />
+                </div>
+                <div>
+                  <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>Status</label>
+                  <select
+                    value={callForm.status}
+                    onChange={(e) => setCallForm({ ...callForm, status: e.target.value })}
+                    className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
+                  >
+                    {["Initiated", "Ringing", "In Progress", "Completed", "Failed", "Busy", "No Answer", "Queued", "Canceled"].map(status => (
+                      <option key={status} value={status}>{status}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>Duration</label>
+                  <input
+                    type="number"
+                    value={callForm.duration}
+                    onChange={(e) => setCallForm({ ...callForm, duration: e.target.value })}
+                    className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
+                    placeholder="Call duration"
+                  />
                 </div>
               </div>
-            )}
+
+              <div className="flex justify-end mt-6">
+                <button
+                  onClick={async () => {
+                    let success = false;
+                    if (isEditMode) {
+                      success = await editCall();
+                    } else {
+                      success = await addCall();
+                    }
+                    if (success) {
+                      setShowCallModal(false);
+                      setIsEditMode(false);
+                    }
+                  }}
+                  disabled={callsLoading}
+                  className={`px-4 py-2 rounded-lg text-white flex items-center space-x-2 transition-colors ${theme === 'dark' ? 'bg-purplebg hover:bg-purple-700' : 'bg-green-600 hover:bg-green-700'} disabled:opacity-50`}
+                >
+                  <span>{isEditMode ? 'Update' : 'Create'}</span>
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
@@ -2265,17 +2311,17 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
               <div className="flex justify-between items-center gap-5 mb-6">
                 <h3 className={`text-lg font-semibold ${textColor} mb-2`}>Comments</h3>
                 <button
-                  // onClick={() => setShowCommentModal(true)}
                   onClick={() => {
-                    setSelectedEmail(null);                // Clear selected email
-                    setEmailModalMode("new");
-                    setEmailModalMode("comment");             // Set mode to 'new'
-                    setShowEmailModal(true);              // Open composer
+                    setSelectedEmail(null);
+                    setEmailModalMode("comment");
+                    setShowEmailModal(true);
                     setTimeout(() => {
                       composerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }, 100);                              // Wait for modal to render
+                    }, 100);
                   }}
-                  className={`px-4 py-2 rounded-lg flex items-center space-x-2 text-white ${theme === 'dark' ? 'bg-purplebg hover:bg-purple-700' : 'bg-blue-600 hover:bg-blue-700'}`}
+                  className={`px-4 py-2 rounded-lg flex items-center space-x-2 text-white ${theme === 'dark'
+                    ? 'bg-purplebg hover:bg-purple-700'
+                    : 'bg-blue-600 hover:bg-blue-700'}`}
                 >
                   <Plus className="w-4 h-4" />
                   <span>New Comment</span>
@@ -2291,25 +2337,25 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                   <FaRegComment className={`w-12 h-12 mx-auto mb-4 ${textSecondaryColor}`} />
                   <p className={textSecondaryColor}>No comments</p>
                   <span
-                    // onClick={() => setShowCommentModal(true)}
                     onClick={() => {
-                      setSelectedEmail(null);                // Clear selected email
-                      setEmailModalMode("new");             // Set mode to 'new'
-                      setShowEmailModal(true);              // Open composer
+                      setSelectedEmail(null);
+                      setEmailModalMode("comment");
+                      setShowEmailModal(true);
                       setTimeout(() => {
                         composerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                      }, 100);                              // Wait for modal to render
+                      }, 100);
                     }}
                     className="text-white cursor-pointer bg-gray-400 rounded-md inline-block text-center px-6 py-2"
-                  >New Comment</span>
+                  >
+                    New Comment
+                  </span>
                 </div>
               ) : (
                 <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
-                  {comments.map((comment) => (
+                  {comments.slice().reverse().map((comment) => (
                     <div key={comment.name} className="relative ">
                       <div className="flex justify-between items-center mb-2">
                         <div className="flex items-center gap-4">
-                          {/* Comment icon */}
                           <div className="mt-1 text-white text-lg">
                             <FaRegComment size={18} />
                           </div>
@@ -2320,27 +2366,19 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                             {Username} added a {comment.comment_type}
                           </p>
                         </div>
-
-                        {/* Right aligned time */}
                         <p className="text-sm text-white">
-                          {/* last week */}
                           {getRelativeTime(comment.creation)}
                         </p>
                       </div>
 
-                      <div className={`border border-gray-600  rounded-lg p-4 mb-8 ml-9 mt-2`}>
-                        {/* <div className="flex items-center justify-between mb-2">
-                          <span className={`text-sm ${textSecondaryColor}`}>
-                            {formatDate(comment.creation)}
-                          </span>
-                        </div> */}
+                      <div className={`border border-gray-600 rounded-lg p-4 mb-8 ml-9 mt-2`}>
                         <div className={`${theme === 'dark' ? 'text-white' : 'text-gray-600'} mb-2 whitespace-pre-wrap`}>
                           {comment.content.replace(/<[^>]+>/g, '')}
                         </div>
+
                         {/* Attachments section */}
                         {comment.attachments && comment.attachments.length > 0 && (
-                          <div className="mt-0">
-
+                          <div className="mt-2">
                             <div className="flex flex-wrap gap-3">
                               {comment.attachments.map((attachment, index) => {
                                 const baseURL = "http://103.214.132.20:8002";
@@ -2348,19 +2386,23 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                                   ? attachment.file_url
                                   : `${baseURL}${attachment.file_url}`;
 
+                                const isImage = /\.(png|jpe?g|gif|webp)$/i.test(attachment.file_name);
+
                                 return (
                                   <div key={index} className="flex items-center gap-2">
-                                    <a
-                                      href={fullURL}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setSelectedAttachment({ url: fullURL, name: attachment.file_name, isImage });
+                                        setShowAttachmentModal(true);
+                                      }}
                                       className="flex items-center border border-gray-600 text-white px-3 py-1 rounded bg-white-31 hover:bg-gray-600 transition-colors"
                                     >
                                       <span className="mr-2 flex items-center gap-1 truncate max-w-[200px]">
                                         <IoDocument className="w-3 h-3 mr-1" />
                                         {attachment.file_name}
                                       </span>
-                                    </a>
+                                    </button>
                                   </div>
                                 );
                               })}
@@ -2374,24 +2416,20 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
               )}
             </div>
 
-            <div
-              ref={composerRef}
-              className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} p-6`}>
-              {/* Show Reply/Comment buttons when modal is closed */}
+            {/* Composer */}
+            <div ref={composerRef} className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} p-6`}>
               {!showEmailModal && (
                 <div className="flex gap-4 mt-4">
                   <button
                     className={`flex items-center gap-1 ${theme === "dark" ? "text-white" : "text-gray-600"}`}
                     onClick={() => {
-                      setEmailModalMode("reply");
-                      setShowEmailModal(true);
-                      setSelectedEmail(null);                // Clear selected email
                       setEmailModalMode("new");
+                      setShowEmailModal(true);
+                      setSelectedEmail(null);
                     }}
                   >
                     <Mail size={14} /> Reply
                   </button>
-
                   <button
                     className={`flex items-center gap-1 ${theme === "dark" ? "text-white" : "text-gray-400"}`}
                     onClick={() => {
@@ -2410,12 +2448,45 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                   fetchEmails={fetchEmails}
                   fetchComments={fetchComments}
                   selectedEmail={selectedEmail}
-                  clearSelectedEmail={() => setSelectedEmail(null)} // Add this line
-                  onClose={() => setShowEmailModal(false)} />
+                  clearSelectedEmail={() => setSelectedEmail(null)}
+                  onClose={() => setShowEmailModal(false)}
+                />
               )}
             </div>
+
+            {/* Attachment Preview Modal */}
+            {showAttachmentModal && selectedAttachment && (
+              <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-60 z-50">
+                <div className="bg-gray-800 p-4 rounded-lg max-w-3xl w-full relative">
+                  <button
+                    className="absolute top-5 right-8 text-white"
+                    onClick={() => setShowAttachmentModal(false)}
+                  >
+                    ✕
+                  </button>
+                  <h3 className="text-lg font-semibold text-white mb-4"> {selectedAttachment.name}</h3>
+                  <div className='border-b mb-4'></div>
+                  {selectedAttachment.isImage ? (
+                    <img src={selectedAttachment.url} alt={selectedAttachment.name} className="max-h-[70vh] mx-auto rounded" />
+                  ) : (
+                    <div className="text-center text-white">
+                      <IoDocument className="mx-auto mb-2 w-8 h-8" />
+                      <p>{selectedAttachment.name}</p>
+                      <a
+                        href={selectedAttachment.url}
+                        download
+                        className="mt-3 inline-block bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+                      >
+                        Download File
+                      </a>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
+
 
         {activeTab === 'tasks' && (
           <div className="space-y-6">
@@ -2442,13 +2513,13 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                   className={`px-4 py-2 rounded-lg flex items-center space-x-2 text-white ${theme === 'dark' ? 'bg-purplebg hover:bg-purple-700' : 'bg-blue-600 hover:bg-blue-700'}`}
                 >
                   <Plus className="w-4 h-4" />
-                  <span>New Task</span>
+                  <span>Create Task</span>
                 </button>
               </div>
               {tasks.length === 0 ? (
                 <div className="text-center py-8">
                   <SiTicktick className={`w-12 h-12 mx-auto mb-4 ${textSecondaryColor}`} />
-                  <p className={textSecondaryColor}>No tasks yet</p>
+                  <p className={textSecondaryColor}>No tasks </p>
                   <span
                     onClick={() => {
                       setTaskForm({
@@ -2464,7 +2535,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                       setShowTaskModal(true);
                     }}
                     className="text-white cursor-pointer bg-gray-400 rounded-md inline-block text-center px-6 py-2"
-                  >New Task</span>
+                  >Create Task</span>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -2666,6 +2737,9 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                         {/* Status */}
                         <div>
+                          <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                            Status
+                          </label>
                           <select
                             value={taskForm.status}
                             onChange={(e) => setTaskForm({ ...taskForm, status: e.target.value })}
@@ -2697,6 +2771,9 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
 
                         {/* Priority */}
                         <div>
+                          <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                            Priority
+                          </label>
                           <select
                             value={taskForm.priority}
                             onChange={(e) => setTaskForm({ ...taskForm, priority: e.target.value })}
@@ -2719,6 +2796,9 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
 
                         {/* Due Date */}
                         <div>
+                          <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                            Date
+                          </label>
 
                           <input
                             type="date"
@@ -2733,6 +2813,9 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
 
                         {/* Assigned To */}
                         <div>
+                          <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                            Assigned To
+                          </label>
                           <select
                             value={taskForm.assigned_to}
                             onChange={(e) => setTaskForm({ ...taskForm, assigned_to: e.target.value })}
@@ -2855,7 +2938,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
               ) : emails.length === 0 ? (
                 <div className="text-center py-8">
                   <Mail className={`w-12 h-12 mx-auto mb-4 ${textSecondaryColor}`} />
-                  <p className={textSecondaryColor}>No emails yet</p>
+                  <p className={textSecondaryColor}>No emails Communications</p>
                   <span
                     onClick={() => {
                       setSelectedEmail(null);                // Clear selected email
@@ -3045,17 +3128,13 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
             ) : (
               <>
                 <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
-                  {/* {activities.slice(activityStartIndex, activityEndIndex).map((activity) => { */}
-                  {activities.map((activity) => {
-                    // Conditionally render the detailed style ONLY for calls
-                    if (activity.type === 'call') {
-                      // Find the original call data to access detailed fields like _caller, _receiver etc.
-                      const callData = callLogs.find(c => c.name === activity.id);
-                      if (!callData) return null; // Or a fallback UI
+                  {activities.slice().reverse().map((activity) => {
 
+                    if (activity.type === 'call') {
+                      const callData = callLogs.find(c => c.name === activity.id);
+                      if (!callData) return null;
                       return (
                         <div key={activity.id}>
-                          {/* Top section: Icon, user avatar, and timestamp */}
                           <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center">
                               <div
@@ -3089,7 +3168,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
 
                           {/* Card body with call details */}
                           <div
-                            onClick={() => handleLabelClick(callData)}
+                            onClick={() => handleLabelClick(callData, true)}
                             className={`relative border ${borderColor} rounded-lg ml-12 p-4 flex flex-col`}>
                             <div className="flex items-center justify-between mb-2">
                               <p className={`text-lg font-medium ${textColor}`}>
@@ -3138,66 +3217,66 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                         </div>
                       );
                     }
-                    else if (activity.type === 'note') {
-                      const noteData = notes.find(n => n.name === activity.id);
-                      if (!noteData) return null;
+                    // else if (activity.type === 'note') {
+                    //   const noteData = notes.find(n => n.name === activity.id);
+                    //   if (!noteData) return null;
 
-                      return (
-                        <div key={activity.id} className="flex items-start space-x-3">
-                          {/* Icon */}
-                          <div className={`p-2 rounded-full ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-100'}`}>
-                            {activity.icon}
-                          </div>
-                          {/* Note Card */}
-                          <div className={`flex-1 border ${borderColor} rounded-lg p-4 relative`}>
-                            <div className="flex items-center justify-between mb-2">
-                              <h4 className={`text-lg font-semibold ${textColor}`}>{noteData.title}</h4>
-                              <div className="relative">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setOpenMenuId(openMenuId === noteData.name ? null : noteData.name);
-                                  }}
-                                  className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600"
-                                >
-                                  <BsThreeDots className="w-4 h-4" />
-                                </button>
-                                {/* Dropdown Menu for the note */}
-                                {openMenuId === noteData.name && (
-                                  <div className={`absolute right-0 mt-2 w-28 rounded-lg shadow-lg z-10 ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border'}`}>
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        // deleteNote(noteData.name); // Ensure you have this function
-                                        setOpenMenuId(null);
-                                      }}
-                                      className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 w-full text-left text-red-500"
-                                    >
-                                      <Trash2 className="w-4 h-4" />
-                                      <span>Delete</span>
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                            <p className={`text-base font-semibold ${textSecondaryColor} whitespace-pre-wrap`}>
-                              {noteData.content}
-                            </p>
-                            <div className="flex justify-between items-center mt-4 pt-2 border-t dark:border-gray-700 text-sm gap-2">
-                              <div className="flex items-center gap-2">
-                                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-gray-500 text-white font-bold text-xs">
-                                  {noteData.owner?.charAt(0).toUpperCase() || "-"}
-                                </span>
-                                <span className={textSecondaryColor}>{noteData.owner}</span>
-                              </div>
-                              <span className={`${textSecondaryColor} font-medium`}>
-                                {getRelativeTime(noteData.creation)}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    }
+                    //   return (
+                    //     <div key={activity.id} className="flex items-start space-x-3">
+                    //       {/* Icon */}
+                    //       <div className={`p-2 rounded-full ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-100'}`}>
+                    //         {activity.icon}
+                    //       </div>
+                    //       {/* Note Card */}
+                    //       <div className={`flex-1 border ${borderColor} rounded-lg p-4 relative`}>
+                    //         <div className="flex items-center justify-between mb-2">
+                    //           <h4 className={`text-lg font-semibold ${textColor}`}>{noteData.title}</h4>
+                    //           <div className="relative">
+                    //             <button
+                    //               onClick={(e) => {
+                    //                 e.stopPropagation();
+                    //                 setOpenMenuId(openMenuId === noteData.name ? null : noteData.name);
+                    //               }}
+                    //               className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600"
+                    //             >
+                    //               <BsThreeDots className="w-4 h-4" />
+                    //             </button>
+                    //             {/* Dropdown Menu for the note */}
+                    //             {openMenuId === noteData.name && (
+                    //               <div className={`absolute right-0 mt-2 w-28 rounded-lg shadow-lg z-10 ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border'}`}>
+                    //                 <button
+                    //                   onClick={(e) => {
+                    //                     e.stopPropagation();
+                    //                     // deleteNote(noteData.name); // Ensure you have this function
+                    //                     setOpenMenuId(null);
+                    //                   }}
+                    //                   className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 w-full text-left text-red-500"
+                    //                 >
+                    //                   <Trash2 className="w-4 h-4" />
+                    //                   <span>Delete</span>
+                    //                 </button>
+                    //               </div>
+                    //             )}
+                    //           </div>
+                    //         </div>
+                    //         <p className={`text-base font-semibold ${textSecondaryColor} whitespace-pre-wrap`}>
+                    //           {noteData.content}
+                    //         </p>
+                    //         <div className="flex justify-between items-center mt-4 pt-2 border-t dark:border-gray-700 text-sm gap-2">
+                    //           <div className="flex items-center gap-2">
+                    //             <span className="flex items-center justify-center w-6 h-6 rounded-full bg-gray-500 text-white font-bold text-xs">
+                    //               {noteData.owner?.charAt(0).toUpperCase() || "-"}
+                    //             </span>
+                    //             <span className={textSecondaryColor}>{noteData.owner}</span>
+                    //           </div>
+                    //           <span className={`${textSecondaryColor} font-medium`}>
+                    //             {getRelativeTime(noteData.creation)}
+                    //           </span>
+                    //         </div>
+                    //       </div>
+                    //     </div>
+                    //   );
+                    // }
                     else if (activity.type === 'comment') {
                       const commentData = comments.find(c => c.name === activity.id);
                       if (!commentData) return null;
@@ -3251,6 +3330,73 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                                 </div>
                               </div>
                             )}
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    else if (activity.type === 'attachments') {
+                      // Find the corresponding attachment data
+                      const attachmentData = activity.attachmentData;
+                      if (!attachmentData) return null;
+
+                      return (
+                        <div key={activity.id} className="flex items-start space-x-3">
+                          <div className={`p-2 rounded-full text-white ${theme === 'dark' ? 'bg-gray-600' : 'bg-gray-100'}`}>
+                            <Paperclip className="w-4 h-4" />
+                          </div>
+                          <div className="flex-1 min-w-0 pt-1.5">
+                            <div className="flex items-center justify-between">
+                              <p className={`text-sm ${textColor}`}>
+                                <span className="font-medium">{activity.user}</span> added an attachment
+                              </p>
+                              <p className={`text-xs ${textSecondaryColor}`}>
+                                {getRelativeTime(activity.timestamp)}
+                              </p>
+                            </div>
+
+                            {/* Attachment preview */}
+                            <div className={`mt-2 border ${borderColor} rounded-lg p-3`}>
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center">
+                                  {isImageFile(attachmentData.file_name) ? (
+                                    <img
+                                      src={`http://103.214.132.20:8002${attachmentData.file_url}`}
+                                      alt={attachmentData.file_name}
+                                      className="w-12 h-12 mr-3 object-cover rounded border border-gray-400"
+                                    />
+                                  ) : (
+                                    <div className="w-12 h-12 mr-3 flex items-center justify-center border border-gray-400 rounded">
+                                      <IoDocument className={`w-6 h-6 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`} />
+                                    </div>
+                                  )}
+                                  <div>
+                                    <p className={`font-medium ${textColor}`}>{attachmentData.file_name}</p>
+                                    <p className={`text-sm ${textSecondaryColor}`}>
+                                      {attachmentData.file_size ? formatFileSize(attachmentData.file_size) : 'Unknown size'}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center space-x-2">
+                                  {attachmentData.is_private === 1 ? (
+                                    <IoLockClosedOutline className={`w-4 h-4 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`} title="Private" />
+                                  ) : (
+                                    <IoLockOpenOutline className={`w-4 h-4 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`} title="Public" />
+                                  )}
+
+                                  <a
+                                    href={`http://103.214.132.20:8002${attachmentData.file_url}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className={`p-1.5 rounded-full ${theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-200'}`}
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <LuUpload className={`w-4 h-4 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`} />
+                                  </a>
+                                </div>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       );
@@ -3582,21 +3728,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                 />
               )}
             </div>
-            {showPopup && editingCall && (
-              <CallDetailsPopup
-                call={{
-                  type: editingCall.type,
-                  caller: editingCall._caller?.label || "Unknown",
-                  receiver: editingCall._receiver?.label || "Unknown",
-                  date: formatDateRelative(editingCall.creation),
-                  duration: editingCall.duration,
-                  status: editingCall.status
-                }}
-                onClose={() => setShowPopup(false)}
-                onAddTask={handleAddTaskFromCall}
-                theme={theme}
-              />
-            )}
+
           </div>
 
         )}
@@ -3717,7 +3849,43 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
           </div>
         )}
       </div>
+      {showCallDetailsPopup && (editingCall || editingCallFromActivity) && (
+        <CallDetailsPopup
+          call={{
+            type: (editingCall || editingCallFromActivity)?.type,
+            caller: (editingCall || editingCallFromActivity)?._caller?.label || "Unknown",
+            receiver: (editingCall || editingCallFromActivity)?._receiver?.label || "Unknown",
+            date: formatDateRelative((editingCall || editingCallFromActivity)?.creation),
+            duration: (editingCall || editingCallFromActivity)?.duration,
+            status: (editingCall || editingCallFromActivity)?.status
+          }}
+          onClose={() => {
+            setShowCallDetailsPopup(false);
+            setEditingCall(null);
+            setEditingCallFromActivity(null);
+          }}
+          onAddTask={handleAddTaskFromCall}
+          onEdit={() => {
+            const callToEdit = editingCall || editingCallFromActivity;
+            setCallForm({
+              from: callToEdit.from || callToEdit._caller?.label || '',
+              to: callToEdit.to || callToEdit._receiver?.label || '',
+              status: callToEdit.status || 'Ringing',
+              type: callToEdit.type || 'Outgoing',
+              duration: callToEdit.duration || '',
+              name: callToEdit.name || '',
+            });
+            setIsEditMode(true);
+            setShowCallDetailsPopup(false);
+            setShowCallModal(true);
+            setEditingCall(null);
+            setEditingCallFromActivity(null);
+          }}
+          theme={theme}
+        />
+      )}
     </div>
+
   );
 }
 

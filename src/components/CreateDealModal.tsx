@@ -26,7 +26,7 @@ interface Deal {
 interface CreateDealModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: Deal) => void;
+  onSubmit: (data: any) => void;
 }
 
 const API_BASE_URL = 'http://103.214.132.20:8002/api';
@@ -68,9 +68,23 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
   const [isLoadingOrganizations, setIsLoadingOrganizations] = useState(false);
   const [isLoadingContacts, setIsLoadingContacts] = useState(false);
 
+  // New state variables for dynamic dropdowns
+  const [industryOptions, setIndustryOptions] = useState<string[]>([]);
+  const [territoryOptions, setTerritoryOptions] = useState<string[]>([]);
+  const [genderOptions, setGenderOptions] = useState<string[]>([]);
+  const [salutationOptions, setSalutationOptions] = useState<string[]>([]);
+  const [isLoadingIndustries, setIsLoadingIndustries] = useState(false);
+  const [isLoadingTerritories, setIsLoadingTerritories] = useState(false);
+  const [isLoadingGenders, setIsLoadingGenders] = useState(false);
+  const [isLoadingSalutations, setIsLoadingSalutations] = useState(false);
+
   useEffect(() => {
     if (isOpen) {
       setIsLoadingUsers(true);
+      fetchIndustryOptions();
+      fetchTerritoryOptions();
+      fetchGenderOptions();
+      fetchSalutationOptions();
 
       const session = getUserSession();
       const sessionCompany = session?.company;
@@ -97,6 +111,120 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
         .finally(() => setIsLoadingUsers(false));
     }
   }, [isOpen]);
+
+  // Fetch dynamic dropdown options
+  const fetchIndustryOptions = async () => {
+    try {
+      setIsLoadingIndustries(true);
+      const response = await fetch(`${API_BASE_URL}/method/frappe.desk.search.search_link`, {
+        method: 'POST',
+        headers: {
+          'Authorization': AUTH_TOKEN,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          txt: "",
+          doctype: "CRM Industry"
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        const industries = result.message?.map((item: any) => item.value) || [];
+        setIndustryOptions(industries);
+      }
+    } catch (error) {
+      console.error('Error fetching industries:', error);
+      setIndustryOptions([]);
+    } finally {
+      setIsLoadingIndustries(false);
+    }
+  };
+
+  const fetchTerritoryOptions = async () => {
+    try {
+      setIsLoadingTerritories(true);
+      const response = await fetch(`${API_BASE_URL}/method/frappe.desk.search.search_link`, {
+        method: 'POST',
+        headers: {
+          'Authorization': AUTH_TOKEN,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          txt: "",
+          doctype: "CRM Territory"
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        const territories = result.message?.map((item: any) => item.value) || [];
+        setTerritoryOptions(territories);
+      }
+    } catch (error) {
+      console.error('Error fetching territories:', error);
+      setTerritoryOptions([]);
+    } finally {
+      setIsLoadingTerritories(false);
+    }
+  };
+
+  const fetchGenderOptions = async () => {
+    try {
+      setIsLoadingGenders(true);
+      const response = await fetch(`${API_BASE_URL}/method/frappe.desk.search.search_link`, {
+        method: 'POST',
+        headers: {
+          'Authorization': AUTH_TOKEN,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          txt: "",
+          doctype: "Gender"
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        const genders = result.message?.map((item: any) => item.value) || [];
+        setGenderOptions(genders);
+      }
+    } catch (error) {
+      console.error('Error fetching genders:', error);
+      setGenderOptions([]);
+    } finally {
+      setIsLoadingGenders(false);
+    }
+  };
+
+  const fetchSalutationOptions = async () => {
+    try {
+      setIsLoadingSalutations(true);
+      const response = await fetch(`${API_BASE_URL}/method/frappe.desk.search.search_link`, {
+        method: 'POST',
+        headers: {
+          'Authorization': AUTH_TOKEN,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          txt: "",
+          doctype: "Salutation",
+          filters: null
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        const salutations = result.message?.map((item: any) => item.value) || [];
+        setSalutationOptions(salutations);
+      }
+    } catch (error) {
+      console.error('Error fetching salutations:', error);
+      setSalutationOptions([]);
+    } finally {
+      setIsLoadingSalutations(false);
+    }
+  };
 
   const fetchOrganizationOptions = async () => {
     try {
@@ -241,6 +369,11 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
       setSuccess('Deal created successfully!');
       onSubmit(result);
 
+      if (result.message) {
+        setSuccess('Dead created successfully!');
+        const createdDeal = result.message.deal || result.message.data || result.message;
+        onSubmit(createdDeal);
+
       // Reset form after successful submission
       setTimeout(() => {
         setFormData({
@@ -267,6 +400,7 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
         setSuccess('');
         onClose();
       }, 2000);
+    }
 
     } catch (error) {
       let errorMessage = 'Failed to create deal. Please try again.';
@@ -346,10 +480,6 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
               Create Deal
             </h3>
             <div className="flex items-center space-x-2">
-              <button className={`p-1 rounded transition-colors ${theme === 'dark' ? 'hover:bg-purple-800/50' : 'hover:bg-gray-100'
-                }`}>
-                <ExternalLink className={`w-4 h-4 ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`} />
-              </button>
               <button
                 onClick={onClose}
                 className={`p-1 rounded transition-colors ${theme === 'dark' ? 'hover:bg-purple-800/50' : 'hover:bg-gray-100'
@@ -430,9 +560,10 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
                 </label>
               </div>
             </div>
+            <div className='border-b mb-4'></div>
 
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            <div className="grid grid-cols-1 mb-4 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {/* Organization Fields */}
               {useExistingOrganization ? (
                 <div className="md:col-span-2 lg:col-span-3">
@@ -459,7 +590,7 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
               ) : (
                 <>
                   <div>
-                    <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>
+                    <label className={`block text-md font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>
                       Organization Name <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -477,7 +608,7 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
                     />
                   </div>
                   <div>
-                    <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>
+                    <label className={`block text-md font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>
                       Website
                     </label>
                     <input
@@ -494,7 +625,7 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
                     />
                   </div>
                   <div>
-                    <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>
+                    <label className={`block text-md font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>
                       No. of Employees
                     </label>
                     <select
@@ -517,26 +648,27 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
                     </select>
                   </div>
                   <div>
-                    <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>
+                    <label className={`block text-md font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>
                       Territory
                     </label>
                     <select
                       name="territory"
                       value={formData.territory}
                       onChange={handleChange}
-                      disabled={isLoading}
+                      disabled={isLoading || isLoadingTerritories}
                       className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
                         ? 'bg-white-31 border-white text-white'
                         : 'bg-gray-50/80 border-gray-300'
                         }`}
                     >
                       <option value="">Territory</option>
-                      <option value="US">US</option>
-                      <option value="India">India</option>
+                      {territoryOptions.map(territory => (
+                        <option key={territory} value={territory}>{territory}</option>
+                      ))}
                     </select>
                   </div>
                   <div>
-                    <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>
+                    <label className={`block text-md font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>
                       Annual Revenue
                     </label>
                     <input
@@ -553,34 +685,34 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
                     />
                   </div>
                   <div>
-                    <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>
+                    <label className={`block text-md font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>
                       Industry
                     </label>
                     <select
                       name="industry"
                       value={formData.industry}
                       onChange={handleChange}
-                      disabled={isLoading}
+                      disabled={isLoading || isLoadingIndustries}
                       className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
                         ? 'bg-white-31 border-white text-white'
                         : 'bg-gray-50/80 border-gray-300'
                         }`}
                     >
                       <option value="">Industry</option>
-                      <option value="Education">Education</option>
-                      <option value="Service">Service</option>
-                      <option value="Software">Software</option>
-                      <option value="Sports">Sports</option>
-                      <option value="Technology">Technology</option>
+                      {industryOptions.map(industry => (
+                        <option key={industry} value={industry}>{industry}</option>
+                      ))}
                     </select>
                   </div>
                 </>
               )}
-
+            </div>
+            <div className='border-b mb-4'></div>
+            <div className="grid grid-cols-1 mb-4 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {/* Contact Fields */}
               {useExistingContact ? (
                 <div className="md:col-span-2 lg:col-span-3">
-                  <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>
+                  <label className={`block text-md font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>
                     Select Contact
                   </label>
                   <select
@@ -602,32 +734,27 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
               ) : (
                 <>
                   <div>
-                    <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>
+                    <label className={`block text-md font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>
                       Salutation
                     </label>
                     <select
                       name="salutation"
                       value={formData.salutation}
                       onChange={handleChange}
-                      disabled={isLoading}
+                      disabled={isLoading || isLoadingSalutations}
                       className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
                         ? 'bg-white-31 border-white text-white'
                         : 'bg-gray-50/80 border-gray-300'
                         }`}
                     >
                       <option value="">Salutation</option>
-                      <option value="Dr">Dr</option>
-                      <option value="Madam">Madam</option>
-                      <option value="Master">Master</option>
-                      <option value="Miss">Miss</option>
-                      <option value="Mr">Mr</option>
-                      <option value="Mrs">Mrs</option>
-                      <option value="Ms">Ms</option>
-                      <option value="Prof">Prof</option>
+                      {salutationOptions.map(salutation => (
+                        <option key={salutation} value={salutation}>{salutation}</option>
+                      ))}
                     </select>
                   </div>
                   <div>
-                    <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>
+                    <label className={`block text-md font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>
                       First Name
                     </label>
                     <input
@@ -644,7 +771,7 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
                     />
                   </div>
                   <div>
-                    <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>
+                    <label className={`block text-md font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>
                       Last Name
                     </label>
                     <input
@@ -661,7 +788,7 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
                     />
                   </div>
                   <div>
-                    <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>
+                    <label className={`block text-md font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>
                       Email
                     </label>
                     <input
@@ -678,7 +805,7 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
                     />
                   </div>
                   <div>
-                    <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>
+                    <label className={`block text-md font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>
                       Mobile No
                     </label>
                     <input
@@ -695,32 +822,35 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
                     />
                   </div>
                   <div>
-                    <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>
+                    <label className={`block text-md font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>
                       Gender
                     </label>
                     <select
                       name="gender"
                       value={formData.gender}
                       onChange={handleChange}
-                      disabled={isLoading}
+                      disabled={isLoading || isLoadingGenders}
                       className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
                         ? 'bg-white-31 border-white text-white'
                         : 'bg-gray-50/80 border-gray-300'
                         }`}
                     >
                       <option value="">Gender</option>
-                      <option value="Male">Male</option>
-                      <option value="Female">Female</option>
-                      <option value="Others">Others</option>
-                      <option value="Transgender">Transgender</option>
+                      {genderOptions.map(gender => (
+                        <option key={gender} value={gender}>{gender}</option>
+                      ))}
                     </select>
                   </div>
                 </>
               )}
 
+            </div>
+            <div className='border-b mb-4'></div>
+            <div className="grid grid-cols-1  md:grid-cols-2 lg:grid-cols-2 gap-4 sm:gap-6">
+
               {/* Row 5 - Status and Deal Owner */}
               <div>
-                <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>
+                <label className={`block text-md font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>
                   Status <span className="text-red-500">*</span>
                 </label>
                 <select
@@ -738,10 +868,13 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
                   <option value="Demo/Making">Demo/Making</option>
                   <option value="Proposal/Quotation">Proposal/Quotation</option>
                   <option value="Negotiation">Negotiation</option>
+                  <option value="Ready to Close">Ready To Close</option>
+                  <option value="Won">Won</option>
+                  <option value="Lost">Lost</option>
                 </select>
               </div>
-              <div className="md:col-start-2 lg:col-start-3">
-                <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>
+              <div className="md:col-start-2 lg:col-start-2">
+                <label className={`block text-md font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>
                   Deal Owner
                 </label>
                 <select
@@ -754,7 +887,7 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
                     : 'bg-gray-50/80 border-gray-300'
                     }`}
                 >
-                  <option value="Administrator">Administrator</option>
+                  <option value="">Select a Deal Owner</option>
                   {users.map(user => (
                     <option key={user.name} value={user.name}>
                       {user.email}

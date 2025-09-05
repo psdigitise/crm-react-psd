@@ -363,7 +363,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
   // Function to handle the delete API call
   const handleDeleteItems = async () => {
     if (selectedIds.length === 0) return;
-    
+
     setLoading(true);
     setError(null);
 
@@ -374,7 +374,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
       }
 
       const apiUrl = `http://103.214.132.20:8002/api/method/frappe.desk.reportview.delete_items`;
-      
+
       const requestBody = {
         items: JSON.stringify(selectedIds),
         doctype: "CRM Organization"
@@ -746,7 +746,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
                   {/* <button className="block w-full text-left px-4 py-2 hover:bg-gray-700">
                     Edit
                   </button> */}
-                  <button 
+                  <button
                     className="block w-full text-left px-4 py-2 hover:bg-gray-700"
                     onClick={() => {
                       setShowDeleteConfirm(true);
@@ -810,7 +810,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
                 className={`px-4 py-2 rounded-lg transition-colors ${theme === 'dark'
                   ? 'bg-gray-700 text-white hover:bg-gray-600'
                   : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
-                }`}
+                  }`}
               >
                 Cancel
               </button>

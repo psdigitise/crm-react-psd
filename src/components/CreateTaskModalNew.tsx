@@ -283,7 +283,7 @@ export function CreateTaskModalNew({ isOpen, onClose, onSubmit, leadName }: Crea
               <div>
                 <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
                   }`}>
-                  Due Date <span className="text-red-500">*</span>
+                  Date <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="date"

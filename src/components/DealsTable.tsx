@@ -883,7 +883,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
                     }`}
                   onClick={() => onDealClick?.(deal)}
                 >
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-6 py-4 whitespace-nowrap flex justify-center">
                     <input
                       type="checkbox"
                       checked={selectedDeals.includes(deal.id)}

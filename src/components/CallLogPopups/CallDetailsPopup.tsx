@@ -447,7 +447,7 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
             const data = await response.json();
             console.log("Task created successfully:", data.message);
 
-            // Update local state with the new task
+            // Update local state with the Create Task
             const newTask: Task = {
                 name: data.message.name,
                 title: data.message.title || taskForm.title,
@@ -684,7 +684,7 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
                                 {/* Due Date */}
                                 <div>
                                     <label className={`block text-sm font-medium mb-2  ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                                        Due Date
+                                        Date
                                     </label>
                                     <input
                                         type="date"

@@ -110,7 +110,6 @@ interface CallLog {
 }
 
 interface Comment {
-  attachments: any;
   name: string;
   content: string;
   comment_type: string;
@@ -119,6 +118,14 @@ interface Comment {
   creation: string;
   owner: string;
   subject: string;
+  attachments: Array<{
+    name: string;
+    file_name: string;
+    file_url: string;
+    is_private: number;
+    file_type?: string;
+    file_size?: number;
+  }>;
 }
 
 export interface Attachment {
@@ -262,14 +269,14 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
   const { theme } = useTheme();
   const [isEditing, setIsEditing] = useState(false);
   const [editedLead, setEditedLead] = useState<Lead>(lead);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState('activity');
   const [loading, setLoading] = useState(false);
   const [replyData, setReplyData] = useState<EmailReplyData | undefined>(undefined);
   const [notes, setNotes] = useState<Note[]>([]);
   const [callLogs, setCallLogs] = useState<CallLog[]>([]);
   const [comments, setComments] = useState<Comment[]>([]);
   const [sourceOptions, setSourceOptions] = useState<string[]>([]);
-  const [commentAttachment, setCommentAtachment] = useState<any>([]);
+  const [industryOptions, setIndustryOptions] = useState<string[]>([]);
   const [, setCommentsNew] = useState<any>([]);
   const [showNoteModal, setShowNoteModal] = useState(false);
   const [changes, setChanges] = useState([]);
@@ -291,12 +298,19 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
   const [showDeleteTaskPopup, setShowDeleteTaskPopup] = React.useState(false);
   // const [showNoteModal, setShowNoteModal] = useState(false);
   const [showCallModal, setShowCallModal] = useState(false);
+  const [territorySearch, setTerritorySearch] = useState('');
+  const [showCreateTerritoryModal, setShowCreateTerritoryModal] = useState(false);
   const [showCommentModal, setShowCommentModal] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [selectedOrganization, setSelectedOrganization] = useState('');
+  const [newIndustryName, setNewIndustryName] = useState('');
+  const [industryLoading, setIndustryLoading] = useState(false);
   const [currentTaskId, setCurrentTaskId] = useState(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
+  const [showCreateIndustryModal, setShowCreateIndustryModal] = useState(false);
+  const [industrySearch, setIndustrySearch] = useState('');
   const [showFileModal, setShowFileModal] = useState(false);
   const [expandedEmailId, setExpandedEmailId] = useState<string | null>(null);
   const [noteForm, setNoteForm] = useState({
@@ -365,6 +379,14 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
     creation?: string;
     owner?: string;
   }>>([]);
+
+  const [sourceSearch, setSourceSearch] = useState('');
+  const [showCreateSourceModal, setShowCreateSourceModal] = useState(false);
+  const [newSource, setNewSource] = useState({
+    source_name: '',
+    details: ''
+  });
+  const [sourceLoading, setSourceLoading] = useState(false);
 
   const composerRef = useRef<HTMLDivElement>(null);
   const commentRef = useRef<HTMLDivElement>(null)
@@ -497,6 +519,20 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
     setShowTaskModal(true);
   };
 
+  const activityContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (activeTab === 'activity' && activityContainerRef.current && activities.length > 0) {
+      // Scroll to bottom with smooth animation
+      setTimeout(() => {
+        activityContainerRef.current?.scrollTo({
+          top: activityContainerRef.current.scrollHeight,
+          behavior: 'smooth'
+        });
+      }, 100);
+    }
+  }, [activities, activeTab]);
+
   const fetchActivitiesNew = async () => {
     try {
       setLoading(true);
@@ -555,10 +591,21 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
     fetchActivitiesNew();
   }, [listSuccess, lead.name]);
 
+  // const [showCreateTerritoryModal, setShowCreateTerritoryModal] = useState(false);
+  const [newTerritory, setNewTerritory] = useState({
+    territory_name: '',
+    territory_manager: '',
+    parent_crm_territory: '',
+    is_group: false,
+    old_parent: ''
+  });
+  const [territoryLoading, setTerritoryLoading] = useState(false);
+
 
 
   const fetchActivities = useCallback(async () => {
     setActivityLoading(true);
+    setActivities([]);
     try {
       const response = await fetch(
         "http://103.214.132.20:8002/api/method/crm.api.activities.get_activities",
@@ -736,11 +783,28 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
 
 
 
-      const allActivities = [...callActivities, ...noteActivities, ...taskActivities, ...emailActivities, ...commentActivities, ...fileActivities, ...otherActivities];
-      allActivities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      const allActivities = [
+        ...callActivities,
+        // ...noteActivities,
+        // ...taskActivities,
+        ...emailActivities,
+        ...commentActivities,
+        ...fileActivities,
+        ...otherActivities
+      ];
+      allActivities.sort((a, b) => {
+        const getValidDate = (activity) => {
+          if (activity.timestamp) return new Date(activity.timestamp);
+          if (activity.creation) return new Date(activity.creation);
+          if (activity.data?.creation) return new Date(activity.data.creation);
+          return new Date(0);
+        };
 
+        const dateA = getValidDate(a);
+        const dateB = getValidDate(b);
+        return dateA.getTime() - dateB.getTime();
+      });
       setActivities(allActivities);
-      console.log(allActivities, "hi");
 
     } catch (err) {
       console.error("Error fetching activities:", err);
@@ -770,7 +834,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
   const fetchNotes = async () => {
     setNotesLoading(true);
     try {
-      
+
       const response = await fetch(`${API_BASE_URL}/method/frappe.client.get_list`, {
         method: 'POST',
         headers: {
@@ -916,28 +980,40 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
 
       if (response.ok) {
         const result = await response.json();
-        setCommentsNew(result);
 
-        const commentsWithAttachments = result.docinfo.comments.map((comment: { attachments: string; }) => {
-          try {
-            return {
-              ...comment,
-              attachments: comment.attachments ? JSON.parse(comment.attachments) : []
-            };
-          } catch (e) {
-            console.error('Error parsing attachments:', e);
-            return {
-              ...comment,
-              attachments: []
-            };
-          }
-        });
+        // Get comments from activities
+        let commentsData = [];
+        const activities = result.message[0] || [];
 
-        setComments(commentsWithAttachments);
-      } else {
-        const errorData = await response.json();
-        console.error("Failed to fetch:", errorData);
-        showToast(`Failed to fetch comments: ${errorData?.message || response.statusText}`, { type: "error" });
+        // Filter for comment activities and extract attachments
+        commentsData = activities
+          .filter((activity: any) => activity.activity_type === 'comment')
+          .map((comment: any) => {
+            let attachments = [];
+
+            try {
+              // Try to parse attachments if they exist
+              if (comment.attachments) {
+                attachments = typeof comment.attachments === 'string'
+                  ? JSON.parse(comment.attachments)
+                  : comment.attachments;
+              }
+            } catch (e) {
+              console.error('Error parsing comment attachments:', e);
+              attachments = [];
+            }
+
+            return {
+              name: comment.name,
+              content: comment.content,
+              comment_type: 'Comment',
+              creation: comment.creation,
+              owner: comment.owner,
+              attachments: attachments
+            };
+          });
+
+        setComments(commentsData);
       }
     } catch (error) {
       console.error('Error fetching comments:', error);
@@ -1080,6 +1156,8 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
 
   const fetchTerritoryOptions = async () => {
     try {
+      const session = getUserSession();
+      const sessionCompany = session?.company;
       const response = await fetch(`${API_BASE_URL}/method/frappe.desk.search.search_link`, {
         method: 'POST',
         headers: {
@@ -1088,7 +1166,9 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
         },
         body: JSON.stringify({
           txt: "",
-          doctype: "CRM Territory"
+          doctype: "CRM Territory",
+          filters: sessionCompany ? { company: sessionCompany } : null
+
         })
       });
 
@@ -1347,7 +1427,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
     setNotesLoading(true);
     try {
       const session = getUserSession();
-      const sessionCompany = session?.company || ''; 
+      const sessionCompany = session?.company || '';
       const response = await fetch(`${API_BASE_URL}/method/frappe.client.insert`, {
         method: 'POST',
         headers: {
@@ -1358,7 +1438,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
           doc: JSON.stringify({
             doctype: 'FCRM Note',
             title: noteForm.title,
-            company:sessionCompany,
+            company: sessionCompany,
             content: noteForm.content,
             reference_doctype: 'CRM Lead',
             reference_docname: lead.name
@@ -1451,6 +1531,50 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
   //   }
   // };
 
+  const fetchIndustryOptions = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/method/frappe.desk.search.search_link`, {
+        method: 'POST',
+        headers: {
+          'Authorization': AUTH_TOKEN,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          txt: "",
+          doctype: "CRM Industry"
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        // Extract industry names from the response
+        const industries = result.message.map((industry: any) => industry.value);
+        setIndustryOptions(industries);
+      } else {
+        // Fallback to static options if API fails
+        setIndustryOptions([
+          "Manufacturing", "Retail", "Healthcare", "Education",
+          "Technology", "Finance", "Real Estate", "Hospitality",
+          "Transportation", "Construction"
+        ]);
+      }
+    } catch (error) {
+      console.error('Error fetching industry options:', error);
+      // Fallback to static options if API fails
+      setIndustryOptions([
+        "Manufacturing", "Retail", "Healthcare", "Education",
+        "Technology", "Finance", "Real Estate", "Hospitality",
+        "Transportation", "Construction"
+      ]);
+    }
+  };
+
+  // Call this function in useEffect
+  useEffect(() => {
+    fetchIndustryOptions();
+  }, []);
+
+
 
   const editNote = async () => {
     if (!noteForm.title.trim() || !noteForm.content.trim()) {
@@ -1460,7 +1584,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
     setNotesLoading(true);
     try {
       const session = getUserSession();
-      const sessionCompany = session?.company || ''; 
+      const sessionCompany = session?.company || '';
       const response = await fetch(`${API_BASE_URL}/method/frappe.client.set_value`, {
         method: 'POST',
         headers: {
@@ -1470,7 +1594,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
         body: JSON.stringify({
           doctype: 'FCRM Note',
           name: noteForm.name,
-          company:sessionCompany,
+          company: sessionCompany,
           fieldname: {
             title: noteForm.title,
             content: noteForm.content
@@ -1516,6 +1640,19 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
     }
   };
 
+  const refreshAllActivities = useCallback(async () => {
+    await Promise.all([
+      fetchActivities(),      // Refresh the main activity timeline
+      fetchCallLogs(),       // Refresh calls
+      fetchComments(),       // Refresh comments
+      fetchEmails(),        // Refresh emails
+      fetchNotes(),         // Refresh notes
+      fetchTasks(),         // Refresh tasks
+      fetchFiles(),         // Refresh files
+    ]);
+  }, [fetchActivities, fetchCallLogs, fetchComments, fetchEmails,
+    fetchNotes, fetchTasks, fetchFiles]);
+
 
   const addCall = async () => {
     if (!callForm.from.trim() || !callForm.to.trim()) {
@@ -1526,7 +1663,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
     setCallsLoading(true);
     try {
       const session = getUserSession();
-      const sessionCompany = session?.company || ''; 
+      const sessionCompany = session?.company || '';
       // Generate a random ID (or you can keep your existing ID generation logic)
       const randomId = Math.random().toString(36).substring(2, 8).toUpperCase();
 
@@ -1536,7 +1673,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
         id: randomId,
         telephony_medium: "Manual",
         reference_doctype: "CRM Lead",
-        company:sessionCompany,
+        company: sessionCompany,
         reference_docname: lead.name,
         type: callForm.type === 'Outgoing' ? 'Outgoing' : 'Incoming',
         to: callForm.to,
@@ -1590,7 +1727,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
     setCallsLoading(true);
     try {
       const session = getUserSession();
-      const sessionCompany = session?.company || ''; 
+      const sessionCompany = session?.company || '';
       const response = await fetch('http://103.214.132.20:8002/api/method/frappe.client.set_value', {
         method: 'POST',
         headers: {
@@ -1604,7 +1741,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
             telephony_medium: "Manual",
             reference_doctype: "CRM Lead",
             reference_docname: lead.name,
-            company:sessionCompany,
+            company: sessionCompany,
             type: callForm.type === 'Outgoing' ? 'Outgoing' : 'Incoming',
             to: callForm.to,
             from: callForm.from,
@@ -1620,6 +1757,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
         setCallForm({ from: '', to: '', status: 'Ringing', type: 'Outgoing', duration: '', receiver: '', name: '' });
         await fetchCallLogs();
         setShowCallModal(false);
+        await refreshAllActivities();
         return true;
       } else {
         const errorData = await response.json();
@@ -1645,13 +1783,13 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
     setTasksLoading(true);
     try {
       const session = getUserSession();
-      const sessionCompany = session?.company || ''; 
+      const sessionCompany = session?.company || '';
       // Prepare the task data
       const taskData: any = {
         reference_doctype: 'CRM Lead',
         reference_docname: lead.name,
         assigned_to: formData.assigned_to,
-        company:sessionCompany,
+        company: sessionCompany,
         description: formData.description,
         priority: formData.priority,
         status: formData.status,
@@ -1715,13 +1853,13 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
     setTasksLoading(true);
     try {
       const session = getUserSession();
-      const sessionCompany = session?.company || ''; 
+      const sessionCompany = session?.company || '';
       // Prepare the update data
       const updateData: any = {
         title: formData.title,
         description: formData.description,
         assigned_to: formData.assigned_to,
-        company:sessionCompany,
+        company: sessionCompany,
         priority: formData.priority,
         status: formData.status
       };
@@ -1773,6 +1911,10 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
     }
   };
 
+  const filteredTerritoryOptions = territoryOptions.filter(territory =>
+    territory.toLowerCase().includes(territorySearch.toLowerCase())
+  );
+
   useEffect(() => {
     const fetchSalutations = async () => {
       setLoading(true);
@@ -1785,15 +1927,17 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
           },
           body: JSON.stringify({
             txt: "",
+            filters: null,
             doctype: "Salutation",
           }),
         });
 
         const data = await response.json();
 
-        if (data && data.results) {
+        // Check if data.message exists and is an array
+        if (data && data.message && Array.isArray(data.message)) {
           setOptions(
-            data.results.map((item: any) => ({
+            data.message.map((item: any) => ({
               value: item.value,
               label: item.value,
             }))
@@ -1921,7 +2065,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
         },
         body: JSON.stringify({
           txt: "",
-          doctype: "CRM Lead Source"
+          doctype: "CRM Lead Source",
         })
       });
 
@@ -2096,9 +2240,10 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
             </button>
             <div>
               <h1 className={`text-xl font-semibold ${textColor}`}>
-                {lead.firstName} {lead.lastName || ''} - {lead.organization || 'No Organization'}
+                {lead.first_name} {lead.last_name || ''} - {lead.organization || 'No Organization'}
               </h1>
-              <p className={`text-sm ${textSecondaryColor}`}>{lead.leadId}</p>
+              <p className={`text-sm ${textSecondaryColor}`}>{lead.name || lead.leadId}</p>
+              {/* <p className={`text-sm ${textSecondaryColor}`}>{lead.leadId}</p> */}
             </div>
           </div>
           <div className="flex items-center space-x-2">
@@ -2352,38 +2497,213 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                         className={`p-[2px] pl-2 mt-1 block w-full rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
                       />
                     </div>
-                    {/* <div>
+                    <div >
                       <label className={`block text-sm font-medium ${textSecondaryColor}`}>Territory</label>
-                      <input
-                        type="text"
-                        value={editedLead.territory || ''}
-                        onChange={(e) => handleInputChange('territory', e.target.value)}
-                        className={`p-[2px] pl-2 mt-1 block w-full rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
-                      />
-                    </div> */}
-                    <div>
-                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>Territory</label>
-                      <select
-                        value={editedLead.territory || ''}
-                        onChange={(e) => handleInputChange('territory', e.target.value)}
-                        className={`p-[2px] pl-2 mt-1 block w-full rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
-                      >
-                        <option value="">Select Territory</option>
-                        {territoryOptions.map(territory => (
-                          <option key={territory} value={territory}>{territory}</option>
-                        ))}
-                      </select>
+                      <Listbox value={editedLead.territory || ''} onChange={(value) => handleInputChange('territory', value)}>
+                        {({ open, close }) => (
+                          <div className="relative mt-1">
+                            <Listbox.Button className={`relative w-full cursor-default rounded-md border ${borderColor} py-0.5 pl-3 pr-10 text-left shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}>
+                              <span className="block truncate">{editedLead.territory || 'Select Territory'}</span>
+                              <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+                                <svg className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                                  <path fillRule="evenodd" d="M10 3a1 1 0 01.707.293l3 3a1 1 0 01-1.414 1.414L10 5.414 7.707 7.707a1 1 0 01-1.414-1.414l3-3A1 1 0 0110 3zm-3.707 9.293a1 1 0 011.414 0L10 14.586l2.293-2.293a1 1 0 011.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                                </svg>
+                              </span>
+                            </Listbox.Button>
+
+                            <Listbox.Options className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
+                              {/* Search Input */}
+                              <div className="sticky top-0 z-10 bg-white p-2 border-b">
+                                <div className="relative">
+                                  <input
+                                    type="text"
+                                    placeholder="Search"
+                                    className="w-full pl-8 pr-4 py-2 border rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+                                    onChange={(e) => setTerritorySearch(e.target.value)}
+                                    value={territorySearch}
+                                  />
+                                  <svg className="absolute left-2 top-2.5 rounded-xl h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                  </svg>
+                                  <button
+                                    className="absolute right-2 top-2 text-gray-400 hover:text-gray-600"
+                                    onClick={() => setTerritorySearch('')}
+                                  >
+                                    ×
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* Territory Options */}
+                              {filteredTerritoryOptions.map((territory) => (
+                                <Listbox.Option
+                                  key={territory}
+                                  value={territory}
+                                  className={({ active }) =>
+                                    `relative cursor-default select-none border-b py-2 pl-3 pr-9 ${active ? 'bg-blue-100 text-blue-900' : 'text-gray-900'
+                                    }`
+                                  }
+                                >
+                                  {({ selected }) => (
+                                    <>
+                                      <span className={`block truncate ${selected ? 'font-medium' : 'font-normal'}`}>
+                                        {territory}
+                                      </span>
+                                      {selected && (
+                                        <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-blue-600">
+                                          <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                          </svg>
+                                        </span>
+                                      )}
+                                    </>
+                                  )}
+                                </Listbox.Option>
+                              ))}
+
+                              {/* Create New Button */}
+                              <div className="sticky top-[44px] z-10 bg-white border-b">
+                                <button
+                                  type="button"
+                                  className="flex items-center w-full px-3 py-2 text-sm text-black-600 hover:bg-gray-100"
+                                  onClick={() => {
+                                    setShowCreateTerritoryModal(true);
+                                  }}
+                                >
+                                  <Plus className="w-4 h-4 mr-2" />
+                                  Create New
+                                </button>
+                              </div>
+
+                              {/* Clear Button */}
+                              <div className="sticky top-[88px] z-10 bg-white border-b">
+                                <button
+                                  type="button"
+                                  className="flex items-center w-full px-3 py-2 text-sm text-black-600 hover:bg-gray-100"
+                                  onClick={() => {
+                                    handleInputChange('territory', '');
+                                    setTerritorySearch('');
+                                    close(); // Close the dropdown
+                                  }}
+                                >
+                                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                                  </svg>
+                                  Clear
+                                </button>
+                              </div>
+                            </Listbox.Options>
+                          </div>
+                        )}
+                      </Listbox>
                     </div>
-
-
                     <div>
                       <label className={`block text-sm font-medium ${textSecondaryColor}`}>Industry</label>
-                      <input
-                        type="text"
+                      <Listbox
                         value={editedLead.industry || ''}
-                        onChange={(e) => handleInputChange('industry', e.target.value)}
-                        className={`p-[2px] pl-2 mt-1 block w-full rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
-                      />
+                        onChange={(value) => handleInputChange('industry', value)}
+                      >
+                        {({ open, close }) => (
+                          <div className="relative mt-1">
+                            <Listbox.Button className={`relative w-full cursor-default rounded-md border ${borderColor} py-0.5 pl-3 pr-10 text-left shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}>
+                              <span className="block truncate">{editedLead.industry || 'Select Industry'}</span>
+                              <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+                                <svg className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                                  <path fillRule="evenodd" d="M10 3a1 1 0 01.707.293l3 3a1 1 0 01-1.414 1.414L10 5.414 7.707 7.707a1 1 0 01-1.414-1.414l3-3A1 1 0 0110 3zm-3.707 9.293a1 1 0 011.414 0L10 14.586l2.293-2.293a1 1 0 011.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                                </svg>
+                              </span>
+                            </Listbox.Button>
+
+                            <Listbox.Options className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
+                              {/* Search Input */}
+                              <div className="sticky top-0 z-10 bg-white p-2 border-b">
+                                <div className="relative">
+                                  <input
+                                    type="text"
+                                    placeholder="Search industries..."
+                                    className="w-full pl-8 pr-4 py-2 border rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+                                    onChange={(e) => setIndustrySearch(e.target.value)}
+                                    value={industrySearch}
+                                  />
+                                  <svg className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                  </svg>
+                                  <button
+                                    className="absolute right-2 top-2 text-gray-400 hover:text-gray-600"
+                                    onClick={() => setIndustrySearch('')}
+                                  >
+                                    ×
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* Industry Options */}
+                              {industryOptions
+                                .filter(industry =>
+                                  industry.toLowerCase().includes(industrySearch.toLowerCase())
+                                )
+                                .map((industry) => (
+                                  <Listbox.Option
+                                    key={industry}
+                                    value={industry}
+                                    className={({ active }) =>
+                                      `relative cursor-default select-none border-b py-2 pl-3 pr-9 ${active ? 'bg-blue-100 text-blue-900' : 'text-gray-900'
+                                      }`
+                                    }
+                                  >
+                                    {({ selected }) => (
+                                      <>
+                                        <span className={`block truncate ${selected ? 'font-medium' : 'font-normal'}`}>
+                                          {industry}
+                                        </span>
+                                        {selected && (
+                                          <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-blue-600">
+                                            <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                            </svg>
+                                          </span>
+                                        )}
+                                      </>
+                                    )}
+                                  </Listbox.Option>
+                                ))}
+
+                              {/* Create New Button */}
+                              <div className="sticky top-[44px] z-10 bg-white border-b">
+                                <button
+                                  type="button"
+                                  className="flex items-center w-full px-3 py-2 text-sm text-blue-600 hover:bg-gray-100"
+                                  onClick={() => {
+                                    setShowCreateIndustryModal(true);
+                                    close();
+                                  }}
+                                >
+                                  <Plus className="w-4 h-4 mr-2" />
+                                  Create New
+                                </button>
+                              </div>
+
+                              {/* Clear Button */}
+                              <div className="sticky top-[88px] z-10 bg-white border-b">
+                                <button
+                                  type="button"
+                                  className="flex items-center w-full px-3 py-2 text-sm text-red-600 hover:bg-gray-100"
+                                  onClick={() => {
+                                    handleInputChange('industry', '');
+                                    setIndustrySearch('');
+                                    close();
+                                  }}
+                                >
+                                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                                  </svg>
+                                  Clear
+                                </button>
+                              </div>
+                            </Listbox.Options>
+                          </div>
+                        )}
+                      </Listbox>
                     </div>
                     <div>
                       <label className={`block text-sm font-medium ${textSecondaryColor}`}>Job Title</label>
@@ -2398,16 +2718,111 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                       <label className={`block text-sm font-medium ${textSecondaryColor}`}>
                         Source
                       </label>
-                      <select
-                        value={editedLead.source || ""}
-                        onChange={(e) => handleInputChange("source", e.target.value)}
-                        className={`p-[2px] pl-2 mt-1 block w-full rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
+                      <Listbox
+                        value={editedLead.source || ''}
+                        onChange={(value) => handleInputChange('source', value)}
                       >
-                        <option value="">Select Source</option>
-                        {sourceOptions.map(source => (
-                          <option key={source} value={source}>{source}</option>
-                        ))}
-                      </select>
+                        {({ open, close }) => (
+                          <div className="relative mt-1">
+                            <Listbox.Button className={`relative w-full cursor-default rounded-md border ${borderColor} py-0.5 pl-3 pr-10 text-left shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}>
+                              <span className="block truncate">{editedLead.source || 'Select Source'}</span>
+                              <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+                                <svg className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                                  <path fillRule="evenodd" d="M10 3a1 1 0 01.707.293l3 3a1 1 0 01-1.414 1.414L10 5.414 7.707 7.707a1 1 0 01-1.414-1.414l3-3A1 1 0 0110 3zm-3.707 9.293a1 1 0 011.414 0L10 14.586l2.293-2.293a1 1 0 011.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                                </svg>
+                              </span>
+                            </Listbox.Button>
+
+                            <Listbox.Options className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
+                              {/* Search Input */}
+                              <div className="sticky top-0 z-10 bg-white p-2 border-b">
+                                <div className="relative">
+                                  <input
+                                    type="text"
+                                    placeholder="Search sources..."
+                                    className="w-full pl-8 pr-4 py-2 border rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+                                    onChange={(e) => setSourceSearch(e.target.value)}
+                                    value={sourceSearch}
+                                  />
+                                  <svg className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                  </svg>
+                                  <button
+                                    className="absolute right-2 top-2 text-gray-400 hover:text-gray-600"
+                                    onClick={() => setSourceSearch('')}
+                                  >
+                                    ×
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* Source Options */}
+                              {sourceOptions
+                                .filter(source =>
+                                  source.toLowerCase().includes(sourceSearch.toLowerCase())
+                                )
+                                .map((source) => (
+                                  <Listbox.Option
+                                    key={source}
+                                    value={source}
+                                    className={({ active }) =>
+                                      `relative cursor-default select-none border-b py-2 pl-3 pr-9 ${active ? 'bg-blue-100 text-blue-900' : 'text-gray-900'
+                                      }`
+                                    }
+                                  >
+                                    {({ selected }) => (
+                                      <>
+                                        <span className={`block truncate ${selected ? 'font-medium' : 'font-normal'}`}>
+                                          {source}
+                                        </span>
+                                        {selected && (
+                                          <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-blue-600">
+                                            <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                            </svg>
+                                          </span>
+                                        )}
+                                      </>
+                                    )}
+                                  </Listbox.Option>
+                                ))}
+
+                              {/* Create New Button */}
+                              <div className="sticky top-[44px] z-10 bg-white border-b">
+                                <button
+                                  type="button"
+                                  className="flex items-center w-full px-3 py-2 text-sm text-blue-600 hover:bg-gray-100"
+                                  onClick={() => {
+                                    setShowCreateSourceModal(true);
+                                    close();
+                                  }}
+                                >
+                                  <Plus className="w-4 h-4 mr-2" />
+                                  Create New
+                                </button>
+                              </div>
+
+                              {/* Clear Button */}
+                              <div className="sticky top-[88px] z-10 bg-white border-b">
+                                <button
+                                  type="button"
+                                  className="flex items-center w-full px-3 py-2 text-sm text-red-600 hover:bg-gray-100"
+                                  onClick={() => {
+                                    handleInputChange('source', '');
+                                    setSourceSearch('');
+                                    close();
+                                  }}
+                                >
+                                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                                  </svg>
+                                  Clear
+                                </button>
+                              </div>
+                            </Listbox.Options>
+                          </div>
+                        )}
+                      </Listbox>
                     </div>
                     <div>
                       <label className={`block text-sm font-medium ${textSecondaryColor}`}>
@@ -2529,7 +2944,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                 <p className={`${theme === 'dark' ? 'text-white' : 'text-gray-500'}`}>No activities yet</p>
               </div>
             ) : (
-              <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+              <div ref={activityContainerRef} className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
                 {activities.map((activity) => {
                   switch (activity.type) {
                     case 'call': {
@@ -2785,7 +3200,6 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                       );
                     }
                     case 'file': {
-                      // The file data is already in activity.data from your mapping
                       const fileData = activity.data;
                       if (!fileData) return null;
                       const baseURL = "http://103.214.132.20:8002";
@@ -2796,8 +3210,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                           : fileData.file_url;
 
                       return (
-                        <div key={`${activity.id}-${activity.timestamp}`}
-                          className="flex items-start space-x-3">
+                        <div key={`${activity.id}-${activity.timestamp}`} className="flex items-start space-x-3">
                           <div className={`p-2 rounded-full mt-1 ${theme === 'dark' ? 'bg-blue-700' : 'bg-blue-100'}`}>
                             <IoDocument className="w-4 h-4 text-white" />
                           </div>
@@ -2810,12 +3223,20 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                                 </p>
                                 <p
                                   onClick={() => activity.action === 'added' && fullURL && window.open(fullURL, "_blank")}
-                                  className={`font-medium text-xs ${textColor} truncate text-wrap`}>{fileData.file_name || "Unnamed file"}</p>
+                                  className={`font-medium text-xs ${textColor} truncate text-wrap ${activity.action === 'added' ? 'cursor-pointer hover:underline' : ''}`}
+                                >
+                                  {fileData.file_name || "Unnamed file"}
+                                </p>
                               </div>
                               <p className={`text-xs ${textSecondaryColor}`}>{getRelativeTime(activity.timestamp)}</p>
                             </div>
 
-
+                            {/* Add file type and size if available */}
+                            {fileData.file_type && (
+                              <p className={`text-xs ${textSecondaryColor}`}>
+                                {fileData.file_type} • {fileData.file_size ? formatFileSize(fileData.file_size) : 'Unknown size'}
+                              </p>
+                            )}
                           </div>
                         </div>
                       );
@@ -3019,7 +3440,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                       </div>
                       <div>
                         <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                          Content
+                          Content <span className='text-red-500'>*</span>
                         </label>
                         <textarea
                           value={noteForm.content}
@@ -3109,7 +3530,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
               {callLogs.length === 0 ? (
                 <div className="text-center py-8">
                   <Phone className={`w-12 h-12 mx-auto mb-4 ${textSecondaryColor}`} />
-                  <p className={textSecondaryColor}>No call logs yet</p>
+                  <p className={textSecondaryColor}>No call logs</p>
                   <span
                     onClick={() => setShowCallModal(true)}
                     className="text-white cursor-pointer bg-gray-400 rounded-md inline-block text-center px-6 py-2 mt-2"
@@ -3249,105 +3670,106 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
               )}
             </div>
 
-            {/* Edit/Create Call Modal */}
-            {showCallModal && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-                <div className={`w-full max-w-2xl ${cardBgColor} rounded-lg shadow-lg p-6 relative border ${borderColor}`}>
-                  <button
-                    onClick={() => {
-                      setShowCallModal(false);
-                      setCallForm({ from: '', to: '', status: 'Ringing', type: 'Outgoing', duration: '', receiver: '', name: '' });
-                    }}
-                    className="absolute top-2 right-3 text-gray-500 hover:text-gray-700 dark:hover:text-white"
+
+          </div>
+        )}
+        {/* Edit/Create Call Modal */}
+        {showCallModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+            <div className={`w-full max-w-2xl ${cardBgColor} rounded-lg shadow-lg p-6 relative border ${borderColor}`}>
+              <button
+                onClick={() => {
+                  setShowCallModal(false);
+                  setCallForm({ from: '', to: '', status: 'Ringing', type: 'Outgoing', duration: '', receiver: '', name: '' });
+                }}
+                className="absolute top-2 right-3 text-gray-500 hover:text-gray-700 dark:hover:text-white"
+              >
+                ✕
+              </button>
+
+              <h3 className={`text-lg font-semibold ${textColor} mb-4`}>
+                {isEditMode ? 'Edit Call Log' : 'New Call Log'}
+              </h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>Type <span className='text-red-500'>*</span></label>
+                  <select
+                    value={callForm.type}
+                    onChange={(e) => setCallForm({ ...callForm, type: e.target.value })}
+                    className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
                   >
-                    ✕
-                  </button>
+                    <option value="Outgoing">Outgoing</option>
+                    <option value="Incoming">Incoming</option>
+                  </select>
+                </div>
 
-                  <h3 className={`text-lg font-semibold ${textColor} mb-4`}>
-                    {isEditMode ? 'Edit Call Log' : 'New Call Log'}
-                  </h3>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>Type <span className='text-red-500'>*</span></label>
-                      <select
-                        value={callForm.type}
-                        onChange={(e) => setCallForm({ ...callForm, type: e.target.value })}
-                        className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
-                      >
-                        <option value="Outgoing">Outgoing</option>
-                        <option value="Incoming">Incoming</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>To <span className='text-red-500'>*</span></label>
-                      <input
-                        type="text"
-                        value={callForm.to}
-                        onChange={(e) => setCallForm({ ...callForm, to: e.target.value })}
-                        className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
-                        placeholder="To"
-                      />
-                    </div>
-                    <div>
-                      <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>From <span className='text-red-500'>*</span></label>
-                      <input
-                        type="text"
-                        value={callForm.from}
-                        onChange={(e) => setCallForm({ ...callForm, from: e.target.value })}
-                        className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
-                        placeholder="From"
-                      />
-                    </div>
-                    <div>
-                      <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>Status</label>
-                      <select
-                        value={callForm.status}
-                        onChange={(e) => setCallForm({ ...callForm, status: e.target.value })}
-                        className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
-                      >
-                        {["Initiated", "Ringing", "In Progress", "Completed", "Failed", "Busy", "No Answer", "Queued", "Canceled"].map(status => (
-                          <option key={status} value={status}>{status}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>Duration</label>
-                      <input
-                        type="number"
-                        value={callForm.duration}
-                        onChange={(e) => setCallForm({ ...callForm, duration: e.target.value })}
-                        className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
-                        placeholder="Call duration"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex justify-end mt-6">
-                    <button
-                      onClick={async () => {
-                        let success = false;
-                        if (isEditMode) {
-                          success = await editCall();
-                        } else {
-                          success = await addCall();
-                        }
-                        if (success) {
-                          setShowCallModal(false);
-                          setIsEditMode(false);
-                          setCallForm({ from: '', to: '', status: 'Ringing', type: 'Outgoing', duration: '', receiver: '', name: '' });
-                        }
-                      }}
-                      disabled={callsLoading}
-                      className={`px-4 py-2 rounded-lg text-white flex items-center space-x-2 transition-colors ${theme === 'dark' ? 'bg-purple-600 hover:bg-purple-700' : 'bg-green-600 hover:bg-green-700'} disabled:opacity-50`}
-                    >
-                      <span>{isEditMode ? 'Update' : 'Create'}</span>
-                    </button>
-                  </div>
+                <div>
+                  <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>To <span className='text-red-500'>*</span></label>
+                  <input
+                    type="text"
+                    value={callForm.to}
+                    onChange={(e) => setCallForm({ ...callForm, to: e.target.value })}
+                    className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
+                    placeholder="To"
+                  />
+                </div>
+                <div>
+                  <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>From <span className='text-red-500'>*</span></label>
+                  <input
+                    type="text"
+                    value={callForm.from}
+                    onChange={(e) => setCallForm({ ...callForm, from: e.target.value })}
+                    className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
+                    placeholder="From"
+                  />
+                </div>
+                <div>
+                  <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>Status</label>
+                  <select
+                    value={callForm.status}
+                    onChange={(e) => setCallForm({ ...callForm, status: e.target.value })}
+                    className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
+                  >
+                    {["Initiated", "Ringing", "In Progress", "Completed", "Failed", "Busy", "No Answer", "Queued", "Canceled"].map(status => (
+                      <option key={status} value={status}>{status}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>Duration</label>
+                  <input
+                    type="number"
+                    value={callForm.duration}
+                    onChange={(e) => setCallForm({ ...callForm, duration: e.target.value })}
+                    className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
+                    placeholder="Call duration"
+                  />
                 </div>
               </div>
-            )}
+
+              <div className="flex justify-end mt-6">
+                <button
+                  onClick={async () => {
+                    let success = false;
+                    if (isEditMode) {
+                      success = await editCall();
+                    } else {
+                      success = await addCall();
+                    }
+                    if (success) {
+                      setShowCallModal(false);
+                      setIsEditMode(false);
+                      setCallForm({ from: '', to: '', status: 'Ringing', type: 'Outgoing', duration: '', receiver: '', name: '' });
+                    }
+                  }}
+                  disabled={callsLoading}
+                  className={`px-4 py-2 rounded-lg text-white flex items-center space-x-2 transition-colors ${theme === 'dark' ? 'bg-purple-600 hover:bg-purple-700' : 'bg-green-600 hover:bg-green-700'} disabled:opacity-50`}
+                >
+                  <span>{isEditMode ? 'Update' : 'Create'}</span>
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
@@ -3373,11 +3795,11 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
               ) : comments.length === 0 ? (
                 <div className="text-center py-8">
                   <FaRegComment className={`w-12 h-12 ${textSecondaryColor} mx-auto mb-4`} />
-                  <p className={textSecondaryColor}>No comments yet</p>
+                  <p className={textSecondaryColor}>No comments</p>
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {comments.map((comment) => (
+                  {comments.slice().reverse().map((comment) => (
                     <div key={comment.name} className='flex gap-2'>
                       <div className='flex flex-col items-center'>
                         <div className="w-7 h-10 flex items-center justify-center bg-gray-500 rounded-full">
@@ -3412,25 +3834,43 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
 
                             {comment.attachments && comment.attachments.length > 0 && (
                               <div className="mt-3">
-                                <p className={`text-sm font-semibold mb-2 ${textSecondaryColor}`}>
+                                {/* <p className={`text-sm font-semibold mb-2 ${textSecondaryColor}`}>
                                   Attachments:
-                                </p>
+                                </p> */}
                                 <div className="flex flex-wrap gap-2">
-                                  {comment.attachments.map((attachment: { file_url: string; file_name: any; }, index: React.Key | null | undefined) => (
-                                    <a
-                                      key={index}
-                                      href={`http://103.214.132.20:8002${attachment.file_url}`}
-                                      download
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className={`flex items-center gap-2 px-3 py-2 rounded-md ${theme === 'dark' ? 'bg-white hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'} transition-colors`}
-                                    >
-                                      <File className="w-4 h-4" />
-                                      <span className="text-sm">
-                                        {attachment.file_name || attachment.file_url.split('/').pop()}
-                                      </span>
-                                    </a>
-                                  ))}
+                                  {comment.attachments.map((attachment, index) => {
+                                    const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(attachment.file_url || attachment.file_name || '');
+                                    const fileUrl = attachment.file_url?.startsWith('http') ?
+                                      attachment.file_url :
+                                      `http://103.214.132.20:8002${attachment.file_url || ''}`;
+
+                                    return isImage ? (
+                                      <button
+                                        key={index}
+                                        onClick={() => setSelectedImage(fileUrl)}
+                                        className={`flex items-center gap-2 px-3 py-2 rounded-md ${theme === 'dark' ? 'bg-white hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'} transition-colors`}
+                                      >
+                                        <File className="w-4 h-4" />
+                                        <span className="text-sm">
+                                          {attachment.file_name || fileUrl.split('/').pop() || 'Unnamed file'}
+                                        </span>
+                                      </button>
+                                    ) : (
+                                      <a
+                                        key={index}
+                                        href={fileUrl}
+                                        download
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className={`flex items-center gap-2 px-3 py-2 rounded-md ${theme === 'dark' ? 'bg-white hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'} transition-colors`}
+                                      >
+                                        <File className="w-4 h-4" />
+                                        <span className="text-sm">
+                                          {attachment.file_name || fileUrl.split('/').pop() || 'Unnamed file'}
+                                        </span>
+                                      </a>
+                                    );
+                                  })}
                                 </div>
                               </div>
                             )}
@@ -3442,6 +3882,31 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                 </div>
               )}
             </div>
+
+            {/* Image Preview Modal */}
+            {selectedImage && (
+              <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+                <div className="bg-white dark:bg-gray-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
+                  <div className="flex justify-between items-center p-4 border-b">
+                    <h3 className="text-lg text-white font-medium">Image Preview</h3>
+                    <button
+                      onClick={() => setSelectedImage(null)}
+                      className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <div className="p-4 overflow-auto max-h-[calc(90vh-100px)]">
+                    <img
+                      src={selectedImage}
+                      alt="Preview"
+                      className="max-w-full mx-auto"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div ref={commentRef}>
               {showCommentModal && (
                 <EmailComposerleads
@@ -3483,18 +3948,18 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                   className={`px-4 py-2 rounded-lg flex items-center space-x-2 text-white ${theme === 'dark' ? 'bg-purple-600 hover:bg-purple-700' : 'bg-blue-600 hover:bg-blue-700'}`}
                 >
                   <Plus className="w-4 h-4" />
-                  <span>New Task</span>
+                  <span>Create Task</span>
                 </button>
               </div>
 
               {tasks.length === 0 ? (
                 <div className="text-center py-8">
                   <SiTicktick className={`w-12 h-12 mx-auto mb-4 ${textSecondaryColor}`} />
-                  <p className={textSecondaryColor}>No tasks yet</p>
+                  <p className={textSecondaryColor}>No tasks </p>
                   <span
                     onClick={() => setShowTaskModal(true)}
                     className="text-white cursor-pointer bg-gray-400 rounded-md inline-block text-center px-6 py-2"
-                  >New Task</span>
+                  >Create Task</span>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -3725,7 +4190,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
 
                         <div>
                           <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                            Due Date
+                            Date
                           </label>
                           <input
                             type="date"
@@ -3847,7 +4312,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                 ) : files.length === 0 ? (
                   <div className="text-center py-8">
                     <FileText className={`w-12 h-12 ${textSecondaryColor} mx-auto mb-4`} />
-                    <p className={textSecondaryColor}>No files yet</p>
+                    <p className={textSecondaryColor}>No files</p>
                   </div>
                 ) : (
                   <div className="space-y-4">
@@ -3988,7 +4453,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
               ) : !activitiesNew || activitiesNew.length === 0 ? (
                 <div className="text-center py-8">
                   <Mail className={`w-12 h-12 ${textSecondaryColor} mx-auto mb-4`} />
-                  <p className={textSecondaryColor}>No emails yet</p>
+                  <p className={textSecondaryColor}>No emails Communications</p>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -4000,6 +4465,47 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                       console.error('Error parsing attachments:', e);
                       attachments = [];
                     }
+
+                    // Check if this is a reply email
+                    const isReply = comm.content && (
+                      comm.content.includes('--- Original Message ---') ||
+                      comm.content.includes('-------- Original Message --------') ||
+                      comm.content.includes('From:') && comm.content.includes('Date:') && comm.content.includes('Subject:')
+                    );
+
+                    let originalContent = comm.content;
+                    let replyContent = '';
+                    let originalHeaders = {};
+
+                    if (isReply) {
+                      // Extract the reply content and original message
+                      const replyDivider = comm.content.includes('--- Original Message ---') ?
+                        '--- Original Message ---' : '-------- Original Message --------';
+
+                      const parts = comm.content.split(replyDivider);
+                      replyContent = parts[0].trim();
+
+                      if (parts[1]) {
+                        const headerLines = parts[1].trim().split('\n');
+                        headerLines.forEach(line => {
+                          if (line.includes('From:')) originalHeaders.from = line.replace('From:', '').trim();
+                          if (line.includes('Date:')) originalHeaders.date = line.replace('Date:', '').trim();
+                          if (line.includes('To:')) originalHeaders.to = line.replace('To:', '').trim();
+                          if (line.includes('Subject:')) originalHeaders.subject = line.replace('Subject:', '').trim();
+                        });
+
+                        // The actual original message content would be after headers
+                        const contentIndex = headerLines.findIndex(line =>
+                          line.trim() && !line.includes('From:') && !line.includes('Date:') &&
+                          !line.includes('To:') && !line.includes('Subject:')
+                        );
+
+                        if (contentIndex !== -1) {
+                          originalHeaders.content = headerLines.slice(contentIndex).join('\n').trim();
+                        }
+                      }
+                    }
+
                     return (
                       <div key={comm.name} className='flex gap-2'>
                         <div className='flex flex-col items-center '>
@@ -4063,7 +4569,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
 
                               {comm.content && (
                                 <div className={`mt-3 p-3 rounded ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-50'}`}>
-                                  <p className={`text-sm ${textColor}`}>
+                                  <p className={`text-sm ${textColor} whitespace-pre-wrap`}>
                                     {comm.content}
                                   </p>
                                 </div>
@@ -4162,7 +4668,341 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
             theme={theme}
           />
         )}
+        {showCreateTerritoryModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+            <div className={`w-full w-[600px] ${cardBgColor} rounded-lg shadow-lg p-6 relative border ${borderColor}`}>
+              <button
+                onClick={() => setShowCreateTerritoryModal(false)}
+                className="absolute top-5 right-8 text-gray-500 hover:text-gray-700 dark:hover:text-white"
+              >
+                ✕
+              </button>
+
+              <h3 className={`text-lg font-semibold ${textColor} mb-4`}>New Territory</h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4 sm:gap-6 mb-4">
+                <div>
+                  <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>
+                    Territory Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={newTerritory.territory_name}
+                    onChange={(e) => setNewTerritory({ ...newTerritory, territory_name: e.target.value })}
+                    className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
+                    placeholder="Enter territory name"
+                  />
+                </div>
+
+                <div>
+                  <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>
+                    Territory Manager
+                  </label>
+                  <input
+                    type="text"
+                    value={newTerritory.territory_manager}
+                    onChange={(e) => setNewTerritory({ ...newTerritory, territory_manager: e.target.value })}
+                    className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
+                    placeholder="Enter territory manager"
+                  />
+                </div>
+              </div>
+              <div className='border-b mb-4'></div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4 sm:gap-6 mb-4">
+
+                <div>
+                  <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>
+                    Old Parent
+                  </label>
+                  <input
+                    type="text"
+                    value={newTerritory.old_parent}
+                    onChange={(e) => setNewTerritory({ ...newTerritory, old_parent: e.target.value })}
+                    className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
+                    placeholder="Enter old parent"
+                  />
+                </div>
+
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={newTerritory.is_group}
+                    onChange={(e) => setNewTerritory({ ...newTerritory, is_group: e.target.checked })}
+                    className="mr-2"
+                    id="is_group"
+                  />
+                  <label htmlFor="is_group" className={`text-sm ${textSecondaryColor}`}>
+                    Is Group
+                  </label>
+                </div>
+
+
+                <div>
+                  <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>
+                    Parent CRM Territory
+                  </label>
+                  <input
+                    type="text"
+                    value={newTerritory.parent_crm_territory}
+                    onChange={(e) => setNewTerritory({ ...newTerritory, parent_crm_territory: e.target.value })}
+                    className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
+                    placeholder="Enter parent territory"
+                  />
+                </div>
+
+
+              </div>
+
+              <div className="flex justify-end mt-6">
+                <button
+                  onClick={async () => {
+                    if (!newTerritory.territory_name.trim()) {
+                      showToast('Territory name is required', { type: 'error' });
+                      return;
+                    }
+
+                    setTerritoryLoading(true);
+                    try {
+                      const response = await fetch(`${API_BASE_URL}/method/frappe.client.insert`, {
+                        method: 'POST',
+                        headers: {
+                          'Authorization': AUTH_TOKEN,
+                          'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                          doc: JSON.stringify({
+                            doctype: "CRM Territory",
+                            territory_name: newTerritory.territory_name,
+                            territory_manager: newTerritory.territory_manager,
+                            parent_crm_territory: newTerritory.parent_crm_territory,
+                            is_group: newTerritory.is_group ? 1 : 0,
+                            old_parent: newTerritory.old_parent
+                          })
+                        })
+                      });
+
+                      if (response.ok) {
+                        showToast('Territory created successfully', { type: 'success' });
+                        setShowCreateTerritoryModal(false);
+                        setNewTerritory({
+                          territory_name: '',
+                          territory_manager: '',
+                          parent_crm_territory: '',
+                          is_group: false,
+                          old_parent: ''
+                        });
+
+                        // Refresh territory options
+                        await fetchTerritoryOptions();
+
+                        // Set the newly created territory as selected
+                        handleInputChange('territory', newTerritory.territory_name);
+                      } else {
+                        throw new Error('Failed to create territory');
+                      }
+                    } catch (error) {
+                      console.error('Error creating territory:', error);
+                      showToast('Failed to create territory', { type: 'error' });
+                    } finally {
+                      setTerritoryLoading(false);
+                    }
+                  }}
+                  disabled={territoryLoading}
+                  className={`px-4 py-2 rounded-lg text-white flex items-center space-x-2 transition-colors ${theme === 'dark' ? 'bg-purple-600 hover:bg-purple-700' : 'bg-blue-600 hover:bg-blue-700'} disabled:opacity-50`}
+                >
+                  {territoryLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : null}
+                  <span>Create</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        {showCreateIndustryModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+            <div className={`w-full w-[600px] ${cardBgColor} rounded-lg shadow-lg p-6 relative border ${borderColor}`}>
+              <button
+                onClick={() => {
+                  setShowCreateIndustryModal(false);
+                  setNewIndustryName('');
+                }}
+                className="absolute top-5 right-8 text-gray-500 hover:text-gray-700 dark:hover:text-white"
+              >
+                ✕
+              </button>
+
+              <h3 className={`text-lg font-semibold ${textColor} mb-4`}>Create New Industry</h3>
+
+              <div className="mb-4">
+                <label className={`block text-sm font-medium mb-2 ${textSecondaryColor}`}>
+                  Industry <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={newIndustryName}
+                  onChange={(e) => setNewIndustryName(e.target.value)}
+                  placeholder="industry"
+                  className={`w-full px-3 py-2 border ${borderColor} rounded-lg ${inputBgColor} focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                />
+              </div>
+
+              <button
+                onClick={async () => {
+                  if (!newIndustryName.trim()) {
+                    showToast('Industry name is required', { type: 'error' });
+                    return;
+                  }
+
+                  setIndustryLoading(true);
+                  try {
+                    const response = await fetch(`${API_BASE_URL}/method/frappe.client.insert`, {
+                      method: 'POST',
+                      headers: {
+                        'Authorization': AUTH_TOKEN,
+                        'Content-Type': 'application/json'
+                      },
+                      body: JSON.stringify({
+                        doc: {
+                          doctype: "CRM Industry",
+                          industry: newIndustryName.trim()
+                        }
+                      })
+                    });
+
+                    if (response.ok) {
+                      showToast('Industry created successfully', { type: 'success' });
+                      setShowCreateIndustryModal(false);
+                      setNewIndustryName('');
+
+                      // Refresh industry options
+                      await fetchIndustryOptions();
+
+                      // Set the newly created industry as selected
+                      handleInputChange('industry', newIndustryName.trim());
+                    } else {
+                      const errorData = await response.json();
+                      throw new Error(errorData.message || 'Failed to create industry');
+                    }
+                  } catch (error) {
+                    console.error('Error creating industry:', error);
+                    showToast(error.message || 'Failed to create industry', { type: 'error' });
+                  } finally {
+                    setIndustryLoading(false);
+                  }
+                }}
+                disabled={industryLoading}
+                className={`w-full px-4 py-2 rounded-lg text-white flex items-center justify-center space-x-2 transition-colors ${theme === 'dark' ? 'bg-purple-600 hover:bg-purple-700' : 'bg-blue-600 hover:bg-blue-700'
+                  } disabled:opacity-50`}
+              >
+                {industryLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+                <span>{industryLoading ? 'Creating...' : 'Create'}</span>
+              </button>
+            </div>
+          </div>
+        )}
+        {showCreateSourceModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+            <div className={`w-full max-w-md ${cardBgColor} rounded-lg shadow-lg p-6 relative border ${borderColor}`}>
+              <button
+                onClick={() => {
+                  setShowCreateSourceModal(false);
+                  setNewSource({ source_name: '', details: '' });
+                }}
+                className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 dark:hover:text-white"
+              >
+                ✕
+              </button>
+
+              <h3 className={`text-lg font-semibold ${textColor} mb-4`}>New Lead Source</h3>
+
+              <div className="space-y-4">
+                <div>
+                  <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>
+                    Source Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={newSource.source_name}
+                    onChange={(e) => setNewSource({ ...newSource, source_name: e.target.value })}
+                    className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
+                    placeholder="Enter source name"
+                  />
+                </div>
+
+                <div>
+                  <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>
+                    Details
+                  </label>
+                  <input
+                    type="text"
+                    value={newSource.details}
+                    onChange={(e) => setNewSource({ ...newSource, details: e.target.value })}
+                    rows={3}
+                    className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
+                    placeholder="Enter source details"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end mt-6">
+                <button
+                  onClick={async () => {
+                    if (!newSource.source_name.trim()) {
+                      showToast('Source name is required', { type: 'error' });
+                      return;
+                    }
+
+                    setSourceLoading(true);
+                    try {
+                      const response = await fetch(`${API_BASE_URL}/method/frappe.client.insert`, {
+                        method: 'POST',
+                        headers: {
+                          'Authorization': AUTH_TOKEN,
+                          'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                          doc: {
+                            doctype: "CRM Lead Source",
+                            source_name: newSource.source_name.trim(),
+                            details: newSource.details.trim()
+                          }
+                        })
+                      });
+
+                      if (response.ok) {
+                        showToast('Source created successfully', { type: 'success' });
+                        setShowCreateSourceModal(false);
+                        setNewSource({ source_name: '', details: '' });
+
+                        // Refresh source options
+                        await fetchSourceOptions();
+
+                        // Set the newly created source as selected
+                        handleInputChange('source', newSource.source_name.trim());
+                      } else {
+                        const errorData = await response.json();
+                        throw new Error(errorData.message || 'Failed to create source');
+                      }
+                    } catch (error) {
+                      console.error('Error creating source:', error);
+                      showToast(error.message || 'Failed to create source', { type: 'error' });
+                    } finally {
+                      setSourceLoading(false);
+                    }
+                  }}
+                  disabled={sourceLoading}
+                  className={`px-4 py-2 rounded-lg text-white flex items-center space-x-2 transition-colors ${theme === 'dark' ? 'bg-purple-600 hover:bg-purple-700' : 'bg-blue-600 hover:bg-blue-700'} disabled:opacity-50`}
+                >
+                  {sourceLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+                  <span>{sourceLoading ? 'Creating...' : 'Create'}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
+
   );
 }
