@@ -230,11 +230,6 @@ const API_BASE_URL = 'http://103.214.132.20:8002/api';
 const AUTH_TOKEN = 'token 1b670b800ace83b:f82627cb56de7f6';
 
 
-
-
-
-
-
 const statusColors: Record<Lead['status'], string> = {
   New: 'text-yellow-500',
   Contacted: 'text-blue-500',

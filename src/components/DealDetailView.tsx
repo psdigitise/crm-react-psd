@@ -28,6 +28,9 @@ import { RxLightningBolt } from "react-icons/rx";
 import { RiShining2Line } from "react-icons/ri";
 import { SiTicktick } from "react-icons/si";
 import { FiChevronDown } from "react-icons/fi";
+import { CreateOrganizationPopup } from './DealPopups/CreateOrganizationPopup';
+import { CreateTerritoryPopup } from './DealPopups/CreateTerritoryPopup';
+
 
 
 export interface Deal {
@@ -241,6 +244,10 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
   const [isEditMode, setIsEditMode] = useState(false);
   const userSession = getUserSession();
   const Username = userSession?.username || "Administrator";
+  const [organizationSearch, setOrganizationSearch] = useState('');
+  const [showCreateOrganizationModal, setShowCreateOrganizationModal] = useState(false);
+  const [territorySearch, setTerritorySearch] = useState('');
+  const [showCreateTerritoryModal, setShowCreateTerritoryModal] = useState(false);
   // Form states
   const [noteForm, setNoteForm] = useState({
     title: '',
@@ -1582,7 +1589,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
               value={editedDeal.status}
               onChange={handleStatusChange}
               disabled={loading}
-            >
+             >
               <div className="relative inline-block w-48">
                 <Listbox.Button
                   className={`pl-8 pr-4 py-2 rounded-lg transition-colors appearance-none w-full text-left ${theme === 'dark' ? 'bg-purplebg text-white' : 'bg-black text-white'
@@ -1689,7 +1696,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                     </button>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <div>
+                    {/* <div>
                       <label className={`block text-sm font-medium ${textSecondaryColor}`}>Organization</label>
                       <Select
                         value={organizationOptions.find(
@@ -1706,7 +1713,181 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                         classNamePrefix="org-select"
                         styles={darkSelectStyles}
                       />
+                      
+                    </div> */}
+                    <div>
+                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>
+                        Organization
+                      </label>
+                      <Listbox
+                        value={editedDeal.organization_name || ""}
+                        onChange={(value) => handleInputChange("organization_name", value)}
+                       >
+                        {({ open, close }) => (
+                          <div className="relative mt-1">
+                            <Listbox.Button
+                              className={`relative w-full cursor-default rounded-md border ${borderColor} py-0.5 pl-3 pr-10 text-left shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
+                            >
+                              <span className="block truncate">
+                                {editedDeal.organization_name || "Select Organization"}
+                              </span>
+                              <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+                                <svg
+                                  className="h-5 w-5 text-gray-400"
+                                  viewBox="0 0 20 20"
+                                  fill="currentColor"
+                                >
+                                  <path
+                                    fillRule="evenodd"
+                                    d="M10 3a1 1 0 01.707.293l3 3a1 1 0 01-1.414 
+                                      1.414L10 5.414 7.707 7.707a1 1 
+                                      0 01-1.414-1.414l3-3A1 1 0 0110 
+                                      3zm-3.707 9.293a1 1 0 011.414 
+                                      0L10 14.586l2.293-2.293a1 1 
+                                       0 011.414 1.414l-3 3a1 1 0 
+                                      01-1.414 0l-3-3a1 1 
+                                       0 010-1.414z"
+                                    clipRule="evenodd"
+                                  />
+                                </svg>
+                              </span>
+                            </Listbox.Button>
+
+                            <Listbox.Options className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
+
+                              {/* Search Input */}
+                              <div className="sticky top-0 z-10 bg-white p-2 border-b">
+                                <div className="relative">
+                                  <input
+                                    type="text"
+                                    placeholder="Search organizations..."
+                                    className="w-full pl-8 pr-4 py-2 border rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+                                    onChange={(e) => setOrganizationSearch(e.target.value)}
+                                    value={organizationSearch}
+                                  />
+                                  <svg
+                                    className="absolute left-2 top-2.5 h-4 w-4 text-gray-400"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth="2"
+                                      d="M21 21l-6-6m2-5a7 7 
+                     0 11-14 0 7 7 0 0114 0z"
+                                    ></path>
+                                  </svg>
+                                  <button
+                                    className="absolute right-2 top-2 text-gray-400 hover:text-gray-600"
+                                    onClick={() => setOrganizationSearch("")}
+                                  >
+                                    ×
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* Organization Options */}
+                              {organizationOptions
+                                .filter((org) =>
+                                  org.label.toLowerCase().includes(organizationSearch.toLowerCase())
+                                )
+                                .map((org) => (
+                                  <Listbox.Option
+                                    key={org.value}
+                                    value={org.value}
+                                    className={({ active }) =>
+                                      `relative cursor-default select-none border-b py-2 pl-3 pr-9 ${active ? "bg-blue-100 text-blue-900" : "text-gray-900"
+                                      }`
+                                    }
+                                  >
+                                    {({ selected }) => (
+                                      <>
+                                        <span
+                                          className={`block truncate ${selected ? "font-medium" : "font-normal"
+                                            }`}
+                                        >
+                                          {org.label}
+                                        </span>
+                                        {selected && (
+                                          <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-blue-600">
+                                            <svg
+                                              className="h-5 w-5"
+                                              viewBox="0 0 20 20"
+                                              fill="currentColor"
+                                            >
+                                              <path
+                                                fillRule="evenodd"
+                                                d="M16.707 5.293a1 1 
+                               0 010 1.414l-8 8a1 1 
+                               0 01-1.414 0l-4-4a1 1 
+                               0 011.414-1.414L8 
+                               12.586l7.293-7.293a1 1 
+                               0 011.414 0z"
+                                                clipRule="evenodd"
+                                              />
+                                            </svg>
+                                          </span>
+                                        )}
+                                      </>
+                                    )}
+                                  </Listbox.Option>
+                                ))}
+
+                              {/* Create New Button */}
+                              <div className="sticky top-[44px] z-10 bg-white border-b">
+                                <button
+                                  type="button"
+                                  className="flex items-center w-full px-3 py-2 text-sm text-blue-600 hover:bg-gray-100"
+                                  onClick={() => {
+                                    setShowCreateOrganizationModal(true);
+                                    close();
+                                  }}
+                                >
+                                  <Plus className="w-4 h-4 mr-2" />
+                                  Create New
+                                </button>
+                              </div>
+
+                              {/* Clear Button */}
+                              <div className="sticky top-[88px] z-10 bg-white border-b">
+                                <button
+                                  type="button"
+                                  className="flex items-center w-full px-3 py-2 text-sm text-red-600 hover:bg-gray-100"
+                                  onClick={() => {
+                                    handleInputChange("organization_name", "");
+                                    setOrganizationSearch("");
+                                    //close();
+                                  }}
+                                >
+                                  <svg
+                                    className="w-4 h-4 mr-2"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth="2"
+                                      d="M6 18L18 6M6 6l12 12"
+                                    ></path>
+                                  </svg>
+                                  Clear
+                                </button>
+                              </div>
+                            </Listbox.Options>
+                          </div>
+                        )}
+                      </Listbox>
+                      <CreateOrganizationPopup
+                        isOpen={showCreateOrganizationModal}
+                        onClose={() => setShowCreateOrganizationModal(false)}
+                        theme="dark"
+                      />
                     </div>
+
 
                     <div>
                       <label className={`block text-sm font-medium ${textSecondaryColor}`}>Website</label>
@@ -1719,7 +1900,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                     </div>
                     <div>
                       <label className={`block text-sm font-medium ${textSecondaryColor}`}>Territory</label>
-                      <Select
+                      {/* <Select
                         value={TerritoryOptions.find(
                           (option) => option.value === editedDeal.territory
                         )}
@@ -1733,7 +1914,145 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                         className="mt-1 w-full"
                         classNamePrefix="org-select"
                         styles={darkSelectStyles}
+                      /> */}
+                      <Listbox
+                        value={editedDeal.territory || ""}
+                        onChange={(value) => handleInputChange("territory", value)}
+                       >
+                        {({ open, close }) => (
+                          <div className="relative mt-1">
+                            <Listbox.Button
+                              className={`relative w-full cursor-default rounded-md border ${borderColor} py-0.5 pl-3 pr-10 text-left shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
+                            >
+                              <span className="block truncate">
+                                {editedDeal.territory || "Select Territory"}
+                              </span>
+                              <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+                                <svg
+                                  className="h-5 w-5 text-gray-400"
+                                  viewBox="0 0 20 20"
+                                  fill="currentColor"
+                                >
+                                  <path
+                                    fillRule="evenodd"
+                                    d="M10 3a1 1 0 01.707.293l3 3a1 1 
+                                       0 01-1.414 1.414L10 5.414 7.707 
+                                       7.707a1 1 0 01-1.414-1.414l3-3A1 
+                                       1 0 0110 3zm-3.707 9.293a1 1 
+                                       0 011.414 0L10 14.586l2.293-2.293a1 
+                                       1 0 011.414 1.414l-3 3a1 1 
+                                       0 01-1.414 0l-3-3a1 1 
+                                      0 010-1.414z"
+                                    clipRule="evenodd"
+                                  />
+                                </svg>
+                              </span>
+                            </Listbox.Button>
+
+                            <Listbox.Options className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
+                              {/* Search Input */}
+                              <div className="sticky top-0 z-10 bg-white p-2 border-b">
+                                <div className="relative">
+                                  <input
+                                    type="text"
+                                    placeholder="Search territory..."
+                                    className="w-full pl-8 pr-4 py-2 border rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+                                    onChange={(e) => setTerritorySearch(e.target.value)}
+                                    value={territorySearch}
+                                  />
+                                  <svg
+                                    className="absolute left-2 top-2.5 h-4 w-4 text-gray-400"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth="2"
+                                      d="M21 21l-6-6m2-5a7 7 
+                                    0 11-14 0 7 7 0 0114 0z"
+                                    ></path>
+                                  </svg>
+                                  <button
+                                    className="absolute right-2 top-2 text-gray-400 hover:text-gray-600"
+                                    onClick={() => setTerritorySearch("")}
+                                  >
+                                    ×
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* Territory Options */}
+                              {TerritoryOptions
+                                .filter((t) =>
+                                  t.label.toLowerCase().includes(territorySearch.toLowerCase())
+                                )
+                                .map((t) => (
+                                  <Listbox.Option
+                                    key={t.value}
+                                    value={t.value}
+                                    className={({ active }) =>
+                                      `relative cursor-default select-none border-b py-2 pl-3 pr-9 ${active ? "bg-blue-100 text-blue-900" : "text-gray-900"
+                                      }`
+                                    }
+                                  >
+                                    {({ selected }) => (
+                                      <>
+                                        <span
+                                          className={`block truncate ${selected ? "font-medium" : "font-normal"
+                                            }`}
+                                        >
+                                          {t.label}
+                                        </span>
+                                        {selected && (
+                                          <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-blue-600">
+                                            ✓
+                                          </span>
+                                        )}
+                                      </>
+                                    )}
+                                  </Listbox.Option>
+                                ))}
+
+                              {/* Create New */}
+                              <div className="sticky top-[44px] z-10 bg-white border-b">
+                                <button
+                                  type="button"
+                                  className="flex items-center w-full px-3 py-2 text-sm text-blue-600 hover:bg-gray-100"
+                                  onClick={() => {
+                                    setShowCreateTerritoryModal(true);
+                                    //close();
+                                  }}
+                                >
+                                  + Create New
+                                </button>
+                              </div>
+
+                              {/* Clear */}
+                              <div className="sticky top-[88px] z-10 bg-white border-b">
+                                <button
+                                  type="button"
+                                  className="flex items-center w-full px-3 py-2 text-sm text-red-600 hover:bg-gray-100"
+                                  onClick={() => {
+                                    handleInputChange("territory", "");
+                                    setTerritorySearch("");
+                                    close();
+                                  }}
+                                >
+                                  ✕ Clear
+                                </button>
+                              </div>
+                            </Listbox.Options>
+                          </div>
+                        )}
+                      </Listbox>
+                      <CreateTerritoryPopup
+                        isOpen={showCreateTerritoryModal}
+                        onClose={() => setShowCreateTerritoryModal(false)}
+                        theme="dark"
                       />
+
                     </div>
                     <div>
                       <label className={`block text-sm font-medium ${textSecondaryColor}`}>Annual Revenue</label>
