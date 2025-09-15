@@ -4093,9 +4093,9 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                   clearSelectedEmail={() => setSelectedEmail(null)}
                   deal={deal}
                   onClose={() => setShowEmailModal(false)}
-                  onSubjectChange={generateEmailContent}
-                  generatedContent={generatedEmailContent}
-                  generatingContent={generatingContent}
+                  // onSubjectChange={generateEmailContent}
+                  // generatedContent={generatedEmailContent}
+                  // generatingContent={generatingContent}
                 />
               )}
             </div>

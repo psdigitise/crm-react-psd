@@ -14,6 +14,7 @@ import { IoDocument } from "react-icons/io5";
 import { getUserSession } from "../utils/session"; // Update with correct path
 import axios from "axios";
 import { Deal } from "./DealDetailView";
+import { apiAxios } from "../api/apiUrl";
 
 
 interface EmailComposerProps {
@@ -57,6 +58,8 @@ export default function EmailOrCommentComposer({ deal, onClose, mode, dealName, 
   const userSession = getUserSession();
   const senderUsername = userSession?.username || "Administrator";
   const [quotedMessage, setQuotedMessage] = useState("");
+  const [generating, setGenerating] = useState(false);
+
   const addEmoji = (emoji: { native: string; }) => {
     setEmailForm((prev) => ({
       ...prev,
@@ -203,12 +206,24 @@ export default function EmailOrCommentComposer({ deal, onClose, mode, dealName, 
 
   const handleSubjectChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const subject = e.target.value;
-    setEmailForm(f => ({ ...f, subject }));
-    // Call the parent's subject change handler
+    setEmailForm(f => ({ ...f, subject, message: subject.trim() === "" ? "" : f.message, }));
+
     if (onSubjectChange) {
       onSubjectChange(subject);
     }
   };
+
+  // Debounce generate API call when subject changes
+  useEffect(() => {
+    if (emailForm.subject.trim()) {
+      const timeoutId = setTimeout(() => {
+        generateEmailFromSubject(emailForm.subject);
+      }, 500); // wait 800ms after typing stops
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [emailForm.subject]);
+
 
   useEffect(() => {
     if (mode === "new") {
@@ -248,6 +263,35 @@ export default function EmailOrCommentComposer({ deal, onClose, mode, dealName, 
       }));
     }
   }, [mode, deal]);
+
+  //Set Default message contents
+  async function generateEmailFromSubject(subject: string) {
+    try {
+      setGenerating(true); // start loading
+      const response = await apiAxios.post(
+        "/api/method/customcrm.email.email_generator.generate_email",
+        { subject }, // request body
+        {
+          headers: {
+            Authorization: AUTH_TOKEN,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      const generatedMessage = response.data?.message; // API response structure
+
+      if (generatedMessage) {
+        setEmailForm((prev) => ({ ...prev, message: generatedMessage }));
+      }
+    } catch (error) {
+      console.error("Error generating email:", error);
+      showToast("Failed to generate email content", { type: "error" });
+    } finally {
+      setGenerating(false); // stop loading
+    }
+  }
+
 
   return (
     <div
@@ -409,7 +453,9 @@ export default function EmailOrCommentComposer({ deal, onClose, mode, dealName, 
               placeholder="Hi John,
                
 Can you please provider more details on this..."
-              value={emailForm.message}
+              // value={emailForm.message}
+              value={generating ? "Loading content..." : emailForm.message}
+              disabled={generating}  // disable editing while loading
               onChange={e => setEmailForm(f => ({ ...f, message: e.target.value }))}
             />
 

@@ -1,9 +1,7 @@
-
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { X, ExternalLink } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import { showToast } from '../utils/toast';
-
 import { getUserSession } from '../utils/session';
 
 interface CreateTaskModalNewProps {
@@ -13,11 +11,17 @@ interface CreateTaskModalNewProps {
   leadName?: string;
 }
 
+interface UserOption {
+  value: string;
+  description: string;
+}
+
+
 export function CreateTaskModalNew({ isOpen, onClose, onSubmit, leadName }: CreateTaskModalNewProps) {
   const { theme } = useTheme();
   const [formData, setFormData] = useState({
     title: '',
-    assigned_to: 'Administrator',
+    assigned_to: '',
     priority: 'Medium',
     status: 'Open',
     start_date: '',
@@ -27,53 +31,55 @@ export function CreateTaskModalNew({ isOpen, onClose, onSubmit, leadName }: Crea
     reference_docname: leadName || ''
   });
   const [loading, setLoading] = useState(false);
+  // const [users, setUsers] = useState<UserOption[]>([]);
+  const [users, setUsers] = useState<UserOption[]>([
+    { description: "admin", value: "admin@psd.com" }
+  ]);
+  const userSession = getUserSession();
+  const Company = userSession?.company;
+
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchUsers();
+    }
+  }, [isOpen]);
+
+  const fetchUsers = async () => {
+
+    try {
+      const apiUrl = 'http://103.214.132.20:8002/api/method/frappe.desk.search.search_link';
+
+      const requestBody = {
+        txt: "",
+        doctype: "User",
+        filters: {
+          company: Company
+        },
+      };
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'token 1b670b800ace83b:9f48cd1310e112b'
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      setUsers(result.message || []);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      showToast('Failed to load users', { type: 'error' });
+    }
+  };
 
   if (!isOpen) return null;
-
-  // const handleSubmit = async (e: React.FormEvent) => {
-  //   e.preventDefault();
-  //   setLoading(true);
-
-  //   try {
-  //     const apiUrl = 'http://103.214.132.20:8002/api/v2/document/CRM Task/';
-
-  //     const response = await fetch(apiUrl, {
-  //       method: 'POST',
-  //       headers: {
-  //         'Content-Type': 'application/json',
-  //         'Authorization': 'token 1b670b800ace83b:9f48cd1310e112b'
-  //       },
-  //       body: JSON.stringify(formData)
-  //     });
-
-  //     if (!response.ok) {
-  //       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-  //     }
-
-  //     const result = await response.json();
-  //     showToast('Task created successfully', { type: 'success' });
-  //     onSubmit(result);
-  //     onClose();
-
-  //     // Reset form
-  //     setFormData({
-  //       title: '',
-  //       assigned_to: 'Administrator',
-  //       priority: 'Medium',
-  //       status: 'Open',
-  //       start_date: '',
-  //       due_date: '',
-  //       description: '',
-  //       reference_doctype: 'CRM Lead',
-  //       reference_docname: leadName || ''
-  //     });
-  //   } catch (error) {
-  //     console.error('Error creating task:', error);
-  //     showToast('Failed to create task', { type: 'error' });
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,15 +95,15 @@ export function CreateTaskModalNew({ isOpen, onClose, onSubmit, leadName }: Crea
     //     company: sessionCompany, // <-- add this line
     //   };
     try {
-  // Get company from user session
-  const session = getUserSession();
-  const sessionCompany = session?.company || '';
+      // Get company from user session
+      const session = getUserSession();
+      const sessionCompany = session?.company || '';
 
-  // Add company to payload
-  const payload = {
-    ...formData,
-    company: sessionCompany,
-  };
+      // Add company to payload
+      const payload = {
+        ...formData,
+        company: sessionCompany,
+      };
 
       const apiUrl = 'http://103.214.132.20:8002/api/v2/document/CRM Task/';
 
@@ -152,8 +158,8 @@ export function CreateTaskModalNew({ isOpen, onClose, onSubmit, leadName }: Crea
         <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" onClick={onClose} />
 
         <div className={`inline-block align-bottom rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-3xl sm:w-full backdrop-blur-md ${theme === 'dark'
-            ? 'bg-custom-gradient border-transparent !border-white border-2'
-            : 'bg-white/90 border border-gray-200'
+          ? 'bg-custom-gradient border-transparent !border-white border-2'
+          : 'bg-white/90 border border-gray-200'
           }`}>
           <div className={`flex items-center justify-between px-6 py-4 border-b ${theme === 'dark' ? 'border-purple-500/30' : 'border-gray-200'
             }`}>
@@ -191,8 +197,8 @@ export function CreateTaskModalNew({ isOpen, onClose, onSubmit, leadName }: Crea
                   required
                   disabled={loading}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
-                      ? 'bg-white-31 border-white text-white placeholder-gray-400'
-                      : 'bg-white/80 border-gray-300 placeholder-gray-500'
+                    ? 'bg-white-31 border-white text-white placeholder-gray-400'
+                    : 'bg-white/80 border-gray-300 placeholder-gray-500'
                     }`}
                 />
               </div>
@@ -202,18 +208,23 @@ export function CreateTaskModalNew({ isOpen, onClose, onSubmit, leadName }: Crea
                   }`}>
                   Assigned To
                 </label>
-                <input
-                  type="text"
+                <select
                   name="assigned_to"
                   value={formData.assigned_to}
                   onChange={handleChange}
-                  placeholder="Assigned To"
                   disabled={loading}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
-                      ? 'bg-white-31 border-white text-white placeholder-gray-400'
-                      : 'bg-white/80 border-gray-300 placeholder-gray-500'
+                    ? 'bg-white-31 border-white text-white'
+                    : 'bg-gray-50/80 border-gray-300'
                     }`}
-                />
+                >
+                  {users.map((user) => (
+                    <option key={user.value} value={user.value}>
+                      {user.description}
+                    </option>
+                  ))}
+                </select>
+
               </div>
 
               <div>
@@ -227,8 +238,8 @@ export function CreateTaskModalNew({ isOpen, onClose, onSubmit, leadName }: Crea
                   onChange={handleChange}
                   disabled={loading}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
-                      ? 'bg-white-31 border-white text-white'
-                      : 'bg-gray-50/80 border-gray-300'
+                    ? 'bg-white-31 border-white text-white'
+                    : 'bg-gray-50/80 border-gray-300'
                     }`}
                 >
                   <option value="Low">Low</option>
@@ -248,8 +259,8 @@ export function CreateTaskModalNew({ isOpen, onClose, onSubmit, leadName }: Crea
                   onChange={handleChange}
                   disabled={loading}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
-                      ? 'bg-white-31 border-white text-white'
-                      : 'bg-gray-50/80 border-gray-300'
+                    ? 'bg-white-31 border-white text-white'
+                    : 'bg-gray-50/80 border-gray-300'
                     }`}
                 >
                   <option value="Open">Open</option>
@@ -274,8 +285,8 @@ export function CreateTaskModalNew({ isOpen, onClose, onSubmit, leadName }: Crea
                   onChange={handleChange}
                   disabled={loading}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
-                      ? 'bg-white-31 border-white text-white'
-                      : 'bg-white/80 border-gray-300'
+                    ? 'bg-white-31 border-white text-white'
+                    : 'bg-white/80 border-gray-300'
                     }`}
                 />
               </div>
@@ -293,8 +304,8 @@ export function CreateTaskModalNew({ isOpen, onClose, onSubmit, leadName }: Crea
                   required
                   disabled={loading}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
-                      ? 'bg-white-31 border-white text-white'
-                      : 'bg-white/80 border-gray-300'
+                    ? 'bg-white-31 border-white text-white'
+                    : 'bg-white/80 border-gray-300'
                     }`}
                 />
               </div>
@@ -310,8 +321,8 @@ export function CreateTaskModalNew({ isOpen, onClose, onSubmit, leadName }: Crea
                   onChange={handleChange}
                   disabled={loading}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
-                      ? 'bg-white-31 border-white text-white'
-                      : 'bg-gray-50/80 border-gray-300'
+                    ? 'bg-white-31 border-white text-white'
+                    : 'bg-gray-50/80 border-gray-300'
                     }`}
                 >
                   <option value="CRM Lead">CRM Lead</option>
@@ -334,8 +345,8 @@ export function CreateTaskModalNew({ isOpen, onClose, onSubmit, leadName }: Crea
                   placeholder="Document Name"
                   disabled={loading}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
-                      ? 'bg-white-31 border-white text-white placeholder-gray-400'
-                      : 'bg-white/80 border-gray-300 placeholder-gray-500'
+                    ? 'bg-white-31 border-white text-white placeholder-gray-400'
+                    : 'bg-white/80 border-gray-300 placeholder-gray-500'
                     }`}
                 />
               </div>
@@ -353,8 +364,8 @@ export function CreateTaskModalNew({ isOpen, onClose, onSubmit, leadName }: Crea
                   rows={4}
                   disabled={loading}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
-                      ? 'bg-white-31 border-white text-white placeholder-gray-400'
-                      : 'bg-white/80 border-gray-300 placeholder-gray-500'
+                    ? 'bg-white-31 border-white text-white placeholder-gray-400'
+                    : 'bg-white/80 border-gray-300 placeholder-gray-500'
                     }`}
                 />
               </div>
@@ -365,8 +376,8 @@ export function CreateTaskModalNew({ isOpen, onClose, onSubmit, leadName }: Crea
                 type="submit"
                 disabled={loading}
                 className={`px-6 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${theme === 'dark'
-                    ? 'bg-purplebg hover:bg-purple-700 text-white'
-                    : 'bg-gray-900 hover:bg-gray-800 text-white'
+                  ? 'bg-purplebg hover:bg-purple-700 text-white'
+                  : 'bg-gray-900 hover:bg-gray-800 text-white'
                   }`}
               >
                 {loading ? 'Creating...' : 'Create'}

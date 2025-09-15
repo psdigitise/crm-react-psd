@@ -37,7 +37,7 @@ interface CompanyData {
   company_logo: File | null;
   start_date: string;
   company_name: string;
-  no_employees:string;
+  no_employees: string;
 }
 
 function getTodayISODate() {
@@ -69,7 +69,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
     company_logo: null,
     start_date: getTodayISODate(),
     company_name: '',
-    no_employees:''
+    no_employees: ''
   });
 
   const validatePassword = (password: string) => {
@@ -107,6 +107,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
         body: formData,
         headers: {
           'Accept': 'application/json',
+          Authorization: 'token 1b670b800ace83b:9f48cd1310e112b',
         }
       });
 
@@ -231,7 +232,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           company_logo: null,
           start_date: getTodayISODate(),
           company_name: "",
-          no_employees:"",
+          no_employees: "",
         });
         setEmail(registerData.email);
         setIsRegisterMode(false);

@@ -3325,7 +3325,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                           content: note.content || '',
                           name: note.name || '',
                         });
-                        setIsEditMode(true); 
+                        setIsEditMode(true);
                         setShowNoteModal(true);
                       }}
                     >
@@ -3902,7 +3902,49 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
               </div>
             )}
 
-            <div ref={commentRef}>
+            {/* <div ref={commentRef}>
+              {showCommentModal && (
+                <EmailComposerleads
+                  onClose={() => {
+                    setShowCommentModal(false);
+                    setReplyData(undefined);
+                  }}
+                  lead={lead}
+                  deal={undefined}
+                  setListSuccess={setListSuccess}
+                  refreshEmails={refreshComments}
+                  replyData={replyData}
+                />
+              )}
+            </div> */}
+            {/* Composer fixed at bottom */}
+            <div
+              ref={commentRef}
+              className={`${cardBgColor} border-t ${borderColor} p-4 sticky bottom-0`}
+            >
+              {!showCommentModal && (
+                <div className="flex gap-4">
+                  <button
+                    className={`flex items-center gap-1 ${theme === "dark" ? "text-white" : "text-gray-600"}`}
+                    onClick={() => {
+                      setReplyData(undefined);
+                      setShowCommentModal(true);
+                    }}
+                  >
+                    <Mail size={14} /> Reply
+                  </button>
+                  <button
+                    className={`flex items-center gap-1 ${theme === "dark" ? "text-white" : "text-gray-400"}`}
+                    onClick={() => {
+                      setReplyData(undefined);
+                      setShowCommentModal(true);
+                    }}
+                  >
+                    <FaRegComment size={14} /> Comment
+                  </button>
+                </div>
+              )}
+
               {showCommentModal && (
                 <EmailComposerleads
                   onClose={() => {
@@ -4604,7 +4646,34 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                 </div>
               )}
             </div>
-            <div ref={composerRef}>
+            {/* Sticky Composer */}
+            <div
+              ref={composerRef}
+              className={`${cardBgColor} border-t ${borderColor} p-4 sticky bottom-0`}
+            >
+              {!showEmailModal && (
+                <div className="flex gap-4">
+                  <button
+                    className={`flex items-center gap-1 ${theme === "dark" ? "text-white" : "text-gray-600"}`}
+                    onClick={() => {
+                      setReplyData(undefined);
+                      setShowEmailModal(true);
+                    }}
+                  >
+                    <Mail size={14} /> Reply
+                  </button>
+                  <button
+                    className={`flex items-center gap-1 ${theme === "dark" ? "text-white" : "text-gray-400"}`}
+                    onClick={() => {
+                      setReplyData(undefined);
+                      setShowEmailModal(true);
+                    }}
+                  >
+                    <FaRegComment size={14} /> Comment
+                  </button>
+                </div>
+              )}
+
               {showEmailModal && (
                 <EmailComposerleads
                   onClose={() => {

@@ -13,6 +13,8 @@ import Commentemailleads from "./Commentemailleads";
 import EmojiPicker from "emoji-picker-react";
 import { getUserSession } from "../../utils/session";
 import { FaRegComment } from "react-icons/fa6";
+import axios from "axios";
+import { apiAxios } from "../../api/apiUrl";
 
 const showToast = (msg, opts) => alert(msg);
 
@@ -30,7 +32,7 @@ interface EmailComposerProps {
         message: string;
         isReplyAll?: boolean;
     };
-    
+
 }
 
 const API_BASE_URL = "http://103.214.132.20:8002/api/method/frappe.core.doctype.communication.email.make";
@@ -43,7 +45,7 @@ export default function EmailComposerleads({
     onClose,
     refreshEmails,
     replyData,
-   
+
 }: EmailComposerProps) {
     const { theme } = useTheme();
     const [showComment, setShowComment] = useState(false);
@@ -64,10 +66,13 @@ export default function EmailComposerleads({
     const [isFocused, setIsFocused] = useState(false);
     const [uploadedFiles, setUploadedFiles] = useState<{ name: string; url: string }[]>([]);
     const emojiPickerRef = useRef<HTMLDivElement>(null);
-  const [isSubjectEdited, setIsSubjectEdited] = useState(false);
+    const [isSubjectEdited, setIsSubjectEdited] = useState(false);
     const shouldShowCc = emailForm.cc !== "" || showCc;
     const shouldShowBCc = emailForm.bcc !== "" || showBCc;
-const hasMessageContent = emailForm.message.trim().length > 0;
+    const hasMessageContent = emailForm.message.trim().length > 0;
+    const [generatingContent, setGeneratingContent] = useState(false);
+    const [lastGeneratedSubject, setLastGeneratedSubject] = useState<string>("");
+
     useEffect(() => {
         if (replyData) {
             setEmailForm({
@@ -83,12 +88,9 @@ const hasMessageContent = emailForm.message.trim().length > 0;
         }
     }, [replyData]);
 
-
     useEffect(() => {
         setListSuccess(ok);
     }, [ok]);
-
-
 
     const userSession = getUserSession();
     const senderUsername = userSession?.username || "Administrator";
@@ -116,7 +118,8 @@ const hasMessageContent = emailForm.message.trim().length > 0;
             };
 
             // Only add attachments if attachement has a value
-            if (attachments.length>0) {attachments
+            if (attachments.length > 0) {
+                attachments
                 payload.attachments = attachments;
             }
 
@@ -153,142 +156,50 @@ const hasMessageContent = emailForm.message.trim().length > 0;
 
     const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-    // const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    //     const file = event.target.files?.[0];
-    //     if (!file) return;
+    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const files = event.target.files;
+        if (!files || files.length === 0) return;
 
-    //     const formData = new FormData();
-    //     formData.append("doctype", "CRM Lead");
-    //     formData.append("docname", lead.name);
-    //     formData.append("file", file);
-    //     formData.append("is_private", "0");
-    //     formData.append("folder", "Home/Attachments");
+        const newAttachments: any[] = [];
 
-    //     try {
-    //         const response = await fetch("http://103.214.132.20:8002/api/method/upload_file/", {
-    //             method: "POST",
-    //             headers: {
-    //                 Authorization: AUTH_TOKEN,
-    //             },
-    //             body: formData,
-    //         });
+        for (const file of Array.from(files)) {
+            const formData = new FormData();
+            formData.append("doctype", "CRM Lead");
+            formData.append("docname", lead.name);
+            formData.append("file", file);
+            formData.append("is_private", "0");
+            formData.append("folder", "Home/Attachments");
 
-    //         const data = await response.json();
+            try {
+                const response = await fetch("http://103.214.132.20:8002/api/method/upload_file/", {
+                    method: "POST",
+                    headers: {
+                        Authorization: AUTH_TOKEN,
+                    },
+                    body: formData,
+                });
 
-    //         if (response.ok && data.message?.file_url) {
-    //            // showToast("File uploaded successfully", { type: "success" });
+                const data = await response.json();
 
-    //             const fileUrl = `http://103.214.132.20:8002${data.message.file_url}`;
-    //             const fileName = data.message.file_name;
-    //             const name = data.message.name;
-    //             setAttachement(name)
+                if (response.ok && data.message?.name) {
+                    const fileUrl = `http://103.214.132.20:8002${data.message.file_url}`;
+                    const fileName = data.message.file_name;
+                    const name = data.message.name;
 
-    //             setUploadedFiles((prev) => [...prev, { name: fileName, url: fileUrl }]);
+                    newAttachments.push(name); // Add to new attachments
+                    setUploadedFiles(prev => [...prev, { name: fileName, url: fileUrl }]);
+                } else {
+                    showToast(`Failed to upload ${file.name}`, { type: "error" });
+                }
+            } catch (err) {
+                console.error("Upload failed:", err);
+                showToast(`Error uploading ${file.name}`, { type: "error" });
+            }
+        }
 
-    //             // const previewHTML = fileName.match(/\.(jpg|jpeg|png|gif)$/i)
-    //             //   ? `<br/><strong>📎 ${fileName}</strong><br/><img src="${fileUrl}" alt="${fileName}" style="max-width: 100%; height: auto;" />`
-    //             //   : `<br/><strong>📎 ${fileName}</strong><br/><a href="${fileUrl}" target="_blank">${fileName}</a>`;
-
-    //             // setEmailForm((prev) => ({
-    //             //   ...prev,
-    //             //   message: prev.message + previewHTML,
-    //             // }));
-    //         } else {
-    //             showToast("Failed to upload file", { type: "error" });
-    //             console.error("Upload error:", data);
-    //         }
-    //     } catch (err) {
-    //         console.error("Upload failed:", err);
-    //         showToast("Error uploading file", { type: "error" });
-    //     }
-    // };
-
-// const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-//   const files = event.target.files;
-//   if (!files || files.length === 0) return;
-//  const newAttachments = [];
-//   for (const file of Array.from(files)) {
-//     const formData = new FormData();
-//     formData.append("doctype", "CRM Lead");
-//     formData.append("docname", lead.name);
-//     formData.append("file", file);
-//     formData.append("is_private", "0");
-//     formData.append("folder", "Home/Attachments");
-
-//     try {
-//       const response = await fetch("http://103.214.132.20:8002/api/method/upload_file/", {
-//         method: "POST",
-//         headers: {
-//           Authorization: AUTH_TOKEN,
-//         },
-//         body: formData,
-//       });
-
-//       const data = await response.json();
-
-//       if (response.ok && data.message?.file_url) {
-//         const fileUrl = `http://103.214.132.20:8002${data.message.file_url}`;
-//         const fileName = data.message.file_name;
-//         const name = data.message.name;
-
-//         setAttachement(name);
-//         setUploadedFiles((prev) => [...prev, { name: fileName, url: fileUrl }]);
-//       } else {
-//         showToast(`Failed to upload ${file.name}`, { type: "error" });
-//         console.error("Upload error:", data);
-//       }
-//     } catch (err) {
-//       console.error("Upload failed:", err);
-//       showToast(`Error uploading ${file.name}`, { type: "error" });
-//     }
-//   }
-// };
-
-
-const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-  const files = event.target.files;
-  if (!files || files.length === 0) return;
-
-  const newAttachments: any[] = [];
-  
-  for (const file of Array.from(files)) {
-    const formData = new FormData();
-    formData.append("doctype", "CRM Lead");
-    formData.append("docname", lead.name);
-    formData.append("file", file);
-    formData.append("is_private", "0");
-    formData.append("folder", "Home/Attachments");
-
-    try {
-      const response = await fetch("http://103.214.132.20:8002/api/method/upload_file/", {
-        method: "POST",
-        headers: {
-          Authorization: AUTH_TOKEN,
-        },
-        body: formData,
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.message?.name) {
-        const fileUrl = `http://103.214.132.20:8002${data.message.file_url}`;
-        const fileName = data.message.file_name;
-        const name = data.message.name;
-
-        newAttachments.push(name); // Add to new attachments
-        setUploadedFiles(prev => [...prev, { name: fileName, url: fileUrl }]);
-      } else {
-        showToast(`Failed to upload ${file.name}`, { type: "error" });
-      }
-    } catch (err) {
-      console.error("Upload failed:", err);
-      showToast(`Error uploading ${file.name}`, { type: "error" });
-    }
-  }
-
-  // Add all new attachments to state
-  setAttachments(prev => [...prev, ...newAttachments]);
-};
+        // Add all new attachments to state
+        setAttachments(prev => [...prev, ...newAttachments]);
+    };
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -309,7 +220,7 @@ const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     };
 
 
-        useEffect(() => {
+    useEffect(() => {
         if (replyData) {
             setEmailForm({
                 recipient: replyData.recipient || "",
@@ -331,13 +242,111 @@ const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
         }
     }, [replyData, lead.name]);
 
-  const handleSubjectChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setEmailForm(f => ({ ...f, subject: e.target.value }));
+    // const handleSubjectChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    //     const subject = e.target.value;
+    //     setEmailForm(f => ({ ...f, subject, message: subject.trim() === "" ? "" : f.message, }));
+    //     // Mark as edited when user changes the subject
+    //     if (!isSubjectEdited) {
+    //         setIsSubjectEdited(true);
+    //     }
+    // };
+
+
+    // const generateEmailFromSubject = async (subject: string) => {
+    //     if (!subject.trim() || isSubjectEdited) return;
+
+    //     try {
+    //         setGeneratingContent(true);
+    //         const response = await apiAxios.post(
+    //             "/api/method/customcrm.email.email_generator.generate_email",
+    //             { subject },
+    //             {
+    //                 headers: {
+    //                     Authorization: AUTH_TOKEN,
+    //                     "Content-Type": "application/json",
+    //                 },
+    //             }
+    //         );
+
+    //         const generatedMessage = response.data?.message;
+    //         if (generatedMessage) {
+    //             setEmailForm(prev => ({ ...prev, message: generatedMessage }));
+    //         }
+    //     } catch (error) {
+    //         console.error("Error generating email:", error);
+    //         showToast("Failed to generate email content", { type: "error" });
+    //     } finally {
+    //         setGeneratingContent(false);
+    //     }
+    // }
+
+
+    // useEffect(() => {
+    //     if (emailForm.subject.trim() && !isSubjectEdited) {
+    //         const timeoutId = setTimeout(() => {
+    //             generateEmailFromSubject(emailForm.subject);
+    //         }, 500); // wait 800ms after typing stops
+
+    //         return () => clearTimeout(timeoutId);
+    //     }
+    // }, [emailForm.subject]);
+
+
+    // Modify the handleSubjectChange function
+    const handleSubjectChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const subject = e.target.value;
+        setEmailForm(f => ({ ...f, subject, message: subject.trim() === "" ? "" : f.message }));
+
         // Mark as edited when user changes the subject
         if (!isSubjectEdited) {
             setIsSubjectEdited(true);
         }
     };
+
+    // Modify the generateEmailFromSubject function
+    const generateEmailFromSubject = async (subject: string) => {
+        if (!subject.trim()) return;
+
+        // Skip if this subject was already generated and content hasn't been manually edited
+        if (subject === lastGeneratedSubject && !isSubjectEdited) return;
+
+        try {
+            setGeneratingContent(true);
+            const response = await apiAxios.post(
+                "/api/method/customcrm.email.email_generator.generate_email",
+                { subject },
+                {
+                    headers: {
+                        Authorization: AUTH_TOKEN,
+                        "Content-Type": "application/json",
+                    },
+                }
+            );
+
+            const generatedMessage = response.data?.message;
+            if (generatedMessage) {
+                setEmailForm(prev => ({ ...prev, message: generatedMessage }));
+                setLastGeneratedSubject(subject); // Track what subject was used for generation
+            }
+        } catch (error) {
+            console.error("Error generating email:", error);
+            showToast("Failed to generate email content", { type: "error" });
+        } finally {
+            setGeneratingContent(false);
+        }
+    };
+
+    // Modify the useEffect for subject changes
+    useEffect(() => {
+        if (emailForm.subject.trim()) {
+            const timeoutId = setTimeout(() => {
+                generateEmailFromSubject(emailForm.subject);
+            }, 500); // wait 500ms after typing stops
+
+            return () => clearTimeout(timeoutId);
+        }
+    }, [emailForm.subject]);
+
     return (
         <div
             className={`max-full mx-auto rounded-md shadow-sm p-4 space-y-4 mb-5 border ${theme === "dark"
@@ -375,8 +384,8 @@ const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
                     type="button"
                     onClick={() => setShowComment(true)}
                 >
-                    
-                    <FaRegComment  size={20} className={`${showComment ? "text-white" : "text-gray-600"}`} /> Comment
+
+                    <FaRegComment size={20} className={`${showComment ? "text-white" : "text-gray-600"}`} /> Comment
                 </button>
                 <div className="flex gap-5 justify-end ml-auto mr-10">
                     <button
@@ -398,14 +407,14 @@ const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
 
             {showComment ? (
                 <Commentemailleads lead={lead} refreshEmails={refreshEmails} handleFileChange={handleFileChange}
-                fileInputRef={fileInputRef} attachments={attachments}
+                    fileInputRef={fileInputRef} attachments={attachments}
 
-                setAttachments={setAttachments}
-                uploadedFiles={uploadedFiles}
-                setUploadedFiles={setUploadedFiles}
-                setEmailForm={setEmailForm}
-                onClose={onClose} setShowCommentModal={undefined}   
-                  />
+                    setAttachments={setAttachments}
+                    uploadedFiles={uploadedFiles}
+                    setUploadedFiles={setUploadedFiles}
+                    setEmailForm={setEmailForm}
+                    onClose={onClose} setShowCommentModal={undefined}
+                />
             ) : (
                 <div>
                     {/* Email Form */}
@@ -417,7 +426,7 @@ const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
                             <span className={`w-12 ${theme === "dark" ? "text-white" : "text-gray-500"}`}>To:</span>
                             <input
                                 type="email"
-                                value={emailForm.recipient }
+                                value={emailForm.recipient}
                                 onChange={e => setEmailForm(f => ({ ...f, recipient: e.target.value }))}
                                 className={`px-2 py-1 rounded font-medium outline-none flex-1 ${theme === "dark" ? "bg-gray-700 text-white" : "bg-gray-100 text-gray-800"
                                     }`}
@@ -466,9 +475,9 @@ const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
                             <span className={`w-12 ${theme === "dark" ? "text-white" : "text-gray-500"}`}>Subject:</span>
                             <input
                                 type="text"
-                                value={emailForm.subject }
-                                 onChange={handleSubjectChange}
-                               // onChange={e => setEmailForm(f => ({ ...f, subject: e.target.value }))}
+                                value={emailForm.subject}
+                                onChange={handleSubjectChange}
+                                // onChange={e => setEmailForm(f => ({ ...f, subject: e.target.value }))}
                                 className={`px-2 py-1 rounded font-medium outline-none flex-1 ${theme === "dark" ? "bg-gray-700 text-white" : "bg-gray-100 text-gray-800"
                                     }`}
                                 placeholder="Subject"
@@ -509,10 +518,12 @@ const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
                                 ? "bg-white-31 border-gray-600 text-white focus:ring-gray-500"
                                 : "bg-white border border-gray-300 text-gray-800 focus:ring-gray-300"
                                 }`}
-                            placeholder={isFocused?"":"@John,can you please check this?"}
-                            value={emailForm.message}
-                             onFocus={() => setIsFocused(true)}
-                              onBlur={() => setIsFocused(false)}
+                            placeholder={isFocused ? "" : "@John,can you please check this?"}
+                            // value={emailForm.message}
+                            value={generatingContent ? "Loading content..." : emailForm.message}
+                            disabled={generatingContent}  // disable editing while loading
+                            onFocus={() => setIsFocused(true)}
+                            onBlur={() => setIsFocused(false)}
                             onChange={e => setEmailForm(f => ({ ...f, message: e.target.value }))}
                         ></textarea>
                     </div>
@@ -576,10 +587,9 @@ const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
                             >
                                 <Send size={14} /> {loading ? "Sending..." : "Send"}
                             </button> */}
-                             <button
-                                className={`bg-purplebg text-base font-semibold text-white px-5 py-2 rounded-md flex items-center gap-1 hover:bg-purple-700 ${
-                                    !hasMessageContent ? "opacity-50 cursor-not-allowed" : ""
-                                }`}
+                            <button
+                                className={`bg-purplebg text-base font-semibold text-white px-5 py-2 rounded-md flex items-center gap-1 hover:bg-purple-700 ${!hasMessageContent ? "opacity-50 cursor-not-allowed" : ""
+                                    }`}
                                 onClick={sendEmail}
                                 disabled={loading || !hasMessageContent}
                                 type="button"

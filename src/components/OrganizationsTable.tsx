@@ -113,7 +113,13 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
     selectedValue: '',
     fieldOptions: [
       { label: 'Organization Name', value: 'organization_name', fieldtype: 'Data' },
-      { label: 'No. of Employees', value: 'no_of_employees', fieldtype: 'Int' },
+      // { label: 'No. of Employees', value: 'no_of_employees', fieldtype: 'Int' },
+      {
+        label: 'No. of Employees',
+        value: 'no_of_employees',
+        fieldtype: 'Select',
+        options: ['1-10', '11-50', '51-200', '201-500', '500-1000', '1000+']
+      },
       { label: 'Industry', value: 'industry', fieldtype: 'Link', options: [] },
       { label: 'Website', value: 'website', fieldtype: 'Data' },
       { label: 'Annual Revenue', value: 'annual_revenue', fieldtype: 'Currency' },
@@ -496,7 +502,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
             : 'bg-white border-gray-300 text-gray-900'
             }`}
         >
-          <option value="">Select a value</option>
+          <option value="">Select No. of Employees</option>
           {selectedField.options.map((option) => (
             <option key={option} value={option}>
               {option}
@@ -606,89 +612,89 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
   };
 
   const handleBulkUpdate = async () => {
-  if (!bulkEdit.selectedField || !bulkEdit.selectedValue || selectedIds.length === 0) {
-    showToast('Please select a field and value', { type: 'error' });
-    return;
-  }
-
-  try {
-    setBulkEdit(prev => ({ ...prev, updating: true }));
-    const session = getUserSession();
-
-    if (!session) {
-      throw new Error('No active session');
+    if (!bulkEdit.selectedField || !bulkEdit.selectedValue || selectedIds.length === 0) {
+      showToast('Please select a field and value', { type: 'error' });
+      return;
     }
 
-    // Map frontend field names to backend field names
-    const fieldMapping: Record<string, string> = {
-      'organization_name': 'organization_name',
-      'website': 'website',
-      'no_of_employees': 'no_of_employees',
-      'territory': 'territory',
-      'currency': 'currency',
-      'industry': 'industry',
-      'annual_revenue': 'annual_revenue',
-      'address': 'address'
-    };
+    try {
+      setBulkEdit(prev => ({ ...prev, updating: true }));
+      const session = getUserSession();
 
-    const backendFieldName = fieldMapping[bulkEdit.selectedField] || bulkEdit.selectedField;
-
-    // Use the correct API endpoint with the proper format
-    const apiUrl = `http://103.214.132.20:8002/api/method/frappe.desk.doctype.bulk_update.bulk_update.submit_cancel_or_update_docs`;
-
-    const requestBody = {
-      doctype: "CRM Organization",
-      docnames: selectedIds,
-      action: "update",
-      data: {
-        [backendFieldName]: bulkEdit.selectedValue
+      if (!session) {
+        throw new Error('No active session');
       }
-    };
 
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
-      },
-      body: JSON.stringify(requestBody)
-    });
+      // Map frontend field names to backend field names
+      const fieldMapping: Record<string, string> = {
+        'organization_name': 'organization_name',
+        'website': 'website',
+        'no_of_employees': 'no_of_employees',
+        'territory': 'territory',
+        'currency': 'currency',
+        'industry': 'industry',
+        'annual_revenue': 'annual_revenue',
+        'address': 'address'
+      };
 
-    const result = await response.json();
+      const backendFieldName = fieldMapping[bulkEdit.selectedField] || bulkEdit.selectedField;
 
-    if (!response.ok) {
-      // Try to get error message from response
-      const errorMsg = result.message || result.exc || `HTTP ${response.status}: ${response.statusText}`;
-      throw new Error(errorMsg);
+      // Use the correct API endpoint with the proper format
+      const apiUrl = `http://103.214.132.20:8002/api/method/frappe.desk.doctype.bulk_update.bulk_update.submit_cancel_or_update_docs`;
+
+      const requestBody = {
+        doctype: "CRM Organization",
+        docnames: selectedIds,
+        action: "update",
+        data: {
+          [backendFieldName]: bulkEdit.selectedValue
+        }
+      };
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        // Try to get error message from response
+        const errorMsg = result.message || result.exc || `HTTP ${response.status}: ${response.statusText}`;
+        throw new Error(errorMsg);
+      }
+
+      // Updated success condition to handle empty array response
+      // A 200 status with an empty array message indicates success in this API
+      if (response.status === 200 &&
+        (result.message === "success" ||
+          (Array.isArray(result.message) && result.message.length === 0) ||
+          (result.message && result.message.status === "success"))) {
+        showToast('Records updated successfully', { type: 'success' });
+        setBulkEdit(prev => ({
+          ...prev,
+          showModal: false,
+          selectedField: '',
+          selectedValue: '',
+          updating: false
+        }));
+        setSelectedIds([]);
+        fetchOrganizations(); // Refresh the data
+      } else {
+        // Log the actual response for debugging
+        console.log('API Response:', result);
+        throw new Error('Update failed with unknown response format');
+      }
+    } catch (error) {
+      console.error('Error updating records:', error);
+      setBulkEdit(prev => ({ ...prev, updating: false }));
+      showToast(error.message || 'Failed to update records', { type: 'error' });
     }
-
-    // Updated success condition to handle empty array response
-    // A 200 status with an empty array message indicates success in this API
-    if (response.status === 200 && 
-        (result.message === "success" || 
-         (Array.isArray(result.message) && result.message.length === 0) || 
-         (result.message && result.message.status === "success"))) {
-      showToast('Records updated successfully', { type: 'success' });
-      setBulkEdit(prev => ({
-        ...prev,
-        showModal: false,
-        selectedField: '',
-        selectedValue: '',
-        updating: false
-      }));
-      setSelectedIds([]);
-      fetchOrganizations(); // Refresh the data
-    } else {
-      // Log the actual response for debugging
-      console.log('API Response:', result);
-      throw new Error('Update failed with unknown response format');
-    }
-  } catch (error) {
-    console.error('Error updating records:', error);
-    setBulkEdit(prev => ({ ...prev, updating: false }));
-    showToast(error.message || 'Failed to update records', { type: 'error' });
-  }
-};
+  };
 
   const openBulkEditModal = () => {
     setBulkEdit(prev => ({ ...prev, showModal: true }));

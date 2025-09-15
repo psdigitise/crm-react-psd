@@ -11,6 +11,8 @@ import { FaRegClock } from 'react-icons/fa6';
 import { GoArrowUpRight } from 'react-icons/go';
 import { FaUserFriends } from 'react-icons/fa';
 import { HiOutlineArrowRight } from 'react-icons/hi';
+import { Lead, LeadDetailView } from './LeadDetailView';
+import { Deal, DealDetailView } from './DealDetailView';
 
 interface CallLog {
   name: string;
@@ -86,9 +88,13 @@ interface CallDetailsPopupProps {
   onAddTask: () => void;
   onEdit: () => void;
   theme: string;
+  callLog: CallLog; // Add this line
+  onOpenReference: (callLog: CallLog) => void; // Add this too
 }
 
-const CallDetailsPopup: React.FC<CallDetailsPopupProps> = ({ call, onClose, onAddTask, onEdit, theme }) => {
+const CallDetailsPopup: React.FC<CallDetailsPopupProps> = ({ call, onClose, onAddTask, onEdit, theme, callLog, onOpenReference }) => {
+
+
   const formatDuration = (seconds: string) => {
     if (!seconds) return "N/A";
     const total = parseInt(seconds, 10);
@@ -107,6 +113,7 @@ const CallDetailsPopup: React.FC<CallDetailsPopupProps> = ({ call, onClose, onAd
       day: "numeric",
     });
   };
+
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
@@ -159,7 +166,12 @@ const CallDetailsPopup: React.FC<CallDetailsPopupProps> = ({ call, onClose, onAd
             </div>
 
             {/* Lead Info */}
-            <div className={`flex items-center gap-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+            <div
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenReference(callLog);
+              }}
+              className={`flex items-center gap-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
               <FaUserFriends className={theme === 'dark' ? 'text-white' : 'text-gray-900'} />
               {call.reference_doctype || "Lead"}
               <GoArrowUpRight />
@@ -188,6 +200,7 @@ const CallDetailsPopup: React.FC<CallDetailsPopupProps> = ({ call, onClose, onAd
     </div>
   );
 };
+
 
 // Edit Call Modal Component
 interface EditCallModalProps {
@@ -221,127 +234,17 @@ const EditCallModal: React.FC<EditCallModalProps> = ({
   const inputBgColor = theme === 'dark' ? 'bg-slate-700 text-white' : 'bg-white';
   const borderColor = theme === 'dark' ? 'border-gray-600' : 'border-gray-300';
 
+  const handleTypeChange = (type: string) => {
+    setCallForm({
+      ...callForm,
+      type,
+      // Reset the fields when type changes
+      caller: type === 'Incoming' ? '' : callForm.caller,
+      receiver: type === 'Outgoing' ? '' : callForm.receiver
+    });
+  };
+
   return (
-    // <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-    //   <div className={`w-full max-w-md mx-4 rounded-lg shadow-xl ${cardBgColor}`}>
-    //     {/* Header */}
-    //     <div className="flex justify-between items-center p-6 pb-4">
-    //       <h3 className={`text-xl font-semibold ${textColor}`}>Edit Call Log</h3>
-    //       <button
-    //         onClick={onClose}
-    //         className={`p-1 ${textSecondaryColor} hover:${textColor}`}
-    //       >
-    //         <X className="w-5 h-5" />
-    //       </button>
-    //     </div>
-
-    //     {/* Form */}
-    //     <div className="px-6 pb-6 col space-y-4">
-    //       {/* Type */}
-    //       <div>
-    //         <label className={`block text-sm font-medium ${textColor} mb-2`}>
-    //           Type <span className="text-red-500">*</span>
-    //         </label>
-    //         <select
-    //           value={callForm.type}
-    //           onChange={(e) => setCallForm({ ...callForm, type: e.target.value })}
-    //           className={`w-full px-3 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${inputBgColor}`}
-    //         >
-    //           <option value="Outgoing">Outgoing</option>
-    //           <option value="Incoming">Incoming</option>
-    //           <option value="Missed">Missed</option>
-    //         </select>
-    //       </div>
-
-    //       {/* To */}
-    //       <div>
-    //         <label className={`block text-sm font-medium ${textColor} mb-2`}>
-    //           To <span className="text-red-500">*</span>
-    //         </label>
-    //         <input
-    //           type="text"
-    //           value={callForm.to}
-    //           onChange={(e) => setCallForm({ ...callForm, to: e.target.value })}
-    //           className={`w-full px-3 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${inputBgColor}`}
-    //           placeholder="To"
-    //         />
-    //       </div>
-
-    //       {/* From */}
-    //       <div>
-    //         <label className={`block text-sm font-medium ${textColor} mb-2`}>
-    //           From <span className="text-red-500">*</span>
-    //         </label>
-    //         <input
-    //           type="text"
-    //           value={callForm.from}
-    //           onChange={(e) => setCallForm({ ...callForm, from: e.target.value })}
-    //           className={`w-full px-3 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${inputBgColor}`}
-    //           placeholder="From"
-    //         />
-    //       </div>
-
-    //       {/* Caller */}
-    //       <div>
-    //         <label className={`block text-sm font-medium ${textColor} mb-2`}>Caller</label>
-    //         <select
-    //           value={callForm.caller}
-    //           onChange={(e) => setCallForm({ ...callForm, caller: e.target.value })}
-    //           className={`w-full px-3 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${inputBgColor}`}
-    //           disabled={loadingUsers}
-    //         >
-    //           <option value="">Select a caller</option>
-    //           {users.map((user) => (
-    //             <option key={user.value} value={user.value}>
-    //               {user.label}
-    //             </option>
-    //           ))}
-    //         </select>
-    //         {loadingUsers && (
-    //           <div className={`text-xs mt-1 ${textSecondaryColor}`}>Loading users...</div>
-    //         )}
-    //       </div>
-
-    //       {/* Status */}
-    //       <div>
-    //         <label className={`block text-sm font-medium ${textColor} mb-2`}>Status</label>
-    //         <select
-    //           value={callForm.status}
-    //           onChange={(e) => setCallForm({ ...callForm, status: e.target.value })}
-    //           className={`w-full px-3 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${inputBgColor}`}
-    //         >
-    //           {["Initiated", "Ringing", "In Progress", "Completed", "Failed", "Busy", "No Answer", "Queued", "Canceled"].map(status => (
-    //             <option key={status} value={status}>{status}</option>
-    //           ))}
-    //         </select>
-    //       </div>
-
-    //       {/* Duration */}
-    //       <div>
-    //         <label className={`block text-sm font-medium ${textColor} mb-2`}>Duration</label>
-    //         <input
-    //           type="number"
-    //           value={callForm.duration}
-    //           onChange={(e) => setCallForm({ ...callForm, duration: e.target.value })}
-    //           className={`w-full px-3 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${inputBgColor}`}
-    //           placeholder="Call duration"
-    //         />
-    //       </div>
-    //     </div>
-
-    //     {/* Actions */}
-    //     <div className="flex justify-end p-6 pt-0">
-    //       <button
-    //         onClick={onSave}
-    //         disabled={isLoading}
-    //         className={`px-6 py-2.5 rounded-lg text-white font-medium transition-colors ${theme === 'dark' ? 'bg-purple-600 hover:bg-purple-700' : 'bg-purple-600 hover:bg-purple-700'
-    //           } disabled:opacity-50 disabled:cursor-not-allowed`}
-    //       >
-    //         {isLoading ? 'Updating...' : 'Update'}
-    //       </button>
-    //     </div>
-    //   </div>
-    // </div>
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
       <div className={`w-[600px] mx-4 rounded-lg shadow-xl ${cardBgColor}`}>
         {/* Header */}
@@ -364,11 +267,12 @@ const EditCallModal: React.FC<EditCallModalProps> = ({
             </label>
             <select
               value={callForm.type}
-              onChange={(e) => setCallForm({ ...callForm, type: e.target.value })}
+              // onChange={(e) => setCallForm({ ...callForm, type: e.target.value })}
+              onChange={(e) => handleTypeChange(e.target.value)}
               className={`w-full px-3 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${inputBgColor}`}
             >
-              <option className="text-white" value="Outgoing">Outgoing</option>
               <option className="text-white" value="Incoming">Incoming</option>
+              <option className="text-white" value="Outgoing">Outgoing</option>
             </select>
           </div>
 
@@ -426,29 +330,53 @@ const EditCallModal: React.FC<EditCallModalProps> = ({
             />
           </div>
 
-          {/* Caller */}
-          <div>
-            <label className={`block text-sm font-medium ${textColor} mb-2`}>Caller</label>
-            <select
-              value={callForm.caller}
-              onChange={(e) => setCallForm({ ...callForm, caller: e.target.value })}
-              className={`w-full px-3 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${inputBgColor}`}
-              disabled={loadingUsers}
-            >
-              <option className="text-white" value="">Select a caller</option>
-              {users.map((user) => (
-                <option className="text-white" key={user.value} value={user.value}>
-                  {user.label}
-                </option>
-              ))}
-            </select>
-            {loadingUsers && (
-              <div className={`text-xs mt-1 ${textSecondaryColor}`}>Loading users...</div>
-            )}
-          </div>
+          {/* Caller (Only show for Outgoing) */}
+          {callForm.type === 'Outgoing' && (
+            <div>
+              <label className={`block text-sm font-medium ${textColor} mb-2`}>Caller</label>
+              <select
+                value={callForm.caller}
+                onChange={(e) => setCallForm({ ...callForm, caller: e.target.value })}
+                className={`w-full px-3 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${inputBgColor}`}
+                disabled={loadingUsers}
+              >
+                <option value="">Caller</option>
+                {users.map((user) => (
+                  <option key={user.value} value={user.value}>
+                    {user.label}
+                  </option>
+                ))}
+              </select>
+              {loadingUsers && (
+                <div className={`text-xs mt-1 ${textSecondaryColor}`}>Loading users...</div>
+              )}
+            </div>
+          )}
+          {/* Receiver (Only show for Incoming) */}
+          {callForm.type === 'Incoming' && (
+            <div>
+              <label className={`block text-sm font-medium ${textColor} mb-2`}>Call Received By</label>
+              <select
+                value={callForm.receiver}
+                onChange={(e) => setCallForm({ ...callForm, receiver: e.target.value })}
+                className={`w-full px-3 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${inputBgColor}`}
+                disabled={loadingUsers}
+              >
+                <option value="">Call Received By</option>
+                {users.map((user) => (
+                  <option key={user.value} value={user.value}>
+                    {user.label}
+                  </option>
+                ))}
+              </select>
+              {loadingUsers && (
+                <div className={`text-xs mt-1 ${textSecondaryColor}`}>Loading users...</div>
+              )}
+            </div>
+          )}
         </div>
 
-        
+
 
         {/* Actions */}
         <div className="flex justify-end p-6 pt-0">
@@ -526,7 +454,7 @@ const fetchUsers = async (): Promise<User[]> => {
     }
 
     const apiUrl = 'http://103.214.132.20:8002/api/method/frappe.desk.search.search_link';
-    
+
     const requestBody = {
       txt: "",
       doctype: "User",
@@ -549,7 +477,7 @@ const fetchUsers = async (): Promise<User[]> => {
     }
 
     const result = await response.json();
-    
+
     // Transform the API response to match the expected format
     const users = result.message?.map((user: any) => ({
       value: user.value,
@@ -578,6 +506,12 @@ export function CallLogsPage({ onCreateCallLog, leadName }: CallLogsPageProps) {
   const [showMenu, setShowMenu] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
+  // Add state for deal and lead navigation
+  const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [dealLoading, setDealLoading] = useState(false);
+  const [leadLoading, setLeadLoading] = useState(false);
+
   // Form state
   const [callForm, setCallForm] = useState<CallForm>({
     from: '',
@@ -591,15 +525,15 @@ export function CallLogsPage({ onCreateCallLog, leadName }: CallLogsPageProps) {
   });
   const [isEditMode, setIsEditMode] = useState(false);
   const [callsLoading, setCallsLoading] = useState(false);
-  
+
   // Popup state
   const [showPopup, setShowPopup] = useState(false);
   const [selectedCall, setSelectedCall] = useState<CallLog | null>(null);
-  
+
   // Users state
   const [users, setUsers] = useState<User[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
-  
+
   // Theme-based styling classes
   const textColor = theme === 'dark' ? 'text-white' : 'text-gray-900';
   const textSecondaryColor = theme === 'dark' ? 'text-gray-400' : 'text-gray-600';
@@ -737,6 +671,66 @@ export function CallLogsPage({ onCreateCallLog, leadName }: CallLogsPageProps) {
     });
   };
 
+  // const editCall = async (): Promise<boolean> => {
+  //   try {
+  //     setCallsLoading(true);
+  //     const session = getUserSession();
+
+  //     if (!session) {
+  //       showToast('Session expired. Please login again.', { type: 'error' });
+  //       return false;
+  //     }
+
+  //     const apiUrl = `http://103.214.132.20:8002/api/method/frappe.client.set_value`;
+
+  //     // Create the payload in the required format
+  //     const payload = {
+  //       doctype: "CRM Call Log",
+  //       name: callForm.name, // Make sure you have the document ID in your form
+  //       fieldname: {
+  //         from: callForm.from,
+  //         to: callForm.to,
+  //         status: callForm.status,
+  //         type: callForm.type,
+  //         duration: callForm.duration
+  //         // caller: callForm.caller
+  //       }
+  //     };
+
+
+  //     // Add caller/receiver based on call type
+  //     if (callForm.type === 'Outgoing') {
+  //       payload.fieldname.caller = callForm.caller;
+  //     } else if (callForm.type === 'Incoming') {
+  //       payload.fieldname.receiver = callForm.receiver;
+  //     }
+
+  //     const response = await fetch(apiUrl, {
+  //       method: 'POST', // Frappe APIs typically use POST
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //         'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
+  //       },
+  //       body: JSON.stringify(payload)
+  //     });
+
+  //     if (!response.ok) {
+  //       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+  //     }
+
+  //     showToast('Call log updated successfully', { type: 'success' });
+  //     fetchCallLogs();
+  //     return true;
+  //   } catch (error) {
+  //     console.error('Error updating call log:', error);
+  //     showToast('Failed to update call log', { type: 'error' });
+  //     return false;
+  //   } finally {
+  //     setCallsLoading(false);
+  //   }
+  // };
+
+
   const editCall = async (): Promise<boolean> => {
     try {
       setCallsLoading(true);
@@ -749,22 +743,28 @@ export function CallLogsPage({ onCreateCallLog, leadName }: CallLogsPageProps) {
 
       const apiUrl = `http://103.214.132.20:8002/api/method/frappe.client.set_value`;
 
-      // Create the payload in the required format
-      const payload = {
+      // Prepare the payload based on call type
+      const payload: any = {
         doctype: "CRM Call Log",
-        name: callForm.name, // Make sure you have the document ID in your form
+        name: callForm.name,
         fieldname: {
           from: callForm.from,
           to: callForm.to,
           status: callForm.status,
           type: callForm.type,
-          duration: callForm.duration,
-          caller: callForm.caller
+          duration: callForm.duration
         }
       };
 
+      // Add caller/receiver based on call type
+      if (callForm.type === 'Outgoing') {
+        payload.fieldname.caller = callForm.caller;
+      } else if (callForm.type === 'Incoming') {
+        payload.fieldname.receiver = callForm.receiver;
+      }
+
       const response = await fetch(apiUrl, {
-        method: 'POST', // Frappe APIs typically use POST
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
@@ -787,7 +787,7 @@ export function CallLogsPage({ onCreateCallLog, leadName }: CallLogsPageProps) {
       setCallsLoading(false);
     }
   };
-  
+
   const handleDelete = async (callLogName: string) => {
     try {
       const session = getUserSession();
@@ -887,6 +887,209 @@ export function CallLogsPage({ onCreateCallLog, leadName }: CallLogsPageProps) {
     }
     return `${secs}s`;
   };
+
+
+  // Function to fetch deal details
+  const fetchDealDetails = async (dealName: string): Promise<Deal | null> => {
+    try {
+      setDealLoading(true);
+      const session = getUserSession();
+      if (!session) {
+        showToast('Session not found', { type: 'error' });
+        return null;
+      }
+
+      const response = await fetch(`http://103.214.132.20:8002/api/method/frappe.client.get`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
+        },
+        body: JSON.stringify({
+          doctype: "CRM Deal",
+          name: dealName
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      const dealData = data.message;
+
+      if (!dealData) {
+        throw new Error('Deal data not found');
+      }
+
+      const transformedDeal: Deal = {
+        name: dealData.name,
+        id: dealData.name,
+        organization: dealData.organization || '',
+        currency: dealData.currency || '',
+        annual_revenue: dealData.annual_revenue || 0,
+        status: dealData.status || '',
+        email: dealData.email || '',
+        mobile_no: dealData.mobile_no || '',
+        mobileNo: dealData.mobile_no || '',
+        deal_owner: dealData.deal_owner || '',
+        assignedTo: dealData.deal_owner || '',
+        modified: dealData.modified || '',
+        lastModified: dealData.modified || '',
+        annualRevenue: dealData.annual_revenue?.toString() || '0',
+        organization_name: dealData.organization_name,
+        website: dealData.website,
+        no_of_employees: dealData.no_of_employees,
+        territory: dealData.territory,
+        industry: dealData.industry,
+        salutation: dealData.salutation,
+        first_name: dealData.first_name,
+        last_name: dealData.last_name,
+        gender: dealData.gender,
+        close_date: dealData.close_date,
+        probability: dealData.probability,
+        next_step: dealData.next_step
+      };
+
+      return transformedDeal;
+    } catch (error) {
+      console.error('Error fetching deal details:', error);
+      showToast('Failed to fetch deal details', { type: 'error' });
+      return null;
+    } finally {
+      setDealLoading(false);
+    }
+  };
+
+  // Function to fetch lead details
+  const fetchLeadDetails = async (leadName: string): Promise<Lead | null> => {
+    try {
+      setLeadLoading(true);
+      const session = getUserSession();
+      if (!session) {
+        showToast('Session not found', { type: 'error' });
+        return null;
+      }
+
+      const response = await fetch(`http://103.214.132.20:8002/api/method/frappe.client.get`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
+        },
+        body: JSON.stringify({
+          doctype: "CRM Lead",
+          name: leadName
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      const leadData = data.message;
+
+      if (!leadData) {
+        throw new Error('Lead data not found');
+      }
+
+      const transformedLead: Lead = {
+        id: leadData.name || '',
+        name: leadData.name || '',
+        leadId: leadData.name || '',
+        firstName: leadData.first_name || '',
+        lastName: leadData.last_name || '',
+        organization: leadData.organization || '',
+        status: leadData.status || '',
+        email: leadData.email || '',
+        mobile: leadData.mobile_no || '',
+        mobile_no: leadData.mobile_no || '',
+        assignedTo: leadData.lead_owner || '',
+        lead_owner: leadData.lead_owner || '',
+        lastModified: leadData.modified || '',
+        modified: leadData.modified || '',
+        creation: leadData.creation || '',
+        website: leadData.website || '',
+        territory: leadData.territory || '',
+        industry: leadData.industry || '',
+        jobTitle: leadData.job_title || '',
+        source: leadData.source || '',
+        salutation: leadData.salutation || '',
+        owner: leadData.owner || '',
+        modified_by: leadData.modified_by || '',
+        docstatus: leadData.docstatus || 0,
+        idx: leadData.idx || 0,
+        naming_series: leadData.naming_series || '',
+        lead_name: leadData.lead_name || `${leadData.first_name || ''} ${leadData.last_name || ''}`.trim(),
+        gender: leadData.gender || '',
+        no_of_employees: leadData.no_of_employees || '',
+        annual_revenue: leadData.annual_revenue || 0,
+        image: leadData.image || '',
+        first_name: leadData.first_name || '',
+        last_name: leadData.last_name || '',
+        converted: leadData.converted || ''
+      };
+
+      return transformedLead;
+    } catch (error) {
+      console.error('Error fetching lead details:', error);
+      showToast('Failed to fetch lead details', { type: 'error' });
+      return null;
+    } finally {
+      setLeadLoading(false);
+    }
+  };
+
+  const handleOpenReference = async (callLog: CallLog) => {
+    if (!callLog.reference_doctype || !callLog.id) {
+      showToast('This call log is not linked to any record', { type: 'error' });
+      return;
+    }
+
+    if (callLog.reference_doctype === 'CRM Deal') {
+      const dealDetails = await fetchDealDetails(callLog.id);
+      if (dealDetails) {
+        setSelectedDeal(dealDetails);
+      }
+    } else if (callLog.reference_doctype === 'CRM Lead') {
+      const leadDetails = await fetchLeadDetails(callLog.id);
+      if (leadDetails) {
+        setSelectedLead(leadDetails);
+      }
+    } else {
+      showToast(`Unsupported record type: ${callLog.reference_doctype}`, { type: 'error' });
+    }
+  };
+  // If a deal is selected, show DealDetailView
+  if (selectedDeal) {
+    return (
+      <DealDetailView
+        deal={selectedDeal}
+        onBack={() => setSelectedDeal(null)}
+        onSave={(updatedDeal) => {
+          setSelectedDeal(updatedDeal);
+          showToast('Deal updated successfully', { type: 'success' });
+          fetchCallLogs(); // Refresh call logs after save
+        }}
+      />
+    );
+  }
+
+  // If a lead is selected, show LeadDetailView
+  if (selectedLead) {
+    return (
+      <LeadDetailView
+        lead={selectedLead}
+        onBack={() => setSelectedLead(null)}
+        onSave={(updatedLead) => {
+          setSelectedLead(updatedLead);
+          showToast('Lead updated successfully', { type: 'success' });
+          fetchCallLogs(); // Refresh call logs after save
+        }}
+      />
+    );
+  }
 
   if (loading) {
     return (
@@ -1102,7 +1305,7 @@ export function CallLogsPage({ onCreateCallLog, leadName }: CallLogsPageProps) {
               {/* Dropdown menu */}
               {showMenu && (
                 <div className="absolute bottom-8 right-0 bg-gray-800 text-white rounded-md shadow-lg w-40">
-                  <button
+                  {/* <button
                     className="block w-full text-left px-4 py-2 hover:bg-gray-700"
                     onClick={() => {
                       // Add your edit functionality here
@@ -1110,7 +1313,7 @@ export function CallLogsPage({ onCreateCallLog, leadName }: CallLogsPageProps) {
                     }}
                   >
                     Edit
-                  </button>
+                  </button> */}
                   <button
                     className="block w-full text-left px-4 py-2 hover:bg-gray-700"
                     onClick={() => {
@@ -1166,7 +1369,8 @@ export function CallLogsPage({ onCreateCallLog, leadName }: CallLogsPageProps) {
             date: formatDateRelative(selectedCall.creation || ''),
             duration: selectedCall.duration || '0',
             status: selectedCall.status,
-            name: selectedCall.name
+            name: selectedCall.name,
+            reference_doctype: selectedCall.reference_doctype
           }}
           onClose={() => setShowPopup(false)}
           onAddTask={() => {
@@ -1176,6 +1380,8 @@ export function CallLogsPage({ onCreateCallLog, leadName }: CallLogsPageProps) {
           }}
           onEdit={() => handleEdit(selectedCall)}
           theme={theme}
+          callLog={selectedCall} // Add this
+          onOpenReference={handleOpenReference} // Add this
         />
       )}
 
