@@ -287,7 +287,7 @@
 // //       `http://103.214.132.20:8002/api/v2/document/CRM Deal?fields=["name","status"]&filters=${filters}`,
 // //       {
 // //         headers: {
-// //           Authorization: 'token 1b670b800ace83b:f82627cb56de7f6',
+// //           Authorization: 'token 1b670b800ace83b:9f48cd1310e112b',
 // //         },
 // //       }
 // //     )
@@ -342,7 +342,7 @@
 // //       `http://103.214.132.20:8002/api/v2/document/CRM Lead?filters=${filters}`,
 // //       {
 // //         headers: {
-// //           Authorization: 'token 1b670b800ace83b:f82627cb56de7f6',
+// //           Authorization: 'token 1b670b800ace83b:9f48cd1310e112b',
 // //         },
 // //       }
 // //     )
@@ -362,7 +362,7 @@
 // //       `/api/v2/document/CRM Task?fields=["description","start_date","due_date","priority"]&filters=${filters}`,
 // //       {
 // //         headers: {
-// //           Authorization: 'token 1b670b800ace83b:f82627cb56de7f6',
+// //           Authorization: 'token 1b670b800ace83b:9f48cd1310e112b',
 // //         },
 // //       }
 // //     )
@@ -394,7 +394,7 @@
 // //       `http://103.214.132.20:8002/api/v2/document/CRM Lead?fields=["lead_name","status"]&filters=${filters}`,
 // //       {
 // //         headers: {
-// //           Authorization: 'token 1b670b800ace83b:f82627cb56de7f6',
+// //           Authorization: 'token 1b670b800ace83b:9f48cd1310e112b',
 // //         },
 // //       }
 // //     )
@@ -421,7 +421,7 @@
 // //     apiAxios
 // //       .get(`/api/v2/document/CRM Deal?fields=["organization","status","close_date"]&filters=${filters}`, {
 // //         headers: {
-// //           Authorization: 'token 1b670b800ace83b:f82627cb56de7f6',
+// //           Authorization: 'token 1b670b800ace83b:9f48cd1310e112b',
 // //         },
 // //       })
 // //       .then((response) => {
@@ -447,7 +447,7 @@
 // //     apiAxios
 // //       .get(`/api/v2/document/CRM Lead?fields=["status","creation"]&filters=${filters}`, {
 // //         headers: {
-// //           Authorization: 'token 1b670b800ace83b:f82627cb56de7f6',
+// //           Authorization: 'token 1b670b800ace83b:9f48cd1310e112b',
 // //         },
 // //       })
 // //       .then((response) => {
@@ -921,7 +921,7 @@
 //       `http://103.214.132.20:8002/api/v2/document/CRM Deal?fields=["name","status"]&filters=${filters}`,
 //       {
 //         headers: {
-//           Authorization: 'token 1b670b800ace83b:f82627cb56de7f6',
+//           Authorization: 'token 1b670b800ace83b:9f48cd1310e112b',
 //         },
 //       }
 //     )
@@ -959,7 +959,7 @@
 //       `http://103.214.132.20:8002/api/v2/document/CRM Lead?filters=${filters}`,
 //       {
 //         headers: {
-//           Authorization: 'token 1b670b800ace83b:f82627cb56de7f6',
+//           Authorization: 'token 1b670b800ace83b:9f48cd1310e112b',
 //         },
 //       }
 //     )
@@ -978,7 +978,7 @@
 //       `/api/v2/document/CRM Task?fields=["description","start_date","due_date","priority"]&filters=${filters}`,
 //       {
 //         headers: {
-//           Authorization: 'token 1b670b800ace83b:f82627cb56de7f6',
+//           Authorization: 'token 1b670b800ace83b:9f48cd1310e112b',
 //         },
 //       }
 //     )
@@ -1006,7 +1006,7 @@
 //       `http://103.214.132.20:8002/api/v2/document/CRM Lead?fields=["lead_name","status"]&filters=${filters}`,
 //       {
 //         headers: {
-//           Authorization: 'token 1b670b800ace83b:f82627cb56de7f6',
+//           Authorization: 'token 1b670b800ace83b:9f48cd1310e112b',
 //         },
 //       }
 //     )
@@ -1029,7 +1029,7 @@
 //     apiAxios
 //       .get(`/api/v2/document/CRM Deal?fields=["organization","status","close_date"]&filters=${filters}`, {
 //         headers: {
-//           Authorization: 'token 1b670b800ace83b:f82627cb56de7f6',
+//           Authorization: 'token 1b670b800ace83b:9f48cd1310e112b',
 //         },
 //       })
 //       .then((response) => {
@@ -1052,7 +1052,7 @@
 //     apiAxios
 //       .get(`/api/v2/document/CRM Lead?fields=["status","creation"]&filters=${filters}`, {
 //         headers: {
-//           Authorization: 'token 1b670b800ace83b:f82627cb56de7f6',
+//           Authorization: 'token 1b670b800ace83b:9f48cd1310e112b',
 //         },
 //       })
 //       .then((response) => {
@@ -1610,7 +1610,7 @@ export function Dashboard() {
       'http://103.214.132.20:8002/api/v2/document/CRM Deal?fields=["name","status"]',
       {
         headers: {
-          Authorization: 'token 1b670b800ace83b:f82627cb56de7f6',
+          Authorization: 'token 1b670b800ace83b:9f48cd1310e112b',
         },
       }
     )
@@ -1672,7 +1672,7 @@ export function Dashboard() {
   useEffect(() => {
     axios.get('http://103.214.132.20:8002/api/v2/document/CRM Lead/', {
       headers: {
-        Authorization: 'token 1b670b800ace83b:f82627cb56de7f6',
+        Authorization: 'token 1b670b800ace83b:9f48cd1310e112b',
       },
     })
       .then((response) => {
@@ -1690,7 +1690,7 @@ export function Dashboard() {
       '/api/v2/document/CRM Task?fields=["description","start_date","due_date","priority"]',
       {
         headers: {
-          Authorization: 'token 1b670b800ace83b:f82627cb56de7f6',
+          Authorization: 'token 1b670b800ace83b:9f48cd1310e112b',
         },
       }
     )
@@ -1720,7 +1720,7 @@ export function Dashboard() {
     apiAxios
       .get('/api/v2/document/CRM Lead?fields=["lead_name","status"]', {
         headers: {
-          Authorization: 'token 1b670b800ace83b:f82627cb56de7f6',
+          Authorization: 'token 1b670b800ace83b:9f48cd1310e112b',
         },
       })
       .then((response) => {
@@ -1744,7 +1744,7 @@ export function Dashboard() {
     apiAxios
       .get('/api/v2/document/CRM Deal?fields=["organization","status","close_date"]', {
         headers: {
-          Authorization: 'token 1b670b800ace83b:f82627cb56de7f6',
+          Authorization: 'token 1b670b800ace83b:9f48cd1310e112b',
         },
       })
       .then((response) => {
@@ -1768,7 +1768,7 @@ export function Dashboard() {
     apiAxios
       .get('/api/v2/document/CRM Lead?fields=["status","creation"]', {
         headers: {
-          Authorization: 'token 1b670b800ace83b:f82627cb56de7f6',
+          Authorization: 'token 1b670b800ace83b:9f48cd1310e112b',
         },
       })
       .then((response) => {

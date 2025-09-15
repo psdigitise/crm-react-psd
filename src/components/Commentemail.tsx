@@ -22,7 +22,7 @@ interface CommentEmailProps {
 // Dummy showToast for demo. Replace with your own toast/snackbar.
 const showToast = (msg, opts) => alert(msg);
 
-const AUTH_TOKEN = "token 1b670b800ace83b:f82627cb56de7f6";
+const AUTH_TOKEN = "token 1b670b800ace83b:9f48cd1310e112b";
 const UPLOAD_API_URL = "http://103.214.132.20:8002/api/method/upload_file";
 
 export default function Commentemail({

@@ -45,7 +45,7 @@ interface Task {
     creation: string;
 }
 
-const AUTH_TOKEN = "token 1b670b800ace83b:f82627cb56de7f6";
+const AUTH_TOKEN = "token 1b670b800ace83b:9f48cd1310e112b";
 
 export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTaskCreated }: CallDetailsPopupProps) => {
     const [openMenu, setOpenMenu] = useState(false);
@@ -811,7 +811,7 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
 
                                 <div className={`flex items-center gap-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
                                     <FaUserFriends className={theme === 'dark' ? 'text-white' : 'text-gray-900'} />
-                                    {call.reference_doctype || "Lead"}
+                                    {call.reference_doctype || "No reference type"}
                                     <GoArrowUpRight />
                                 </div>
 

@@ -22,6 +22,9 @@ interface EmailComposerProps {
   dealName: string; // Add this prop
   fetchEmails: () => void; // <- Add this line
   selectedEmail?: any; // Add this line
+  onSubjectChange?: (subject: string) => void;
+  generatedContent?: string;
+  generatingContent?: boolean;
   clearSelectedEmail?: () => void; // Add this line
   fetchComments: () => void;
   deal?: Deal; // Add this line
@@ -31,9 +34,9 @@ interface EmailComposerProps {
 const showToast = (msg, opts) => alert(msg);
 
 const API_BASE_URL = "http://103.214.132.20:8002/api/method/frappe.core.doctype.communication.email.make";
-const AUTH_TOKEN = "token 1b670b800ace83b:f82627cb56de7f6"; // Replace with your actual token
+const AUTH_TOKEN = "token 1b670b800ace83b:9f48cd1310e112b"; // Replace with your actual token
 
-export default function EmailOrCommentComposer({ deal, onClose, mode, dealName, fetchEmails, selectedEmail, clearSelectedEmail, fetchComments }: EmailComposerProps) {
+export default function EmailOrCommentComposer({ deal, onClose, mode, dealName, fetchEmails, selectedEmail, clearSelectedEmail, fetchComments, onSubjectChange, generatedContent, generatingContent }: EmailComposerProps) {
   const { theme } = useTheme();
 
   const [showComment, setShowComment] = useState(false);
@@ -198,6 +201,15 @@ export default function EmailOrCommentComposer({ deal, onClose, mode, dealName, 
     }
   }, [mode, selectedEmail]);
 
+  const handleSubjectChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const subject = e.target.value;
+    setEmailForm(f => ({ ...f, subject }));
+    // Call the parent's subject change handler
+    if (onSubjectChange) {
+      onSubjectChange(subject);
+    }
+  };
+
   useEffect(() => {
     if (mode === "new") {
       setEmailForm({
@@ -214,6 +226,18 @@ export default function EmailOrCommentComposer({ deal, onClose, mode, dealName, 
       setShowComment(false); // switch to "Reply" tab
     }
   }, [mode]);
+
+  // Add this useEffect in your EmailComposer component
+  useEffect(() => {
+    if (emailForm.subject && emailForm.subject.trim() && onSubjectChange) {
+      // Debounce the API call to avoid too many requests
+      const timeoutId = setTimeout(() => {
+        onSubjectChange(emailForm.subject);
+      }, 1000); // Wait 1 second after typing stops
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [emailForm.subject, onSubjectChange]);
 
   useEffect(() => {
     if (mode === "new" && deal) {
@@ -270,7 +294,7 @@ export default function EmailOrCommentComposer({ deal, onClose, mode, dealName, 
           // reference_doctype="CRM Deal"
           fetchComments={fetchComments}
           reference_name={dealName} // <-- pass it heres
-          onClose={() => onClose(false)}
+          onClose={onClose}
         />
       ) : (
         <div>
@@ -360,11 +384,21 @@ export default function EmailOrCommentComposer({ deal, onClose, mode, dealName, 
               <input
                 type="text"
                 value={emailForm.subject}
-                onChange={e => setEmailForm(f => ({ ...f, subject: e.target.value }))}
+                onChange={handleSubjectChange}
                 className={`flex-1 bg-transparent outline-none ${theme === "dark" ? "text-white" : "text-gray-600"}`}
                 placeholder="Subject"
               />
             </div>
+            {generatingContent && (
+              <div className="loading-indicator">Generating content...</div>
+            )}
+
+            {generatedContent && (
+              <div className="generated-content">
+                <p>Suggested content:</p>
+                <div dangerouslySetInnerHTML={{ __html: generatedContent }} />
+              </div>
+            )}
           </div>
           <div>
             <textarea
@@ -492,4 +526,3 @@ Can you please provider more details on this..."
     </div>
   );
 }
-

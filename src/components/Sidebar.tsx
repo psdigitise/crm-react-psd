@@ -71,7 +71,7 @@ export function Sidebar({ isCollapsed, onToggle, activeItem, onItemClick }: Side
 
     fetch(`http://103.214.132.20:8002/api/v2/document/Company/${encodeURIComponent(companyName)}`, {
       headers: {
-        'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6',
+        'Authorization': 'token 1b670b800ace83b:9f48cd1310e112b',
         'Content-Type': 'application/json'
       }
     })
@@ -116,7 +116,7 @@ export function Sidebar({ isCollapsed, onToggle, activeItem, onItemClick }: Side
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6'
+          'Authorization': 'token 1b670b800ace83b:9f48cd1310e112b'
         }
       });
 

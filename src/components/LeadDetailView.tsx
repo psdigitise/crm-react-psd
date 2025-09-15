@@ -227,7 +227,7 @@ interface SalutationOption {
 }
 
 const API_BASE_URL = 'http://103.214.132.20:8002/api';
-const AUTH_TOKEN = 'token 1b670b800ace83b:f82627cb56de7f6';
+const AUTH_TOKEN = 'token 1b670b800ace83b:9f48cd1310e112b';
 
 
 const statusColors: Record<Lead['status'], string> = {
@@ -536,7 +536,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
         {
           method: "POST",
           headers: {
-            "Authorization": "token 1b670b800ace83b:f82627cb56de7f6",
+            "Authorization": "token 1b670b800ace83b:9f48cd1310e112b",
             "Content-Type": "application/json"
           },
           body: JSON.stringify({
@@ -1031,7 +1031,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
         {
           method: 'POST',
           headers: {
-            'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6',
+            'Authorization': 'token 1b670b800ace83b:9f48cd1310e112b',
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
@@ -1682,7 +1682,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
       const response = await fetch('http://103.214.132.20:8002/api/method/frappe.client.insert', {
         method: 'POST',
         headers: {
-          'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6',
+          'Authorization': 'token 1b670b800ace83b:9f48cd1310e112b',
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -1726,7 +1726,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
       const response = await fetch('http://103.214.132.20:8002/api/method/frappe.client.set_value', {
         method: 'POST',
         headers: {
-          'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6',
+          'Authorization': 'token 1b670b800ace83b:9f48cd1310e112b',
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -3319,13 +3319,13 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                     <div
                       key={note.name}
                       className={`border ${borderColor} rounded-lg p-4 relative hover:shadow-md transition-shadow cursor-pointer`}
-                      onDoubleClick={() => {
+                      onClick={() => {
                         setNoteForm({
                           title: note.title || '',
                           content: note.content || '',
                           name: note.name || '',
                         });
-                        setIsEditMode(true); // This line was missing
+                        setIsEditMode(true); 
                         setShowNoteModal(true);
                       }}
                     >

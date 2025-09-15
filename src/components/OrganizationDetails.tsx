@@ -107,33 +107,6 @@ interface OrganizationDetailsProps {
 }
 
 // Dropdown options
-const TERRITORY_OPTIONS = [
-  'India',
-  'US'
-];
-
-const INDUSTRY_OPTIONS = [
-  'Technology',
-  'Healthcare',
-  'Finance',
-  'Manufacturing',
-  'Retail',
-  'Education',
-  'Real Estate',
-  'Construction',
-  'Automotive',
-  'Energy',
-  'Telecommunications',
-  'Media & Entertainment',
-  'Food & Beverage',
-  'Transportation',
-  'Agriculture',
-  'Consulting',
-  'Government',
-  'Non-Profit',
-  'Other'
-];
-
 const EMPLOYEE_OPTIONS = [
   '1-10',
   '11-50',
@@ -143,18 +116,6 @@ const EMPLOYEE_OPTIONS = [
   '1001-5000',
   '5001-10000',
   '10000+'
-];
-
-const CURRENCY_OPTIONS = [
-  'INR',
-  'USD',
-  'EUR',
-  'GBP',
-  'AUD',
-  'CAD',
-  'JPY',
-  'SGD',
-  'AED'
 ];
 
 export default function OrganizationDetails({
@@ -177,6 +138,14 @@ export default function OrganizationDetails({
   const [uploadingImage, setUploadingImage] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [currencyOptions, setCurrencyOptions] = useState<string[]>([]);
+  const [loadingCurrencies, setLoadingCurrencies] = useState(false);
+  const [territoryOptions, setTerritoryOptions] = useState<string[]>([]);
+  const [industryOptions, setIndustryOptions] = useState<string[]>([]);
+  const [addressOptions, setAddressOptions] = useState<string[]>([]);
+  const [loadingTerritories, setLoadingTerritories] = useState(false);
+  const [loadingIndustries, setLoadingIndustries] = useState(false);
+  const [loadingAddresses, setLoadingAddresses] = useState(false);
 
   // Add state for deal detail view
   const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
@@ -185,6 +154,203 @@ export default function OrganizationDetails({
   const [selectedTab, setSelectedTab] = useState<'deals' | 'contacts'>('deals');
 
   const API_BASE = 'http://103.214.132.20:8002/api/method';
+
+  // Fetch address options from API
+  const fetchAddressOptions = async () => {
+    try {
+      setLoadingAddresses(true);
+      
+      const session = getUserSession();
+      if (!session) {
+        showToast('Session not found', { type: 'error' });
+        return;
+      }
+
+      const response = await fetch(`${API_BASE}/frappe.desk.search.search_link`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
+        },
+        body: JSON.stringify({
+          txt: "",
+          doctype: "Address",
+          filters: null
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      // Extract address values from the response
+      const addresses = data.message.map((item: any) => item.value);
+      setAddressOptions(addresses);
+      
+    } catch (error) {
+      console.error('Error fetching address options:', error);
+      showToast('Failed to load address options', { type: 'error' });
+      
+      // Fallback to some common addresses if API fails
+      setAddressOptions([
+        '123 Main St, New York, NY 10001',
+        '456 Oak Ave, Los Angeles, CA 90001',
+        '789 Pine Rd, Chicago, IL 60601',
+        '101 Maple Blvd, Houston, TX 77001',
+        '202 Cedar Ln, Phoenix, AZ 85001'
+      ]);
+    } finally {
+      setLoadingAddresses(false);
+    }
+  };
+
+  // Fetch territory options from API
+  const fetchTerritoryOptions = async () => {
+    try {
+      setLoadingTerritories(true);
+      
+      const session = getUserSession();
+      if (!session) {
+        showToast('Session not found', { type: 'error' });
+        return;
+      }
+
+      const response = await fetch(`${API_BASE}/frappe.desk.search.search_link`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
+        },
+        body: JSON.stringify({
+          txt: "",
+          doctype: "CRM Territory",
+          filters: null
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      // Extract territory values from the response
+      const territories = data.message.map((item: any) => item.value);
+      setTerritoryOptions(territories);
+      
+    } catch (error) {
+      console.error('Error fetching territory options:', error);
+      showToast('Failed to load territory options', { type: 'error' });
+      
+      // Fallback to some common territories if API fails
+      setTerritoryOptions(['India', 'US', 'UK', 'Canada', 'Australia']);
+    } finally {
+      setLoadingTerritories(false);
+    }
+  };
+
+  // Fetch industry options from API
+  const fetchIndustryOptions = async () => {
+    try {
+      setLoadingIndustries(true);
+      
+      const session = getUserSession();
+      if (!session) {
+        showToast('Session not found', { type: 'error' });
+        return;
+      }
+
+      const response = await fetch(`${API_BASE}/frappe.desk.search.search_link`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
+        },
+        body: JSON.stringify({
+          txt: "",
+          doctype: "CRM Industry",
+          filters: null
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      // Extract industry values from the response
+      const industries = data.message.map((item: any) => item.value);
+      setIndustryOptions(industries);
+      
+    } catch (error) {
+      console.error('Error fetching industry options:', error);
+      showToast('Failed to load industry options', { type: 'error' });
+      
+      // Fallback to some common industries if API fails
+      setIndustryOptions([
+        'Technology', 'Healthcare', 'Finance', 'Manufacturing', 'Retail', 
+        'Education', 'Real Estate', 'Construction', 'Automotive', 'Energy'
+      ]);
+    } finally {
+      setLoadingIndustries(false);
+    }
+  };
+
+  // Fetch currency options from API
+  const fetchCurrencyOptions = async () => {
+    try {
+      setLoadingCurrencies(true);
+      
+      const session = getUserSession();
+      if (!session) {
+        showToast('Session not found', { type: 'error' });
+        return;
+      }
+
+      const response = await fetch(`${API_BASE}/frappe.desk.search.search_link`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
+        },
+        body: JSON.stringify({
+          txt: "",
+          doctype: "Currency",
+          filters: null
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      // Extract currency values from the response
+      const currencies = data.message.map((item: any) => item.value);
+      setCurrencyOptions(currencies);
+      
+    } catch (error) {
+      console.error('Error fetching currency options:', error);
+      showToast('Failed to load currency options', { type: 'error' });
+      
+      // Fallback to some common currencies if API fails
+      setCurrencyOptions(['INR', 'USD', 'EUR', 'GBP', 'AUD', 'CAD', 'JPY', 'SGD', 'AED']);
+    } finally {
+      setLoadingCurrencies(false);
+    }
+  };
+
+  // Fetch all dropdown options when component mounts
+  useEffect(() => {
+    fetchCurrencyOptions();
+    fetchTerritoryOptions();
+    fetchIndustryOptions();
+    fetchAddressOptions();
+  }, []);
 
   const handleImageClick = () => {
     if (fileInputRef.current) {
@@ -233,7 +399,7 @@ export default function OrganizationDetails({
       const uploadResponse = await fetch('http://103.214.132.20:8002/api/method/upload_file', {
         method: 'POST',
         headers: {
-          'Authorization': `token ${session.api_key}:${session.api_secret}`
+          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
         },
         body: formData
       });
@@ -257,7 +423,7 @@ export default function OrganizationDetails({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token ${session.api_key}:${session.api_secret}`
+          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
         },
         body: JSON.stringify({
           doctype: "CRM Organization",
@@ -335,7 +501,7 @@ export default function OrganizationDetails({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token ${session.api_key}:${session.api_secret}`
+          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
         },
         body: JSON.stringify({
           doctype: "CRM Organization",
@@ -469,7 +635,7 @@ export default function OrganizationDetails({
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `token ${session.api_key}:${session.api_secret}`
+            'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
           },
           body: JSON.stringify({
             doctype: "CRM Organization",
@@ -516,7 +682,7 @@ export default function OrganizationDetails({
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `token ${session.api_key}:${session.api_secret}`
+            'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
           },
           body: JSON.stringify({
             doctype: "CRM Deal",
@@ -580,7 +746,7 @@ export default function OrganizationDetails({
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `token ${session.api_key}:${session.api_secret}`
+            'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
           },
           body: JSON.stringify({
             doctype: "Contact",
@@ -676,7 +842,7 @@ export default function OrganizationDetails({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token ${session.api_key}:${session.api_secret}`
+          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
         },
         body: JSON.stringify(requestBody)
       });
@@ -744,7 +910,7 @@ export default function OrganizationDetails({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token ${session.api_key}:${session.api_secret}`
+          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
         },
         body: JSON.stringify({
           doctype: "CRM Organization",
@@ -769,77 +935,84 @@ export default function OrganizationDetails({
   const getDropdownOptions = (field: string) => {
     switch (field) {
       case 'territory':
-        return TERRITORY_OPTIONS;
+        return territoryOptions;
       case 'industry':
-        return INDUSTRY_OPTIONS;
+        return industryOptions;
       case 'no_of_employees':
         return EMPLOYEE_OPTIONS;
       case 'currency':
-        return CURRENCY_OPTIONS;
+        return currencyOptions;
+      case 'address':
+        return addressOptions;
       default:
         return [];
     }
   };
 
+  const getDropdownLoadingState = (field: string) => {
+    switch (field) {
+      case 'territory':
+        return loadingTerritories;
+      case 'industry':
+        return loadingIndustries;
+      case 'currency':
+        return loadingCurrencies;
+      case 'address':
+        return loadingAddresses;
+      default:
+        return false;
+    }
+  };
+
   const isDropdownField = (field: string) => {
-    return ['territory', 'industry', 'no_of_employees', 'currency'].includes(field);
+    return ['territory', 'industry', 'no_of_employees', 'currency', 'address'].includes(field);
   };
 
   const renderEditableField = (label: string, field: keyof Organization) => {
     const value = organization?.[field]?.toString() || '';
     const isEditing = editingField === field;
     const isDropdown = isDropdownField(field as string);
+    const isLoading = getDropdownLoadingState(field as string);
 
     return (
       <div key={field} className="text-sm flex gap-1 group">
         <p className={`w-32 ${isDark ? "text-white/80" : "text-gray-600"}`}>{label}:</p>
         {isEditing ? (
           isDropdown ? (
-            <select
-              ref={selectRef}
-              value={editValue}
-              onChange={(e) => setEditValue(e.target.value)}
-              onBlur={() => handleBlur(field as string)}
-              onKeyDown={(e) => handleKeyDown(e, field as string)}
-              className={`flex-1 px-2 py-1 border rounded ${isDark
-                ? 'bg-dark-secondary text-white border-white/20 focus:border-purple-400'
-                : 'bg-white text-gray-800 border-gray-300 focus:border-blue-400'
-                } focus:outline-none`}
-              disabled={loading}
-            >
-              <option value="">Select {label.toLowerCase()}...</option>
-              {getDropdownOptions(field as string).map((option) => (
-                <option
-                  key={option}
-                  value={option}
-                  className={isDark ? 'bg-dark-secondary text-white' : ''}
+            <div className="flex-1 relative">
+              {isLoading ? (
+                <div className={`flex items-center justify-center px-2 py-1 border rounded ${isDark
+                  ? 'bg-dark-secondary text-white border-white/20'
+                  : 'bg-white text-gray-800 border-gray-300'
+                  }`}>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                </div>
+              ) : (
+                <select
+                  ref={selectRef}
+                  value={editValue}
+                  onChange={(e) => setEditValue(e.target.value)}
+                  onBlur={() => handleBlur(field as string)}
+                  onKeyDown={(e) => handleKeyDown(e, field as string)}
+                  className={`w-full px-2 py-1 border rounded ${isDark
+                    ? 'bg-dark-secondary text-white border-white/20 focus:border-purple-400'
+                    : 'bg-white text-gray-800 border-gray-300 focus:border-blue-400'
+                    } focus:outline-none`}
+                  disabled={loading}
                 >
-                  {option}
-                </option>
-              ))}
-            </select>
-          ) : field === 'address' ? (
-            <textarea
-              ref={inputRef as any}
-              value={editValue}
-              onChange={(e) => setEditValue(e.target.value)}
-              onBlur={() => handleBlur(field as string)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSave(field as string, editValue);
-                } else if (e.key === 'Escape') {
-                  setEditingField(null);
-                }
-              }}
-              className={`flex-1 px-2 py-1 border rounded resize-none ${isDark
-                ? 'bg-dark-secondary text-white border-white/20 focus:border-purple-400'
-                : 'bg-white text-gray-800 border-gray-300 focus:border-blue-400'
-                } focus:outline-none`}
-              rows={3}
-              disabled={loading}
-              placeholder="Enter address..."
-            />
+                  <option value="">Select {label.toLowerCase()}...</option>
+                  {getDropdownOptions(field as string).map((option) => (
+                    <option
+                      key={option}
+                      value={option}
+                      className={isDark ? 'bg-dark-secondary text-white' : ''}
+                    >
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
           ) : (
             <input
               ref={inputRef}

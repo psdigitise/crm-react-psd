@@ -15,7 +15,7 @@ const showToast = (msg, opts) => alert(msg);
 
 // const API_BASE_URL = "http://103.214.132.20:8002/api/v2/document";
 const API_BASE_URL = "http://103.214.132.20:8002/api/method";
-const AUTH_TOKEN = "token 1b670b800ace83b:f82627cb56de7f6";
+const AUTH_TOKEN = "token 1b670b800ace83b:9f48cd1310e112b";
 
 // export default function CommentCreate({
 //   reference_doctype = "",

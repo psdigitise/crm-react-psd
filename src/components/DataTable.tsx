@@ -71,13 +71,14 @@ interface ColumnConfig {
 }
 
 const statusColors = {
-  New: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+  New: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
   Contacted: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
-  Qualified: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
-  Unqualified: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
-  Junk: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
-  Lost: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
+  Qualified: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+  Unqualified: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-500',
+  Junk: 'bg-transparent text-black dark:bg-transparent dark:text-black',
+  Nurture: 'bg-violet-500 text-violet-800 dark:bg-violet-900/30 dark:text-violet-500',
 };
+
 
 const defaultColumns: ColumnConfig[] = [
   { key: 'name', label: 'Name', visible: true, sortable: true },
@@ -273,7 +274,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
 
   const mapApiStatus = (
     apiStatus: string
-  ): 'New' | 'Contacted' | 'Qualified' | 'Lost' | 'Unqualified' | 'Junk' | 'Nurture' | string => {
+  ): 'New' | 'Contacted' | 'Qualified' | 'Unqualified' | 'Junk' | 'Nurture' | string => {
     if (!apiStatus) return 'New';
     const status = apiStatus.toLowerCase();
 
@@ -360,7 +361,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `token ${session.api_key}:${session.api_secret}`
+            'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
           }
         });
         if (!response.ok) {
@@ -540,7 +541,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token ${session.api_key}:${session.api_secret}`
+          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
         },
         body: JSON.stringify(deletePayload)
       });

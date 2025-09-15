@@ -204,7 +204,7 @@ const commentTypes = [
 ];
 
 const API_BASE_URL = 'http://103.214.132.20:8002/api';
-const AUTH_TOKEN = 'token 1b670b800ace83b:f82627cb56de7f6';
+const AUTH_TOKEN = 'token 1b670b800ace83b:9f48cd1310e112b';
 
 
 export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
@@ -230,6 +230,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
   //popup for all add
   const [showNoteModal, setShowNoteModal] = useState(false);
+  const [generatedEmailContent, setGeneratedEmailContent] = useState<string>('');
+  const [generatingContent, setGeneratingContent] = useState<boolean>(false);
   const [showCallModal, setShowCallModal] = useState(false);
   const [showCommentModal, setShowCommentModal] = useState(false);
   const [CommentModalMode, setCommentModalMode] = useState("comment"); // "reply" or "comment"
@@ -345,7 +347,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         {
           method: 'POST',
           headers: {
-            'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6',
+            'Authorization': 'token 1b670b800ace83b:9f48cd1310e112b',
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
@@ -390,7 +392,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         {
           method: 'POST',
           headers: {
-            'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6',
+            'Authorization': 'token 1b670b800ace83b:9f48cd1310e112b',
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
@@ -440,7 +442,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
       const response = await fetch(url, {
         method: 'POST',
         headers: {
-          'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6',
+          'Authorization': 'token 1b670b800ace83b:9f48cd1310e112b',
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -487,7 +489,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         {
           method: 'POST',
           headers: {
-            'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6',
+            'Authorization': 'token 1b670b800ace83b:9f48cd1310e112b',
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
@@ -517,7 +519,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         {
           method: 'POST',
           headers: {
-            'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6',
+            'Authorization': 'token 1b670b800ace83b:9f48cd1310e112b',
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
@@ -735,7 +737,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
       const response = await fetch(`${API_BASE_URL}/method/frappe.client.insert`, {
         method: 'POST',
         headers: {
-          'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6',
+          'Authorization': 'token 1b670b800ace83b:9f48cd1310e112b',
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -793,7 +795,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
       const response = await fetch(`${API_BASE_URL}/method/frappe.client.set_value`, {
         method: 'POST',
         headers: {
-          'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6',
+          'Authorization': 'token 1b670b800ace83b:9f48cd1310e112b',
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -834,6 +836,53 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
     }
   };
 
+  const generateEmailContent = async (subject: string) => {
+    console.log('generateEmailContent called with subject:', subject);
+
+    if (!subject.trim()) {
+      console.log('Subject is empty, returning');
+      setGeneratedEmailContent('');
+      return;
+    }
+
+    setGeneratingContent(true);
+    try {
+      console.log('Making API call to email generator');
+
+      const response = await fetch(
+        `${API_BASE_URL}/method/customcrm.api.email_generator.generate_email`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': AUTH_TOKEN,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            subject: subject
+          })
+        }
+      );
+
+      console.log('API response status:', response.status);
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('API response data:', result);
+        setGeneratedEmailContent(result.message || '');
+      } else {
+        const errorText = await response.text();
+        console.error('API error response:', errorText);
+        throw new Error('Failed to generate email content');
+      }
+    } catch (error) {
+      console.error('Error generating email content:', error);
+      showToast('Failed to generate email content', { type: 'error' });
+      setGeneratedEmailContent('');
+    } finally {
+      setGeneratingContent(false);
+    }
+  };
+
   const deleteCall = async (name) => {
     if (!window.confirm('Are you sure you want to delete this call log?')) return;
     setCallsLoading(true);
@@ -841,7 +890,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
       const response = await fetch(`${API_BASE_URL}/v2/document/CRM Call Log/${name}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6',
+          'Authorization': 'token 1b670b800ace83b:9f48cd1310e112b',
           'Content-Type': 'application/json'
         }
       });
@@ -933,7 +982,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         {
           method: 'POST',
           headers: {
-            'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6',
+            'Authorization': 'token 1b670b800ace83b:9f48cd1310e112b',
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
@@ -978,7 +1027,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         {
           method: 'DELETE',
           headers: {
-            'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6',
+            'Authorization': 'token 1b670b800ace83b:9f48cd1310e112b',
             'Content-Type': 'application/json'
           }
         }
@@ -1028,7 +1077,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         {
           method: 'POST',
           headers: {
-            'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6',
+            'Authorization': 'token 1b670b800ace83b:9f48cd1310e112b',
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
@@ -1066,7 +1115,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         `${API_BASE_URL}/method/crm.api.activities.get_activities`,
         {
           method: 'POST',
-          headers: { 'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6', 'Content-Type': 'application/json' },
+          headers: { 'Authorization': 'token 1b670b800ace83b:9f48cd1310e112b', 'Content-Type': 'application/json' },
           body: JSON.stringify({
             name: deal.name
           })
@@ -1261,7 +1310,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         },
         {
           headers: {
-            'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6',
+            'Authorization': 'token 1b670b800ace83b:9f48cd1310e112b',
             'Content-Type': 'application/json'
           }
         }
@@ -1334,7 +1383,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         payload,
         {
           headers: {
-            'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6',
+            'Authorization': 'token 1b670b800ace83b:9f48cd1310e112b',
             'Content-Type': 'application/json',
           },
         }
@@ -1368,7 +1417,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
           {
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6'
+              'Authorization': 'token 1b670b800ace83b:9f48cd1310e112b'
             }
           }
         );
@@ -1406,7 +1455,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
           {
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6'
+              'Authorization': 'token 1b670b800ace83b:9f48cd1310e112b'
             }
           }
         );
@@ -1444,7 +1493,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
           {
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6'
+              'Authorization': 'token 1b670b800ace83b:9f48cd1310e112b'
             }
           }
         );
@@ -1498,7 +1547,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         },
         {
           headers: {
-            Authorization: 'token 1b670b800ace83b:f82627cb56de7f6',
+            Authorization: 'token 1b670b800ace83b:9f48cd1310e112b',
             'Content-Type': 'application/json'
           }
         }
@@ -1589,7 +1638,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
               value={editedDeal.status}
               onChange={handleStatusChange}
               disabled={loading}
-             >
+            >
               <div className="relative inline-block w-48">
                 <Listbox.Button
                   className={`pl-8 pr-4 py-2 rounded-lg transition-colors appearance-none w-full text-left ${theme === 'dark' ? 'bg-purplebg text-white' : 'bg-black text-white'
@@ -1722,7 +1771,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                       <Listbox
                         value={editedDeal.organization_name || ""}
                         onChange={(value) => handleInputChange("organization_name", value)}
-                       >
+                      >
                         {({ open, close }) => (
                           <div className="relative mt-1">
                             <Listbox.Button
@@ -1918,7 +1967,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                       <Listbox
                         value={editedDeal.territory || ""}
                         onChange={(value) => handleInputChange("territory", value)}
-                       >
+                      >
                         {({ open, close }) => (
                           <div className="relative mt-1">
                             <Listbox.Button
@@ -2156,7 +2205,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                       <div
                         key={note.name}
                         className={`border ${borderColor} rounded-lg p-4 relative`} // ✅ relative here
-                        onDoubleClick={() => {
+                        onClick={() => {
                           setNoteForm({
                             name: note.name || '',
                             title: note.title || '',
@@ -4044,6 +4093,9 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                   clearSelectedEmail={() => setSelectedEmail(null)}
                   deal={deal}
                   onClose={() => setShowEmailModal(false)}
+                  onSubjectChange={generateEmailContent}
+                  generatedContent={generatedEmailContent}
+                  generatingContent={generatingContent}
                 />
               )}
             </div>

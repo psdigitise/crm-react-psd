@@ -41,7 +41,7 @@
 //         method: 'POST',
 //         headers: {
 //           'Content-Type': 'application/json',
-//           'Authorization': `token ${session.api_key}:${session.api_secret}`
+//           'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
 //         },
 //         body: JSON.stringify(formData)
 //       });
@@ -294,7 +294,7 @@
 //       const response = await fetch(apiUrl, {
 //         method: 'GET',
 //         headers: {
-//           'Authorization': `token ${session.api_key}:${session.api_secret}`
+//           'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
 //         }
 //       });
 
@@ -380,7 +380,7 @@
 //         method: 'POST',
 //         headers: {
 //           'Content-Type': 'application/json',
-//           'Authorization': `token ${session.api_key}:${session.api_secret}`
+//           'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
 //         },
 //         body: JSON.stringify(payload)
 //       });
@@ -841,7 +841,7 @@ function CreateAddressModal({ isOpen, onClose, onSubmit }: CreateAddressModalPro
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token ${session.api_key}:${session.api_secret}`
+          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
         },
         body: JSON.stringify(formData)
       });
@@ -1092,7 +1092,7 @@ export function CreateContactModal({ isOpen, onClose, onSubmit }: CreateContactM
       const response = await fetch(apiUrl, {
         method: 'GET',
         headers: {
-          'Authorization': `token ${session.api_key}:${session.api_secret}`
+          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
         }
       });
 
@@ -1159,7 +1159,7 @@ export function CreateContactModal({ isOpen, onClose, onSubmit }: CreateContactM
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token ${session.api_key}:${session.api_secret}`
+          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
         },
         body: JSON.stringify(payload)
       });

@@ -55,7 +55,7 @@ export function UsersTable({ searchTerm, onUserClick }: UsersTableProps) {
   //       method: 'GET',
   //       headers: {
   //         'Content-Type': 'application/json',
-  //         'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6'
+  //         'Authorization': 'token 1b670b800ace83b:9f48cd1310e112b'
   //       }
   //     });
 
@@ -87,7 +87,7 @@ export function UsersTable({ searchTerm, onUserClick }: UsersTableProps) {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token ${session.api_key}:${session.api_secret}`
+          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
         }
       });
 

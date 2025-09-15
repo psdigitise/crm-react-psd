@@ -41,6 +41,22 @@ interface ColumnConfig {
   sortable: boolean;
 }
 
+interface FieldOption {
+  label: string;
+  value: string;
+  fieldtype: string;
+  options?: string[];
+}
+
+interface BulkEditState {
+  showModal: boolean;
+  selectedField: string;
+  selectedValue: string;
+  fieldOptions: FieldOption[];
+  loadingFields: boolean;
+  updating: boolean;
+}
+
 const defaultColumns: ColumnConfig[] = [
   { key: 'name', label: 'Organization Name', visible: true, sortable: true },
   { key: 'website', label: 'Website', visible: true, sortable: true },
@@ -91,8 +107,34 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
     currency: [] as string[]
   });
 
+  const [bulkEdit, setBulkEdit] = useState<BulkEditState>({
+    showModal: false,
+    selectedField: '',
+    selectedValue: '',
+    fieldOptions: [
+      { label: 'Organization Name', value: 'organization_name', fieldtype: 'Data' },
+      { label: 'No. of Employees', value: 'no_of_employees', fieldtype: 'Int' },
+      { label: 'Industry', value: 'industry', fieldtype: 'Link', options: [] },
+      { label: 'Website', value: 'website', fieldtype: 'Data' },
+      { label: 'Annual Revenue', value: 'annual_revenue', fieldtype: 'Currency' },
+      { label: 'Territory', value: 'territory', fieldtype: 'Link', options: [] },
+      { label: 'Address', value: 'address', fieldtype: 'Text', options: [] }
+    ],
+    loadingFields: false,
+    updating: false,
+  });
+
+  // State for dynamic options
+  const [industryOptions, setIndustryOptions] = useState<string[]>([]);
+  const [territoryOptions, setTerritoryOptions] = useState<string[]>([]);
+  const [addressOptions, setAddressOptions] = useState<string[]>([]);
+  const [loadingOptions, setLoadingOptions] = useState(false);
+
   useEffect(() => {
     fetchOrganizations();
+    fetchIndustryOptions();
+    fetchTerritoryOptions();
+    fetchAddressOptions();
 
     // Start the soft refresh interval (every 1 second)
     intervalRef.current = setInterval(() => {
@@ -113,6 +155,122 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
       setCurrentPage(1);
     }
   }, [searchTerm]);
+
+  const fetchIndustryOptions = async () => {
+    try {
+      const session = getUserSession();
+      if (!session) return;
+
+      const apiUrl = 'http://103.214.132.20:8002/api/method/frappe.desk.search.search_link';
+
+      const requestBody = {
+        txt: "",
+        doctype: "CRM Industry"
+      };
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      const industries = result.message.map((item: any) => item.value);
+      setIndustryOptions(industries);
+
+      // Update field options with industry values
+      setBulkEdit(prev => ({
+        ...prev,
+        fieldOptions: prev.fieldOptions.map(field =>
+          field.value === 'industry' ? { ...field, options: industries } : field
+        )
+      }));
+    } catch (error) {
+      console.error('Error fetching industry options:', error);
+    }
+  };
+
+  const fetchTerritoryOptions = async () => {
+    try {
+      const session = getUserSession();
+      if (!session) return;
+
+      const apiUrl = 'http://103.214.132.20:8002/api/method/frappe.desk.search.search_link';
+
+      const requestBody = {
+        txt: "",
+        doctype: "CRM Territory"
+      };
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      const territories = result.message.map((item: any) => item.value);
+      setTerritoryOptions(territories);
+
+      // Update field options with territory values
+      setBulkEdit(prev => ({
+        ...prev,
+        fieldOptions: prev.fieldOptions.map(field =>
+          field.value === 'territory' ? { ...field, options: territories } : field
+        )
+      }));
+    } catch (error) {
+      console.error('Error fetching territory options:', error);
+    }
+  };
+
+  const fetchAddressOptions = async () => {
+    try {
+      const session = getUserSession();
+      if (!session) return;
+
+      const apiUrl = 'http://103.214.132.20:8002/api/v2/document/Address';
+
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      const addresses = result.data.map((item: any) => item.address_title || item.name);
+      setAddressOptions(addresses);
+
+      // Update field options with address values
+      setBulkEdit(prev => ({
+        ...prev,
+        fieldOptions: prev.fieldOptions.map(field =>
+          field.value === 'address' ? { ...field, options: addresses } : field
+        )
+      }));
+    } catch (error) {
+      console.error('Error fetching address options:', error);
+    }
+  };
 
   const fetchOrganizations = async () => {
     try {
@@ -166,7 +324,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token ${session.api_key}:${session.api_secret}`
+          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
         },
         body: JSON.stringify(requestBody)
       });
@@ -265,7 +423,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token ${session.api_key}:${session.api_secret}`
+          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
         },
         body: JSON.stringify(requestBody)
       });
@@ -320,6 +478,47 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
     } catch {
       return dateString;
     }
+  };
+
+  const renderValueInput = () => {
+    const selectedField = bulkEdit.fieldOptions.find(f => f.value === bulkEdit.selectedField);
+
+    if (!selectedField) return null;
+
+    // If field has options (dropdown)
+    if (selectedField.options && selectedField.options.length > 0) {
+      return (
+        <select
+          value={bulkEdit.selectedValue}
+          onChange={(e) => setBulkEdit(prev => ({ ...prev, selectedValue: e.target.value }))}
+          className={`w-full p-2 border rounded-lg ${theme === 'dark'
+            ? 'bg-gray-700 border-gray-600 text-white'
+            : 'bg-white border-gray-300 text-gray-900'
+            }`}
+        >
+          <option value="">Select a value</option>
+          {selectedField.options.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </select>
+      );
+    }
+
+    // For text/number fields
+    return (
+      <input
+        type={selectedField.fieldtype === 'Int' || selectedField.fieldtype === 'Float' ? 'number' : 'text'}
+        value={bulkEdit.selectedValue}
+        onChange={(e) => setBulkEdit(prev => ({ ...prev, selectedValue: e.target.value }))}
+        className={`w-full p-2 border rounded-lg ${theme === 'dark'
+          ? 'bg-gray-700 border-gray-600 text-white'
+          : 'bg-white border-gray-300 text-gray-900'
+          }`}
+        placeholder={`Enter ${selectedField.label}`}
+      />
+    );
   };
 
   const handleSort = (field: keyof Organization) => {
@@ -384,7 +583,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token ${session.api_key}:${session.api_secret}`
+          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
         },
         body: JSON.stringify(requestBody)
       });
@@ -404,6 +603,95 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleBulkUpdate = async () => {
+  if (!bulkEdit.selectedField || !bulkEdit.selectedValue || selectedIds.length === 0) {
+    showToast('Please select a field and value', { type: 'error' });
+    return;
+  }
+
+  try {
+    setBulkEdit(prev => ({ ...prev, updating: true }));
+    const session = getUserSession();
+
+    if (!session) {
+      throw new Error('No active session');
+    }
+
+    // Map frontend field names to backend field names
+    const fieldMapping: Record<string, string> = {
+      'organization_name': 'organization_name',
+      'website': 'website',
+      'no_of_employees': 'no_of_employees',
+      'territory': 'territory',
+      'currency': 'currency',
+      'industry': 'industry',
+      'annual_revenue': 'annual_revenue',
+      'address': 'address'
+    };
+
+    const backendFieldName = fieldMapping[bulkEdit.selectedField] || bulkEdit.selectedField;
+
+    // Use the correct API endpoint with the proper format
+    const apiUrl = `http://103.214.132.20:8002/api/method/frappe.desk.doctype.bulk_update.bulk_update.submit_cancel_or_update_docs`;
+
+    const requestBody = {
+      doctype: "CRM Organization",
+      docnames: selectedIds,
+      action: "update",
+      data: {
+        [backendFieldName]: bulkEdit.selectedValue
+      }
+    };
+
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
+      },
+      body: JSON.stringify(requestBody)
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      // Try to get error message from response
+      const errorMsg = result.message || result.exc || `HTTP ${response.status}: ${response.statusText}`;
+      throw new Error(errorMsg);
+    }
+
+    // Updated success condition to handle empty array response
+    // A 200 status with an empty array message indicates success in this API
+    if (response.status === 200 && 
+        (result.message === "success" || 
+         (Array.isArray(result.message) && result.message.length === 0) || 
+         (result.message && result.message.status === "success"))) {
+      showToast('Records updated successfully', { type: 'success' });
+      setBulkEdit(prev => ({
+        ...prev,
+        showModal: false,
+        selectedField: '',
+        selectedValue: '',
+        updating: false
+      }));
+      setSelectedIds([]);
+      fetchOrganizations(); // Refresh the data
+    } else {
+      // Log the actual response for debugging
+      console.log('API Response:', result);
+      throw new Error('Update failed with unknown response format');
+    }
+  } catch (error) {
+    console.error('Error updating records:', error);
+    setBulkEdit(prev => ({ ...prev, updating: false }));
+    showToast(error.message || 'Failed to update records', { type: 'error' });
+  }
+};
+
+  const openBulkEditModal = () => {
+    setBulkEdit(prev => ({ ...prev, showModal: true }));
   };
 
   const getFilteredAndSortedData = () => {
@@ -743,9 +1031,15 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
               {/* Dropdown menu */}
               {showMenu && (
                 <div className="absolute bottom-8 right-0 bg-gray-800 text-white rounded-md shadow-lg w-40">
-                  {/* <button className="block w-full text-left px-4 py-2 hover:bg-gray-700">
+                  <button
+                    className="block w-full text-left px-4 py-2 hover:bg-gray-700"
+                    onClick={() => {
+                      openBulkEditModal();
+                      setShowMenu(false);
+                    }}
+                  >
                     Edit
-                  </button> */}
+                  </button>
                   <button
                     className="block w-full text-left px-4 py-2 hover:bg-gray-700"
                     onClick={() => {
@@ -1014,6 +1308,73 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
             >
               <ChevronRight className="w-4 h-4" />
             </button>
+          </div>
+        </div>
+      )}
+      {bulkEdit.showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className={`rounded-lg p-6 max-w-md w-full mx-4 ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}`}>
+            <h3 className={`text-lg font-semibold mb-4 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+              Bulk Edit
+            </h3>
+
+            <div className="space-y-4 mb-6">
+              {/* Field Dropdown */}
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>
+                  Field
+                </label>
+                <select
+                  value={bulkEdit.selectedField}
+                  onChange={(e) => setBulkEdit(prev => ({ ...prev, selectedField: e.target.value, selectedValue: '' }))}
+                  className={`w-full p-2 border rounded-lg ${theme === 'dark'
+                    ? 'bg-gray-700 border-gray-600 text-white'
+                    : 'bg-white border-gray-300 text-gray-900'
+                    }`}
+                >
+                  <option value="">Select a field</option>
+                  {bulkEdit.fieldOptions.map((field) => (
+                    <option key={field.value} value={field.value}>
+                      {field.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Value Input/Dropdown */}
+              {bulkEdit.selectedField && (
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>
+                    Value
+                  </label>
+                  {renderValueInput()}
+                </div>
+              )}
+
+              {/* Selected Records Info */}
+              <div className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
+                This will update {selectedIds.length} record(s)
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setBulkEdit(prev => ({ ...prev, showModal: false }))}
+                className={`px-4 py-2 rounded-lg transition-colors ${theme === 'dark'
+                  ? 'bg-gray-700 text-white hover:bg-gray-600'
+                  : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
+                  }`}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleBulkUpdate}
+                disabled={!bulkEdit.selectedField || !bulkEdit.selectedValue || bulkEdit.updating}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {bulkEdit.updating ? 'Updating...' : 'Update Records'}
+              </button>
+            </div>
           </div>
         </div>
       )}

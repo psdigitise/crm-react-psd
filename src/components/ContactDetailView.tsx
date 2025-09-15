@@ -51,7 +51,7 @@ export function ContactDetailView({ contact, onBack, onSave }: ContactDetailView
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6'
+                    'Authorization': 'token 1b670b800ace83b:9f48cd1310e112b'
                 },
                 body: JSON.stringify({
                     first_name: editedContact.first_name,
@@ -91,7 +91,7 @@ export function ContactDetailView({ contact, onBack, onSave }: ContactDetailView
             const response = await fetch(apiUrl, {
                 method: 'DELETE',
                 headers: {
-                    'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6'
+                    'Authorization': 'token 1b670b800ace83b:9f48cd1310e112b'
                 }
             });
 

@@ -55,16 +55,37 @@ interface DealsTableProps {
   onDealClick?: (deal: Deal) => void;
 }
 
+// const statusColors = {
+//   Qualification: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
+//   // Demo/Making: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
+//   // Proposal/Quotation: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
+//   Negotiation: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+// };
+// const statusColors = {
+//   Qualification: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
+//   Demo: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
+//   Proposal: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+//   Won: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+//   Lost: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-800',
+//   ReadytoClose: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-500',
+//   Junk: 'bg-transparent text-black dark:bg-transparent dark:text-black',
+//   Negotiation: 'bg-violet-500 text-violet-800 dark:bg-violet-900/30 dark:text-violet-500',
+// };
+
 const statusColors = {
-  Qualification: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
-  'Demo/Making': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
-  'Proposal/Quotation': 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
-  Negotiation: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+  Qualification: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
+  'Demo/Making': 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-500',
+  'Proposal/Quotation': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+  Negotiation: 'bg-violet-500 text-violet-800 dark:bg-violet-900/30 dark:text-violet-500',
+  Won: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+  Lost: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-800',
+  'Ready to Close': 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-500',
+  Junk: 'bg-transparent text-black dark:bg-transparent dark:text-black',
 };
 
 const defaultColumns = [
   { key: 'organization', label: 'Organization', visible: true },
-  { key: 'first_name', label: 'First Name', visible: true },
+  // { key: 'first_name', label: 'First Name', visible: true },
   { key: 'name', label: 'Name', visible: false },
   { key: 'annualRevenue', label: 'Annual Revenue', visible: true },
   { key: 'status', label: 'Status', visible: true },
@@ -519,10 +540,35 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
           </div>
         );
       case 'assignedTo':
-        // Check if the assignedTo contains multiple names
-        const assignedNames = deal.assignedTo.split(',').map(name => name.trim());
+        // Handle both string and array formats for assignedTo
+        let assignedNames: string[] = [];
 
-        if (assignedNames.length === 1) {
+        if (Array.isArray(deal.assignedTo)) {
+          // If it's already an array, use it directly
+          assignedNames = deal.assignedTo.map(name => name.trim()).filter(name => name);
+        } else if (typeof deal.assignedTo === 'string') {
+          // If it's a string, try to parse it as JSON array first
+          try {
+            const parsed = JSON.parse(deal.assignedTo);
+            if (Array.isArray(parsed)) {
+              assignedNames = parsed.map(name => name.trim()).filter(name => name);
+            } else {
+              // If not a JSON array, split by commas
+              assignedNames = deal.assignedTo.split(',').map(name => name.trim()).filter(name => name);
+            }
+          } catch {
+            // If JSON parsing fails, split by commas
+            assignedNames = deal.assignedTo.split(',').map(name => name.trim()).filter(name => name);
+          }
+        }
+
+        if (assignedNames.length === 0) {
+          return (
+            <div className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
+              Unassigned
+            </div>
+          );
+        } else if (assignedNames.length === 1) {
           // Single name - show as before
           return (
             <div className="flex items-center">
@@ -530,11 +576,11 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
                 }`}>
                 <span className={`text-xs font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-700'
                   }`}>
-                  {deal.assignedTo.charAt(0).toUpperCase()}
+                  {assignedNames[0].charAt(0).toUpperCase()}
                 </span>
               </div>
               <div className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                {deal.assignedTo}
+                {assignedNames[0]}
               </div>
             </div>
           );
@@ -577,7 +623,6 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
               )}
             </div>
           );
-
         }
       case 'annualRevenue':
         return (

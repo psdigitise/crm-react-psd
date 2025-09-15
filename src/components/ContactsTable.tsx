@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ChevronDown, ChevronUp, Mail, Phone, Building2, Loader2, ChevronLeft, ChevronRight, Filter, X, Settings, RefreshCcw, Download } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import { showToast } from '../utils/toast';
-import { exportToCSV, exportToExcel } from '../utils/exportUtils';
+import { exportToExcel } from '../utils/exportUtils';
 import { getUserSession } from '../utils/session';
 import { BsThreeDots } from 'react-icons/bs';
 
@@ -51,6 +51,12 @@ interface ColumnConfig {
   sortable: boolean;
 }
 
+interface FieldOption {
+  label: string;
+  value: string;
+  fieldtype: string;
+}
+
 const defaultColumns: ColumnConfig[] = [
   { key: 'name', label: 'Name', visible: true, sortable: true },
   { key: 'email', label: 'Email', visible: true, sortable: true },
@@ -71,6 +77,7 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
   const [sortField, setSortField] = useState<keyof Contact | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [addressOptions, setAddressOptions] = useState([]);
 
   // Selection state
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -90,6 +97,14 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
   // Column management
   const [columns, setColumns] = useState<ColumnConfig[]>(defaultColumns);
   const [showColumnSettings, setShowColumnSettings] = useState(false);
+
+  // Bulk Edit state
+  const [showBulkEdit, setShowBulkEdit] = useState(false);
+  const [fieldOptions, setFieldOptions] = useState<FieldOption[]>([]);
+  const [selectedField, setSelectedField] = useState<string>('');
+  const [fieldValue, setFieldValue] = useState<string>('');
+  const [updating, setUpdating] = useState(false);
+
   const userSession = getUserSession();
   const Company = userSession?.company;
 
@@ -180,7 +195,7 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token ${session.api_key}:${session.api_secret}`
+          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
         },
         body: JSON.stringify(requestBody)
       });
@@ -241,6 +256,74 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
     }
   };
 
+  const fetchAddresses = async () => {
+    try {
+      const session = getUserSession();
+      if (!session) return;
+
+      const apiUrl = 'http://103.214.132.20:8002/api/v2/document/Address';
+
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      setAddressOptions(result.data || []);
+    } catch (error) {
+      console.error('Error fetching addresses:', error);
+      showToast('Failed to fetch addresses', { type: 'error' });
+    }
+  };
+
+  // Update the fetchFieldOptions function to also fetch addresses
+  const fetchFieldOptions = async () => {
+    try {
+      const session = getUserSession();
+      if (!session) return;
+
+      const apiUrl = 'http://103.214.132.20:8002/api/method/crm.api.doc.get_fields';
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
+        },
+        body: JSON.stringify({
+          doctype: "Contact"
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+
+      // Transform the field options to a simpler format
+      const options: FieldOption[] = result.message.map((field: any) => ({
+        label: field.label || field.fieldname,
+        value: field.fieldname,
+        fieldtype: field.fieldtype
+      }));
+
+      setFieldOptions(options);
+
+      // Also fetch addresses when opening bulk edit
+      await fetchAddresses();
+    } catch (error) {
+      console.error('Error fetching field options:', error);
+      showToast('Failed to fetch field options', { type: 'error' });
+    }
+  };
+
   // Soft refresh function - fetches data without showing loading state
   const softRefreshContacts = async () => {
     try {
@@ -284,7 +367,7 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token ${session.api_key}:${session.api_secret}`
+          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
         },
         body: JSON.stringify(requestBody)
       });
@@ -383,6 +466,75 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
     setCurrentPage(1);
   };
 
+
+
+
+
+  // Handle bulk update
+  const handleBulkUpdate = async () => {
+    if (!selectedField || !fieldValue || selectedIds.length === 0) {
+      showToast('Please select a field and enter a value', { type: 'error' });
+      return;
+    }
+
+    setUpdating(true);
+    try {
+      const session = getUserSession();
+      if (!session) {
+        throw new Error('No active session');
+      }
+
+      const apiUrl = 'http://103.214.132.20:8002/api/method/frappe.desk.doctype.bulk_update.bulk_update.submit_cancel_or_update_docs';
+
+      const payload = {
+        doctype: "Contact",
+        docnames: selectedIds,
+        action: "update",
+        data: {
+          [selectedField]: fieldValue
+        }
+      };
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        // Try to get error message from response
+        const errorMsg = result.message || result.exc || `HTTP ${response.status}: ${response.statusText}`;
+        throw new Error(errorMsg);
+      }
+
+      // Handle different success response formats
+      if (response.status === 200 &&
+        (result.message === "success" ||
+          (Array.isArray(result.message) && result.message.length === 0) ||
+          (result.message && result.message.status === "success"))) {
+        showToast(`Updated ${selectedIds.length} record(s) successfully`, { type: 'success' });
+        setShowBulkEdit(false);
+        setSelectedField('');
+        setFieldValue('');
+        fetchContacts(); // Refresh the data
+      } else {
+        // Log the actual response for debugging
+        console.log('API Response:', result);
+        throw new Error('Update failed with unknown response format');
+      }
+    } catch (error) {
+      console.error('Error updating contacts:', error);
+      showToast(error.message || 'Failed to update contacts', { type: 'error' });
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   const toggleColumn = (columnKey: keyof Contact) => {
     setColumns(prev => prev.map(col =>
       col.key === columnKey ? { ...col, visible: !col.visible } : col
@@ -406,7 +558,7 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token 1b670b800ace83b:f82627cb56de7f6`
+          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
         },
         body: JSON.stringify(payload)
       });
@@ -764,6 +916,16 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
                 <div className="absolute bottom-8 right-0 bg-gray-800 dark:bg-gray-700 text-white rounded-md shadow-lg w-40">
                   <button
                     className="block w-full text-left px-4 py-2 hover:bg-gray-700 dark:hover:bg-gray-600"
+                    onClick={async () => {
+                      await fetchFieldOptions();
+                      setShowBulkEdit(true);
+                      setShowMenu(false);
+                    }}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    className="block w-full text-left px-4 py-2 hover:bg-gray-700 dark:hover:bg-gray-600"
                     onClick={() => {
                       setShowDeleteConfirm(true);
                       setShowMenu(false);
@@ -774,6 +936,8 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
                 </div>
               )}
             </div>
+
+
 
             {/* Select all */}
             <button
@@ -842,6 +1006,7 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
           </div>
         </div>
       )}
+
 
       {/* Table */}
       <div className={`rounded-lg shadow-sm border overflow-hidden ${theme === 'dark'
@@ -1033,6 +1198,173 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
           </div>
         </div>
       )}
+      {showBulkEdit && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className={`rounded-lg p-6 max-w-md w-full mx-4 ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}`}>
+            <h3 className={`text-lg font-semibold mb-4 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+              Bulk Edit
+            </h3>
+
+            <div className="space-y-4 mb-6">
+              {/* Field Dropdown */}
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>
+                  Field
+                </label>
+                <select
+                  value={selectedField}
+                  onChange={(e) => {
+                    setSelectedField(e.target.value);
+                    setFieldValue('');
+                  }}
+                  className={`w-full p-2 border rounded-lg ${theme === 'dark'
+                    ? 'bg-gray-700 border-gray-600 text-white'
+                    : 'bg-white border-gray-300 text-gray-900'
+                    }`}
+                >
+                  <option value="">Select a field</option>
+                  {fieldOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {selectedField && (
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>
+                    Value
+                  </label>
+
+                  {/* Yes/No Dropdown for specific fields */}
+                  {['is_primary_contact', 'sync_with_google_contacts', 'google_contacts'].includes(selectedField) && (
+                    <select
+                      value={fieldValue}
+                      onChange={(e) => setFieldValue(e.target.value)}
+                      className={`w-full p-2 border rounded-lg ${theme === 'dark'
+                        ? 'bg-gray-700 border-gray-600 text-white'
+                        : 'bg-white border-gray-300 text-gray-900'
+                        }`}
+                    >
+                      <option value="">Select Option</option>
+                      <option value="1">Yes</option>
+                      <option value="0">No</option>
+                    </select>
+                  )}
+
+                  {/* Salutation Dropdown */}
+                  {selectedField === 'salutation' && (
+                    <select
+                      value={fieldValue}
+                      onChange={(e) => setFieldValue(e.target.value)}
+                      className={`w-full p-2 border rounded-lg ${theme === 'dark'
+                        ? 'bg-gray-700 border-gray-600 text-white'
+                        : 'bg-white border-gray-300 text-gray-900'
+                        }`}
+                    >
+                      <option value="">Select Salutation</option>
+                      <option value="Mr">Mr</option>
+                      <option value="Ms">Ms</option>
+                      <option value="Mrs">Mrs</option>
+                      <option value="Dr">Dr</option>
+                      <option value="Prof">Prof</option>
+                    </select>
+                  )}
+
+                  {/* Gender Dropdown */}
+                  {selectedField === 'gender' && (
+                    <select
+                      value={fieldValue}
+                      onChange={(e) => setFieldValue(e.target.value)}
+                      className={`w-full p-2 border rounded-lg ${theme === 'dark'
+                        ? 'bg-gray-700 border-gray-600 text-white'
+                        : 'bg-white border-gray-300 text-gray-900'
+                        }`}
+                    >
+                      <option value="">Select Gender</option>
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  )}
+
+                  {/* Address Dropdown */}
+                  {selectedField === 'address' && (
+                    <div className="relative">
+                      <select
+                        value={fieldValue}
+                        onChange={(e) => setFieldValue(e.target.value)}
+                        className={`w-full p-2 border rounded-lg ${theme === 'dark'
+                          ? 'bg-gray-700 border-gray-600 text-white'
+                          : 'bg-white border-gray-300 text-gray-900'
+                          }`}
+                      >
+                        <option value="">Select Address</option>
+                        {addressOptions.map((address) => (
+                          <option key={address.name} value={address.name}>
+                            {address.address_title || address.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {/* Default Text Input for other fields */}
+                  {!['salutation', 'gender', 'address', 'is_primary_contact', 'sync_with_google_contacts', 'google_contacts'].includes(selectedField) && (
+                    <input
+                      type="text"
+                      value={fieldValue}
+                      onChange={(e) => setFieldValue(e.target.value)}
+                      className={`w-full p-2 border rounded-lg ${theme === 'dark'
+                        ? 'bg-gray-700 border-gray-600 text-white'
+                        : 'bg-white border-gray-300 text-gray-900'
+                        }`}
+                      placeholder="Enter value"
+                    />
+                  )}
+                </div>
+              )}
+
+              {/* Selected Records Info */}
+              <div className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
+                Update {selectedIds.length} Record{selectedIds.length !== 1 ? 's' : ''}
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => {
+                  setShowBulkEdit(false);
+                  setSelectedField('');
+                  setFieldValue('');
+                }}
+                className={`px-4 py-2 rounded-lg transition-colors ${theme === 'dark'
+                  ? 'bg-gray-700 text-white hover:bg-gray-600'
+                  : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
+                  }`}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleBulkUpdate}
+                disabled={updating || !selectedField || !fieldValue}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {updating ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin inline mr-1" />
+                    Updating...
+                  </>
+                ) : (
+                  'Update Records'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

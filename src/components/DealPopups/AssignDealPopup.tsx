@@ -34,12 +34,12 @@ export const AssignDealPopup: React.FC<AssignDealPopupProps> = ({
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6' // You'll need to add your auth token
+                    'Authorization': 'token 1b670b800ace83b:9f48cd1310e112b' // You'll need to add your auth token
                 },
                 body: JSON.stringify({
                     doctype: "CRM Deal",
                     name: JSON.stringify(dealNames), // Format as required
-                    assign_to: [selectedAssignee],
+                    assign_to: selectedAssignee,
                     bulk_assign: true,
                     re_assign: true
                 })

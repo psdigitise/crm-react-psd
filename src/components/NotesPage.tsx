@@ -6,9 +6,11 @@ import { useTheme } from './ThemeProvider';
 import { getUserSession } from '../utils/session';
 import { DealDetailView } from './DealDetailView';
 import { LeadDetailView } from './LeadDetailView';
+import { formatDistanceToNow } from 'date-fns';
 
 interface Note {
   name: string;
+  owner: string;
   title: string;
   content: string;
   reference_doctype?: string;
@@ -269,7 +271,7 @@ export function NotesPage({ onCreateNote, leadName }: NotesPageProps) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token ${session.api_key}:${session.api_secret}`
+          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
         },
         body: JSON.stringify(payload)
       });
@@ -309,6 +311,15 @@ export function NotesPage({ onCreateNote, leadName }: NotesPageProps) {
     setOpenDropdown(openDropdown === noteId ? null : noteId);
   };
 
+  function formatRelativeDate(dateStr?: string | null) {
+    if (!dateStr) return '';
+    // Just parse directly
+    const parsed = new Date(dateStr.replace(' ', 'T'));
+    if (isNaN(parsed.getTime())) return '';
+    return formatDistanceToNow(parsed, { addSuffix: true });
+  }
+
+
   const handleDeleteClick = (noteId: string, event: React.MouseEvent) => {
     event.stopPropagation();
     handleDelete(noteId);
@@ -330,7 +341,7 @@ export function NotesPage({ onCreateNote, leadName }: NotesPageProps) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token ${session.api_key}:${session.api_secret}`
+          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
         },
         body: JSON.stringify({
           doctype: "CRM Deal",
@@ -404,7 +415,7 @@ export function NotesPage({ onCreateNote, leadName }: NotesPageProps) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token ${session.api_key}:${session.api_secret}`
+          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
         },
         body: JSON.stringify({
           doctype: "CRM Lead",
@@ -548,7 +559,7 @@ export function NotesPage({ onCreateNote, leadName }: NotesPageProps) {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token ${session.api_key}:${session.api_secret}`
+          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
         },
         body: JSON.stringify({
           title: editForm.title,
@@ -586,7 +597,7 @@ export function NotesPage({ onCreateNote, leadName }: NotesPageProps) {
       const response = await fetch(apiUrl, {
         method: 'DELETE',
         headers: {
-          'Authorization': `token ${session.api_key}:${session.api_secret}`
+          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
         }
       });
 
@@ -794,28 +805,19 @@ export function NotesPage({ onCreateNote, leadName }: NotesPageProps) {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-1">
                     <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-semibold ${theme === 'dark' ? 'bg-white text-gray-700' : 'bg-gray-200 text-gray-700'}`}>
-                      {note.name ? note.name.charAt(0).toUpperCase() : 'U'}
+                      {note.owner ? note.owner.charAt(0).toUpperCase() : 'U'}
                     </div>
                     <span className={`text-xs ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`}>
-                      User
+                      {note.owner}
                     </span>
                   </div>
 
                   {note.modified && (
                     <div className={`text-xs ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`}>
-                      {(() => {
-                        const modifiedDate = new Date(note.modified);
-                        const now = new Date();
-                        const diffTime = Math.abs(now.getTime() - modifiedDate.getTime());
-                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-                        if (diffDays === 1) return 'yesterday';
-                        if (diffDays <= 7) return `${diffDays} days ago`;
-                        if (diffDays <= 14) return 'last week';
-                        return modifiedDate.toLocaleDateString();
-                      })()}
+                      {formatRelativeDate(note.modified)}
                     </div>
                   )}
+
                 </div>
               </div>
             </div>
