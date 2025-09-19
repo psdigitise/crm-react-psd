@@ -104,7 +104,7 @@
 //     onChange: (value: string) => void;
 //   }) => (
 //     <div className="space-y-2">
-//       <h4 className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{title}</h4>
+//       <h4 className={`font-medium ${theme === 'dark' ? 'text-black' : 'text-gray-900'}`}>{title}</h4>
 //       <div className="space-y-1 max-h-32 overflow-y-auto">
 //         {options.map(option => (
 //           <label key={option} className="flex items-center space-x-2 text-sm">
@@ -114,7 +114,7 @@
 //               onChange={() => onChange(option)}
 //               className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
 //             />
-//             <span className={theme === 'dark' ? 'text-white' : 'text-gray-700'}>{option}</span>
+//             <span className={theme === 'dark' ? 'text-black' : 'text-gray-700'}>{option}</span>
 //           </label>
 //         ))}
 //       </div>
@@ -156,18 +156,18 @@
 //                 theme === 'dark' ? 'hover:bg-purple-800/50' : 'hover:bg-gray-100'
 //               }`}
 //             >
-//               <Menu className={`w-5 h-5 ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`} />
+//               <Menu className={`w-5 h-5 ${theme === 'dark' ? 'text-black' : 'text-gray-600'}`} />
 //             </button>
 //           )}
           
 //           <div className="flex items-center space-x-2">
 //             <h1 className={`text-xl sm:text-2xl font-semibold ${
-//               theme === 'dark' ? 'text-white' : 'text-gray-900'
+//               theme === 'dark' ? 'text-black' : 'text-gray-900'
 //             }`}>{title}</h1>
 //             {subtitle && (
 //               <>
-//                 <span className={`${theme === 'dark' ? 'text-gray-500' : 'text-white'} hidden sm:inline`}>/</span>
-//                 <span className={`${theme === 'dark' ? 'text-white' : 'text-gray-600'} hidden sm:inline`}>{subtitle}</span>
+//                 <span className={`${theme === 'dark' ? 'text-gray-500' : 'text-black'} hidden sm:inline`}>/</span>
+//                 <span className={`${theme === 'dark' ? 'text-black' : 'text-gray-600'} hidden sm:inline`}>{subtitle}</span>
 //               </>
 //             )}
 //           </div>
@@ -179,7 +179,7 @@
 //             theme === 'dark' 
 //               ? 'bg-purplebg hover:bg-purple-700' 
 //               : 'bg-gray-900 hover:bg-gray-800'
-//           } text-white px-3 sm:px-4 py-2 rounded-lg transition-colors flex items-center space-x-2`}
+//           } text-black px-3 sm:px-4 py-2 rounded-lg transition-colors flex items-center space-x-2`}
 //         >
 //           <Plus className="w-4 h-4" />
 //           <span className="hidden sm:inline">Create</span>
@@ -191,7 +191,7 @@
 //         {/* Search */}
 //         <div className="relative flex-1 max-w-md">
 //           <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 ${
-//             theme === 'dark' ? 'text-white' : 'text-gray-500'
+//             theme === 'dark' ? 'text-black' : 'text-gray-500'
 //           }`} />
 //           <input
 //             type="text"
@@ -200,7 +200,7 @@
 //             onChange={(e) => onSearchChange(e.target.value)}
 //             className={`pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full ${
 //               theme === 'dark' 
-//                 ? 'bg-white-31 text-white border-transparent placeholder-white' 
+//                 ? 'bg-white-31 text-black border-transparent placeholder-gray-600' 
 //                 : 'border-gray-300 placeholder-gray-500'
 //             }`}
 //           />
@@ -221,19 +221,19 @@
 //                   : 'bg-white border border-gray-200'
 //               }`}>
 //                 <div className="flex items-center justify-between mb-4">
-//                   <h3 className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Filters</h3>
+//                   <h3 className={`font-semibold ${theme === 'dark' ? 'text-black' : 'text-gray-900'}`}>Filters</h3>
 //                   <div className="flex items-center space-x-2">
 //                     <button
 //                       onClick={onClearFilters}
 //                       className={`text-sm ${
-//                         theme === 'dark' ? 'text-white hover:text-white' : 'text-gray-500 hover:text-gray-700'
+//                         theme === 'dark' ? 'text-black hover:text-black' : 'text-gray-500 hover:text-gray-700'
 //                       }`}
 //                     >
 //                       Clear All
 //                     </button>
 //                     <button
 //                       onClick={() => onShowFiltersChange && onShowFiltersChange(false)}
-//                       className={theme === 'dark' ? 'text-white hover:text-white' : 'text-white hover:text-gray-600'}
+//                       className={theme === 'dark' ? 'text-black hover:text-black' : 'text-black hover:text-gray-600'}
 //                     >
 //                       <X className="w-4 h-4" />
 //                     </button>
@@ -285,10 +285,10 @@
 //                   : 'bg-white border border-gray-200'
 //               }`}>
 //                 <div className="flex items-center justify-between mb-4">
-//                   <h3 className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Manage Columns</h3>
+//                   <h3 className={`font-semibold ${theme === 'dark' ? 'text-black' : 'text-gray-900'}`}>Manage Columns</h3>
 //                   <button
 //                     onClick={() => onShowColumnSettingsChange && onShowColumnSettingsChange(false)}
-//                     className={theme === 'dark' ? 'text-white hover:text-white' : 'text-white hover:text-gray-600'}
+//                     className={theme === 'dark' ? 'text-black hover:text-black' : 'text-black hover:text-gray-600'}
 //                   >
 //                     <X className="w-4 h-4" />
 //                   </button>
@@ -303,7 +303,7 @@
 //                         onChange={() => onToggleColumn(column.key)}
 //                         className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
 //                       />
-//                       <span className={theme === 'dark' ? 'text-white' : 'text-gray-700'}>{column.label}</span>
+//                       <span className={theme === 'dark' ? 'text-black' : 'text-gray-700'}>{column.label}</span>
 //                     </label>
 //                   ))}
 //                 </div>
@@ -423,7 +423,7 @@ export function Header({
     onChange: (value: string) => void;
   }) => (
     <div className="space-y-2">
-      <h4 className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{title}</h4>
+      <h4 className={`font-medium ${theme === 'dark' ? 'text-black' : 'text-gray-900'}`}>{title}</h4>
       <div className="space-y-1 max-h-32 overflow-y-auto">
         {options.map(option => (
           <label key={option} className="flex items-center space-x-2 text-sm">
@@ -433,7 +433,7 @@ export function Header({
               onChange={() => onChange(option)}
               className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
             />
-            <span className={theme === 'dark' ? 'text-white' : 'text-gray-700'}>{option}</span>
+            <span className={theme === 'dark' ? 'text-black' : 'text-gray-700'}>{option}</span>
           </label>
         ))}
       </div>
@@ -461,7 +461,7 @@ export function Header({
   return (
     <div className={`${
       theme === 'dark' 
-        ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30' 
+        ? 'bg-white border-purple-500/30' 
         : 'bg-white border-gray-200'
     } border-b px-4 sm:px-6 py-4`}>
       {/* Title Row */}
@@ -475,18 +475,18 @@ export function Header({
                 theme === 'dark' ? 'hover:bg-purple-800/50' : 'hover:bg-gray-100'
               }`}
             >
-              <Menu className={`w-5 h-5 ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`} />
+              <Menu className={`w-5 h-5 ${theme === 'dark' ? 'text-black' : 'text-gray-600'}`} />
             </button>
           )}
           
           <div className="flex items-center space-x-2">
             <h1 className={`text-xl sm:text-2xl font-semibold ${
-              theme === 'dark' ? 'text-white' : 'text-gray-900'
+              theme === 'dark' ? 'text-black' : 'text-gray-900'
             }`}>{title}</h1>
             {subtitle && (
               <>
-                <span className={`${theme === 'dark' ? 'text-gray-500' : 'text-white'} hidden sm:inline`}>/</span>
-                <span className={`${theme === 'dark' ? 'text-white' : 'text-gray-600'} hidden sm:inline`}>{subtitle}</span>
+                <span className={`${theme === 'dark' ? 'text-gray-500' : 'text-black'} hidden sm:inline`}>/</span>
+                <span className={`${theme === 'dark' ? 'text-black' : 'text-gray-600'} hidden sm:inline`}>{subtitle}</span>
               </>
             )}
           </div>
@@ -498,7 +498,7 @@ export function Header({
             onClick={onCreate}
             className={`${
               theme === 'dark' 
-                ? 'bg-purplebg hover:bg-purple-700' 
+                ? 'bg-[#35bce7] hover:bg-purple-700' 
                 : 'bg-gray-900 hover:bg-gray-800'
             } text-white px-3 sm:px-4 py-2 rounded-lg transition-colors flex items-center space-x-2`}
           >
@@ -511,9 +511,9 @@ export function Header({
       {/* Controls Row */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         {/* Search */}
-        <div className="relative flex-1 max-w-md">
+        <div className="relative border border-gray-400 rounded-xl bg-gray-200 flex-1 max-w-md">
           <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 ${
-            theme === 'dark' ? 'text-white' : 'text-gray-500'
+            theme === 'dark' ? 'text-black' : 'text-gray-500'
           }`} />
           <input
             type="text"
@@ -522,7 +522,7 @@ export function Header({
             onChange={(e) => onSearchChange(e.target.value)}
             className={`pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full ${
               theme === 'dark' 
-                ? 'bg-white-31 text-white border-transparent placeholder-white' 
+                ? 'bg-white-31 text-black border-transparent !placeholder-gray-600' 
                 : 'border-gray-300 placeholder-gray-500'
             }`}
           />
@@ -543,19 +543,19 @@ export function Header({
                   : 'bg-white border border-gray-200'
               }`}>
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Filters</h3>
+                  <h3 className={`font-semibold ${theme === 'dark' ? 'text-black' : 'text-gray-900'}`}>Filters</h3>
                   <div className="flex items-center space-x-2">
                     <button
                       onClick={onClearFilters}
                       className={`text-sm ${
-                        theme === 'dark' ? 'text-white hover:text-white' : 'text-gray-500 hover:text-gray-700'
+                        theme === 'dark' ? 'text-black hover:text-black' : 'text-gray-500 hover:text-gray-700'
                       }`}
                     >
                       Clear All
                     </button>
                     <button
                       onClick={() => onShowFiltersChange && onShowFiltersChange(false)}
-                      className={theme === 'dark' ? 'text-white hover:text-white' : 'text-white hover:text-gray-600'}
+                      className={theme === 'dark' ? 'text-black hover:text-black' : 'text-black hover:text-gray-600'}
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -607,10 +607,10 @@ export function Header({
                   : 'bg-white border border-gray-200'
               }`}>
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Manage Columns</h3>
+                  <h3 className={`font-semibold ${theme === 'dark' ? 'text-black' : 'text-gray-900'}`}>Manage Columns</h3>
                   <button
                     onClick={() => onShowColumnSettingsChange && onShowColumnSettingsChange(false)}
-                    className={theme === 'dark' ? 'text-white hover:text-white' : 'text-white hover:text-gray-600'}
+                    className={theme === 'dark' ? 'text-black hover:text-black' : 'text-black hover:text-gray-600'}
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -625,7 +625,7 @@ export function Header({
                         onChange={() => onToggleColumn(column.key)}
                         className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                       />
-                      <span className={theme === 'dark' ? 'text-white' : 'text-gray-700'}>{column.label}</span>
+                      <span className={theme === 'dark' ? 'text-black' : 'text-gray-700'}>{column.label}</span>
                     </label>
                   ))}
                 </div>

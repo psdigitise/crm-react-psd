@@ -171,7 +171,7 @@ export function Sidebar({ isCollapsed, onToggle, activeItem, onItemClick }: Side
       <div
         className={`
           fixed lg:relative inset-y-0 left-0 z-50 lg:z-auto
-          ${theme === 'dark'
+          ${theme === 'light'
             ? 'bg-gradient-to-b from-dark-primary via-dark-secondary to-dark-tertiary border-purple-500/30'
             : 'bg-white border-gray-200'
           } border-r transition-all duration-300 ease-in-out flex flex-col
@@ -182,8 +182,8 @@ export function Sidebar({ isCollapsed, onToggle, activeItem, onItemClick }: Side
         <div className={`p-4 border-b ${theme === 'dark' ? 'border-purple-500/30' : 'border-gray-100'}`}>
           <div className="flex w-full items-center justify-between">
             {!isCollapsed && (
-              <div className="flex w-full  items-center space-x-3">
-                <img src="../../public/assets/images/psdlogosidebar.png" alt="" className={`w-[150px] h-10 ${theme === 'dark' ? "" : "invert"}`} />
+              <div className=" w-full h-full object-contain space-x-3">
+                <img src="../../public/assets/images/Erpnextlogo.png" alt="" className={`w-[250px] h-100px ${theme === 'dark' ? "" : "invert"}`} />
                 <div className="w-full flex items-center justify-center gap-3">
                 </div>
 
@@ -193,15 +193,15 @@ export function Sidebar({ isCollapsed, onToggle, activeItem, onItemClick }: Side
               {/* Collapse Toggle */}
               <button
                 onClick={onToggle}
-                className={`p-1.5 rounded-lg transition-colors lg:block ${theme === 'dark' ? 'hover:bg-purple-800/50' : 'hover:bg-gray-100'
+                className={`p-1.5 rounded-lg transition-colors lg:block ${theme === 'dark' ? 'hover:bg-[#35bce7]' : 'hover:bg-gray-100'
                   }`}
               >
                 {isCollapsed ? (
-                  <ChevronRight className={`w-4 h-4 ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`} />
+                  <ChevronRight className={`w-4 h-4 ${theme === 'dark' ? 'text-black' : 'text-black'}`} />
                 ) : (
-                  <ChevronLeft className={`w-4 h-4 ${theme === 'dark' ? 'text-white' : 'text-gray-600'} lg:block hidden`} />
+                  <ChevronLeft className={`w-4 h-4 ${theme === 'dark' ? 'text-black' : 'text-black'} lg:block hidden`} />
                 )}
-                <X className={`w-4 h-4 ${theme === 'dark' ? 'text-white' : 'text-gray-600'} lg:hidden block`} />
+                <X className={`w-4 h-4 ${theme === 'dark' ? 'text-white' : 'text-black'} lg:hidden block`} />
               </button>
             </div>
           </div>
@@ -231,23 +231,23 @@ export function Sidebar({ isCollapsed, onToggle, activeItem, onItemClick }: Side
                     }}
                     className={`w-full flex items-center space-x-3 px-3 py-2.5 my-2 rounded-lg transition-all duration-200 relative ${isActive
                       ? theme === 'dark'
-                        ? 'bg-[#ffffff7a] text-purple-300 border border-0'
+                        ? 'bg-[#ffffff61] text-purple-300 '
                         : 'bg-blue-50 text-blue-700 border border-blue-200'
-                      : theme === 'dark'
-                        ? 'text-white hover:bg-white-31 hover:text-white'
-                        : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                      : theme === 'light'
+                        ? 'text-black hover:bg-white hover:text-black'
+                        : 'text-gray-700 hover:bg-gray-200 hover:text-gray-900'
                       }`}
                   >
                     <Icon
                       className={`w-5 h-5 flex-shrink-0 ${isActive
-                        ? theme === 'dark' ? 'text-white  ' : 'text-blue-600'
+                        ? theme === 'dark' ? 'text-black  ' : 'text-blue-600'
                         : theme === 'dark'
-                          ? 'text-white group-hover:text-white'
-                          : 'text-gray-500  group-hover:text-gray-700'
+                          ? 'text-black group-hover:text-black'
+                          : 'text-gray-500  group-hover:text-gray-800'
                         }`}
                     />
                     {!isCollapsed && (
-                      <span className={`text-sm  font-medium truncate ${theme === "dark" ? "text-white" : ""}`}>{item.label}</span>
+                      <span className={`text-sm  font-medium truncate ${theme === "dark" ? "text-black" : ""}`}>{item.label}</span>
                     )}
 
                     {/* Notification Badge */}
@@ -287,7 +287,7 @@ export function Sidebar({ isCollapsed, onToggle, activeItem, onItemClick }: Side
               {expiryStatus && (
                 <div className={`mt-2 text-sm font-semibold flex items-center justify-center gap-2
         ${expiryStatus.expired
-                    ? 'text-white bg-red-500/20'
+                    ? 'text-white bg-red-500'
                     : expiryStatus.daysLeft <= 7
                       ? 'text-yellow-600'
                       : 'text-green-600'
@@ -319,7 +319,7 @@ export function Sidebar({ isCollapsed, onToggle, activeItem, onItemClick }: Side
           <button
             onClick={handleLogout}
             className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-all duration-200 ${theme === 'dark'
-              ? 'text-red-400 hover:bg-red-900/30 hover:text-red-300'
+              ? 'text-red-600 hover:bg-gray-300 hover:text-red-600'
               : 'text-red-600 hover:bg-red-50 hover:text-red-700'
               }`}
             title="Logout"

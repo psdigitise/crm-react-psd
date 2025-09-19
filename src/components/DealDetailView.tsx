@@ -1705,7 +1705,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
               >
                 <Icon className="w-5 h-5 mr-2" />
                 {tab.label}
-                {tab.count !== null && (
+                {/* {tab.count !== null && (
                   <span className={`ml-2 py-0.5 px-2 rounded-full text-xs ${activeTab === tab.id
                     ? theme === 'dark'
                       ? 'bg-purple-900 text-purple-200'
@@ -1716,7 +1716,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                     }`}>
                     {tab.count}
                   </span>
-                )}
+                )} */}
               </button>
             );
           })}
@@ -2809,7 +2809,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                   </button>
                 </div>
               )}
-              {showEmailModal && (
+             {showEmailModal && activeTab === 'comments' && (
                 <EmailComposer
                   mode={emailModalMode}
                   dealName={deal.name}
@@ -3466,7 +3466,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                   </button>
                 </div>
               )}
-              {showEmailModal && (
+              {showEmailModal && activeTab === 'emails' && (
                 <EmailComposer
                   mode={emailModalMode}
                   dealName={deal.name}
@@ -4093,9 +4093,6 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                   clearSelectedEmail={() => setSelectedEmail(null)}
                   deal={deal}
                   onClose={() => setShowEmailModal(false)}
-                  // onSubjectChange={generateEmailContent}
-                  // generatedContent={generatedEmailContent}
-                  // generatingContent={generatingContent}
                 />
               )}
             </div>

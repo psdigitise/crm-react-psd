@@ -358,7 +358,7 @@ export function TasksPage({ onCreateTask, leadName }: TasksPageProps) {
                   />
                 </div>
 
-                {/* Assigned To - Changed to dropdown */}
+                {/* Assigned To */}
                 <div>
                   <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>Assigned To</label>
                   <select

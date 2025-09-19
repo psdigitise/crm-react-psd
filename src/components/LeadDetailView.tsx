@@ -1204,7 +1204,9 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
         body: JSON.stringify({
           txt: "",
           doctype: "CRM Organization",
-          filters: []
+          filters: JSON.stringify({
+            company: sessionCompany
+          })
         })
       });
 
@@ -1236,7 +1238,9 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
         body: JSON.stringify({
           txt: "", // Search text (empty to get all)
           doctype: "Contact",
-          filters: []
+          filters: JSON.stringify({
+            company: sessionCompany
+          })
         })
       });
 
@@ -1324,6 +1328,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
           // name: leadName
           lead: leadName,
           deal: {},
+          company: sessionCompany,
           existing_contact,
           existing_organization
         })
@@ -4674,7 +4679,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                 </div>
               )}
 
-              {showEmailModal && (
+              {showEmailModal && activeTab === 'emails' && (
                 <EmailComposerleads
                   onClose={() => {
                     setShowEmailModal(false);

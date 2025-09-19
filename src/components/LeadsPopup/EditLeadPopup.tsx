@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Loader2 } from 'lucide-react';
+import { getUserSession } from '../../utils/session';
 
 interface BulkEditPopupProps {
   isOpen: boolean;
@@ -32,13 +33,18 @@ export function BulkEditPopup({ isOpen, onClose, selectedIds, theme, onSuccess }
 
   const fetchFieldOptions = async () => {
     try {
+      const session = getUserSession();
+      const sessionCompany = session?.company || '';
       setLoading(true);
       setFetchError(null);
       
       const apiUrl = 'http://103.214.132.20:8002/api/method/crm.api.doc.get_fields';
 
       const payload = {
-        doctype: "CRM Lead"
+        doctype: "CRM Lead",
+         filters: JSON.stringify({
+            company: sessionCompany
+          })
       };
       
       const response = await fetch(apiUrl, {
