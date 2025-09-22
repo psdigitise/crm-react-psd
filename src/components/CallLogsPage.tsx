@@ -52,15 +52,15 @@ interface User {
 }
 
 const statusColors = {
-  'Ringing': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
-  'Answered': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
-  'Completed': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
-  'Busy': 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
-  'No Answer': 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-white',
-  'Failed': 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
-  'Queued': 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
-  'Initiated': 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
-  'In Progress': 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
+  'Ringing': 'bg-yellow-100 !text-yellow-500 dark:bg-yellow-900/30 dark:text-yellow-300',
+  'Answered': 'bg-green-100 !text-green-500 dark:bg-green-900/30 dark:text-green-300',
+  'Completed': 'bg-green-100 !text-green-500 dark:bg-green-900/30 dark:text-green-300',
+  'Busy': 'bg-red-100 !text-red-500 dark:bg-red-900/30 dark:text-red-300',
+  'No Answer': 'bg-gray-100 !text-gray-500 dark:bg-gray-900/30 dark:text-white',
+  'Failed': 'bg-red-100 !text-red-500 dark:bg-red-900/30 dark:text-red-300',
+  'Queued': 'bg-blue-100 !text-blue-500 dark:bg-blue-900/30 dark:text-blue-300',
+  'Initiated': 'bg-purple-100 !text-purple-500 dark:bg-purple-900/30 dark:text-purple-300',
+  'In Progress': 'bg-orange-100 !text-orange-500 dark:bg-orange-900/30 dark:text-orange-300',
   'Canceled': 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-white'
 };
 
@@ -1241,11 +1241,14 @@ export function CallLogsPage({ onCreateCallLog, leadName }: CallLogsPageProps) {
                     >
                       {callLog.duration ? (
                         <div className="flex items-center space-x-1">
-                          <Clock className="w-4 h-4 text-white" />
+                          <Clock className="w-4 h-4 text-black dark:text-white " />
                           <span>{formatDuration(callLog.duration)}</span>
                         </div>
                       ) : (
-                        "N/A"
+                        <div className="flex items-center space-x-1">
+                          N/A
+                        </div>
+                        
                       )}
                     </td>
                     <td
@@ -1304,7 +1307,7 @@ export function CallLogsPage({ onCreateCallLog, leadName }: CallLogsPageProps) {
 
               {/* Dropdown menu */}
               {showMenu && (
-                <div className="absolute bottom-8 right-0 bg-gray-800 text-white rounded-md shadow-lg w-40">
+                <div className="absolute right-0 bottom-10 bg-white dark:bg-gray-700 dark:text-white shadow-lg rounded-md border dark:border-gray-600 py-1 w-40 z-50">
                   {/* <button
                     className="block w-full text-left px-4 py-2 hover:bg-gray-700"
                     onClick={() => {
@@ -1315,7 +1318,7 @@ export function CallLogsPage({ onCreateCallLog, leadName }: CallLogsPageProps) {
                     Edit
                   </button> */}
                   <button
-                    className="block w-full text-left px-4 py-2 hover:bg-gray-700"
+                    className="block w-full text-left px-4 py-2 hover:bg-gray-300"
                     onClick={() => {
                       setShowDeleteModal(true);
                       setShowMenu(false);

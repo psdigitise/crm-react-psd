@@ -26,11 +26,11 @@ interface TasksPageProps {
 }
 
 const statusColors = {
-  'Backlog': 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-white',
-  'Todo': 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
-  'In Progress': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
-  'Done': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
-  'Canceled': 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+  'Backlog': '!bg-gray-100 !text-gray-800 dark:bg-gray-900/30 dark:text-white',
+  'Todo': '!bg-blue-100 !text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
+  'In Progress': '!bg-yellow-100 !text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
+  'Done': '!bg-green-100 !text-green-800 dark:bg-green-900/30 dark:text-green-300',
+  'Canceled': '!bg-red-100 !text-red-800 dark:bg-red-900/30 dark:text-red-300'
 };
 
 const priorityColors = {
@@ -697,18 +697,18 @@ export function TasksPage({ onCreateTask, leadName }: TasksPageProps) {
 
               {/* Dropdown menu */}
               {showMenu && (
-                <div className="absolute bottom-8 right-0 bg-gray-800 text-white rounded-md shadow-lg w-40">
-                  <button
-                    className="block w-full text-left px-4 py-2 hover:bg-gray-700"
+                <div className="absolute right-0 bottom-10 bg-white dark:bg-gray-700 dark:text-white shadow-lg rounded-md border dark:border-gray-600 py-1 w-40 z-50">
+                  {/* <button
+                    className="block w-full text-left px-4 py-2 hover:bg-gray-300"
                     onClick={() => {
                       // Add your edit functionality here
                       setShowMenu(false);
                     }}
                   >
                     Edit
-                  </button>
+                  </button> */}
                   <button
-                    className="block w-full text-left px-4 py-2 hover:bg-gray-700"
+                    className="block w-full text-left px-4 py-2 hover:bg-gray-300"
                     onClick={() => {
                       handleBulkDelete();
                       setShowMenu(false);

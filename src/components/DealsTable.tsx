@@ -73,13 +73,13 @@ interface DealsTableProps {
 // };
 
 const statusColors = {
-  Qualification: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
-  'Demo/Making': 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-500',
-  'Proposal/Quotation': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
-  Negotiation: 'bg-violet-500 text-violet-800 dark:bg-violet-900/30 dark:text-violet-500',
-  Won: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
-  Lost: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-800',
-  'Ready to Close': 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-500',
+  Qualification: ' !text-yellow-500 dark:bg-yellow-900/30 dark:text-yellow-300',
+  'Demo/Making': ' !text-blue-800 dark:bg-blue-900/30 dark:text-blue-500',
+  'Proposal/Quotation': ' !text-green-800 dark:bg-green-900/30 dark:text-green-300',
+  Negotiation: ' !text-violet-800 dark:bg-violet-900/30 dark:text-violet-500',
+  Won: ' !text-green-800 dark:bg-green-900/30 dark:text-green-300',
+  Lost: ' !text-red-800 dark:bg-red-900/30 dark:text-red-800',
+  'Ready to Close': ' !text-orange-800 dark:bg-orange-900/30 dark:text-orange-500',
   Junk: 'bg-transparent text-black dark:bg-transparent dark:text-black',
 };
 
@@ -527,8 +527,8 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
         );
       case 'status':
         return (
-          <span className={`inline-flex text-white items-center px-2.5 py-0.5 rounded-full text-xs font-semibold`}>
-            <FaCircleDot className={`mr-1 text-white ${statusColors[deal.status as keyof typeof statusColors]}`} />
+          <span className={` inline-flex text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+            <FaCircleDot className={`mr-2 flex items-center text-white ${statusColors[deal.status as keyof typeof statusColors]}`} />
             {deal.status}
           </span>
         );
@@ -692,7 +692,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
   }
 
   return (
-    <div className="space-y-4 max-h-[68vh] overflow-y-auto pr-3">
+    <div className=" max-h-[68vh] overflow-y-auto pr-3">
       {/* Action Bar */}
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
         <div className="flex items-center space-x-2">
@@ -1085,7 +1085,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
             {/* Select all button */}
             <button
               onClick={handleSelectAllFiltered}
-              className="text-sm text-white font-medium hover:underline"
+              className="text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 font-medium hover:underline"
             >
               Select all
             </button>

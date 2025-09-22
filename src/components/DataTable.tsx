@@ -71,12 +71,12 @@ interface ColumnConfig {
 }
 
 const statusColors = {
-  New: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
-  Contacted: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
-  Qualified: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
-  Unqualified: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-500',
+  New: '!text-yellow-500 dark:bg-yellow-900/30 dark:text-yellow-300',
+  Contacted: ' text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
+  Qualified: ' text-green-800 dark:bg-green-900/30 dark:text-green-300',
+  Unqualified: ' text-gray-500 dark:bg-gray-900/30 dark:text-gray-500',
   Junk: 'bg-transparent text-black dark:bg-transparent dark:text-black',
-  Nurture: 'bg-violet-500 text-violet-800 dark:bg-violet-900/30 dark:text-violet-500',
+  Nurture: ' text-violet-500 dark:bg-violet-900/30 dark:text-violet-500',
 };
 
 
@@ -633,7 +633,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="">
       {/* Action Bar */}
 
       {selectedIds.length > 0 && (
@@ -711,7 +711,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
             {/* Select all button */}
             <button
               onClick={handleSelectAllFiltered}
-              className="text-sm text-white font-medium hover:underline"
+              className="text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 font-medium hover:underline"
             >
               Select all
             </button>

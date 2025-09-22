@@ -263,13 +263,13 @@ export function CreateTaskModalNew({ isOpen, onClose, onSubmit, leadName }: Crea
                     : 'bg-gray-50/80 border-gray-300'
                     }`}
                 >
-                  <option value="Open">Open</option>
-                  <option value="Working">Working</option>
-                  <option value="Pending Review">Pending Review</option>
-                  <option value="Overdue">Overdue</option>
-                  <option value="Template">Template</option>
-                  <option value="Completed">Completed</option>
-                  <option value="Cancelled">Cancelled</option>
+                  {/* <option value="Open">Open</option> */}
+                  <option value="Backlog">Backlog</option>
+                  <option value="Todo">Todo</option>
+                  <option value="In Progress">In Progress</option>
+                  <option value="Done">Done</option>
+                  <option value="Canceled">Canceled</option>
+                  {/* <option value="Cancelled">Cancelled</option> */}
                 </select>
               </div>
 

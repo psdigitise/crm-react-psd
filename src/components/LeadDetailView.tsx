@@ -2479,12 +2479,12 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                   <h3 className={`text-lg font-semibold text-gray-900 dark:text-white mb-4`}>Details</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <div>
-                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>Organization</label>
+                      <label className={`block text-sm  font-medium ${textSecondaryColor}`}>Organization</label>
                       <input
                         type="text"
                         value={editedLead.organization || ''}
                         onChange={(e) => handleInputChange('organization', e.target.value)}
-                        className={`p-[2px] pl-2 mt-1 block w-full rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
+                        className={`p-[2px] pl-2 mt-1 block border w-full rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
                       />
                     </div>
 
@@ -2494,7 +2494,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                         type="text"
                         value={editedLead.website || ''}
                         onChange={(e) => handleInputChange('website', e.target.value)}
-                        className={`p-[2px] pl-2 mt-1 block w-full rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
+                        className={`p-[2px] pl-2 mt-1 block w-full border rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
                       />
                     </div>
                     <div >
@@ -2711,7 +2711,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                         type="text"
                         value={editedLead.jobTitle || ''}
                         onChange={(e) => handleInputChange('jobTitle', e.target.value)}
-                        className={`p-[2px] pl-2 mt-1 block w-full rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
+                        className={`p-[2px] pl-2 mt-1 block w-full border rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
                       />
                     </div>
                     <div>
@@ -2831,7 +2831,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                       <select
                         value={editedLead.lead_owner || ""}
                         onChange={(e) => handleInputChange("lead_owner", e.target.value)}
-                        className={`p-[2px] pl-2 mt-1 block w-full rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
+                        className={`p-[2px] pl-2 mt-1 block w-full border rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
                       >
                         <option value="">Select Lead Owner</option>
                         {leadOwners.map((owner) => (
@@ -2877,7 +2877,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                       <select
                         value={editedLead.salutation || ""}
                         onChange={(e) => handleInputChange("salutation", e.target.value)}
-                        className={`p-[6px] mt-1 block w-full rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
+                        className={`p-[6px] mt-1 block w-full border rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
                       >
                         <option value="">{loading ? "Loading..." : "Select Salutation"}</option>
                         {options.map((opt) => (
@@ -2893,7 +2893,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                         type="text"
                         value={editedLead.firstName || ''}
                         onChange={(e) => handleInputChange('firstName', e.target.value)}
-                        className={`p-[2px] pl-2 mt-1 block w-full rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
+                        className={`p-[2px] pl-2 mt-1 block w-full border rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
                       />
                     </div>
                     <div>
@@ -2902,7 +2902,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                         type="text"
                         value={editedLead.lastName || ''}
                         onChange={(e) => handleInputChange('lastName', e.target.value)}
-                        className={`p-[2px] pl-2 mt-1 block w-full rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
+                        className={`p-[2px] pl-2 mt-1 block w-full border rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
                       />
                     </div>
                     <div>
@@ -2911,7 +2911,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                         type="email"
                         value={editedLead.email || ''}
                         onChange={(e) => handleInputChange('email', e.target.value)}
-                        className={`p-[2px] pl-2 mt-1 block w-full rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
+                        className={`p-[2px] pl-2 mt-1 block w-full border rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
                       />
                     </div>
                     <div>
@@ -2920,7 +2920,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                         type="tel"
                         value={editedLead.mobile || ''}
                         onChange={(e) => handleInputChange('mobile', e.target.value)}
-                        className={`p-[2px] pl-2 mt-1 block w-full rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
+                        className={`p-[2px] pl-2 mt-1 block w-full border  rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
                       />
                     </div>
                   </div>
@@ -3828,7 +3828,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                               </span>
                             </div>
 
-                            <p className={`bg-gray-800 p-3 rounded ${textColor} mt-2`}>
+                            <p className={` p-3 rounded ${textColor} mt-2`}>
                               {stripHtml(comment.content)}
                             </p>
 
@@ -4739,7 +4739,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
         )}
         {showCreateTerritoryModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-            <div className={`w-full w-[600px] ${cardBgColor} rounded-lg shadow-lg p-6 relative border ${borderColor}`}>
+            <div className={` w-[600px] ${cardBgColor} rounded-lg shadow-lg p-6 relative border ${borderColor}`}>
               <button
                 onClick={() => setShowCreateTerritoryModal(false)}
                 className="absolute top-5 right-8 text-gray-500 hover:text-gray-700 dark:hover:text-white"
@@ -4890,7 +4890,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
         )}
         {showCreateIndustryModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-            <div className={`w-full w-[600px] ${cardBgColor} rounded-lg shadow-lg p-6 relative border ${borderColor}`}>
+            <div className={` w-[600px] ${cardBgColor} rounded-lg shadow-lg p-6 relative border ${borderColor}`}>
               <button
                 onClick={() => {
                   setShowCreateIndustryModal(false);

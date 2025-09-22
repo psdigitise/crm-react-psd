@@ -716,7 +716,7 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
   const filteredDataLength = getFilteredAndSortedData().length;
 
   return (
-    <div className="space-y-4">
+    <div className="">
       {/* Action Bar */}
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
         <div className="flex items-center space-x-2">
@@ -913,9 +913,9 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
 
               {/* Dropdown menu */}
               {showMenu && (
-                <div className="absolute bottom-8 right-0 bg-gray-800 dark:bg-gray-700 text-white rounded-md shadow-lg w-40">
+                <div className="absolute right-0 bottom-10 bg-white dark:bg-gray-700 dark:text-white shadow-lg rounded-md border dark:border-gray-600 py-1 w-40 z-50">
                   <button
-                    className="block w-full text-left px-4 py-2 hover:bg-gray-700 dark:hover:bg-gray-600"
+                    className="block w-full text-left px-4 py-2 hover:bg-gray-300 dark:hover:bg-gray-600"
                     onClick={async () => {
                       await fetchFieldOptions();
                       setShowBulkEdit(true);
@@ -925,7 +925,7 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
                     Edit
                   </button>
                   <button
-                    className="block w-full text-left px-4 py-2 hover:bg-gray-700 dark:hover:bg-gray-600"
+                    className="block w-full text-left px-4 py-2 hover:bg-gray-300 dark:hover:bg-gray-600"
                     onClick={() => {
                       setShowDeleteConfirm(true);
                       setShowMenu(false);
@@ -953,7 +953,7 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
             {/* Close */}
             <button
               onClick={() => setSelectedIds([])}
-              className="text-gray-400 hover:text-white"
+              className="text-gray-400 hover:text-black dark:hover:text-white"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"

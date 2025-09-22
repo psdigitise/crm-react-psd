@@ -147,6 +147,118 @@ export function LoginPage({ onLogin }: LoginPageProps) {
     }
   };
 
+  // const handleRegister = async (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   setLoading(true);
+  //   setError("");
+
+  //   if (!registerData.email || !registerData.first_name || !companyData.company_name || !companyData.no_employees) {
+  //     setError("Please fill in all required fields");
+  //     setLoading(false);
+  //     return;
+  //   }
+
+  //   try {
+  //     // 1️⃣ First call Company API
+  //     const companyPayload = {
+  //       company_name: companyData.company_name,
+  //       email_id: registerData.email, // use register email
+  //       no_employees: companyData.no_employees, // take from a state
+  //     };
+
+  //     const companyResponse = await fetch(
+  //       "http://103.214.132.20:8002/api/v2/document/Company/",
+  //       {
+  //         method: "POST",
+  //         headers: {
+  //           "Content-Type": "application/json",
+  //           Authorization: AUTH_TOKEN, // include token if required
+  //         },
+  //         body: JSON.stringify(companyPayload),
+  //       }
+  //     );
+
+  //     if (!companyResponse.ok) {
+  //       throw new Error("Failed to create company");
+  //     }
+
+  //     const companyResult = await companyResponse.json();
+  //     console.log("Company created:", companyResult);
+
+  //     // 2️⃣ Now create User using frappe.client.save
+  //     const userDoc = {
+  //       doctype: "User",
+  //       email: registerData.email,
+  //       first_name: registerData.first_name,
+  //       role_profile_name: registerData.role_profile_name,
+  //       company: companyData.company_name, // link company name
+  //       phone: phoneNumber,
+  //       enabled: 1,
+  //       user_type: "System User",
+  //     };
+
+  //     const userResponse = await apiAxios.post(
+  //       "/api/method/frappe.client.save",
+  //       { doc: userDoc },
+  //       {
+  //         headers: {
+  //           "Content-Type": "application/json",
+  //           Authorization: AUTH_TOKEN,
+  //         },
+  //       }
+  //     );
+
+  //     if (userResponse.data && userResponse.data.message) {
+  //       const sessionData = {
+  //         full_name: registerData.first_name,
+  //         email: registerData.email,
+  //         phone: phoneNumber,
+  //         username: registerData.email,
+  //         company: companyData.company_name,
+  //         sid: "",
+  //         api_key: "",
+  //         api_secret: "",
+  //       };
+
+  //       setUserSession(sessionData);
+  //       setRegisterData({
+  //         email: "",
+  //         first_name: "",
+  //         company: "",
+  //         role_profile_name: "Only If Create",
+  //         new_password: "",
+  //       });
+  //       setCompanyData({
+  //         company_logo: null,
+  //         start_date: getTodayISODate(),
+  //         company_name: "",
+  //         no_employees: "",
+  //       });
+  //       setEmail(registerData.email);
+  //       setIsRegisterMode(false);
+  //       setError("");
+  //       //onLogin();
+  //       // setShowCrmModal(true);
+  //     } else {
+  //       throw new Error("Registration failed: No response message");
+  //     }
+  //   } catch (error) {
+  //     if (axios.isAxiosError(error)) {
+  //       setError(
+  //         error.response?.data?.message ||
+  //         error.message ||
+  //         "Registration failed"
+  //       );
+  //     } else if (error instanceof Error) {
+  //       setError(error.message);
+  //     } else {
+  //       setError("An unexpected error occurred during registration.");
+  //     }
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -159,11 +271,49 @@ export function LoginPage({ onLogin }: LoginPageProps) {
     }
 
     try {
-      // 1️⃣ First call Company API
+      // 1️⃣ First validate that company name is unique
+      const checkCompanyResponse = await fetch(
+        `http://103.214.132.20:8002/api/v2/document/Company?filters=[["name","=","${companyData.company_name}"]]`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: AUTH_TOKEN,
+          },
+        }
+      );
+
+      if (checkCompanyResponse.ok) {
+        const existingCompanies = await checkCompanyResponse.json();
+        if (existingCompanies.data && existingCompanies.data.length > 0) {
+          throw new Error("This company name is already registered, Kindly choose another name.");
+        }
+      }
+
+      // 2️⃣ Validate that email doesn't exist
+      const checkUserResponse = await fetch(
+        `http://103.214.132.20:8002/api/v2/document/User?filters=[["email","=","${registerData.email}"]]`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: AUTH_TOKEN,
+          },
+        }
+      );
+
+      if (checkUserResponse.ok) {
+        const existingUsers = await checkUserResponse.json();
+        if (existingUsers.data && existingUsers.data.length > 0) {
+          throw new Error("This email address is already registered, Please use a different email address.");
+        }
+      }
+
+      // 3️⃣ Create company
       const companyPayload = {
         company_name: companyData.company_name,
-        email_id: registerData.email, // use register email
-        no_employees: companyData.no_employees, // take from a state
+        email_id: registerData.email,
+        no_employees: companyData.no_employees,
       };
 
       const companyResponse = await fetch(
@@ -172,33 +322,27 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: AUTH_TOKEN, // include token if required
+            Authorization: AUTH_TOKEN,
           },
           body: JSON.stringify(companyPayload),
         }
       );
 
-      // if (!companyResponse.ok) {
-      //   throw new Error("Failed to create company");
-      // }
+      if (!companyResponse.ok) {
+        const errorData = await companyResponse.json().catch(() => ({}));
+        throw new Error(errorData.message || `Failed to create company: ${companyResponse.status}`);
+      }
 
       const companyResult = await companyResponse.json();
-      if (!companyResponse.ok) {
-        // Extract error message from the API response
-        const errorMessage = companyResult.message ||
-          companyResult.errors?.[0]?.message ||
-          "Failed to create company";
-        throw new Error(errorMessage);
-      }
       console.log("Company created:", companyResult);
 
-      // 2️⃣ Now create User using frappe.client.save
+      // 4️⃣ Create user
       const userDoc = {
         doctype: "User",
         email: registerData.email,
         first_name: registerData.first_name,
         role_profile_name: registerData.role_profile_name,
-        company: companyData.company_name, // link company name
+        company: companyData.company_name,
         phone: phoneNumber,
         enabled: 1,
         user_type: "System User",
@@ -215,57 +359,70 @@ export function LoginPage({ onLogin }: LoginPageProps) {
         }
       );
 
-      if (userResponse.data && userResponse.data.message) {
-        const sessionData = {
-          full_name: registerData.first_name,
-          email: registerData.email,
-          phone: phoneNumber,
-          username: registerData.email,
-          company: companyData.company_name,
-          sid: "",
-          api_key: "",
-          api_secret: "",
-        };
-
-        setUserSession(sessionData);
-        setRegisterData({
-          email: "",
-          first_name: "",
-          company: "",
-          role_profile_name: "Only If Create",
-          new_password: "",
-        });
-        setCompanyData({
-          company_logo: null,
-          start_date: getTodayISODate(),
-          company_name: "",
-          no_employees: "",
-        });
-        setEmail(registerData.email);
-        setIsRegisterMode(false);
-        setError("");
-        //onLogin();
-        // setShowCrmModal(true);
-      } else {
-        throw new Error("Registration failed: No response message");
+      if (!userResponse.data || !userResponse.data.message) {
+        // If user creation fails, delete the company
+        try {
+          await fetch(
+            `http://103.214.132.20:8002/api/v2/document/Company/${encodeURIComponent(companyData.company_name)}`,
+            {
+              method: "DELETE",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: AUTH_TOKEN,
+              },
+            }
+          );
+        } catch (rollbackError) {
+          console.error("Failed to rollback company creation:", rollbackError);
+        }
+        throw new Error("User creation failed: No response message");
       }
+
+      // ✅ Success - setup session
+      const sessionData = {
+        full_name: registerData.first_name,
+        email: registerData.email,
+        phone: phoneNumber,
+        username: registerData.email,
+        company: companyData.company_name,
+        sid: "",
+        api_key: "",
+        api_secret: "",
+      };
+
+      setUserSession(sessionData);
+
+      // Reset forms
+      setRegisterData({
+        email: "",
+        first_name: "",
+        company: "",
+        role_profile_name: "Only If Create",
+        new_password: "",
+      });
+      setCompanyData({
+        company_logo: null,
+        start_date: getTodayISODate(),
+        company_name: "",
+        no_employees: "",
+      });
+
+      setEmail(registerData.email);
+      setIsRegisterMode(false);
+      setError("");
+
     } catch (error) {
-      const stripHtml = (html: string) => html.replace(/<[^>]*>/g, ""); // remove tags
+      let errorMessage = "Registration failed";
 
       if (axios.isAxiosError(error)) {
-        let rawMessage =
-          error.response?.data?.message ||
-          error.response?.data?.errors?.[0]?.message ||
-          error.message ||
-          "Registration failed";
-
-        setError(stripHtml(rawMessage));
+        errorMessage = error.response?.data?.message || error.message || "Registration failed";
       } else if (error instanceof Error) {
-        setError(stripHtml(error.message));
-      } else {
-        setError("An unexpected error occurred during registration.");
+        errorMessage = error.message;
       }
-    }  finally {
+
+      setError(errorMessage);
+
+    } finally {
       setLoading(false);
     }
   };
@@ -286,7 +443,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
         {/* Logo */}
         <div className="text-center">
           <div className="inline-flex items-center space-x-2 ">
-            <img src="../../public/assets/images/Erpnextlogo.png" alt="" className={`w-[250px] h-100`} />
+            <img src="../../public/assets/images/Erpnextlogo.png" alt="" className={`w-[300px] h-100`} />
             {/* <span className="text-2xl font-bold">
               <span className="text-blue-600">PS</span>
               <span className="text-green-500">Digitise</span>
@@ -301,7 +458,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             // <form onSubmit={handleRegister} className="space-y-6">
             <form onSubmit={handleRegister} className="space-y-6">
 
-              <h1 className="text-2xl text-center font-[650] text-gray-900">
+              <h1 className="text-[1.7rem] text-center font-[600] text-gray-900">
                 {isRegisterMode ? 'Create Account' : 'Login to ERPNext.ai'}
               </h1>
               {/* Error Message */}
@@ -314,7 +471,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 
 
               <div>
-                <label className="block text-sm font-medium text-black mb-2">
+                <label className="block text-sm font-medium text-black mb-1">
                   Full Name <span className="text-red-500">*</span>
                 </label>
                 <div className="relative border border-gray-400 rounded-lg">
@@ -334,7 +491,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 
               {/* Email Field */}
               <div>
-                <label className="block text-sm font-medium text-black mb-2">
+                <label className="block text-sm font-medium text-black mb-1">
                   Work Email <span className="text-red-500">*</span>
                 </label>
                 <div className="relative border border-gray-400 rounded-lg">
@@ -354,7 +511,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 
               {/* Confirm Password Field */}
               <div>
-                <label className="block text-sm font-medium text-black mb-2">
+                <label className="block text-sm font-medium text-black mb-1">
                   Phone Number <span className="text-red-500">*</span>
                 </label>
                 <div className="relative border border-gray-400 rounded-lg">
@@ -373,7 +530,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-black mb-2">
+                <label className="block text-sm font-medium text-black mb-1">
                   Company Name <span className="text-red-500">*</span>
                 </label>
                 <div className="relative border border-gray-400 rounded-lg">
@@ -394,7 +551,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 
               {/* No. of Employees Field */}
               <div>
-                <label className="block text-sm font-medium text-black mb-2">
+                <label className="block text-sm font-medium text-black mb-1">
                   No. of Employees <span className="text-red-500">*</span>
                 </label>
                 <div className="relative border border-gray-400 rounded-lg">
@@ -448,7 +605,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           ) : (
             /* Login Form */
             <form onSubmit={handleLogin} className="space-y-6">
-              <h1 className="text-2xl text-center font-[650] text-gray-900">
+              <h1 className="text-[1.7rem] text-center font-[600] text-gray-900">
                 {isRegisterMode ? 'Create Account' : 'Login to ERPNext.ai'}
               </h1>
               {/* Error Message */}
@@ -462,7 +619,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 
               {/* Email Field */}
               <div>
-                <label className="block text-sm font-medium  text-black mb-2">
+                <label className="block text-md font-medium  text-black mb-1">
                   Email Address
                 </label>
                 <div className="relative border border-gray-400 rounded-lg">
@@ -471,7 +628,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full  pl-10 pr-4 py-3 border border-white rounded-lg bg-transparent text-black !placeholder-gray-500 focus:outline-none"
+                    className="w-full  pl-10 pr-4 py-3 border border-white !placeholder-shown:font-[20px] rounded-lg bg-transparent text-black !placeholder-gray-500 focus:outline-none"
                     placeholder="Enter Email Address"
                     required
                     disabled={loading}
@@ -481,7 +638,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 
               {/* Password Field */}
               <div>
-                <label className="block text-sm font-medium text-black mb-2">
+                <label className="block text-md font-medium text-black mb-1">
                   Password
                 </label>
                 <div className="relative border border-gray-400 rounded-lg">

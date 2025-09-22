@@ -1944,7 +1944,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                         type="text"
                         value={editedDeal.website || ''}
                         onChange={(e) => handleInputChange('website', e.target.value)}
-                        className={`p-[2px] pl-2  placeholder-gray-200 mt-1 block w-full rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
+                        className={`p-[2px] pl-2  placeholder-gray-200 mt-1 border block w-full rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
                       />
                     </div>
                     <div>
@@ -2109,7 +2109,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                         type="text"
                         value={editedDeal.annual_revenue || ''}
                         onChange={(e) => handleInputChange('annual_revenue', e.target.value)}
-                        className={`p-[2px] pl-2 mt-1 block w-full rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
+                        className={`p-[2px] pl-2 mt-1 block w-full border rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
                       />
                     </div>
                     <div>
@@ -2118,7 +2118,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                         type="date"
                         value={editedDeal.close_date?.split(' ')[0] || ''}
                         onChange={(e) => handleInputChange('close_date', e.target.value)}
-                        className={`p-[2px] pl-2 mt-1 block w-full rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
+                        className={`p-[2px] pl-2 mt-1 block w-full border rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
                       />
                     </div>
                     <div>
@@ -2127,7 +2127,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                         type="number"
                         value={editedDeal.probability || ''}
                         onChange={(e) => handleInputChange('probability', e.target.value)}
-                        className={`p-[2px] pl-2 mt-1 block w-full rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
+                        className={`p-[2px] pl-2 mt-1 block w-full border rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
                       />
                     </div>
                     <div>
@@ -2136,7 +2136,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                         type="text"
                         value={editedDeal.next_step || ''}
                         onChange={(e) => handleInputChange('next_step', e.target.value)}
-                        className={`p-[2px] pl-2 mt-1 block w-full rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
+                        className={`p-[2px] pl-2 mt-1 block w-full border rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
                       />
                     </div>
                     <div>
@@ -2764,7 +2764,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                                         setSelectedAttachment({ url: fullURL, name: attachment.file_name, isImage });
                                         setShowAttachmentModal(true);
                                       }}
-                                      className="flex items-center border border-gray-600 text-white px-3 py-1 rounded bg-white-31 hover:bg-gray-600 transition-colors"
+                                      className="flex items-center border border-gray-600 text-black dark:text-white px-3 py-1 rounded bg-white-31 hover:bg-gray-600 hover:text-white transition-colors"
                                     >
                                       <span className="mr-2 flex items-center gap-1 truncate max-w-[200px]">
                                         <IoDocument className="w-3 h-3 mr-1" />
