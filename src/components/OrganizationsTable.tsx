@@ -178,7 +178,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
+          'Authorization': `token 1b670b800ace83b:889d6aca3f96abd`
         },
         body: JSON.stringify(requestBody)
       });
@@ -219,7 +219,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
+          'Authorization': `token 1b670b800ace83b:889d6aca3f96abd`
         },
         body: JSON.stringify(requestBody)
       });
@@ -254,7 +254,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
       const response = await fetch(apiUrl, {
         method: 'GET',
         headers: {
-          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
+          'Authorization': `token 1b670b800ace83b:889d6aca3f96abd`
         }
       });
 
@@ -330,7 +330,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
+          'Authorization': `token 1b670b800ace83b:889d6aca3f96abd`
         },
         body: JSON.stringify(requestBody)
       });
@@ -429,7 +429,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
+          'Authorization': `token 1b670b800ace83b:889d6aca3f96abd`
         },
         body: JSON.stringify(requestBody)
       });
@@ -589,7 +589,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
+          'Authorization': `token 1b670b800ace83b:889d6aca3f96abd`
         },
         body: JSON.stringify(requestBody)
       });
@@ -655,7 +655,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
+          'Authorization': `token 1b670b800ace83b:889d6aca3f96abd`
         },
         body: JSON.stringify(requestBody)
       });

@@ -71,7 +71,7 @@ export function Sidebar({ isCollapsed, onToggle, activeItem, onItemClick }: Side
 
     fetch(`http://103.214.132.20:8002/api/v2/document/Company/${encodeURIComponent(companyName)}`, {
       headers: {
-        'Authorization': 'token 1b670b800ace83b:9f48cd1310e112b',
+        'Authorization': 'token 1b670b800ace83b:889d6aca3f96abd',
         'Content-Type': 'application/json'
       }
     })
@@ -116,7 +116,7 @@ export function Sidebar({ isCollapsed, onToggle, activeItem, onItemClick }: Side
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'token 1b670b800ace83b:9f48cd1310e112b'
+          'Authorization': 'token 1b670b800ace83b:889d6aca3f96abd'
         }
       });
 
@@ -171,7 +171,7 @@ export function Sidebar({ isCollapsed, onToggle, activeItem, onItemClick }: Side
       <div
         className={`
           fixed lg:relative inset-y-0 left-0 z-50 lg:z-auto
-          ${theme === 'light'
+          ${theme === 'dark'
             ? 'bg-gradient-to-b from-dark-primary via-dark-secondary to-dark-tertiary border-purple-500/30'
             : 'bg-white border-gray-200'
           } border-r transition-all duration-300 ease-in-out flex flex-col
@@ -183,13 +183,29 @@ export function Sidebar({ isCollapsed, onToggle, activeItem, onItemClick }: Side
           <div className="flex w-full items-center justify-between">
             {!isCollapsed && (
               <div className=" w-full h-full object-contain space-x-3">
-                <img src="../../public/assets/images/Erpnextlogo.png" alt="" className={`w-[250px] h-100px ${theme === 'dark' ? "" : "invert"}`} />
+                <img src="../../public/assets/images/Erpnextlogo.png" alt="" className={`w-[250px] h-100px `} />
                 <div className="w-full flex items-center justify-center gap-3">
                 </div>
 
               </div>
             )}
             <div className="flex items-center space-x-2">
+
+              {/* <button
+                onClick={toggleTheme}
+                className={`p-1.5 rounded-lg transition-colors ${
+                  theme === 'dark' ? 'hover:bg-purple-800/50' : 'hover:bg-gray-100'
+                }`}
+                title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
+              >
+                {theme === 'dark' ? (
+                  <Sun className="w-4 h-4 text-yellow-500" />
+                ) : (
+                  <Moon className="w-4 h-4 text-gray-600" />
+                )}
+              </button> */}
+
+
               {/* Collapse Toggle */}
               <button
                 onClick={onToggle}

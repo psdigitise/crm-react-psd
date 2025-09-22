@@ -170,7 +170,7 @@ export default function OrganizationDetails({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
+          'Authorization': `token 1b670b800ace83b:889d6aca3f96abd`
         },
         body: JSON.stringify({
           txt: "",
@@ -221,7 +221,7 @@ export default function OrganizationDetails({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
+          'Authorization': `token 1b670b800ace83b:889d6aca3f96abd`
         },
         body: JSON.stringify({
           txt: "",
@@ -266,7 +266,7 @@ export default function OrganizationDetails({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
+          'Authorization': `token 1b670b800ace83b:889d6aca3f96abd`
         },
         body: JSON.stringify({
           txt: "",
@@ -314,7 +314,7 @@ export default function OrganizationDetails({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
+          'Authorization': `token 1b670b800ace83b:889d6aca3f96abd`
         },
         body: JSON.stringify({
           txt: "",
@@ -399,7 +399,7 @@ export default function OrganizationDetails({
       const uploadResponse = await fetch('http://103.214.132.20:8002/api/method/upload_file', {
         method: 'POST',
         headers: {
-          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
+          'Authorization': `token 1b670b800ace83b:889d6aca3f96abd`
         },
         body: formData
       });
@@ -423,7 +423,7 @@ export default function OrganizationDetails({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
+          'Authorization': `token 1b670b800ace83b:889d6aca3f96abd`
         },
         body: JSON.stringify({
           doctype: "CRM Organization",
@@ -501,7 +501,7 @@ export default function OrganizationDetails({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
+          'Authorization': `token 1b670b800ace83b:889d6aca3f96abd`
         },
         body: JSON.stringify({
           doctype: "CRM Organization",
@@ -635,7 +635,7 @@ export default function OrganizationDetails({
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
+            'Authorization': `token 1b670b800ace83b:889d6aca3f96abd`
           },
           body: JSON.stringify({
             doctype: "CRM Organization",
@@ -682,7 +682,7 @@ export default function OrganizationDetails({
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
+            'Authorization': `token 1b670b800ace83b:889d6aca3f96abd`
           },
           body: JSON.stringify({
             doctype: "CRM Deal",
@@ -746,7 +746,7 @@ export default function OrganizationDetails({
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
+            'Authorization': `token 1b670b800ace83b:889d6aca3f96abd`
           },
           body: JSON.stringify({
             doctype: "Contact",
@@ -842,7 +842,7 @@ export default function OrganizationDetails({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
+          'Authorization': `token 1b670b800ace83b:889d6aca3f96abd`
         },
         body: JSON.stringify(requestBody)
       });
@@ -910,7 +910,7 @@ export default function OrganizationDetails({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
+          'Authorization': `token 1b670b800ace83b:889d6aca3f96abd`
         },
         body: JSON.stringify({
           doctype: "CRM Organization",

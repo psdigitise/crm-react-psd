@@ -271,7 +271,7 @@ export function NotesPage({ onCreateNote, leadName }: NotesPageProps) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
+          'Authorization': `token 1b670b800ace83b:889d6aca3f96abd`
         },
         body: JSON.stringify(payload)
       });
@@ -341,7 +341,7 @@ export function NotesPage({ onCreateNote, leadName }: NotesPageProps) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
+          'Authorization': `token 1b670b800ace83b:889d6aca3f96abd`
         },
         body: JSON.stringify({
           doctype: "CRM Deal",
@@ -415,7 +415,7 @@ export function NotesPage({ onCreateNote, leadName }: NotesPageProps) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
+          'Authorization': `token 1b670b800ace83b:889d6aca3f96abd`
         },
         body: JSON.stringify({
           doctype: "CRM Lead",
@@ -559,7 +559,7 @@ export function NotesPage({ onCreateNote, leadName }: NotesPageProps) {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
+          'Authorization': `token 1b670b800ace83b:889d6aca3f96abd`
         },
         body: JSON.stringify({
           title: editForm.title,
@@ -597,7 +597,7 @@ export function NotesPage({ onCreateNote, leadName }: NotesPageProps) {
       const response = await fetch(apiUrl, {
         method: 'DELETE',
         headers: {
-          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
+          'Authorization': `token 1b670b800ace83b:889d6aca3f96abd`
         }
       });
 

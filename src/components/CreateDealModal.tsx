@@ -30,7 +30,7 @@ interface CreateDealModalProps {
 }
 
 const API_BASE_URL = 'http://103.214.132.20:8002/api';
-const AUTH_TOKEN = 'token 1b670b800ace83b:9f48cd1310e112b';
+const AUTH_TOKEN = 'token 1b670b800ace83b:889d6aca3f96abd';
 
 export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalProps) {
   const { theme } = useTheme();
@@ -100,7 +100,7 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
 
       fetch(apiUrl, {
         headers: {
-          'Authorization': 'token 1b670b800ace83b:9f48cd1310e112b'
+          'Authorization': 'token 1b670b800ace83b:889d6aca3f96abd'
         }
       })
         .then(res => res.json())
@@ -353,7 +353,7 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'token 1b670b800ace83b:9f48cd1310e112b' // Your token here
+          'Authorization': 'token 1b670b800ace83b:889d6aca3f96abd' // Your token here
         },
         body: JSON.stringify(apiPayload)
       });

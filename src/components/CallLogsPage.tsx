@@ -467,7 +467,7 @@ const fetchUsers = async (): Promise<User[]> => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
+        'Authorization': `token 1b670b800ace83b:889d6aca3f96abd`
       },
       body: JSON.stringify(requestBody)
     });
@@ -595,7 +595,7 @@ export function CallLogsPage({ onCreateCallLog, leadName }: CallLogsPageProps) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
+          'Authorization': `token 1b670b800ace83b:889d6aca3f96abd`
         },
         body: JSON.stringify(requestBody)
       });
@@ -709,7 +709,7 @@ export function CallLogsPage({ onCreateCallLog, leadName }: CallLogsPageProps) {
   //       method: 'POST', // Frappe APIs typically use POST
   //       headers: {
   //         'Content-Type': 'application/json',
-  //         'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
+  //         'Authorization': `token 1b670b800ace83b:889d6aca3f96abd`
   //       },
   //       body: JSON.stringify(payload)
   //     });
@@ -767,7 +767,7 @@ export function CallLogsPage({ onCreateCallLog, leadName }: CallLogsPageProps) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
+          'Authorization': `token 1b670b800ace83b:889d6aca3f96abd`
         },
         body: JSON.stringify(payload)
       });
@@ -802,7 +802,7 @@ export function CallLogsPage({ onCreateCallLog, leadName }: CallLogsPageProps) {
       const response = await fetch(apiUrl, {
         method: 'DELETE',
         headers: {
-          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
+          'Authorization': `token 1b670b800ace83b:889d6aca3f96abd`
         }
       });
 
@@ -903,7 +903,7 @@ export function CallLogsPage({ onCreateCallLog, leadName }: CallLogsPageProps) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
+          'Authorization': `token 1b670b800ace83b:889d6aca3f96abd`
         },
         body: JSON.stringify({
           doctype: "CRM Deal",
@@ -975,7 +975,7 @@ export function CallLogsPage({ onCreateCallLog, leadName }: CallLogsPageProps) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
+          'Authorization': `token 1b670b800ace83b:889d6aca3f96abd`
         },
         body: JSON.stringify({
           doctype: "CRM Lead",

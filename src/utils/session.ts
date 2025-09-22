@@ -82,7 +82,7 @@ export function getAuthHeaders(): Record<string, string> {
   const session = getUserSession();
   if (session && session.api_key && session.api_secret) {
     return {
-      'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
+      'Authorization': `token 1b670b800ace83b:889d6aca3f96abd`
     };
   }
   // Fallback to existing token

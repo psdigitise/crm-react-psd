@@ -45,7 +45,7 @@ interface Task {
     creation: string;
 }
 
-const AUTH_TOKEN = "token 1b670b800ace83b:9f48cd1310e112b";
+const AUTH_TOKEN = "token 1b670b800ace83b:889d6aca3f96abd";
 
 export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTaskCreated }: CallDetailsPopupProps) => {
     const [openMenu, setOpenMenu] = useState(false);

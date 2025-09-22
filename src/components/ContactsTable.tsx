@@ -195,7 +195,7 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
+          'Authorization': `token 1b670b800ace83b:889d6aca3f96abd`
         },
         body: JSON.stringify(requestBody)
       });
@@ -266,7 +266,7 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
       const response = await fetch(apiUrl, {
         method: 'GET',
         headers: {
-          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
+          'Authorization': `token 1b670b800ace83b:889d6aca3f96abd`
         }
       });
 
@@ -294,7 +294,7 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
+          'Authorization': `token 1b670b800ace83b:889d6aca3f96abd`
         },
         body: JSON.stringify({
           doctype: "Contact"
@@ -367,7 +367,7 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
+          'Authorization': `token 1b670b800ace83b:889d6aca3f96abd`
         },
         body: JSON.stringify(requestBody)
       });
@@ -499,7 +499,7 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
+          'Authorization': `token 1b670b800ace83b:889d6aca3f96abd`
         },
         body: JSON.stringify(payload)
       });
@@ -558,7 +558,7 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token 1b670b800ace83b:9f48cd1310e112b`
+          'Authorization': `token 1b670b800ace83b:889d6aca3f96abd`
         },
         body: JSON.stringify(payload)
       });

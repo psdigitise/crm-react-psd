@@ -46,7 +46,7 @@ export function UserList({ onCreateTodo }: TodosPageNewProps) {
   //       method: 'GET',
   //       headers: {
   //         'Content-Type': 'application/json',
-  //         'Authorization': 'token 1b670b800ace83b:9f48cd1310e112b'
+  //         'Authorization': 'token 1b670b800ace83b:889d6aca3f96abd'
   //       }
   //     });
 
@@ -84,7 +84,7 @@ export function UserList({ onCreateTodo }: TodosPageNewProps) {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'token 1b670b800ace83b:9f48cd1310e112b'
+          'Authorization': 'token 1b670b800ace83b:889d6aca3f96abd'
         }
       });
 
@@ -116,7 +116,7 @@ export function UserList({ onCreateTodo }: TodosPageNewProps) {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'token 1b670b800ace83b:9f48cd1310e112b'
+          'Authorization': 'token 1b670b800ace83b:889d6aca3f96abd'
         },
         body: JSON.stringify({
           status: updatedTodo.status,
@@ -149,7 +149,7 @@ export function UserList({ onCreateTodo }: TodosPageNewProps) {
       const response = await fetch(apiUrl, {
         method: 'DELETE',
         headers: {
-          'Authorization': 'token 1b670b800ace83b:9f48cd1310e112b'
+          'Authorization': 'token 1b670b800ace83b:889d6aca3f96abd'
         }
       });
 
