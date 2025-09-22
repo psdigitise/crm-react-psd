@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Mail, Lock, Eye, EyeOff, Loader2, User, Building2 } from 'lucide-react';
 import { setUserSession } from '../utils/session';
@@ -184,7 +183,6 @@ export function LoginPage({ onLogin }: LoginPageProps) {
       // }
 
       const companyResult = await companyResponse.json();
-      // Check if company creation failed
       if (!companyResponse.ok) {
         // Extract error message from the API response
         const errorMessage = companyResult.message ||
@@ -267,7 +265,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
       } else {
         setError("An unexpected error occurred during registration.");
       }
-    } finally {
+    }  finally {
       setLoading(false);
     }
   };
@@ -283,30 +281,29 @@ export function LoginPage({ onLogin }: LoginPageProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-[#2A2352] to-black flex items-center justify-center px-4">
+    <div className="min-h-screen  flex items-center justify-center px-4" style={{ backgroundImage: "url(../../public/assets/images/bg-circle.png)", backgroundRepeat: "no-repeat", backgroundSize: "cover" }}>
       <div className="max-w-md w-full">
         {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center space-x-2 mb-6">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">P</span>
-            </div>
-            <span className="text-2xl font-bold">
+        <div className="text-center">
+          <div className="inline-flex items-center space-x-2 ">
+            <img src="../../public/assets/images/Erpnextlogo.png" alt="" className={`w-[250px] h-100`} />
+            {/* <span className="text-2xl font-bold">
               <span className="text-blue-600">PS</span>
               <span className="text-green-500">Digitise</span>
-            </span>
+            </span> */}
           </div>
-          <h1 className="text-2xl font-semibold text-gray-900">
-            {isRegisterMode ? 'Create Account' : 'Login to PSDigitise'}
-          </h1>
         </div>
 
         {/* Form Container */}
-        <div className="bg-white/10 backdrop-blur-md rounded-lg shadow-sm border border-gray-200 p-8">
+        <div className="bg-white/100 rounded-xl shadow-md border border-gray-300 p-8">
           {isRegisterMode ? (
             /* Register Form */
             // <form onSubmit={handleRegister} className="space-y-6">
             <form onSubmit={handleRegister} className="space-y-6">
+
+              <h1 className="text-2xl text-center font-[650] text-gray-900">
+                {isRegisterMode ? 'Create Account' : 'Login to ERPNext.ai'}
+              </h1>
               {/* Error Message */}
               {error && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-4">
@@ -314,17 +311,19 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                 </div>
               )}
 
+
+
               <div>
-                <label className="block text-sm font-medium text-white mb-2">
+                <label className="block text-sm font-medium text-black mb-2">
                   Full Name <span className="text-red-500">*</span>
                 </label>
-                <div className="relative">
+                <div className="relative border border-gray-400 rounded-lg">
                   <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
                     type="text"
                     value={registerData.first_name}
                     onChange={(e) => handleRegisterInputChange('first_name', e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 border border-white rounded-lg bg-transparent text-white placeholder-white focus:outline-none"
+                    className="w-full pl-10 pr-4 py-3 border border-white rounded-lg bg-transparent text-black !placeholder-gray-500 focus:outline-none"
                     placeholder="John"
                     required
                     disabled={loading}
@@ -335,17 +334,17 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 
               {/* Email Field */}
               <div>
-                <label className="block text-sm font-medium text-white mb-2">
+                <label className="block text-sm font-medium text-black mb-2">
                   Work Email <span className="text-red-500">*</span>
                 </label>
-                <div className="relative">
+                <div className="relative border border-gray-400 rounded-lg">
                   <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
                     type="email"
                     value={registerData.email}
                     onChange={(e) => handleRegisterInputChange('email', e.target.value)}
                     // className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50"
-                    className="w-full pl-10 pr-4 py-3 border border-white rounded-lg bg-transparent text-white placeholder-white focus:outline-none"
+                    className="w-full pl-10 pr-4 py-3 border border-white rounded-lg bg-transparent text-black !placeholder-gray-500 focus:outline-none"
                     placeholder="your@email.com"
                     required
                     disabled={loading}
@@ -355,17 +354,17 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 
               {/* Confirm Password Field */}
               <div>
-                <label className="block text-sm font-medium text-white mb-2">
+                <label className="block text-sm font-medium text-black mb-2">
                   Phone Number <span className="text-red-500">*</span>
                 </label>
-                <div className="relative">
+                <div className="relative border border-gray-400 rounded-lg">
                   {/* Phone icon instead of lock */}
                   <FiPhone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
                     type="tel"
                     value={phoneNumber}
                     onChange={(e) => setPhoneNumber(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 border border-white rounded-lg bg-transparent text-white placeholder-white focus:outline-none"
+                    className="w-full pl-10 pr-4 py-3 border border-white rounded-lg bg-transparent text-black !placeholder-gray-500 focus:outline-none"
                     placeholder="Enter phone number"
                     required
                     disabled={loading}
@@ -374,10 +373,10 @@ export function LoginPage({ onLogin }: LoginPageProps) {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-white mb-2">
+                <label className="block text-sm font-medium text-black mb-2">
                   Company Name <span className="text-red-500">*</span>
                 </label>
-                <div className="relative">
+                <div className="relative border border-gray-400 rounded-lg">
                   <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
                     type="text"
@@ -385,7 +384,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                     onChange={(e) =>
                       setCompanyData((prev) => ({ ...prev, company_name: e.target.value }))
                     }
-                    className="w-full pl-10 pr-4 py-3 border border-white rounded-lg bg-transparent text-white placeholder-white focus:outline-none"
+                    className="w-full pl-10 pr-4 py-3 border border-white rounded-lg bg-transparent text-black !placeholder-gray-500 focus:outline-none"
                     placeholder="Your Company"
                     required
                     disabled={loading}
@@ -395,10 +394,10 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 
               {/* No. of Employees Field */}
               <div>
-                <label className="block text-sm font-medium text-white mb-2">
+                <label className="block text-sm font-medium text-black mb-2">
                   No. of Employees <span className="text-red-500">*</span>
                 </label>
-                <div className="relative">
+                <div className="relative border border-gray-400 rounded-lg">
                   <input
                     type="number"
                     value={companyData.no_employees || ""}
@@ -408,7 +407,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                         no_employees: e.target.value,
                       }))
                     }
-                    className="w-full pl-4 pr-4 py-3 border border-white rounded-lg bg-transparent text-white placeholder-white focus:outline-none"
+                    className="w-full pl-4 pr-4 py-3 border border-white rounded-lg bg-transparent text-black !placeholder-gray-500 focus:outline-none"
                     placeholder="50"
                     required
                     disabled={loading}
@@ -419,7 +418,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
               <button
                 type="submit"
                 disabled={loading || !!passwordError}
-                className="w-full bg-white text-[#2D243C] py-3 rounded-lg font-medium hover:bg-gray-100 transition-colors"
+                className="w-full bg-gradient-to-r from-[#35bce7] to-[#082a87] text-[#ffffff] py-3 rounded-lg font-medium hover:bg-gray-100 transition-colors"
               >
                 {loading ? (
                   <>
@@ -439,7 +438,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                     setIsRegisterMode(false);
                     setError('');
                   }}
-                  className="text-sm text-white"
+                  className="text-md font-medium text-black"
                   disabled={loading}
                 >
                   Already have an account? Sign in
@@ -449,6 +448,9 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           ) : (
             /* Login Form */
             <form onSubmit={handleLogin} className="space-y-6">
+              <h1 className="text-2xl text-center font-[650] text-gray-900">
+                {isRegisterMode ? 'Create Account' : 'Login to ERPNext.ai'}
+              </h1>
               {/* Error Message */}
               {error && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-4">
@@ -456,19 +458,21 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                 </div>
               )}
 
+
+
               {/* Email Field */}
               <div>
-                <label className="block text-sm font-medium text-white mb-2">
+                <label className="block text-sm font-medium  text-black mb-2">
                   Email Address
                 </label>
-                <div className="relative">
+                <div className="relative border border-gray-400 rounded-lg">
                   <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 border border-white rounded-lg bg-transparent text-white placeholder-white focus:outline-none"
-                    placeholder=""
+                    className="w-full  pl-10 pr-4 py-3 border border-white rounded-lg bg-transparent text-black !placeholder-gray-500 focus:outline-none"
+                    placeholder="Enter Email Address"
                     required
                     disabled={loading}
                   />
@@ -477,16 +481,16 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 
               {/* Password Field */}
               <div>
-                <label className="block text-sm font-medium text-white mb-2">
+                <label className="block text-sm font-medium text-black mb-2">
                   Password
                 </label>
-                <div className="relative">
+                <div className="relative border border-gray-400 rounded-lg">
                   <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 border border-white rounded-lg bg-transparent text-white placeholder-white focus:outline-none"
+                    className="w-full pl-10 pr-4 py-3 border border-white rounded-lg bg-transparent text-black !placeholder-gray-500 focus:outline-none"
                     placeholder="••••••"
                     required
                     disabled={loading}
@@ -510,7 +514,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
               <div className="text-right">
                 <button
                   type="button"
-                  className="text-sm text-white"
+                  className="text-md font-medium text-black"
                   disabled={loading}
                 >
                   Forgot Password?
@@ -521,12 +525,12 @@ export function LoginPage({ onLogin }: LoginPageProps) {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-white text-[#2D243C] py-3 rounded-lg font-medium hover:bg-gray-100 transition-colors"
+                className="w-full items-center bg-gradient-to-r from-[#35bce7] to-[#082a87] text-[#ffffff] py-3 rounded-lg font-medium hover:bg-gray-100 transition-colors"
 
               >
                 {loading ? (
                   <>
-                    <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                    {/* <Loader2 className="w-5 h-5 animate-spin mr-2" /> */}
                     Signing in...
                   </>
                 ) : (
@@ -540,7 +544,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                   <div className="w-full border-t border-gray-300" />
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white text-gray-500">or</span>
+                  <span className="px-2 bg-white  text-gray-500">or</span>
                 </div>
               </div>
 
@@ -551,7 +555,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                   setIsRegisterMode(true);
                   setError('');
                 }}
-                className="w-full bg-white text-[#2D243C] py-3 rounded-lg font-medium hover:bg-gray-100 transition-colors"
+                className="w-full bg-white border border-[#35bce7] text-[#35bce7] py-3 rounded-lg font-medium hover:bg-gray-100 transition-colors"
                 disabled={loading}
               >
                 Create New Account
