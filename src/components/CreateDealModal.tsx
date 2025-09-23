@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, ExternalLink, Loader2 } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import { getUserSession } from '../utils/session';
+import { getAuthToken } from '../api/apiUrl';
 
 interface Deal {
   name: string;
@@ -30,7 +31,7 @@ interface CreateDealModalProps {
 }
 
 const API_BASE_URL = 'http://103.214.132.20:8002/api';
-const AUTH_TOKEN = 'token 1b670b800ace83b:f32066fea74d0fe';
+const AUTH_TOKEN = getAuthToken();
 
 export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalProps) {
   const { theme } = useTheme();
@@ -100,7 +101,7 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
 
       fetch(apiUrl, {
         headers: {
-          'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe'
+          'Authorization': AUTH_TOKEN,
         }
       })
         .then(res => res.json())
@@ -326,7 +327,7 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
       // Prepare the payload according to the API requirements
       const apiPayload = {
         args: {
-          organization: sessionCompany, // Using company from session
+          //organization: sessionCompany, // Using company from session
           organization_name: formData.organization_name,
           website: formData.website,
           no_of_employees: formData.no_of_employees,
@@ -353,7 +354,7 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe' // Your token here
+          'Authorization': AUTH_TOKEN,
         },
         body: JSON.stringify(apiPayload)
       });

@@ -3,6 +3,7 @@ import { X, Loader2 } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import { getUserSession } from '../utils/session';
 import { useNavigate } from 'react-router-dom';
+import { getAuthToken } from '../api/apiUrl';
 
 
 interface CreateLeadModalProps {
@@ -92,7 +93,7 @@ export function CreateLeadModal({ isOpen, onClose, onSubmit }: CreateLeadModalPr
 
       const response = await fetch(apiUrl, {
         headers: {
-          'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe'
+          'Authorization': getAuthToken(),
         }
       });
 
@@ -118,7 +119,7 @@ export function CreateLeadModal({ isOpen, onClose, onSubmit }: CreateLeadModalPr
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe'
+          'Authorization': getAuthToken(),
         },
         body: JSON.stringify({
           txt: "",
@@ -156,7 +157,7 @@ export function CreateLeadModal({ isOpen, onClose, onSubmit }: CreateLeadModalPr
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe'
+          'Authorization': getAuthToken(),
         },
         body: JSON.stringify({
           txt: "",
@@ -195,7 +196,7 @@ export function CreateLeadModal({ isOpen, onClose, onSubmit }: CreateLeadModalPr
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe'
+          'Authorization': getAuthToken(),
         },
         body: JSON.stringify({
           txt: "",
@@ -234,7 +235,7 @@ export function CreateLeadModal({ isOpen, onClose, onSubmit }: CreateLeadModalPr
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe'
+          'Authorization': getAuthToken(),
         },
         body: JSON.stringify({
           txt: "",
@@ -318,7 +319,7 @@ export function CreateLeadModal({ isOpen, onClose, onSubmit }: CreateLeadModalPr
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe'
+          'Authorization': getAuthToken(),
         },
         body: JSON.stringify({
           doc: docPayload

@@ -5,6 +5,7 @@ import { getUserSession } from '../utils/session';
 import { showToast } from '../utils/toast';
 import { Listbox } from '@headlessui/react';
 import EmailComposerleads from '../components/Leads/EmailComposerleads';
+import { getAuthToken } from '../api/apiUrl';
 
 // Icons
 import {
