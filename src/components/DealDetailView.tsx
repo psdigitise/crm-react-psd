@@ -204,7 +204,7 @@ const commentTypes = [
 ];
 
 const API_BASE_URL = 'http://103.214.132.20:8002/api';
-const AUTH_TOKEN = 'token 1b670b800ace83b:70fe26f35d23e6f';
+const AUTH_TOKEN = 'token 1b670b800ace83b:f32066fea74d0fe';
 
 
 export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
@@ -347,7 +347,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         {
           method: 'POST',
           headers: {
-            'Authorization': 'token 1b670b800ace83b:70fe26f35d23e6f',
+            'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe',
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
@@ -392,7 +392,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         {
           method: 'POST',
           headers: {
-            'Authorization': 'token 1b670b800ace83b:70fe26f35d23e6f',
+            'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe',
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
@@ -442,7 +442,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
       const response = await fetch(url, {
         method: 'POST',
         headers: {
-          'Authorization': 'token 1b670b800ace83b:70fe26f35d23e6f',
+          'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe',
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -489,7 +489,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         {
           method: 'POST',
           headers: {
-            'Authorization': 'token 1b670b800ace83b:70fe26f35d23e6f',
+            'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe',
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
@@ -519,7 +519,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         {
           method: 'POST',
           headers: {
-            'Authorization': 'token 1b670b800ace83b:70fe26f35d23e6f',
+            'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe',
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
@@ -737,7 +737,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
       const response = await fetch(`${API_BASE_URL}/method/frappe.client.insert`, {
         method: 'POST',
         headers: {
-          'Authorization': 'token 1b670b800ace83b:70fe26f35d23e6f',
+          'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe',
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -795,7 +795,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
       const response = await fetch(`${API_BASE_URL}/method/frappe.client.set_value`, {
         method: 'POST',
         headers: {
-          'Authorization': 'token 1b670b800ace83b:70fe26f35d23e6f',
+          'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe',
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -890,7 +890,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
       const response = await fetch(`${API_BASE_URL}/v2/document/CRM Call Log/${name}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': 'token 1b670b800ace83b:70fe26f35d23e6f',
+          'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe',
           'Content-Type': 'application/json'
         }
       });
@@ -982,7 +982,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         {
           method: 'POST',
           headers: {
-            'Authorization': 'token 1b670b800ace83b:70fe26f35d23e6f',
+            'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe',
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
@@ -1027,7 +1027,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         {
           method: 'DELETE',
           headers: {
-            'Authorization': 'token 1b670b800ace83b:70fe26f35d23e6f',
+            'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe',
             'Content-Type': 'application/json'
           }
         }
@@ -1077,7 +1077,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         {
           method: 'POST',
           headers: {
-            'Authorization': 'token 1b670b800ace83b:70fe26f35d23e6f',
+            'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe',
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
@@ -1115,7 +1115,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         `${API_BASE_URL}/method/crm.api.activities.get_activities`,
         {
           method: 'POST',
-          headers: { 'Authorization': 'token 1b670b800ace83b:70fe26f35d23e6f', 'Content-Type': 'application/json' },
+          headers: { 'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe', 'Content-Type': 'application/json' },
           body: JSON.stringify({
             name: deal.name
           })
@@ -1310,7 +1310,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         },
         {
           headers: {
-            'Authorization': 'token 1b670b800ace83b:70fe26f35d23e6f',
+            'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe',
             'Content-Type': 'application/json'
           }
         }
@@ -1383,7 +1383,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         payload,
         {
           headers: {
-            'Authorization': 'token 1b670b800ace83b:70fe26f35d23e6f',
+            'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe',
             'Content-Type': 'application/json',
           },
         }
@@ -1417,7 +1417,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
           {
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': 'token 1b670b800ace83b:70fe26f35d23e6f'
+              'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe'
             }
           }
         );
@@ -1455,7 +1455,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
           {
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': 'token 1b670b800ace83b:70fe26f35d23e6f'
+              'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe'
             }
           }
         );
@@ -1493,7 +1493,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
           {
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': 'token 1b670b800ace83b:70fe26f35d23e6f'
+              'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe'
             }
           }
         );
@@ -1547,7 +1547,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         },
         {
           headers: {
-            Authorization: 'token 1b670b800ace83b:70fe26f35d23e6f',
+            Authorization: 'token 1b670b800ace83b:f32066fea74d0fe',
             'Content-Type': 'application/json'
           }
         }

@@ -58,7 +58,7 @@ export function OrganizationDetailView({ organization, onBack, onSave }: Organiz
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'token 1b670b800ace83b:70fe26f35d23e6f'
+          'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe'
         },
         body: JSON.stringify({
           organization_name: editedOrganization.organization_name,
@@ -96,7 +96,7 @@ export function OrganizationDetailView({ organization, onBack, onSave }: Organiz
         const response = await fetch(apiUrl, {
           method: 'DELETE',
           headers: {
-            'Authorization': 'token 1b670b800ace83b:70fe26f35d23e6f'
+            'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe'
           }
         });
 

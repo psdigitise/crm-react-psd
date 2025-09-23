@@ -361,7 +361,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `token 1b670b800ace83b:70fe26f35d23e6f`
+            'Authorization': `token 1b670b800ace83b:f32066fea74d0fe`
           }
         });
         if (!response.ok) {
@@ -541,7 +541,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token 1b670b800ace83b:70fe26f35d23e6f`
+          'Authorization': `token 1b670b800ace83b:f32066fea74d0fe`
         },
         body: JSON.stringify(deletePayload)
       });

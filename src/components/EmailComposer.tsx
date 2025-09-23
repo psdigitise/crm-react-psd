@@ -35,7 +35,7 @@ interface EmailComposerProps {
 const showToast = (msg, opts) => alert(msg);
 
 const API_BASE_URL = "http://103.214.132.20:8002/api/method/frappe.core.doctype.communication.email.make";
-const AUTH_TOKEN = "token 1b670b800ace83b:70fe26f35d23e6f"; // Replace with your actual token
+const AUTH_TOKEN = "token 1b670b800ace83b:f32066fea74d0fe"; // Replace with your actual token
 
 export default function EmailOrCommentComposer({ deal, onClose, mode, dealName, fetchEmails, selectedEmail, clearSelectedEmail, fetchComments, onSubjectChange, generatedContent, generatingContent }: EmailComposerProps) {
   const { theme } = useTheme();

@@ -21,7 +21,7 @@ export const AttachmentItem = ({ file, theme }: AttachmentItemProps) => {
       // If that fails, try fetching and downloading
       const response = await fetch(file.url, {
         headers: {
-          'Authorization': 'token 1b670b800ace83b:70fe26f35d23e6f'
+          'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe'
         }
       });
       

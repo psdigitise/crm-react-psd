@@ -50,7 +50,7 @@ export function UserDetailView({ user, onBack, onSave }: UserDetailViewProps) {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'token 1b670b800ace83b:70fe26f35d23e6f'
+          'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe'
         },
         body: JSON.stringify({
           first_name: editedUser.first_name,
@@ -83,7 +83,7 @@ export function UserDetailView({ user, onBack, onSave }: UserDetailViewProps) {
       const response = await fetch(apiUrl, {
         method: 'DELETE',
         headers: {
-          'Authorization': 'token 1b670b800ace83b:70fe26f35d23e6f',
+          'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe',
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },

@@ -35,7 +35,7 @@ export function CreateTodoModalNew({ isOpen, onClose, onSubmit }: CreateTodoModa
   //       method: 'POST',
   //       headers: {
   //         'Content-Type': 'application/json',
-  //         'Authorization': 'token 1b670b800ace83b:70fe26f35d23e6f'
+  //         'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe'
   //       },
   //       body: JSON.stringify(formData)
   //     });
@@ -95,7 +95,7 @@ export function CreateTodoModalNew({ isOpen, onClose, onSubmit }: CreateTodoModa
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'token 1b670b800ace83b:70fe26f35d23e6f'
+          'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe'
         },
         body: JSON.stringify(payload)
       });

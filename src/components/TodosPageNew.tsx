@@ -50,7 +50,7 @@ export function TodosPageNew({ onCreateTodo }: TodosPageNewProps) {
   //       method: 'GET',
   //       headers: {
   //         'Content-Type': 'application/json',
-  //         'Authorization': 'token 1b670b800ace83b:70fe26f35d23e6f'
+  //         'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe'
   //       }
   //     });
 
@@ -88,7 +88,7 @@ export function TodosPageNew({ onCreateTodo }: TodosPageNewProps) {
   //       method: 'GET',
   //       headers: {
   //         'Content-Type': 'application/json',
-  //         'Authorization': 'token 1b670b800ace83b:70fe26f35d23e6f'
+  //         'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe'
   //       }
   //     });
 
@@ -117,7 +117,7 @@ export function TodosPageNew({ onCreateTodo }: TodosPageNewProps) {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token 1b670b800ace83b:70fe26f35d23e6f`
+          'Authorization': `token 1b670b800ace83b:f32066fea74d0fe`
         }
       });
       if (!response.ok) {
@@ -148,7 +148,7 @@ export function TodosPageNew({ onCreateTodo }: TodosPageNewProps) {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'token 1b670b800ace83b:70fe26f35d23e6f'
+          'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe'
         },
         body: JSON.stringify({
           status: updatedTodo.status,
@@ -181,7 +181,7 @@ export function TodosPageNew({ onCreateTodo }: TodosPageNewProps) {
       const response = await fetch(apiUrl, {
         method: 'DELETE',
         headers: {
-          'Authorization': 'token 1b670b800ace83b:70fe26f35d23e6f'
+          'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe'
         }
       });
 
