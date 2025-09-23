@@ -36,7 +36,7 @@ interface EmailComposerProps {
 }
 
 const API_BASE_URL = "http://103.214.132.20:8002/api/method/frappe.core.doctype.communication.email.make";
-const AUTH_TOKEN = "token 1b670b800ace83b:889d6aca3f96abd";
+const AUTH_TOKEN = "token 1b670b800ace83b:70fe26f35d23e6f";
 
 export default function EmailComposerleads({
     setListSuccess,

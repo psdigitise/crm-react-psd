@@ -10,4 +10,4 @@ export const apiAxios = axios.create({
     baseURL: apiUrl.apiUrlConfig,
 });
 
-export const AUTH_TOKEN = "token 1b670b800ace83b:889d6aca3f96abd"; 
+export const AUTH_TOKEN = "token 1b670b800ace83b:70fe26f35d23e6f"; 

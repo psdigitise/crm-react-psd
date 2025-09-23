@@ -32,7 +32,7 @@ export function NotificationsPageNew() {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          Authorization: "token 1b670b800ace83b:889d6aca3f96abd",
+          Authorization: "token 1b670b800ace83b:70fe26f35d23e6f",
         },
       });
 

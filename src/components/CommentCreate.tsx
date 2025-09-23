@@ -13,7 +13,7 @@ import Emailpageleads from "./Emailpageleads";
 const showToast = (msg, opts) => alert(msg);
 
 const API_BASE_URL = "http://103.214.132.20:8002/api/v2/document";
-const AUTH_TOKEN = "token 1b670b800ace83b:889d6aca3f96abd";
+const AUTH_TOKEN = "token 1b670b800ace83b:70fe26f35d23e6f";
 
 // export default function CommentCreate({
 //   reference_doctype = "",
