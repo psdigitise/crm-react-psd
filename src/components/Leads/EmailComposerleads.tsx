@@ -109,7 +109,7 @@ export default function EmailComposerleads({
 
     const sendEmail = async () => {
         if (!emailForm.recipient.trim() || !emailForm.message.trim() || !emailForm.subject.trim()) {
-            showToast("Please fill all required fields", { type: "error" });
+            showToast("All required fields must be filled before proceeding.", { type: "error" });
             return;
         }
 
@@ -125,7 +125,7 @@ export default function EmailComposerleads({
             for (const email of ccEmails) {
                 if (!isValidEmail(email)) {
                     // showToast(`Invalid email address in 'Cc' field: ${email}`, { type: "error" });
-                    showToast(`Invalid email address in 'Cc' field`, { type: "error" });
+                    showToast(`Invalid email address in 'Cc' field.`, { type: "error" });
                     return;
                 }
             }
@@ -137,7 +137,7 @@ export default function EmailComposerleads({
             for (const email of bccEmails) {
                 if (!isValidEmail(email)) {
                     // showToast(`Invalid email address in 'Bcc' field: ${email}`, { type: "error" });
-                     showToast(`Invalid email address in 'Bcc' field`, { type: "error" });
+                     showToast(`Invalid email address in 'Bcc' field,`, { type: "error" });
                     return;
                 }
             }
