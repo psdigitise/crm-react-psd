@@ -529,7 +529,7 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
                 <div className="absolute top-0 right-0 flex items-center gap-2 p-4">
                     <button
                         type="button"
-                        className={`${theme === "dark" ? "text-white" : "text-gray-500"} hover:text-gray-700`}
+                        className={`${theme === "dark" ? "text-white" : "text-gray-500"} hover:text-gray-700 dark:hover:text-white`}
                         onClick={toggleMenu}
                     >
                         <PiDotsThreeOutlineFill size={24} />
@@ -538,13 +538,13 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
                         type="button"
                         onClick={onEdit}
                         title="Edit"
-                        className={`${theme === "dark" ? "text-white" : "text-gray-500"} hover:text-gray-700`}
+                        className={`${theme === "dark" ? "text-white" : "text-gray-500"} hover:text-gray-700 dark:hover:text-white`}
                     >
                         <SquarePen className="h-5 w-5" />
                     </button>
                     <button
                         type="button"
-                        className={`${theme === "dark" ? "text-white" : "text-gray-500"} hover:text-gray-700`}
+                        className={`${theme === "dark" ? "text-white" : "text-gray-500"} hover:text-gray-700 dark:hover:text-white`}
                         onClick={onClose}
                     >
                         <IoCloseOutline size={24} />
@@ -616,8 +616,8 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
                                     onChange={(e) => setTaskForm({ ...taskForm, title: e.target.value })}
                                     placeholder="Task title"
                                     className={`w-full px-3 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${theme === 'dark'
-                                        ? 'bg-gray-800 border border-gray-600 text-white'
-                                        : 'bg-gray-100 border border-gray-300 text-gray-900'
+                                        ? 'bg-gray-800 border  border-gray-600 text-white'
+                                        : 'bg-gray-100 border border-gray-300 placeholder:!text-gray-600 !text-black'
                                         }`}
                                 />
                             </div>
@@ -633,8 +633,8 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
                                     placeholder="Task description"
                                     rows={4}
                                     className={`w-full px-3 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${theme === 'dark'
-                                        ? 'bg-gray-800 border border-gray-600 text-white'
-                                        : 'bg-gray-100 border border-gray-300 text-gray-900'
+                                        ? 'bg-gray-800 border  border-gray-600 text-white'
+                                        : 'bg-gray-100 border border-gray-300 placeholder:!text-gray-600 !text-black'
                                         }`}
                                 />
                             </div>
@@ -654,11 +654,26 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
                                             : 'bg-gray-100 border border-gray-300 text-gray-900'
                                             }`}
                                     >
-                                        <option value="Open">Open</option>
-                                        <option value="Todo">Todo</option>
-                                        <option value="In Progress">In Progress</option>
-                                        <option value="Done">Done</option>
-                                        <option value="Canceled">Canceled</option>
+                                        <option className={`mt-2 w-full rounded px-3 py-2 ${theme === 'dark'
+                                            ? 'bg-gray-800 border-gray-600 text-white'
+                                            : 'bg-white border-gray-300 text-gray-900'
+                                            } border`} value="Open">Open</option>
+                                        <option className={`mt-2 w-full rounded px-3 py-2 ${theme === 'dark'
+                                            ? 'bg-gray-800 border-gray-600 text-white'
+                                            : 'bg-white border-gray-300 text-gray-900'
+                                            } border`} value="Todo">Todo</option>
+                                        <option className={`mt-2 w-full rounded px-3 py-2 ${theme === 'dark'
+                                            ? 'bg-gray-800 border-gray-600 text-white'
+                                            : 'bg-white border-gray-300 text-gray-900'
+                                            } border`} value="In Progress">In Progress</option>
+                                        <option className={`mt-2 w-full rounded px-3 py-2 ${theme === 'dark'
+                                            ? 'bg-gray-800 border-gray-600 text-white'
+                                            : 'bg-white border-gray-300 text-gray-900'
+                                            } border`} value="Done">Done</option>
+                                        <option className={`mt-2 w-full rounded px-3 py-2 ${theme === 'dark'
+                                            ? 'bg-gray-800 border-gray-600 text-white'
+                                            : 'bg-white border-gray-300 text-gray-900'
+                                            } border`} value="Canceled">Canceled</option>
                                     </select>
                                 </div>
 
@@ -675,9 +690,18 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
                                             : 'bg-gray-100 border border-gray-300 text-gray-900'
                                             }`}
                                     >
-                                        <option value="Low">Low</option>
-                                        <option value="Medium">Medium</option>
-                                        <option value="High">High</option>
+                                        <option className={`mt-2 w-full rounded px-3 py-2 ${theme === 'dark'
+                                            ? 'bg-gray-800 border-gray-600 text-white'
+                                            : 'bg-white border-gray-300 text-gray-900'
+                                            } border`} value="Low">Low</option>
+                                        <option className={`mt-2 w-full rounded px-3 py-2 ${theme === 'dark'
+                                            ? 'bg-gray-800 border-gray-600 text-white'
+                                            : 'bg-white border-gray-300 text-gray-900'
+                                            } border`} value="Medium">Medium</option>
+                                        <option className={`mt-2 w-full rounded px-3 py-2 ${theme === 'dark'
+                                            ? 'bg-gray-800 border-gray-600 text-white'
+                                            : 'bg-white border-gray-300 text-gray-900'
+                                            } border`} value="High">High</option>
                                     </select>
                                 </div>
 
@@ -710,14 +734,38 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
                                             : 'bg-gray-100 border border-gray-300 text-gray-900'
                                             }`}
                                     >
-                                        <option value="">Select Assignee</option>
-                                        <option value="hari@psd123.com">Hari</option>
-                                        <option value="arun@psd.com">Arun</option>
-                                        <option value="demo@psdigitise.com">Demo</option>
-                                        <option value="fen87joshi@yahoo.com">Feni</option>
-                                        <option value="fenila@psd.com">Fenila</option>
-                                        <option value="mx.techies@gmail.com">MX Techies</option>
-                                        <option value="prasad@psd.com">Prasad</option>
+                                        <option className={`mt-2 w-full rounded px-3 py-2 ${theme === 'dark'
+                                            ? 'bg-gray-800 border-gray-600 text-white'
+                                            : 'bg-white border-gray-300 text-gray-900'
+                                            } border`} value="">Select Assignee</option>
+                                        <option className={`mt-2 w-full rounded px-3 py-2 ${theme === 'dark'
+                                            ? 'bg-gray-800 border-gray-600 text-white'
+                                            : 'bg-white border-gray-300 text-gray-900'
+                                            } border`} value="hari@psd123.com">Hari</option>
+                                        <option className={`mt-2 w-full rounded px-3 py-2 ${theme === 'dark'
+                                            ? 'bg-gray-800 border-gray-600 text-white'
+                                            : 'bg-white border-gray-300 text-gray-900'
+                                            } border`} value="arun@psd.com">Arun</option>
+                                        <option className={`mt-2 w-full rounded px-3 py-2 ${theme === 'dark'
+                                            ? 'bg-gray-800 border-gray-600 text-white'
+                                            : 'bg-white border-gray-300 text-gray-900'
+                                            } border`} value="demo@psdigitise.com">Demo</option>
+                                        <option className={`mt-2 w-full rounded px-3 py-2 ${theme === 'dark'
+                                            ? 'bg-gray-800 border-gray-600 text-white'
+                                            : 'bg-white border-gray-300 text-gray-900'
+                                            } border`} value="fen87joshi@yahoo.com">Feni</option>
+                                        <option className={`mt-2 w-full rounded px-3 py-2 ${theme === 'dark'
+                                            ? 'bg-gray-800 border-gray-600 text-white'
+                                            : 'bg-white border-gray-300 text-gray-900'
+                                            } border`} value="fenila@psd.com">Fenila</option>
+                                        <option className={`mt-2 w-full rounded px-3 py-2 ${theme === 'dark'
+                                            ? 'bg-gray-800 border-gray-600 text-white'
+                                            : 'bg-white border-gray-300 text-gray-900'
+                                            } border`} value="mx.techies@gmail.com">MX Techies</option>
+                                        <option className={`mt-2 w-full rounded px-3 py-2 ${theme === 'dark'
+                                            ? 'bg-gray-800 border-gray-600 text-white'
+                                            : 'bg-white border-gray-300 text-gray-900'
+                                            } border`} value="prasad@psd.com">Prasad</option>
                                     </select>
                                 </div>
                             </div>

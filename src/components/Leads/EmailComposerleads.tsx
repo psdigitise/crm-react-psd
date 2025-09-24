@@ -3,9 +3,6 @@ import {
     Send,
     Paperclip,
     Smile,
-    MessageSquare,
-    Reply,
-    CornerUpRight,
     Mail,
 } from "lucide-react";
 import { useTheme } from "../ThemeProvider";
@@ -13,17 +10,18 @@ import Commentemailleads from "./Commentemailleads";
 import EmojiPicker from "emoji-picker-react";
 import { getUserSession } from "../../utils/session";
 import { FaRegComment } from "react-icons/fa6";
-import axios from "axios";
 import { apiAxios } from "../../api/apiUrl";
 
 const showToast = (msg, opts) => alert(msg);
 
 interface EmailComposerProps {
+    mode?: "reply" | "reply-all" | "comment";
     onClose: () => void;
     lead: any;
     deal?: any;
     setListSuccess: (value: string) => void;
     refreshEmails: () => Promise<void>;
+    onSuccess?: () => void;
     replyData?: {
         recipient: string;
         cc: string;
@@ -32,23 +30,23 @@ interface EmailComposerProps {
         message: string;
         isReplyAll?: boolean;
     };
-
 }
 
 const API_BASE_URL = "http://103.214.132.20:8002/api/method/frappe.core.doctype.communication.email.make";
 const AUTH_TOKEN = "token 1b670b800ace83b:f32066fea74d0fe";
 
 export default function EmailComposerleads({
+    mode = "reply",
     setListSuccess,
     lead,
     deal,
     onClose,
     refreshEmails,
     replyData,
-
 }: EmailComposerProps) {
     const { theme } = useTheme();
-    const [showComment, setShowComment] = useState(false);
+    const [showComment, setShowComment] = useState(mode === "comment");
+    const isCommentMode = mode === "comment";
     const [emailForm, setEmailForm] = useState({
         recipient: "",
         cc: "",
@@ -60,8 +58,7 @@ export default function EmailComposerleads({
     const [showCc, setShowCc] = useState(false);
     const [showBCc, setShowBCc] = useState(false);
     const [ok, setok] = useState<string>('');
-    //const [attachement, setAttachement] = useState<string[]>([])
-    const [attachments, setAttachments] = useState<string[]>([]); // Array of attachment IDs
+    const [attachments, setAttachments] = useState<string[]>([]);
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [isFocused, setIsFocused] = useState(false);
     const [uploadedFiles, setUploadedFiles] = useState<{ name: string; url: string }[]>([]);
@@ -73,27 +70,35 @@ export default function EmailComposerleads({
     const [generatingContent, setGeneratingContent] = useState(false);
     const [lastGeneratedSubject, setLastGeneratedSubject] = useState<string>("");
 
+    const userSession = getUserSession();
+    const senderUsername = userSession?.username || "Administrator";
+
     useEffect(() => {
+        // Set initial mode based on prop
+        setShowComment(mode === "comment");
+        
         if (replyData) {
             setEmailForm({
                 recipient: replyData.recipient || "",
                 cc: replyData.cc || "",
-                bcc: replyData.bcc || "", // Ensure BCC is set
+                bcc: replyData.bcc || "",
                 subject: replyData.subject || "",
                 message: replyData.message || "",
             });
-            // Auto-show fields if they have values
             if (replyData.cc) setShowCc(true);
             if (replyData.bcc) setShowBCc(true);
+            setIsSubjectEdited(true);
+        } else {
+            setEmailForm(prev => ({
+                ...prev,
+                subject: isSubjectEdited ? prev.subject : `Re: ${lead.name}`
+            }));
         }
-    }, [replyData]);
+    }, [replyData, lead.name, mode, isSubjectEdited]);
 
     useEffect(() => {
         setListSuccess(ok);
-    }, [ok]);
-
-    const userSession = getUserSession();
-    const senderUsername = userSession?.username || "Administrator";
+    }, [ok, setListSuccess]);
 
     const sendEmail = async () => {
         if (!emailForm.recipient.trim() || !emailForm.message.trim() || !emailForm.subject.trim()) {
@@ -103,8 +108,7 @@ export default function EmailComposerleads({
 
         setLoading(true);
         try {
-
-            const payload: any = {  // Use 'any' type or define a proper interface for the payload
+            const payload: any = {
                 recipients: emailForm.recipient,
                 cc: emailForm.cc,
                 bcc: emailForm.bcc,
@@ -117,10 +121,8 @@ export default function EmailComposerleads({
                 doctype: "CRM Lead"
             };
 
-            // Only add attachments if attachement has a value
             if (attachments.length > 0) {
-                attachments
-                payload.attachments = attachments;
+                payload.attachments = JSON.stringify(attachments);
             }
 
             const response = await fetch(API_BASE_URL, {
@@ -134,13 +136,12 @@ export default function EmailComposerleads({
 
             if (response.ok) {
                 setok("Email sent successfully");
-                console.log("Email sent successfully", { type: "success" });
+                console.log("Email sent successfully");
                 setEmailForm({ recipient: "", cc: "", bcc: "", subject: "", message: "" });
                 setUploadedFiles([]);
                 setAttachments([]);
-                //setAttachements([]); // Clear the attachment
                 await refreshEmails();
-                onClose(); // Close the composer after successful send
+                onClose();
             } else {
                 const errorData = await response.json();
                 console.error("Failed to send email:", errorData);
@@ -186,7 +187,7 @@ export default function EmailComposerleads({
                     const fileName = data.message.file_name;
                     const name = data.message.name;
 
-                    newAttachments.push(name); // Add to new attachments
+                    newAttachments.push(name);
                     setUploadedFiles(prev => [...prev, { name: fileName, url: fileUrl }]);
                 } else {
                     showToast(`Failed to upload ${file.name}`, { type: "error" });
@@ -197,8 +198,12 @@ export default function EmailComposerleads({
             }
         }
 
-        // Add all new attachments to state
         setAttachments(prev => [...prev, ...newAttachments]);
+        
+        // Reset the file input
+        if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+        }
     };
 
     useEffect(() => {
@@ -219,95 +224,18 @@ export default function EmailComposerleads({
         setShowEmojiPicker(false);
     };
 
-
-    useEffect(() => {
-        if (replyData) {
-            setEmailForm({
-                recipient: replyData.recipient || "",
-                cc: replyData.cc || "",
-                bcc: replyData.bcc || "",
-                subject: replyData.subject || "",
-                message: replyData.message || "",
-            });
-            if (replyData.cc) setShowCc(true);
-            if (replyData.bcc) setShowBCc(true);
-            // If it's a reply, mark subject as edited to preserve the reply subject
-            setIsSubjectEdited(true);
-        } else {
-            // For new emails, set the default subject with lead name
-            setEmailForm(prev => ({
-                ...prev,
-                subject: isSubjectEdited ? prev.subject : `test (#${lead.name})`
-            }));
-        }
-    }, [replyData, lead.name]);
-
-    // const handleSubjectChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    //     const subject = e.target.value;
-    //     setEmailForm(f => ({ ...f, subject, message: subject.trim() === "" ? "" : f.message, }));
-    //     // Mark as edited when user changes the subject
-    //     if (!isSubjectEdited) {
-    //         setIsSubjectEdited(true);
-    //     }
-    // };
-
-
-    // const generateEmailFromSubject = async (subject: string) => {
-    //     if (!subject.trim() || isSubjectEdited) return;
-
-    //     try {
-    //         setGeneratingContent(true);
-    //         const response = await apiAxios.post(
-    //             "/api/method/customcrm.email.email_generator.generate_email",
-    //             { subject },
-    //             {
-    //                 headers: {
-    //                     Authorization: AUTH_TOKEN,
-    //                     "Content-Type": "application/json",
-    //                 },
-    //             }
-    //         );
-
-    //         const generatedMessage = response.data?.message;
-    //         if (generatedMessage) {
-    //             setEmailForm(prev => ({ ...prev, message: generatedMessage }));
-    //         }
-    //     } catch (error) {
-    //         console.error("Error generating email:", error);
-    //         showToast("Failed to generate email content", { type: "error" });
-    //     } finally {
-    //         setGeneratingContent(false);
-    //     }
-    // }
-
-
-    // useEffect(() => {
-    //     if (emailForm.subject.trim() && !isSubjectEdited) {
-    //         const timeoutId = setTimeout(() => {
-    //             generateEmailFromSubject(emailForm.subject);
-    //         }, 500); // wait 800ms after typing stops
-
-    //         return () => clearTimeout(timeoutId);
-    //     }
-    // }, [emailForm.subject]);
-
-
-    // Modify the handleSubjectChange function
     const handleSubjectChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const subject = e.target.value;
-        setEmailForm(f => ({ ...f, subject, message: subject.trim() === "" ? "" : f.message }));
+        setEmailForm(f => ({ ...f, subject }));
 
-        // Mark as edited when user changes the subject
         if (!isSubjectEdited) {
             setIsSubjectEdited(true);
         }
     };
 
-    // Modify the generateEmailFromSubject function
     const generateEmailFromSubject = async (subject: string) => {
         if (!subject.trim()) return;
 
-        // Skip if this subject was already generated and content hasn't been manually edited
         if (subject === lastGeneratedSubject && !isSubjectEdited) return;
 
         try {
@@ -326,7 +254,7 @@ export default function EmailComposerleads({
             const generatedMessage = response.data?.message;
             if (generatedMessage) {
                 setEmailForm(prev => ({ ...prev, message: generatedMessage }));
-                setLastGeneratedSubject(subject); // Track what subject was used for generation
+                setLastGeneratedSubject(subject);
             }
         } catch (error) {
             console.error("Error generating email:", error);
@@ -336,36 +264,43 @@ export default function EmailComposerleads({
         }
     };
 
-    // Modify the useEffect for subject changes
     useEffect(() => {
-        if (emailForm.subject.trim()) {
+        if (emailForm.subject.trim() && !isSubjectEdited) {
             const timeoutId = setTimeout(() => {
                 generateEmailFromSubject(emailForm.subject);
-            }, 500); // wait 500ms after typing stops
+            }, 500);
 
             return () => clearTimeout(timeoutId);
         }
-    }, [emailForm.subject]);
+    }, [emailForm.subject, isSubjectEdited]);
+
+    const handleCommentSubmit = async (commentData: any) => {
+        await refreshEmails();
+        onClose();
+    };
 
     return (
         <div
-            className={`max-full mx-auto rounded-md shadow-sm p-4 space-y-4 mb-5 border ${theme === "dark"
-                ? "bg-transparent text-white border-transparent"
-                : "bg-white text-gray-800 border-gray-500"
-                }`}
+            className={`max-full mx-auto rounded-md shadow-sm p-4 space-y-4 mb-5 border ${
+                theme === "dark"
+                    ? "bg-transparent text-white border-transparent"
+                    : "bg-white text-gray-800 border-gray-500"
+            }`}
         >
             {/* Top Action Tabs */}
             <div
-                className={`flex gap-4 text-sm font-medium ${theme === "dark" ? "text-gray-300" : "text-gray-600"
-                    }`}
+                className={`flex gap-4 text-sm font-medium ${
+                    theme === "dark" ? "text-gray-300" : "text-gray-600"
+                }`}
             >
                 <button
-                    className={`flex items-center gap-1  pb-2  ${!showComment
-                        ? theme === "dark"
-                            ? "px-2 py-2 rounded-xl bg-slate-500 text-black"
-                            : "border-gray-800"
-                        : "border-transparent"
-                        }`}
+                    className={`flex items-center gap-1 pb-2 ${
+                        !showComment
+                            ? theme === "dark"
+                                ? "px-2 py-2 rounded-xl bg-slate-500 text-black"
+                                : "border-gray-800"
+                            : "border-transparent"
+                    }`}
                     type="button"
                     onClick={() => setShowComment(false)}
                 >
@@ -373,79 +308,89 @@ export default function EmailComposerleads({
                     Reply
                 </button>
                 <button
-                    className={`flex items-center gap-1  ${showComment
-                        ? theme === "dark"
-                            ? "px-2 py-2 rounded-xl bg-slate-500 text-black"
-                            : "text-gray-800 border-b-2 border-gray-800 pb-1"
-                        : theme === "dark"
+                    className={`flex items-center gap-1 ${
+                        showComment
+                            ? theme === "dark"
+                                ? "px-2 py-2 rounded-xl bg-slate-500 text-black"
+                                : "text-gray-800 border-b-2 border-gray-800 pb-1"
+                            : theme === "dark"
                             ? "text-white"
                             : "text-gray-400"
-                        }`}
+                    }`}
                     type="button"
                     onClick={() => setShowComment(true)}
                 >
-
                     <FaRegComment size={20} className={`${showComment ? "text-white" : "text-gray-600"}`} /> Comment
                 </button>
-                <div className="flex gap-5 justify-end ml-auto mr-10">
-                    <button
-                        className={`text-xl font-medium ${showCc ? (theme === "dark" ? "text-white" : "text-gray-800") : ""
-                            }`}
-                        onClick={() => setShowCc(!showCc)}
-                    >
-                        Cc
-                    </button>
-                    <button
-                        className={`text-xl font-medium ${showBCc ? (theme === "dark" ? "text-white" : "text-gray-800") : ""
-                            }`}
-                        onClick={() => setShowBCc(!showBCc)}
-                    >
-                        Bcc
-                    </button>
-                </div>
+                
+                {/* Conditionally render Cc/Bcc buttons only in Reply mode */}
+                {!showComment && (
+                    <div className="flex gap-5 justify-end ml-auto mr-10">
+                        <button
+                            className={`text-xl font-medium ${showCc ? (theme === "dark" ? "text-white" : "text-gray-800") : ""}`}
+                            onClick={() => setShowCc(!showCc)}
+                        >
+                            Cc
+                        </button>
+                        <button
+                            className={`text-xl font-medium ${showBCc ? (theme === "dark" ? "text-white" : "text-gray-800") : ""}`}
+                            onClick={() => setShowBCc(!showBCc)}
+                        >
+                            Bcc
+                        </button>
+                    </div>
+                )}
             </div>
 
             {showComment ? (
-                <Commentemailleads lead={lead} refreshEmails={refreshEmails} handleFileChange={handleFileChange}
-                    fileInputRef={fileInputRef} attachments={attachments}
-
+                <Commentemailleads 
+                    lead={lead} 
+                    refreshEmails={refreshEmails} 
+                    handleFileChange={handleFileChange}
+                    fileInputRef={fileInputRef} 
+                    attachments={attachments}
                     setAttachments={setAttachments}
                     uploadedFiles={uploadedFiles}
                     setUploadedFiles={setUploadedFiles}
                     setEmailForm={setEmailForm}
-                    onClose={onClose} setShowCommentModal={undefined}
+                    onClose={onClose}
+                    onSubmitSuccess={handleCommentSubmit}
                 />
             ) : (
                 <div>
                     {/* Email Form */}
                     <div className="space-y-5 text-sm">
                         <div
-                            className={`flex items-center gap-2 border-b pb-2 ${theme === "dark" ? "border-white" : "border-gray-300"
-                                }`}
+                            className={`flex items-center gap-2 border-b pb-2 ${
+                                theme === "dark" ? "border-white" : "border-gray-300"
+                            }`}
                         >
                             <span className={`w-12 ${theme === "dark" ? "text-white" : "text-gray-500"}`}>To:</span>
                             <input
                                 type="email"
                                 value={emailForm.recipient}
                                 onChange={e => setEmailForm(f => ({ ...f, recipient: e.target.value }))}
-                                className={`px-2 py-1 rounded font-medium outline-none flex-1 ${theme === "dark" ? "bg-gray-700 text-white" : "bg-gray-100 text-gray-800"
-                                    }`}
+                                className={`px-2 py-1 rounded font-medium outline-none flex-1 ${
+                                    theme === "dark" ? "bg-gray-700 text-white" : "bg-gray-100 text-gray-800"
+                                }`}
                                 placeholder="Recipient email"
                             />
                         </div>
 
                         {shouldShowCc && (
                             <div
-                                className={`flex items-center gap-2 border-b pb-2 ${theme === "dark" ? "border-white" : "border-gray-300"
-                                    }`}
+                                className={`flex items-center gap-2 border-b pb-2 ${
+                                    theme === "dark" ? "border-white" : "border-gray-300"
+                                }`}
                             >
                                 <span className={`w-12 ${theme === "dark" ? "text-white" : "text-gray-500"}`}>Cc:</span>
                                 <input
                                     type="email"
                                     value={emailForm.cc}
                                     onChange={e => setEmailForm(f => ({ ...f, cc: e.target.value }))}
-                                    className={`px-2 py-1 rounded font-medium outline-none flex-1 ${theme === "dark" ? "bg-gray-700 text-white" : "bg-gray-100 text-gray-800"
-                                        }`}
+                                    className={`px-2 py-1 rounded font-medium outline-none flex-1 ${
+                                        theme === "dark" ? "bg-gray-700 text-white" : "bg-gray-100 text-gray-800"
+                                    }`}
                                     placeholder="CC email"
                                 />
                             </div>
@@ -453,33 +398,36 @@ export default function EmailComposerleads({
 
                         {shouldShowBCc && (
                             <div
-                                className={`flex items-center gap-2 border-b pb-2 ${theme === "dark" ? "border-white" : "border-gray-300"
-                                    }`}
+                                className={`flex items-center gap-2 border-b pb-2 ${
+                                    theme === "dark" ? "border-white" : "border-gray-300"
+                                }`}
                             >
                                 <span className={`w-12 ${theme === "dark" ? "text-white" : "text-gray-500"}`}>Bcc:</span>
                                 <input
                                     type="email"
                                     value={emailForm.bcc}
                                     onChange={e => setEmailForm(f => ({ ...f, bcc: e.target.value }))}
-                                    className={`px-2 py-1 rounded font-medium outline-none flex-1 ${theme === "dark" ? "bg-gray-700 text-white" : "bg-gray-100 text-gray-800"
-                                        }`}
+                                    className={`px-2 py-1 rounded font-medium outline-none flex-1 ${
+                                        theme === "dark" ? "bg-gray-700 text-white" : "bg-gray-100 text-gray-800"
+                                    }`}
                                     placeholder="BCC email"
                                 />
                             </div>
                         )}
 
                         <div
-                            className={`flex items-center gap-2 border-b pb-1 ${theme === "dark" ? "border-white" : "border-gray-300"
-                                }`}
+                            className={`flex items-center gap-2 border-b pb-1 ${
+                                theme === "dark" ? "border-white" : "border-gray-300"
+                            }`}
                         >
                             <span className={`w-12 ${theme === "dark" ? "text-white" : "text-gray-500"}`}>Subject:</span>
                             <input
                                 type="text"
                                 value={emailForm.subject}
                                 onChange={handleSubjectChange}
-                                // onChange={e => setEmailForm(f => ({ ...f, subject: e.target.value }))}
-                                className={`px-2 py-1 rounded font-medium outline-none flex-1 ${theme === "dark" ? "bg-gray-700 text-white" : "bg-gray-100 text-gray-800"
-                                    }`}
+                                className={`px-2 py-1 rounded font-medium outline-none flex-1 ${
+                                    theme === "dark" ? "bg-gray-700 text-white" : "bg-gray-100 text-gray-800"
+                                }`}
                                 placeholder="Subject"
                             />
                         </div>
@@ -499,10 +447,7 @@ export default function EmailComposerleads({
                                         <button
                                             onClick={() => {
                                                 setUploadedFiles((prev) => prev.filter((_, i) => i !== index));
-                                                setEmailForm((prev) => ({
-                                                    ...prev,
-                                                    message: prev.message.replace(file.url, ""),
-                                                }));
+                                                setAttachments((prev) => prev.filter((_, i) => i !== index));
                                             }}
                                             className="text-white text-lg leading-none"
                                         >
@@ -514,14 +459,14 @@ export default function EmailComposerleads({
                         )}
 
                         <textarea
-                            className={`w-full h-40 mt-3 rounded-md p-3 text-sm focus:outline-none focus:ring-1 ${theme === "dark"
-                                ? "bg-white-31 border-gray-600 text-white focus:ring-gray-500"
-                                : "bg-white border border-gray-300 text-gray-800 focus:ring-gray-300"
-                                }`}
+                            className={`w-full h-40 mt-3 rounded-md p-3 text-sm focus:outline-none focus:ring-1 ${
+                                theme === "dark"
+                                    ? "bg-white-31 border-gray-600 text-white focus:ring-gray-500"
+                                    : "bg-white border border-gray-300 text-gray-800 focus:ring-gray-300"
+                            }`}
                             placeholder={isFocused ? "" : "@John,can you please check this?"}
-                            // value={emailForm.message}
                             value={generatingContent ? "Loading content..." : emailForm.message}
-                            disabled={generatingContent}  // disable editing while loading
+                            disabled={generatingContent}
                             onFocus={() => setIsFocused(true)}
                             onBlur={() => setIsFocused(false)}
                             onChange={e => setEmailForm(f => ({ ...f, message: e.target.value }))}
@@ -529,8 +474,9 @@ export default function EmailComposerleads({
                     </div>
 
                     <div
-                        className={`flex justify-between items-center text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-600"
-                            }`}
+                        className={`flex justify-between items-center text-sm ${
+                            theme === "dark" ? "text-gray-300" : "text-gray-600"
+                        }`}
                     >
                         <div className="flex items-center gap-4 relative">
                             <>
@@ -579,17 +525,10 @@ export default function EmailComposerleads({
                             >
                                 Discard
                             </button>
-                            {/* <button
-                                className="bg-purplebg text-base font-semibold text-white px-5 py-2 rounded-md flex items-center gap-1 hover:bg-purple-700"
-                                onClick={sendEmail}
-                                disabled={loading}
-                                type="button"
-                            >
-                                <Send size={14} /> {loading ? "Sending..." : "Send"}
-                            </button> */}
                             <button
-                                className={`bg-purplebg text-base font-semibold text-white px-5 py-2 rounded-md flex items-center gap-1 hover:bg-purple-700 ${!hasMessageContent ? "opacity-50 cursor-not-allowed" : ""
-                                    }`}
+                                className={`bg-purplebg text-base font-semibold text-white px-5 py-2 rounded-md flex items-center gap-1 hover:bg-purple-700 ${
+                                    !hasMessageContent ? "opacity-50 cursor-not-allowed" : ""
+                                }`}
                                 onClick={sendEmail}
                                 disabled={loading || !hasMessageContent}
                                 type="button"

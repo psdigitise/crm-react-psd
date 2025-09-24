@@ -951,7 +951,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
           <div className="text-center py-12">
             <div className={theme === 'dark' ? 'text-white' : 'text-gray-500'}>No results found</div>
             <div className={`text-sm mt-1 ${theme === 'dark' ? 'text-gray-500' : 'text-white'}`}>
-              Try adjusting your search criteria or filters
+             Please adjust your search criteria or filters
             </div>
           </div>
         )}

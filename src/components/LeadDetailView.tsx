@@ -40,6 +40,8 @@ import { CallDetailsPopup } from './CallLogPopups/CallDetailsPopup';
 import LeadsFilesUploadPopup from './LeadsPopup/LeadsFilesUploadPopup';
 import { DeleteAttachmentPopup } from './DealsAttachmentPopups/DeleteAttachmentPopup';
 import LeadPrivatePopup from './LeadsPopup/LeadPrivatePopup';
+import { FiChevronDown } from 'react-icons/fi';
+import { RxLightningBolt } from 'react-icons/rx';
 
 export interface Lead {
   id: string;
@@ -181,7 +183,7 @@ interface ActivityItem {
   action: string;
   data: any;
   id: string;
-  type: 'note' | 'call' | 'comment' | 'task' | 'edit' | 'email' | 'file';
+  type: 'note' | 'call' | 'comment' | 'task' | 'edit' | 'email' | 'file' | 'grouped_change';
   title: string;
   description: string;
   timestamp: string;
@@ -282,6 +284,8 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
   const [options, setOptions] = useState<SalutationOption[]>([]);
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [activityLoading, setActivityLoading] = useState(false);
+  const [showComposer, setShowComposer] = useState(false);
+  const [composerMode, setComposerMode] = useState<'reply' | 'comment'>('reply');
   const [emails, setEmails] = useState<Email[]>([]);
   const [activitiesNew, setActivitiesNew] = useState<any>(null);
   const [activitiesNewAttachment, setActivitiesNewAttachment] = useState<any>(null);
@@ -308,6 +312,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
   const [showCreateIndustryModal, setShowCreateIndustryModal] = useState(false);
   const [industrySearch, setIndustrySearch] = useState('');
   const [showFileModal, setShowFileModal] = useState(false);
+  const [emailModalMode, setEmailModalMode] = useState<"reply" | "reply-all" | "comment">("reply");
   const [expandedEmailId, setExpandedEmailId] = useState<string | null>(null);
   const [noteForm, setNoteForm] = useState({
     title: '',
@@ -363,7 +368,9 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [taskToDelete, setTaskToDelete] = React.useState<string | null>(null);
   const [editingCall, setEditingCall] = React.useState<any | null>(null);
+  const showUniversalComposer = ['activity'].includes(activeTab);
   const userSession = getUserSession();
+  const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
   const [files, setFiles] = useState<Array<{
     name: string;
     file_name: string;
@@ -627,13 +634,17 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
       const message = result.message || [];
       const docinfo = result.docinfo || {};
 
-      console.log(docinfo)
+      // Ensure we have valid data structure
+      if (!Array.isArray(message) || message.length === 0) {
+        setActivities([]);
+        setActivityLoading(false);
+        return;
+      }
 
-      // Separate data for individual tabs
-      const rawTimeline = message[0] || [];
-      const rawCalls = message[1] || [];
-      const rawNotes = message[2] || [];
-      const rawTasks = message[3] || [];
+      const rawTimeline = Array.isArray(message[0]) ? message[0] : [];
+      const rawCalls = Array.isArray(message[1]) ? message[1] : [];
+      const rawNotes = Array.isArray(message[2]) ? message[2] : [];
+      const rawTasks = Array.isArray(message[3]) ? message[3] : [];
 
       setCallLogs(rawCalls);
       setNotes(rawNotes);
@@ -664,16 +675,16 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
           const fileData = item.data || {};
 
           return {
-            id: item.name,
+            id: item.name || `file-${Date.now()}`,
             type: "file",
             title: `File ${fileData.type === "added" ? "Uploaded" : "Removed"}: ${fileData.file_name || "Unnamed file"}`,
             description: fileData.file_url || "",
-            timestamp: item.creation,
+            timestamp: item.creation || new Date().toISOString(),
             user: item.owner || "Unknown",
             icon: <IoDocument className="w-4 h-4" />,
-            data: fileData, // keep full file data (name, url, privacy, type)
-            action: fileData.type || "unknown", // 'added' or 'removed'
-            isPrivate: fileData.is_private ?? false
+            data: fileData,
+            action: fileData.type || "unknown",
+            files: false // Add this missing property
           };
         });
 
@@ -731,6 +742,63 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
         icon: <FaRegComment className="w-4 h-4" />,
       }));
 
+      // Extract timeline items from rawTimeline for edit activities
+      const timelineActivities = rawTimeline
+        .filter((item: any) => item.activity_type === 'added' || item.activity_type === 'changed' || item.activity_type === 'creation')
+        .map((item: any) => {
+          switch (item.activity_type) {
+            case 'creation':
+              return {
+                id: `creation-${item.creation}`,
+                type: 'edit',
+                title: `${item.owner} created this Lead`,
+                description: '',
+                timestamp: item.creation,
+                user: item.owner,
+                icon: <UserPlus className="w-4 h-4 text-gray-500" />
+              };
+
+            case 'added':
+            case 'changed':
+              // Handle grouped changes
+              if (item.other_versions?.length > 0) {
+                return {
+                  id: `group-${item.creation}`,
+                  type: 'grouped_change',
+                  timestamp: item.creation,
+                  user: item.owner,
+                  icon: <Layers className="w-4 h-4 text-white" />,
+                  data: {
+                    changes: [item, ...item.other_versions],
+                    field_label: item.data?.field_label,
+                    value: item.data?.value,
+                    old_value: item.data?.old_value,
+                    other_versions: item.other_versions
+                  }
+                };
+              }
+
+              // Single change
+              const actionText = item.activity_type === 'added'
+                ? `added value for ${item.data?.field_label}: '${item.data?.value}'`
+                : `changed ${item.data?.field_label} from '${item.data?.old_value || "nothing"}' to '${item.data?.value}'`;
+
+              return {
+                id: `change-${item.creation}`,
+                type: 'edit',
+                title: `${item.owner} ${actionText}`,
+                description: '',
+                timestamp: item.creation,
+                user: item.owner,
+                icon: <RxLightningBolt className="w-4 h-4 text-yellow-500" />
+              };
+
+            default:
+              return null;
+          }
+        })
+        .filter(Boolean);
+
       const otherActivities = rawTimeline
         .filter((item: { activity_type: string; }) =>
           item.activity_type !== 'communication' &&
@@ -745,11 +813,8 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
             type = 'creation';
             title = `${item.owner} created this Lead`;
             icon = <UserPlus className="w-4 h-4 text-gray-500" />;
-          } else if (item.data?.field_label) {
-            type = 'grouped_change';
-            title = `${item.owner} changed ${item.data.field_label}`;
-            icon = <Layers className="w-4 h-4 text-white" />;
-          } else if (typeof item.data === "string") {
+          }
+          else if (typeof item.data === "string") {
             // handle string safely
             title = `${item.owner} ${item.data}`;
           }
@@ -785,11 +850,13 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
         // ...taskActivities,
         ...emailActivities,
         ...commentActivities,
+        ...timelineActivities,
         ...fileActivities,
         ...otherActivities
       ];
+
       allActivities.sort((a, b) => {
-        const getValidDate = (activity) => {
+        const getValidDate = (activity: { timestamp: string | number | Date; creation: string | number | Date; data: { creation: string | number | Date; }; }) => {
           if (activity.timestamp) return new Date(activity.timestamp);
           if (activity.creation) return new Date(activity.creation);
           if (activity.data?.creation) return new Date(activity.data.creation);
@@ -895,6 +962,17 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
       setCallsLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (showEmailModal && composerRef.current) {
+      setTimeout(() => {
+        composerRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start"
+        });
+      }, 100);
+    }
+  }, [showEmailModal, emailModalMode]);
 
   const handleFileUpload = async (input: File[] | string) => {
     try {
@@ -1261,6 +1339,29 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
     }
   };
 
+  // Add this useEffect to automatically close modals on successful submission
+  useEffect(() => {
+    if (listSuccess && (showEmailModal || showCommentModal)) {
+      // Small delay to allow the user to see the success message
+      const timer = setTimeout(() => {
+        if (showEmailModal) {
+          setShowEmailModal(false);
+          setReplyData(undefined);
+          setEmailModalMode("reply");
+        }
+        if (showCommentModal) {
+          setShowCommentModal(false);
+          setReplyData(undefined);
+        }
+
+        // Reset the success message
+        setListSuccess('');
+      }, 1000); // 1 second delay
+
+      return () => clearTimeout(timer);
+    }
+  }, [listSuccess, showEmailModal, showCommentModal]);
+
   useEffect(() => {
     const fetchData = async () => {
       switch (activeTab) {
@@ -1342,33 +1443,33 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
       const leadData = await leadResponse.json();
 
       // Create deal with the provided parameters
-      const dealResponse = await fetch(`${API_BASE_URL}/method/frappe.client.insert`, {
-        method: 'POST',
-        headers: {
-          'Authorization': AUTH_TOKEN,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          doc: JSON.stringify({
-            doctype: 'CRM Deal',
-            organization: existing_organization || leadData.message.organization,
-            contact: existing_contact || null,
-            website: leadData.message.website,
-            industry: leadData.message.industry,
-            territory: leadData.message.territory,
-            annual_revenue: leadData.message.annual_revenue,
-            salutation: leadData.message.salutation,
-            first_name: leadData.message.first_name,
-            company: sessionCompany,
-            // Include any additional deal data passed in the params
-            ...dealData
-          })
-        })
-      });
+      // const dealResponse = await fetch(`${API_BASE_URL}/method/frappe.client.insert`, {
+      //   method: 'POST',
+      //   headers: {
+      //     'Authorization': AUTH_TOKEN,
+      //     'Content-Type': 'application/json'
+      //   },
+      //   body: JSON.stringify({
+      //     doc: JSON.stringify({
+      //       doctype: 'CRM Deal',
+      //       organization: existing_organization || leadData.message.organization,
+      //       contact: existing_contact || null,
+      //       website: leadData.message.website,
+      //       industry: leadData.message.industry,
+      //       territory: leadData.message.territory,
+      //       annual_revenue: leadData.message.annual_revenue,
+      //       salutation: leadData.message.salutation,
+      //       first_name: leadData.message.first_name,
+      //       company: sessionCompany,
+      //       // Include any additional deal data passed in the params
+      //       ...dealData
+      //     })
+      //   })
+      // });
 
-      if (!dealResponse.ok) {
-        throw new Error('Failed to create deal');
-      }
+      // if (!dealResponse.ok) {
+      //   throw new Error('Failed to create deal');
+      // }
 
       // Update lead as converted
       const updateLeadResponse = await fetch(`${API_BASE_URL}/method/frappe.client.set_value`, {
@@ -1421,7 +1522,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
 
   const addNote = async () => {
     if (!noteForm.title.trim() || !noteForm.content.trim()) {
-      showToast('Please fill in all required fields', { type: 'warning' });
+      showToast('All required fields must be filled before proceeding.', { type: 'warning' });
       return;
     }
 
@@ -1465,7 +1566,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
 
   // const editNote = async () => {
   //   if (!noteForm.title.trim() || !noteForm.content.trim()) {
-  //     showToast('Please fill in all required fields', { type: 'warning' });
+  //     showToast('All required fields must be filled before proceeding.', { type: 'warning' });
   //     return false;
   //   }
 
@@ -1657,7 +1758,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
 
   const addCall = async () => {
     if (!callForm.from.trim() || !callForm.to.trim()) {
-      showToast('Please fill all required fields', { type: 'error' });
+      showToast('All required fields must be filled before proceeding.', { type: 'error' });
       return;
     }
 
@@ -1721,7 +1822,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
 
   const editCall = async () => {
     if (!callForm.from.trim() || !callForm.to.trim()) {
-      showToast('Please fill in all required fields', { type: 'warning' });
+      showToast('All required fields must be filled before proceeding.', { type: 'warning' });
       return false;
     }
 
@@ -2145,6 +2246,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
       message: `\n\n-------- Original Message --------\nFrom: ${email.sender}\nDate: ${formatDate(email.creation)}\nTo: ${email.recipients}\nSubject: ${email.subject}\n\n${email.content}`
     });
 
+    setEmailModalMode("reply");
     setShowEmailModal(true);
   };
 
@@ -2262,19 +2364,29 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
 
               {showPopup && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-                  <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-lg relative">
+                  <div className={`rounded-lg p-6 w-full max-w-md shadow-lg relative ${theme === 'dark'
+                    ? 'bg-dark-secondary border border-gray-700'
+                    : 'bg-white border border-gray-200'
+                    }`}>
                     <button
                       onClick={() => setShowPopup(false)}
-                      className="absolute top-2 right-3 text-gray-500 hover:text-black text-xl font-bold"
+                      className={`absolute top-2 right-3 text-xl font-bold ${theme === 'dark' ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-black'
+                        }`}
                     >
                       &times;
                     </button>
 
-                    <h2 className="text-lg font-semibold mb-4">Convert to Deal</h2>
+                    <h2 className={`text-lg font-semibold mb-4 ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                      }`}>
+                      Convert to Deal
+                    </h2>
 
                     <div className="mb-4">
                       <div className="flex items-center justify-between">
-                        <span className="font-medium">Organization</span>
+                        <span className={`font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                          }`}>
+                          Organization
+                        </span>
                         <ToggleSwitch
                           enabled={orgToggle}
                           onToggle={() => setOrgToggle(!orgToggle)}
@@ -2284,7 +2396,10 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                         <select
                           value={selectedOrganization}
                           onChange={(e) => setSelectedOrganization(e.target.value)}
-                          className="mt-2 w-full border rounded px-3 py-2"
+                          className={`mt-2 w-full rounded px-3 py-2 ${theme === 'dark'
+                            ? 'bg-gray-800 border-gray-600 text-white'
+                            : 'bg-white border-gray-300 text-gray-900'
+                            } border`}
                         >
                           <option value="">Choose Existing Organization</option>
                           {organizationOptions.map(org => (
@@ -2292,7 +2407,8 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                           ))}
                         </select>
                       ) : (
-                        <p className="text-sm text-gray-500 mt-1">
+                        <p className={`text-sm mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                          }`}>
                           New organization will be created based on the data in details section
                         </p>
                       )}
@@ -2300,7 +2416,10 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
 
                     <div className="mb-4">
                       <div className="flex items-center justify-between">
-                        <span className="font-medium">Contact</span>
+                        <span className={`font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                          }`}>
+                          Contact
+                        </span>
                         <ToggleSwitch
                           enabled={contactToggle}
                           onToggle={() => setContactToggle(!contactToggle)}
@@ -2309,17 +2428,24 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
 
                       {contactToggle ? (
                         <select
-                          className="mt-2 w-full border rounded px-3 py-2"
+                          className={`mt-2 w-full rounded px-3 py-2 ${theme === 'dark'
+                            ? 'bg-gray-800 border-gray-600 text-white'
+                            : 'bg-white border-gray-300 text-gray-900'
+                            } border`}
                           value={selectedContact}
                           onChange={e => setSelectedContact(e.target.value)}
                         >
                           <option value="">Choose Existing Contact</option>
                           {contactOptions.map(name => (
-                            <option key={name} value={name}>{name}</option>
+                            <option className={`mt-2 w-full rounded px-3 py-2 ${theme === 'dark'
+                              ? 'bg-gray-800 border-gray-600 text-white'
+                              : 'bg-white border-gray-300 text-gray-900'
+                              } border`} key={name} value={name}>{name}</option>
                           ))}
                         </select>
                       ) : (
-                        <p className="text-sm text-gray-500 mt-1">
+                        <p className={`text-sm mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                          }`}>
                           New contact will be created based on the person's details
                         </p>
                       )}
@@ -2332,7 +2458,10 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                         existing_contact: selectedContact,
                         existing_organization: orgToggle ? selectedOrganization : undefined
                       })}
-                      className="mt-4 w-full bg-black text-white py-2 rounded hover:bg-gray-800"
+                      className={`mt-4 w-full py-2 rounded transition-colors ${theme === 'dark'
+                        ? 'bg-purple-600 hover:bg-purple-700 text-white'
+                        : 'bg-blue-600 hover:bg-blue-700 text-white'
+                        } disabled:opacity-50`}
                       disabled={loading}
                     >
                       {loading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Convert'}
@@ -2358,9 +2487,9 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
               onChange={async (newStatus: Lead['status']) => {
                 const updated = { ...editedLead, status: newStatus };
 
-                // Make the API call to update the status
                 try {
-                  await fetch('http://103.214.132.20:8002/api/method/frappe.client.set_value', {
+                  setLoading(true);
+                  const response = await fetch('http://103.214.132.20:8002/api/method/frappe.client.set_value', {
                     method: 'POST',
                     headers: {
                       'Content-Type': 'application/json',
@@ -2368,18 +2497,28 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                     },
                     body: JSON.stringify({
                       doctype: 'CRM Lead',
-                      name: updated.name, // Assuming editedLead.name is the correct ID like "CRM-LEAD-2025-00063"
+                      name: updated.name,
                       fieldname: 'status',
                       value: newStatus,
                     }),
                   });
 
-                  // Update local state only if API call is successful
-                  setEditedLead(updated);
-                  handleSave(updated);
+                  if (response.ok) {
+                    // Update local state only if API call is successful
+                    setEditedLead(updated);
+                    onSave(updated);
+
+                    // Show success toast
+                    showToast('Status updated successfully', { type: 'success' });
+                  } else {
+                    throw new Error('Failed to update status');
+                  }
                 } catch (error) {
                   console.error('Failed to update lead status:', error);
-                  // Optionally show a toast or error message here
+                  // Show error toast
+                  showToast('Failed to update status', { type: 'error' });
+                } finally {
+                  setLoading(false);
                 }
               }}
             >
@@ -2932,350 +3071,448 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
         )}
 
         {activeTab === 'activity' && (
-          <div className={`relative rounded-lg shadow-sm border p-6 pb-24 ${theme === 'dark' ? `bg-gray-900 border-gray-700` : 'bg-white border-gray-200'}`}>
-            <h3 className={`text-lg font-semibold mb-6 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Activity</h3>
+          <div className="h-full">
+            <div className={`relative h-full rounded-lg shadow-sm border p-6 pb-5  ${theme === 'dark' ? `bg-gray-900 border-gray-700` : 'bg-white border-gray-200'}`}>
+              <h3 className={`text-lg font-semibold mb-6 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Activity</h3>
 
-            {activityLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
-              </div>
-            ) : activities.length === 0 ? (
-              <div className="text-center py-8">
-                <RiShining2Line className={`w-12 h-12 ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'} mx-auto mb-4`} />
-                <p className={`${theme === 'dark' ? 'text-white' : 'text-gray-500'}`}>No activities yet</p>
-              </div>
-            ) : (
-              <div ref={activityContainerRef} className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
-                {activities.map((activity) => {
-                  switch (activity.type) {
-                    case 'call': {
-                      const callData = activity.data; // 👈 directly use mapped data
-                      if (!callData) return null;
+              {activityLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+                </div>
+              ) : activities.length === 0 ? (
+                <div className="text-center py-8">
+                  <RiShining2Line className={`w-12 h-12 ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'} mx-auto mb-4`} />
+                  <p className={`${theme === 'dark' ? 'text-white' : 'text-gray-500'}`}>No activities yet</p>
+                </div>
+              ) : (
+                <div ref={activityContainerRef} className="space-y-4 h-[50vh] max-2xl:h-[40vh] overflow-y-auto pr-2">
+                  {activities.map((activity) => {
+                    switch (activity.type) {
+                      case 'call': {
+                        const callData = activity.data; // 👈 directly use mapped data
+                        if (!callData) return null;
 
-                      return (
-                        <div key={`${activity.id}-${activity.timestamp}`}>
-                          <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center">
-                              <div
-                                className={`p-2 rounded-full mr-3 flex items-center justify-center
-              ${callData.type === 'Incoming' || callData.type === 'Inbound'
-                                    ? 'bg-blue-100 text-blue-600'
-                                    : 'bg-green-100 text-green-600'}`}
-                                style={{ width: '32px', height: '32px' }}
-                              >
-                                {callData.type === 'Incoming' || callData.type === 'Inbound'
-                                  ? <SlCallIn className="w-4 h-4" />
-                                  : <SlCallOut className="w-4 h-4" />}
-                              </div>
-                              <span className={`ml-2 text-sm ${textColor}`}>
-                                {(callData.caller || callData.from || 'Unknown')} has reached out
-                              </span>
-                            </div>
-                            <p className={`text-xs ${textSecondaryColor}`}>
-                              {getRelativeTime(activity.timestamp)}
-                            </p>
-                          </div>
-
-                          <div
-                            onClick={() => handleLabelClick(callData)}
-                            className={`relative border ${borderColor} rounded-lg ml-12 p-4 flex flex-col cursor-pointer`}
-                          >
-                            <div className="flex items-center justify-between mb-2">
-                              <p className={`text-lg font-medium ${textColor}`}>
-                                {callData.type || 'Call'} Call
-                              </p>
-                            </div>
-                            <div className="flex items-start justify-start mt-2 gap-4">
-                              <p className={`text-sm ${textSecondaryColor} flex items-center`}>
-                                <IoIosCalendar className="mr-1" />
-                                {formatDateRelative(callData.creation)}
-                              </p>
-                              <p className={`text-sm ${textSecondaryColor}`}>
-                                {callData.duration || '0'} seconds
-                              </p>
-                              <span
-                                className={`text-xs px-2 py-1 rounded ${getStatusColor(callData.status)}`}
-                              >
-                                {callData.status || 'Unknown'}
-                              </span>
-                            </div>
-
-                            {/* Caller + Receiver Avatars */}
-                            <div className="absolute right-4 top-1/2 -translate-y-1/2 flex -space-x-4">
-                              <div
-                                className={`p-2 rounded-full flex items-center justify-center cursor-pointer 
-              ${theme === 'dark' ? 'bg-gray-600 text-gray-100' : 'bg-gray-400 text-gray-800'} font-medium`}
-                                style={{ width: '32px', height: '32px' }}
-                                title={callData.caller}
-                              >
-                                {callData.caller?.charAt(0).toUpperCase() || 'U'}
-                              </div>
-                              <div
-                                className={`p-2 rounded-full flex items-center justify-center cursor-pointer 
-              ${theme === 'dark' ? 'bg-gray-600 text-gray-100' : 'bg-gray-400 text-gray-800'} font-medium`}
-                                style={{ width: '32px', height: '32px' }}
-                                title={callData.receiver}
-                              >
-                                {callData.receiver?.charAt(0).toUpperCase() || 'U'}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    }
-
-                    case 'note': {
-                      const noteData = notes.find(n => n.name === activity.id);
-                      if (!noteData) return null;
-                      return (
-                        <div key={activity.id} className="flex items-start space-x-3">
-                          <div className={`p-2 rounded-full ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-100'}`}>{activity.icon}</div>
-                          <div className={`flex-1 border ${borderColor} rounded-lg p-4 relative`}>
-                            <div className="flex items-center justify-between mb-2">
-                              <h4 className={`text-lg font-semibold ${textColor}`}>{noteData.title || 'Untitled Note'}</h4>
-                              <div className="relative">
-                                <button onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === noteData.name ? null : noteData.name); }} className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600"><BsThreeDots className="w-4 h-4" /></button>
-                                {openMenuId === noteData.name && (<div className={`absolute right-0 mt-2 w-28 rounded-lg shadow-lg z-10 ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border'}`}>
-                                  <button onClick={(e) => { e.stopPropagation(); deleteNote(noteData.name); setOpenMenuId(null); }} className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 w-full text-left text-red-500"><Trash2 className="w-4 h-4" /><span>Delete</span></button>
-                                </div>)}
-                              </div>
-                            </div>
-                            <p className={`text-base font-semibold ${textSecondaryColor} whitespace-pre-wrap`}>{noteData.content || 'No content'}</p>
-                            <div className="flex justify-between items-center mt-4 pt-2 border-t dark:border-gray-700 text-sm gap-2">
-                              <div className="flex items-center gap-2">
-                                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-gray-500 text-white font-bold text-xs">{noteData.owner?.charAt(0).toUpperCase() || "-"}</span>
-                                <span className={textSecondaryColor}>{noteData.owner || 'Unknown'}</span>
-                              </div>
-                              <span className={`${textSecondaryColor} font-medium`}>{getRelativeTime(noteData.creation)}</span>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    }
-                    case 'comment': {
-                      const commentData = comments.find(c => c.name === activity.id);
-                      if (!commentData) return null;
-                      return (
-                        <div key={activity.id} className="relative">
-                          <div className="flex justify-between items-center mb-2">
-                            <div className="flex items-center gap-4">
-                              <div className="mt-1 text-gray-400"><FaRegComment size={18} /></div>
-                              <div className={`w-8 h-8 flex items-center justify-center rounded-full ${theme === 'dark' ? 'bg-gray-400' : 'bg-gray-200'} text-sm font-semibold`}>{commentData.owner?.charAt(0).toUpperCase() || "?"}</div>
-                              <p className={`text-sm font-medium ${textSecondaryColor}`}>{commentData.owner || 'Someone'} added a comment</p>
-                            </div>
-                            <p className={`text-xs ${textSecondaryColor}`}>{getRelativeTime(commentData.creation)}</p>
-                          </div>
-                          <div className={`border ${borderColor} rounded-lg p-4 ml-9 mt-2`}>
-                            <div className={`${textColor} mb-2 whitespace-pre-wrap`}>{stripHtml(commentData.content)}</div>
-                            {commentData.attachments && commentData.attachments.length > 0 && (<div className="mt-4">
-                              <div className="flex flex-wrap gap-3">
-                                {commentData.attachments.map((attachment: any, index: number) => {
-                                  const baseURL = "http://103.214.132.20:8002";
-                                  const fullURL = attachment.file_url && attachment.file_url.startsWith("http") ? attachment.file_url : `${baseURL}${attachment.file_url || ''}`;
-                                  return (
-                                    <a key={index} href={fullURL} target="_blank" rel="noopener noreferrer" className={`flex items-center border ${borderColor} px-3 py-1 rounded-md ${theme === 'dark' ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-50 hover:bg-gray-100'} transition-colors`}>
-                                      <span className="mr-2 flex items-center gap-1 truncate max-w-[200px] text-sm"><IoDocument className="w-3 h-3 mr-1" />{attachment.file_name || 'Unnamed file'}</span>
-                                    </a>
-                                  );
-                                })}
-                              </div>
-                            </div>)}
-                          </div>
-                        </div>
-                      );
-                    }
-                    case 'task': {
-                      const taskData = tasks.find(t => t.name === activity.id);
-                      if (!taskData) return null;
-                      return (
-                        <div key={taskData.name} className="flex items-start w-full space-x-3">
-                          <div className={`p-2 rounded-full mt-1 ${theme === 'dark' ? 'bg-orange-900' : 'bg-orange-100'}`}><SiTicktick className="w-4 h-4 text-white" /></div>
-                          <div onClick={() => {
-                            let formattedDate = taskData.due_date ? new Date(taskData.due_date).toISOString().split('T')[0] : '';
-                            setTaskForm({ ...taskData, due_date: formattedDate });
-                            setIsEditMode(true);
-                            setCurrentTaskId(taskData.name);
-                            setShowTaskModal(true);
-                          }} className={`flex-1 border ${borderColor} rounded-lg p-4 cursor-pointer hover:shadow-md`}>
-                            <div className="flex justify-between items-start mb-2">
-                              <h4 className={`font-medium ${textColor}`}>{taskData.title || 'Untitled Task'}</h4>
-                            </div>
-                            <div className="mt-1 text-sm flex justify-between items-center flex-wrap gap-2">
-                              <div className="flex items-center gap-4 flex-wrap">
-                                <div className="flex items-center gap-1">
-                                  <div className={`w-8 h-8 flex items-center justify-center rounded-full ${theme === 'dark' ? 'bg-gray-400' : 'bg-gray-200'} text-sm font-semibold`}>{taskData.assigned_to?.charAt(0).toUpperCase() || "U"}</div>
-                                  <span className={textSecondaryColor}>{taskData.assigned_to || 'Unassigned'}</span>
+                        return (
+                          <div key={`${activity.id}-${activity.timestamp}`}>
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex items-center">
+                                <div
+                                  className={`p-2 rounded-full mr-3 flex items-center justify-center
+                ${callData.type === 'Incoming' || callData.type === 'Inbound'
+                                      ? 'bg-blue-100 text-blue-600'
+                                      : 'bg-green-100 text-green-600'}`}
+                                  style={{ width: '32px', height: '32px' }}
+                                >
+                                  {callData.type === 'Incoming' || callData.type === 'Inbound'
+                                    ? <SlCallIn className="w-4 h-4" />
+                                    : <SlCallOut className="w-4 h-4" />}
                                 </div>
-                                {taskData.due_date && (<span className={`flex items-center gap-1 ${textSecondaryColor}`}><LuCalendar className="w-3.5 h-3.5" />{new Date(taskData.due_date).toLocaleDateString()}</span>)}
-                                <span className="flex items-center gap-1.5">
-                                  <span className={`w-2.5 h-2.5 rounded-full ${taskData.priority === 'High' ? 'bg-red-500' : taskData.priority === 'Medium' ? 'bg-yellow-500' : 'bg-gray-400'}`}></span>
-                                  <span className={`text-xs font-medium ${textSecondaryColor}`}>{taskData.priority || 'Medium'}</span>
+                                <span className={`ml-2 text-sm ${textColor}`}>
+                                  {(callData.caller || callData.from || 'Unknown')} has reached out
                                 </span>
                               </div>
-                              <div className="flex items-center gap-2">
-                                <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${taskData.status === 'Done' ? (theme === 'dark' ? 'bg-green-900 text-green-200' : 'bg-green-100 text-green-800') : (theme === 'dark' ? 'bg-blue-900 text-blue-200' : 'bg-blue-100 text-blue-800')}`}>{taskData.status || 'Open'}</span>
+                              <p className={`text-xs ${textSecondaryColor}`}>
+                                {getRelativeTime(activity.timestamp)}
+                              </p>
+                            </div>
+
+                            <div
+                              onClick={() => handleLabelClick(callData)}
+                              className={`relative border ${borderColor} rounded-lg ml-12 p-4 flex flex-col cursor-pointer`}
+                            >
+                              <div className="flex items-center justify-between mb-2">
+                                <p className={`text-lg font-medium ${textColor}`}>
+                                  {callData.type || 'Call'} Call
+                                </p>
+                              </div>
+                              <div className="flex items-start justify-start mt-2 gap-4">
+                                <p className={`text-sm ${textSecondaryColor} flex items-center`}>
+                                  <IoIosCalendar className="mr-1" />
+                                  {formatDateRelative(callData.creation)}
+                                </p>
+                                <p className={`text-sm ${textSecondaryColor}`}>
+                                  {callData.duration || '0'} seconds
+                                </p>
+                                <span
+                                  className={`text-xs px-2 py-1 rounded ${getStatusColor(callData.status)}`}
+                                >
+                                  {callData.status || 'Unknown'}
+                                </span>
+                              </div>
+
+                              {/* Caller + Receiver Avatars */}
+                              <div className="absolute right-4 top-1/2 -translate-y-1/2 flex -space-x-4">
+                                <div
+                                  className={`p-2 rounded-full flex items-center justify-center cursor-pointer 
+                ${theme === 'dark' ? 'bg-gray-600 text-gray-100' : 'bg-gray-400 text-gray-800'} font-medium`}
+                                  style={{ width: '32px', height: '32px' }}
+                                  title={callData.caller}
+                                >
+                                  {callData.caller?.charAt(0).toUpperCase() || 'U'}
+                                </div>
+                                <div
+                                  className={`p-2 rounded-full flex items-center justify-center cursor-pointer 
+                ${theme === 'dark' ? 'bg-gray-600 text-gray-100' : 'bg-gray-400 text-gray-800'} font-medium`}
+                                  style={{ width: '32px', height: '32px' }}
+                                  title={callData.receiver}
+                                >
+                                  {callData.receiver?.charAt(0).toUpperCase() || 'U'}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }
+                      case 'note': {
+                        const noteData = notes.find(n => n.name === activity.id);
+                        if (!noteData) return null;
+                        return (
+                          <div key={activity.id} className="flex items-start space-x-3">
+                            <div className={`p-2 rounded-full ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-100'}`}>{activity.icon}</div>
+                            <div className={`flex-1 border ${borderColor} rounded-lg p-4 relative`}>
+                              <div className="flex items-center justify-between mb-2">
+                                <h4 className={`text-lg font-semibold ${textColor}`}>{noteData.title || 'Untitled Note'}</h4>
                                 <div className="relative">
-                                  <button onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === taskData.name ? null : taskData.name); }} className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full"><BsThreeDots className={`w-4 h-4 ${textColor}`} /></button>
-                                  {openMenuId === taskData.name && (<div className="absolute right-0 mt-2 w-28 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-10">
-                                    <button onClick={(e) => { e.stopPropagation(); setTaskToDelete(taskData); setShowDeleteTaskPopup(true); setOpenMenuId(null); }} className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 hover:rounded-lg w-full text-left"><Trash2 className="w-4 h-4 text-red-500" /><span className='text-white'>Delete</span></button>
+                                  <button onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === noteData.name ? null : noteData.name); }} className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600"><BsThreeDots className="w-4 h-4" /></button>
+                                  {openMenuId === noteData.name && (<div className={`absolute right-0 mt-2 w-28 rounded-lg shadow-lg z-10 ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border'}`}>
+                                    <button onClick={(e) => { e.stopPropagation(); deleteNote(noteData.name); setOpenMenuId(null); }} className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 w-full text-left text-red-500"><Trash2 className="w-4 h-4" /><span>Delete</span></button>
                                   </div>)}
                                 </div>
                               </div>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    }
-                    case 'email': {
-                      const emailData = activity; // The email data is already in the activity object
-                      if (!emailData) return null;
-
-                      return (
-                        <div key={emailData.id} className="flex items-start w-full">
-                          <div className={`w-8 h-8 flex items-center justify-center rounded-full ${theme === 'dark' ? 'bg-blue-600' : 'bg-blue-100'} text-sm font-semibold text-white`}>
-                            {emailData.user?.charAt(0).toUpperCase() || "E"}
-                          </div>
-                          <div className={`flex-1 border ${borderColor} rounded-lg p-4 hover:shadow-md transition-shadow ml-3`}>
-                            <div className="flex justify-between items-start mb-2">
-                              <h4 className={`font-medium ${textColor}`}>{emailData.user || 'Unknown'}</h4>
-                              <div className="flex items-center gap-3 ml-auto">
-                                <span className={`text-xs ${textSecondaryColor}`}>
-                                  {emailData.timestamp ? getRelativeTime(emailData.timestamp) : 'Unknown time'}
-                                </span>
-                                <button
-                                  onClick={() => handleReply(emailData, false)}
-                                  className="p-1 rounded dark:text-white text-balck hover:bg-gray-100 dark:hover:bg-gray-700"
-                                  title="Reply"
-                                >
-                                  <LuReply className="w-4 h-4" />
-                                </button>
-                                <button
-                                  onClick={() => handleReply(emailData, true)}
-                                  className="p-1 rounded dark:text-white text-balck hover:bg-gray-100 dark:hover:bg-gray-700"
-                                  title="Reply All"
-                                >
-                                  <LuReplyAll className="w-4 h-4" />
-                                </button>
+                              <p className={`text-base font-semibold ${textSecondaryColor} whitespace-pre-wrap`}>{noteData.content || 'No content'}</p>
+                              <div className="flex justify-between items-center mt-4 pt-2 border-t dark:border-gray-700 text-sm gap-2">
+                                <div className="flex items-center gap-2">
+                                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-gray-500 text-white font-bold text-xs">{noteData.owner?.charAt(0).toUpperCase() || "-"}</span>
+                                  <span className={textSecondaryColor}>{noteData.owner || 'Unknown'}</span>
+                                </div>
+                                <span className={`${textSecondaryColor} font-medium`}>{getRelativeTime(noteData.creation)}</span>
                               </div>
                             </div>
-
-                            <h4 className={`font-medium ${textColor} mb-2`}>{emailData.title?.replace('Email: ', '') || 'No Subject'}</h4>
-                            {emailData.recipients && (
-                              <div className="mb-2">
-                                <span className={`text-sm ${textColor}`}>
-                                  <strong>To:</strong> {emailData.recipients || 'No recipients'}
-                                </span>
+                          </div>
+                        );
+                      }
+                      case 'comment': {
+                        const commentData = comments.find(c => c.name === activity.id);
+                        if (!commentData) return null;
+                        return (
+                          <div key={activity.id} className="relative">
+                            <div className="flex justify-between items-center mb-2">
+                              <div className="flex items-center gap-4">
+                                <div className="mt-1 text-gray-400"><FaRegComment size={18} /></div>
+                                <div className={`w-8 h-8 flex items-center justify-center rounded-full ${theme === 'dark' ? 'bg-gray-400' : 'bg-gray-200'} text-sm font-semibold`}>{commentData.owner?.charAt(0).toUpperCase() || "?"}</div>
+                                <p className={`text-sm font-medium ${textSecondaryColor}`}>{commentData.owner || 'Someone'} added a comment</p>
                               </div>
-                            )}
-                            <div className={`mt-4 pt-2 border-t ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'} flex flex-col items-start`}>
-                              <div className={`${textColor} mb-2 whitespace-pre-wrap mt-4 w-full`}>
-                                {emailData.description || 'No content'}
-                              </div>
-                              {/* ADD THIS SECTION TO SHOW RECIPIENTS */}
-
-
-                              {/* If you have attachments in your email data */}
-                              {emailData.files && emailData.files.length > 0 && (
-                                <div className="mt-3">
-                                  <p className={`text-sm font-semibold mb-2 ${textSecondaryColor}`}>Attachments:</p>
-                                  <div className="flex flex-wrap gap-2">
-                                    {emailData.files.map((attachment: any, index: number) => (
-                                      <a
-                                        key={index}
-                                        href={`http://103.214.132.20:8002${attachment.file_url}`}
-                                        download
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className={`flex items-center gap-2 px-3 py-2 rounded-md ${theme === 'dark' ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'} transition-colors`}
-                                      >
-                                        <File className="w-4 h-4" />
-                                        <span className="text-sm">{attachment.file_name || attachment.file_url?.split('/').pop() || 'Unnamed file'}</span>
+                              <p className={`text-xs ${textSecondaryColor}`}>{getRelativeTime(commentData.creation)}</p>
+                            </div>
+                            <div className={`border ${borderColor} rounded-lg p-4 ml-9 mt-2`}>
+                              <div className={`${textColor} mb-2 whitespace-pre-wrap`}>{stripHtml(commentData.content)}</div>
+                              {commentData.attachments && commentData.attachments.length > 0 && (<div className="mt-4">
+                                <div className="flex flex-wrap gap-3">
+                                  {commentData.attachments.map((attachment: any, index: number) => {
+                                    const baseURL = "http://103.214.132.20:8002";
+                                    const fullURL = attachment.file_url && attachment.file_url.startsWith("http") ? attachment.file_url : `${baseURL}${attachment.file_url || ''}`;
+                                    return (
+                                      <a key={index} href={fullURL} target="_blank" rel="noopener noreferrer" className={`flex items-center border ${borderColor} px-3 py-1 rounded-md ${theme === 'dark' ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-50 hover:bg-gray-100'} transition-colors`}>
+                                        <span className="mr-2 flex items-center gap-1 truncate max-w-[200px] text-sm"><IoDocument className="w-3 h-3 mr-1" />{attachment.file_name || 'Unnamed file'}</span>
                                       </a>
-                                    ))}
+                                    );
+                                  })}
+                                </div>
+                              </div>)}
+                            </div>
+                          </div>
+                        );
+                      }
+                      case 'task': {
+                        const taskData = tasks.find(t => t.name === activity.id);
+                        if (!taskData) return null;
+                        return (
+                          <div key={taskData.name} className="flex items-start w-full space-x-3">
+                            <div className={`p-2 rounded-full mt-1 ${theme === 'dark' ? 'bg-orange-900' : 'bg-orange-100'}`}><SiTicktick className="w-4 h-4 text-white" /></div>
+                            <div onClick={() => {
+                              let formattedDate = taskData.due_date ? new Date(taskData.due_date).toISOString().split('T')[0] : '';
+                              setTaskForm({ ...taskData, due_date: formattedDate });
+                              setIsEditMode(true);
+                              setCurrentTaskId(taskData.name);
+                              setShowTaskModal(true);
+                            }} className={`flex-1 border ${borderColor} rounded-lg p-4 cursor-pointer hover:shadow-md`}>
+                              <div className="flex justify-between items-start mb-2">
+                                <h4 className={`font-medium ${textColor}`}>{taskData.title || 'Untitled Task'}</h4>
+                              </div>
+                              <div className="mt-1 text-sm flex justify-between items-center flex-wrap gap-2">
+                                <div className="flex items-center gap-4 flex-wrap">
+                                  <div className="flex items-center gap-1">
+                                    <div className={`w-8 h-8 flex items-center justify-center rounded-full ${theme === 'dark' ? 'bg-gray-400' : 'bg-gray-200'} text-sm font-semibold`}>{taskData.assigned_to?.charAt(0).toUpperCase() || "U"}</div>
+                                    <span className={textSecondaryColor}>{taskData.assigned_to || 'Unassigned'}</span>
                                   </div>
+                                  {taskData.due_date && (<span className={`flex items-center gap-1 ${textSecondaryColor}`}><LuCalendar className="w-3.5 h-3.5" />{new Date(taskData.due_date).toLocaleDateString()}</span>)}
+                                  <span className="flex items-center gap-1.5">
+                                    <span className={`w-2.5 h-2.5 rounded-full ${taskData.priority === 'High' ? 'bg-red-500' : taskData.priority === 'Medium' ? 'bg-yellow-500' : 'bg-gray-400'}`}></span>
+                                    <span className={`text-xs font-medium ${textSecondaryColor}`}>{taskData.priority || 'Medium'}</span>
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${taskData.status === 'Done' ? (theme === 'dark' ? 'bg-green-900 text-green-200' : 'bg-green-100 text-green-800') : (theme === 'dark' ? 'bg-blue-900 text-blue-200' : 'bg-blue-100 text-blue-800')}`}>{taskData.status || 'Open'}</span>
+                                  <div className="relative">
+                                    <button onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === taskData.name ? null : taskData.name); }} className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full"><BsThreeDots className={`w-4 h-4 ${textColor}`} /></button>
+                                    {openMenuId === taskData.name && (<div className="absolute right-0 mt-2 w-28 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-10">
+                                      <button onClick={(e) => { e.stopPropagation(); setTaskToDelete(taskData); setShowDeleteTaskPopup(true); setOpenMenuId(null); }} className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 hover:rounded-lg w-full text-left"><Trash2 className="w-4 h-4 text-red-500" /><span className='text-white'>Delete</span></button>
+                                    </div>)}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }
+                      case 'email': {
+                        const emailData = activity; // The email data is already in the activity object
+                        if (!emailData) return null;
+
+                        return (
+                          <div key={emailData.id} className="flex items-start w-full">
+                            <div className={`w-8 h-8 flex items-center justify-center rounded-full ${theme === 'dark' ? 'bg-blue-600' : 'bg-blue-100'} text-sm font-semibold text-white`}>
+                              {emailData.user?.charAt(0).toUpperCase() || "E"}
+                            </div>
+                            <div className={`flex-1 border ${borderColor} rounded-lg p-4 hover:shadow-md transition-shadow ml-3`}>
+                              <div className="flex justify-between items-start mb-2">
+                                <h4 className={`font-medium ${textColor}`}>{emailData.user || 'Unknown'}</h4>
+                                <div className="flex items-center gap-3 ml-auto">
+                                  <span className={`text-xs ${textSecondaryColor}`}>
+                                    {emailData.timestamp ? getRelativeTime(emailData.timestamp) : 'Unknown time'}
+                                  </span>
+                                  <button
+                                    onClick={() => handleReply(emailData, false)}
+                                    className="p-1 rounded dark:text-white text-balck hover:bg-gray-100 dark:hover:bg-gray-700"
+                                    title="Reply"
+                                  >
+                                    <LuReply className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleReply(emailData, true)}
+                                    className="p-1 rounded dark:text-white text-balck hover:bg-gray-100 dark:hover:bg-gray-700"
+                                    title="Reply All"
+                                  >
+                                    <LuReplyAll className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              </div>
+
+                              <h4 className={`font-medium ${textColor} mb-2`}>{emailData.title?.replace('Email: ', '') || 'No Subject'}</h4>
+                              {emailData.recipients && (
+                                <div className="mb-2">
+                                  <span className={`text-sm ${textColor}`}>
+                                    <strong>To:</strong> {emailData.recipients || 'No recipients'}
+                                  </span>
+                                </div>
+                              )}
+                              <div className={`mt-4 pt-2 border-t ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'} flex flex-col items-start`}>
+                                <div className={`${textColor} mb-2 whitespace-pre-wrap mt-4 w-full`}>
+                                  {emailData.description || 'No content'}
+                                </div>
+                                {/* ADD THIS SECTION TO SHOW RECIPIENTS */}
+
+
+                                {/* If you have attachments in your email data */}
+                                {emailData.files && emailData.files.length > 0 && (
+                                  <div className="mt-3">
+                                    <p className={`text-sm font-semibold mb-2 ${textSecondaryColor}`}>Attachments:</p>
+                                    <div className="flex flex-wrap gap-2">
+                                      {emailData.files.map((attachment: any, index: number) => (
+                                        <a
+                                          key={index}
+                                          href={`http://103.214.132.20:8002${attachment.file_url}`}
+                                          download
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className={`flex items-center gap-2 px-3 py-2 rounded-md ${theme === 'dark' ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'} transition-colors`}
+                                        >
+                                          <File className="w-4 h-4" />
+                                          <span className="text-sm">{attachment.file_name || attachment.file_url?.split('/').pop() || 'Unnamed file'}</span>
+                                        </a>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }
+                      case 'file': {
+                        const fileData = activity.data;
+                        if (!fileData) return null;
+                        const baseURL = "http://103.214.132.20:8002";
+                        const fullURL = fileData.file_url?.startsWith("http")
+                          ? fileData.file_url
+                          : fileData.file_url?.startsWith("/")
+                            ? `${baseURL}${fileData.file_url}`
+                            : fileData.file_url;
+
+                        return (
+                          <div key={`${activity.id}-${activity.timestamp}`} className="flex items-start space-x-3">
+                            <div className={`p-2 rounded-full mt-1 ${theme === 'dark' ? 'bg-blue-700' : 'bg-blue-100'}`}>
+                              <IoDocument className="w-4 h-4 text-white" />
+                            </div>
+
+                            <div className="flex-1">
+                              <div className="flex items-center justify-between mb-2">
+                                <div>
+                                  <p className={`text-sm font-medium ${textColor}`}>
+                                    {activity.user} {activity.action === 'added' ? 'uploaded' : 'removed'} a file
+                                  </p>
+                                  <p
+                                    onClick={() => activity.action === 'added' && fullURL && window.open(fullURL, "_blank")}
+                                    className={`font-medium text-xs ${textColor} truncate text-wrap ${activity.action === 'added' ? 'cursor-pointer hover:underline' : ''}`}
+                                  >
+                                    {fileData.file_name || "Unnamed file"}
+                                  </p>
+                                </div>
+                                <p className={`text-xs ${textSecondaryColor}`}>{getRelativeTime(activity.timestamp)}</p>
+                              </div>
+
+                              {/* Add file type and size if available */}
+                              {fileData.file_type && (
+                                <p className={`text-xs ${textSecondaryColor}`}>
+                                  {fileData.file_type} • {fileData.file_size ? formatFileSize(fileData.file_size) : 'Unknown size'}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      }
+                      case 'grouped_change': {
+                        const isExpanded = expandedGroup === activity.id;
+                        const changeCount = activity.data?.changes?.length || 1;
+
+                        return (
+                          <div key={activity.id} className="flex items-start space-x-3">
+                            {/* Icon */}
+                            <div className={`p-2 rounded-full text-white ${theme === 'dark' ? 'bg-gray-600' : 'bg-gray-100'}`}>
+                              <Layers className="w-4 h-4" />
+                            </div>
+
+                            {/* Content */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between">
+                                <button
+                                  onClick={() => setExpandedGroup(isExpanded ? null : activity.id)}
+                                  className={`text-sm text-left ${textColor} flex items-center gap-2`}
+                                >
+                                  {isExpanded ? 'Hide' : 'Show'} +{changeCount} changes from <span className="font-medium">{activity.user}</span>
+                                  <FiChevronDown className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                                </button>
+                                <p className={`text-xs ${textSecondaryColor}`}>{getRelativeTime(activity.timestamp)}</p>
+                              </div>
+
+                              {/* Expanded List of Changes */}
+                              {isExpanded && (
+                                <div className="mt-2 pl-4 border-l-2 border-gray-300 dark:border-gray-700 space-y-1">
+                                  {/* Single change */}
+                                  {activity.data?.field_label && (
+                                    <p key={activity.timestamp} className={`text-sm ${textSecondaryColor}`}>
+                                      <span className="font-semibold text-gray-700 dark:text-gray-300">
+                                        {activity.data.field_label}:
+                                      </span>
+                                      {activity.data.old_value != null && activity.data.old_value !== ''
+                                        ? <> Changed from '{activity.data.old_value}' to <span className="font-semibold text-gray-700 dark:text-gray-300">'{activity.data.value}'</span></>
+                                        : <> Added <span className="font-semibold text-gray-700 dark:text-gray-300">'{activity.data.value}'</span></>
+                                      }
+                                    </p>
+                                  )}
+
+                                  {/* Multiple changes from other_versions */}
+                                  {activity.data?.other_versions?.map((change: any, index: number) => (
+                                    <p key={`${change.creation}-${index}`} className={`text-sm ${textSecondaryColor}`}>
+                                      <span className="font-semibold text-gray-700 dark:text-gray-300">
+                                        {change.data.field_label}:
+                                      </span>
+                                      {change.data.old_value != null && change.data.old_value !== ''
+                                        ? <> Changed from '{change.data.old_value}' to <span className="font-semibold text-gray-700 dark:text-gray-300">'{change.data.value}'</span></>
+                                        : <> Added <span className="font-semibold text-gray-700 dark:text-gray-300">'{change.data.value}'</span></>
+                                      }
+                                    </p>
+                                  ))}
                                 </div>
                               )}
                             </div>
                           </div>
-                        </div>
-                      );
-                    }
-                    case 'file': {
-                      const fileData = activity.data;
-                      if (!fileData) return null;
-                      const baseURL = "http://103.214.132.20:8002";
-                      const fullURL = fileData.file_url?.startsWith("http")
-                        ? fileData.file_url
-                        : fileData.file_url?.startsWith("/")
-                          ? `${baseURL}${fileData.file_url}`
-                          : fileData.file_url;
-
-                      return (
-                        <div key={`${activity.id}-${activity.timestamp}`} className="flex items-start space-x-3">
-                          <div className={`p-2 rounded-full mt-1 ${theme === 'dark' ? 'bg-blue-700' : 'bg-blue-100'}`}>
-                            <IoDocument className="w-4 h-4 text-white" />
-                          </div>
-
-                          <div className="flex-1">
-                            <div className="flex items-center justify-between mb-2">
-                              <div>
-                                <p className={`text-sm font-medium ${textColor}`}>
-                                  {activity.user} {activity.action === 'added' ? 'uploaded' : 'removed'} a file
+                        );
+                      }
+                      default:
+                        return (
+                          <div key={activity.id} className="flex items-start space-x-3">
+                            <div className={`p-2 rounded-full text-white ${theme === 'dark' ? 'bg-gray-600' : 'bg-gray-100'}`}>
+                              {React.isValidElement(activity.icon)
+                                ? React.cloneElement(activity.icon, { style: { color: 'white' } })
+                                : activity.icon}
+                            </div>
+                            <div className="flex-1 min-w-0 pt-1.5">
+                              <div className="flex items-center justify-between">
+                                <p className={`text-sm ${textColor}`}>
+                                  <span className="font-medium">{activity.user || 'Unknown'}</span> {activity.description || activity.title}
                                 </p>
-                                <p
-                                  onClick={() => activity.action === 'added' && fullURL && window.open(fullURL, "_blank")}
-                                  className={`font-medium text-xs ${textColor} truncate text-wrap ${activity.action === 'added' ? 'cursor-pointer hover:underline' : ''}`}
-                                >
-                                  {fileData.file_name || "Unnamed file"}
-                                </p>
+                                <p className={`text-xs ${textSecondaryColor}`}>{getRelativeTime(activity.timestamp)}</p>
                               </div>
-                              <p className={`text-xs ${textSecondaryColor}`}>{getRelativeTime(activity.timestamp)}</p>
                             </div>
-
-                            {/* Add file type and size if available */}
-                            {fileData.file_type && (
-                              <p className={`text-xs ${textSecondaryColor}`}>
-                                {fileData.file_type} • {fileData.file_size ? formatFileSize(fileData.file_size) : 'Unknown size'}
-                              </p>
-                            )}
                           </div>
-                        </div>
-                      );
+                        );
                     }
-                    default:
-                      return (
-                        <div key={activity.id} className="flex items-start space-x-3">
-                          <div className={`p-2 rounded-full text-white ${theme === 'dark' ? 'bg-gray-600' : 'bg-gray-100'}`}>
-                            {React.isValidElement(activity.icon)
-                              ? React.cloneElement(activity.icon, { style: { color: 'white' } })
-                              : activity.icon}
-                          </div>
-                          <div className="flex-1 min-w-0 pt-1.5">
-                            <div className="flex items-center justify-between">
-                              <p className={`text-sm ${textColor}`}>
-                                <span className="font-medium">{activity.user || 'Unknown'}</span> {activity.description || activity.title}
-                              </p>
-                              <p className={`text-xs ${textSecondaryColor}`}>{getRelativeTime(activity.timestamp)}</p>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                  }
-                })}
-              </div>
-            )}
+                  })}
+                </div>
+              )}
+            </div>
+            {/* Sticky Composer */}
             <div
               ref={composerRef}
-              className={`absolute bottom-0 left-0 right-0 p-4 border-t ${theme === 'dark' ? `bg-gray-900 border-gray-700` : `bg-gray-50 border-gray-200`} rounded-b-lg`}
+              className={`${cardBgColor} border-t ${borderColor} w-[-webkit-fill-available] pt-4 absolute bottom-0  overflow-hidden`}
             >
-              {!showEmailModal ? (
-                <div className="flex gap-4">
-                  <button onClick={() => { setShowEmailModal(true); setReplyData(undefined); }} className={`flex items-center gap-2 px-3 py-1 rounded-md text-sm ${theme === "dark" ? "text-gray-300 hover:bg-gray-700" : "text-gray-600 hover:bg-gray-200"}`}><Mail size={16} /> Reply</button>
-                  <button onClick={() => { setShowEmailModal(true); setReplyData(undefined); }} className={`flex items-center gap-2 px-3 py-1 rounded-md text-sm ${theme === "dark" ? "text-gray-300 hover:bg-gray-700" : "text-gray-600 hover:bg-gray-200"}`}><FaRegComment size={16} /> Comment</button>
+              {!showEmailModal && (
+                <div className={` border-t flex gap-4 ${borderColor} ${theme === 'dark' ? 'bg-dark-secondary' : 'bg-white'} p-4 z-50 shadow-lg`}>
+                  <button
+                    className={`flex items-center gap-1 ${theme === "dark" ? "text-white" : "text-gray-600"}`}
+                    onClick={() => {
+                      setReplyData(undefined);
+                      setEmailModalMode("reply");
+                      setShowEmailModal(true);
+                    }}
+                  >
+                    <Mail size={14} /> Reply
+                  </button>
+                  <button
+                    className={`flex items-center gap-1 ${theme === "dark" ? "text-white" : "text-gray-400"}`}
+                    onClick={() => {
+                      setReplyData(undefined);
+                      setEmailModalMode("comment");
+                      setShowEmailModal(true);
+                    }}
+                  >
+                    <FaRegComment size={14} /> Comment
+                  </button>
                 </div>
-              ) : (
-                <EmailComposerleads onClose={() => { setShowEmailModal(false); setReplyData(undefined); }} lead={lead} deal={undefined} setListSuccess={() => { }} refreshEmails={refreshEmails} replyData={replyData} />
               )}
+
+              {showEmailModal && activeTab === 'activity' && (
+                <EmailComposerleads
+                  mode={emailModalMode}
+                  onClose={() => {
+                    setShowEmailModal(false);
+                    setReplyData(undefined);
+                    setEmailModalMode("reply");
+                  }}
+                  lead={lead}
+                  deal={undefined}
+                  setListSuccess={setListSuccess}
+                  refreshEmails={async () => {
+                    // Refresh activity data specifically
+                    await fetchActivities();
+                    await fetchActivitiesNew(); // If you need this too
+                  }}
+
+                  replyData={replyData}
+                />
+              )}
+
             </div>
           </div>
         )}
@@ -3715,6 +3952,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                     placeholder="To"
                   />
                 </div>
+
                 <div>
                   <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>From <span className='text-red-500'>*</span></label>
                   <input
@@ -3725,6 +3963,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                     placeholder="From"
                   />
                 </div>
+
                 <div>
                   <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>Status</label>
                   <select
@@ -3737,6 +3976,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                     ))}
                   </select>
                 </div>
+
                 <div>
                   <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>Duration</label>
                   <input
@@ -3747,6 +3987,44 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                     placeholder="Call duration"
                   />
                 </div>
+
+                {/* Caller Field (Only show for Outgoing calls) */}
+                {callForm.type === 'Outgoing' && (
+                  <div>
+                    <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>Caller</label>
+                    <select
+                      value={callForm.from}
+                      onChange={(e) => setCallForm({ ...callForm, from: e.target.value })}
+                      className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
+                    >
+                      <option value="">Select Caller</option>
+                      {userOptions.map((user) => (
+                        <option key={user} value={user}>
+                          {user}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Receiver Field (Only show for Incoming calls) */}
+                {callForm.type === 'Incoming' && (
+                  <div>
+                    <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>Call Received By</label>
+                    <select
+                      value={callForm.receiver}
+                      onChange={(e) => setCallForm({ ...callForm, receiver: e.target.value })}
+                      className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
+                    >
+                      <option value="">Select Receiver</option>
+                      {userOptions.map((user) => (
+                        <option key={user} value={user}>
+                          {user}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
 
               <div className="flex justify-end mt-6">
@@ -3925,16 +4203,17 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
             </div> */}
             {/* Composer fixed at bottom */}
             <div
-              ref={commentRef}
-              className={`${cardBgColor} border-t ${borderColor} p-4 sticky bottom-0`}
+              ref={composerRef}
+              className={`${cardBgColor} border-t ${borderColor} w-[-webkit-fill-available] pt-4 absolute bottom-0  overflow-hidden`}
             >
-              {!showCommentModal && (
-                <div className="flex gap-4">
+              {!showEmailModal && (
+                <div className={` border-t flex gap-4 ${borderColor} ${theme === 'dark' ? 'bg-dark-secondary' : 'bg-white'} p-4 z-50 shadow-lg`}>
                   <button
                     className={`flex items-center gap-1 ${theme === "dark" ? "text-white" : "text-gray-600"}`}
                     onClick={() => {
                       setReplyData(undefined);
-                      setShowCommentModal(true);
+                      setEmailModalMode("reply");
+                      setShowEmailModal(true);
                     }}
                   >
                     <Mail size={14} /> Reply
@@ -3943,7 +4222,8 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                     className={`flex items-center gap-1 ${theme === "dark" ? "text-white" : "text-gray-400"}`}
                     onClick={() => {
                       setReplyData(undefined);
-                      setShowCommentModal(true);
+                      setEmailModalMode("comment");
+                      setShowEmailModal(true);
                     }}
                   >
                     <FaRegComment size={14} /> Comment
@@ -3951,19 +4231,22 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                 </div>
               )}
 
-              {showCommentModal && (
+              {showEmailModal && activeTab === 'comments' && (
                 <EmailComposerleads
+                  mode={emailModalMode}
                   onClose={() => {
-                    setShowCommentModal(false);
+                    setShowEmailModal(false);
                     setReplyData(undefined);
+                    setEmailModalMode("reply");
                   }}
                   lead={lead}
                   deal={undefined}
                   setListSuccess={setListSuccess}
-                  refreshEmails={refreshComments}
+                  refreshEmails={refreshEmails}
                   replyData={replyData}
                 />
               )}
+
             </div>
           </div>
         )}
@@ -4655,14 +4938,15 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
             {/* Sticky Composer */}
             <div
               ref={composerRef}
-              className={`${cardBgColor} border-t ${borderColor} p-4 sticky bottom-0`}
+              className={`${cardBgColor} border-t ${borderColor} w-[-webkit-fill-available] pt-4 absolute bottom-0  overflow-hidden`}
             >
               {!showEmailModal && (
-                <div className="flex gap-4">
+                <div className={` border-t flex gap-4 ${borderColor} ${theme === 'dark' ? 'bg-dark-secondary' : 'bg-white'} p-4 z-50 shadow-lg`}>
                   <button
                     className={`flex items-center gap-1 ${theme === "dark" ? "text-white" : "text-gray-600"}`}
                     onClick={() => {
                       setReplyData(undefined);
+                      setEmailModalMode("reply");
                       setShowEmailModal(true);
                     }}
                   >
@@ -4672,6 +4956,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                     className={`flex items-center gap-1 ${theme === "dark" ? "text-white" : "text-gray-400"}`}
                     onClick={() => {
                       setReplyData(undefined);
+                      setEmailModalMode("comment");
                       setShowEmailModal(true);
                     }}
                   >
@@ -4682,9 +4967,11 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
 
               {showEmailModal && activeTab === 'emails' && (
                 <EmailComposerleads
+                  mode={emailModalMode}
                   onClose={() => {
                     setShowEmailModal(false);
                     setReplyData(undefined);
+                    setEmailModalMode("reply");
                   }}
                   lead={lead}
                   deal={undefined}
@@ -4693,9 +4980,11 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                   replyData={replyData}
                 />
               )}
+
             </div>
           </div>
         )}
+
         {/* Delete Task Popup */}
         {showDeleteTaskPopup && taskToDelete && (
           <DeleteTaskPopup
@@ -5072,6 +5361,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
           </div>
         )}
       </div>
+
     </div>
 
   );

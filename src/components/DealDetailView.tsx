@@ -706,7 +706,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
 
   const addCall = async () => {
     if (!callForm.from.trim() || !callForm.to.trim()) {
-      showToast('Please fill all required fields', { type: 'error' });
+      showToast('All required fields must be filled before proceeding.', { type: 'error' });
       return;
     }
 
@@ -784,7 +784,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
 
   const editCall = async () => {
     if (!callForm.from.trim() || !callForm.to.trim()) {
-      showToast('Please fill in all required fields', { type: 'warning' });
+      showToast('All required fields must be filled before proceeding.', { type: 'warning' });
       return false;
     }
 
@@ -909,7 +909,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
 
   const addTask = async () => {
     if (!taskForm.title.trim() || !taskForm.description.trim()) {
-      showToast('Please fill all required fields', { type: 'error' });
+      showToast('All required fields must be filled before proceeding.', { type: 'error' });
       return;
     }
 

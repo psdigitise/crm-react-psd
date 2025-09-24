@@ -1126,8 +1126,8 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
         {paginatedData.length === 0 && !loading && (
           <div className="text-center py-12">
             <div className={theme === 'dark' ? 'text-white' : 'text-gray-500'}>No results found</div>
-            <div className={`text-sm mt-1 ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}`}>
-              Try adjusting your search criteria or filters
+            <div className={`text-sm mt-1 ${theme === 'dark' ? 'text-gray-500' : 'text-white-400'}`}>
+              Please adjust your search criteria or filters
             </div>
           </div>
         )}
