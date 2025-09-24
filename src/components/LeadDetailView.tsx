@@ -2510,6 +2510,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
 
                     // Show success toast
                     showToast('Status updated successfully', { type: 'success' });
+
                   } else {
                     throw new Error('Failed to update status');
                   }
