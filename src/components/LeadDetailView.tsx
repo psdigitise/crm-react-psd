@@ -6,6 +6,8 @@ import { showToast } from '../utils/toast';
 import { Listbox } from '@headlessui/react';
 import EmailComposerleads from '../components/Leads/EmailComposerleads';
 import { getAuthToken } from '../api/apiUrl';
+// import { apiAxios, AUTH_TOKEN } from '../api/apiUrl';
+
 
 // Icons
 import {
@@ -110,7 +112,10 @@ interface CallLog {
   reference_docname: string;
   creation: string;
   owner: string;
+  _notes?: Note[];
 }
+
+
 
 interface Comment {
   name: string;
@@ -190,6 +195,7 @@ interface ActivityItem {
   user: string;
   icon: React.ReactNode;
   color: string;
+  _notes?: Note[];
 }
 
 interface Email {
@@ -271,6 +277,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
   const [loading, setLoading] = useState(false);
   const [replyData, setReplyData] = useState<EmailReplyData | undefined>(undefined);
   const [notes, setNotes] = useState<Note[]>([]);
+  console.log("notes leads", notes)
   const [callLogs, setCallLogs] = useState<CallLog[]>([]);
   const [comments, setComments] = useState<Comment[]>([]);
   const [sourceOptions, setSourceOptions] = useState<string[]>([]);
@@ -360,7 +367,8 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
   const [orgToggle, setOrgToggle] = useState(false);
   const [contactToggle, setContactToggle] = useState(false);
   const [selectedContact, setSelectedContact] = useState('');
-  const [userOptions, setUserOptions] = useState<string[]>([]);
+  // const [userOptions, setUserOptions] = useState<string[]>([]);
+  const [callerOptions, setCallerOptions] = useState<{ value: string; description: string; }[]>([]);
   const [noteFormError, setNoteFormError] = useState(false);
   const [organizationOptions, setOrganizationOptions] = useState<string[]>([]);
   const [contactOptions, setContactOptions] = useState<string[]>([]);
@@ -392,7 +400,8 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
   const [sourceLoading, setSourceLoading] = useState(false);
 
   const composerRef = useRef<HTMLDivElement>(null);
-  const commentRef = useRef<HTMLDivElement>(null)
+  const commentRef = useRef<HTMLDivElement>(null);
+
 
   // UI Theme Variables
   const bgColor = theme === 'dark'
@@ -461,11 +470,34 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
 
   const [callShowPopup, setCallShowPopup] = useState(false);
 
+  // const handleLabelClick = (call: any) => {
+  //   console.log("Clicked call:", call); // ✅ debug log
+  //   setEditingCall(call);
+  //   setCallShowPopup(true);
+  // };
   const handleLabelClick = (call: any) => {
-    console.log("Clicked call:", call); // ✅ debug log
-    setEditingCall(call);
+    console.log("=== DEBUGGING CALL DATA ===");
+    console.log("1. Clicked call:", call);
+    console.log("2. Call._notes:", call._notes);
+    console.log("3. All callLogs:", callLogs);
+
+    // Find the original call from callLogs array
+    const originalCall = callLogs.find(callLog => callLog.name === call.name);
+    console.log("4. Original call from callLogs:", originalCall);
+    console.log("5. Original call._notes:", originalCall?._notes);
+
+    // Check if notes exist in the call object at any level
+    console.log("6. Call object keys:", Object.keys(call));
+    console.log("7. Call data structure:", JSON.stringify(call, null, 2));
+
+    const callWithNotes = originalCall || call;
+    console.log("8. Final call data being passed:", callWithNotes);
+    console.log("9. Final call._notes:", callWithNotes._notes);
+
+    setEditingCall(callWithNotes);
     setCallShowPopup(true);
   };
+
   function formatDateRelative(dateString: string): string {
     const date = new Date(dateString);
     const options: Intl.DateTimeFormatOptions = {
@@ -508,7 +540,18 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
 
       if (response.ok) {
         const result = await response.json();
-        setEditedLead(result.message);
+        const apiData = result.message;
+
+        // Create a new object that matches your component's state structure
+        const normalizedLead = {
+          ...apiData, // Copy all existing properties from the API response
+          firstName: apiData.first_name || '', // Map first_name to firstName
+          lastName: apiData.last_name || '',   // Map last_name to lastName
+          mobile: apiData.mobile_no || '',     // Map mobile_no to mobile
+          jobTitle: apiData.job_title || '',   // Map job_title to jobTitle
+        };
+
+        setEditedLead(normalizedLead); // Set the correctly structured state
       }
     } catch (error) {
       console.error('Error fetching lead data:', error);
@@ -633,6 +676,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
       const result = await response.json();
       const message = result.message || [];
       const docinfo = result.docinfo || {};
+      const user_info = docinfo.user_info || {}; // Extract user info here
 
       // Ensure we have valid data structure
       if (!Array.isArray(message) || message.length === 0) {
@@ -673,14 +717,14 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
         .filter((item: any) => item.activity_type === "attachment_log")
         .map((item: any) => {
           const fileData = item.data || {};
-
+          const creatorName = user_info[item.owner]?.fullname || item.owner;
           return {
             id: item.name || `file-${Date.now()}`,
             type: "file",
             title: `File ${fileData.type === "added" ? "Uploaded" : "Removed"}: ${fileData.file_name || "Unnamed file"}`,
             description: fileData.file_url || "",
             timestamp: item.creation || new Date().toISOString(),
-            user: item.owner || "Unknown",
+            user: creatorName || "Unknown",
             icon: <IoDocument className="w-4 h-4" />,
             data: fileData,
             action: fileData.type || "unknown",
@@ -690,6 +734,26 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
 
 
 
+
+      // const callActivities = rawCalls.map((call: any) => {
+      //   const caller = call._caller?.label || call.caller || call.from || "Unknown";
+      //   const receiver = call._receiver?.label || call.receiver || call.to || "Unknown";
+
+      //   return {
+      //     id: call.name,
+      //     type: "call",
+      //     title: `${call.type || "Call"} Call`,
+      //     description: `${caller} → ${receiver}`,
+      //     timestamp: call.creation,
+      //     user: caller,
+      //     icon:
+      //       call.type === "Incoming" || call.type === "Inbound"
+      //         ? <SlCallIn className="w-4 h-4" />
+      //         : <SlCallOut className="w-4 h-4" />,
+      //     data: { ...call, caller, receiver }, // 👈 preserve normalized fields
+      //   };
+      // });
+      // console.log(callActivities, "call activities");
 
       const callActivities = rawCalls.map((call: any) => {
         const caller = call._caller?.label || call.caller || call.from || "Unknown";
@@ -706,11 +770,17 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
             call.type === "Incoming" || call.type === "Inbound"
               ? <SlCallIn className="w-4 h-4" />
               : <SlCallOut className="w-4 h-4" />,
-          data: { ...call, caller, receiver }, // 👈 preserve normalized fields
+          data: {
+            ...call,
+            caller,
+            receiver,
+            // Ensure _notes are preserved
+            _notes: call._notes || []
+          },
         };
       });
-      console.log(callActivities, "call activities");
 
+      console.log("Call activities with notes:", callActivities);
 
       const noteActivities = rawNotes.map((note: any) => ({
         id: note.name,
@@ -737,24 +807,41 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
         icon: <Mail className="w-4 h-4" />,
       }));
 
-      const commentActivities = rawComments.map((comment: any) => ({
-        id: comment.name, type: 'comment', title: 'New Comment', description: comment.content.replace(/<[^>]+>/g, ''), timestamp: comment.creation, user: comment.owner,
-        icon: <FaRegComment className="w-4 h-4" />,
-      }));
+      // const commentActivities = rawComments.map((comment: any) => ({
+      //   id: comment.name, type: 'comment', title: 'New Comment', description: comment.content.replace(/<[^>]+>/g, ''), timestamp: comment.creation, user: comment.owner,
+      //   icon: <FaRegComment className="w-4 h-4" />,
+      // }));
+
+      const commentActivities = rawComments.map((comment: any) => {
+        // Look up the full name using the owner's email as the key
+        const creatorName = user_info[comment.owner]?.fullname || comment.owner;
+
+        return {
+          id: comment.name,
+          type: 'comment',
+          title: 'New Comment',
+          description: comment.content, // Pass the raw content
+          timestamp: comment.creation,
+          user: creatorName, // This will be the fullname
+          attachments: comment.attachments || [], // Pass attachments
+          icon: <FaRegComment className="w-4 h-4" />,
+        };
+      });
 
       // Extract timeline items from rawTimeline for edit activities
       const timelineActivities = rawTimeline
         .filter((item: any) => item.activity_type === 'added' || item.activity_type === 'changed' || item.activity_type === 'creation')
         .map((item: any) => {
+         const creatorName = user_info[item.owner]?.fullname || item.owner;
           switch (item.activity_type) {
             case 'creation':
               return {
                 id: `creation-${item.creation}`,
                 type: 'edit',
-                title: `${item.owner} created this Lead`,
+                title: ` created this Lead`,
                 description: '',
                 timestamp: item.creation,
-                user: item.owner,
+                user: creatorName,
                 icon: <UserPlus className="w-4 h-4 text-gray-500" />
               };
 
@@ -766,7 +853,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                   id: `group-${item.creation}`,
                   type: 'grouped_change',
                   timestamp: item.creation,
-                  user: item.owner,
+                  user: creatorName,
                   icon: <Layers className="w-4 h-4 text-white" />,
                   data: {
                     changes: [item, ...item.other_versions],
@@ -786,10 +873,10 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
               return {
                 id: `change-${item.creation}`,
                 type: 'edit',
-                title: `${item.owner} ${actionText}`,
+                title: ` ${actionText}`,
                 description: '',
                 timestamp: item.creation,
-                user: item.owner,
+                user: creatorName,
                 icon: <RxLightningBolt className="w-4 h-4 text-yellow-500" />
               };
 
@@ -799,37 +886,37 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
         })
         .filter(Boolean);
 
-      const otherActivities = rawTimeline
-        .filter((item: { activity_type: string; }) =>
-          item.activity_type !== 'communication' &&
-          item.activity_type !== 'comment'
-        )
-        .map((item: any) => {
-          let type = 'edit';
-          let title = `${item.owner} ${item.description || ''}`;
-          let icon = <Disc className="w-4 h-4" />;
+      // const otherActivities = rawTimeline
+      //   .filter((item: { activity_type: string; }) =>
+      //     item.activity_type !== 'communication' &&
+      //     item.activity_type !== 'comment'
+      //   )
+      //   .map((item: any) => {
+      //     let type = 'edit';
+      //     let title = `${item.owner} ${item.description || ''}`;
+      //     let icon = <Disc className="w-4 h-4" />;
 
-          if (item.data?.action === 'creation') {
-            type = 'creation';
-            title = `${item.owner} created this Lead`;
-            icon = <UserPlus className="w-4 h-4 text-gray-500" />;
-          }
-          else if (typeof item.data === "string") {
-            // handle string safely
-            title = `${item.owner} ${item.data}`;
-          }
+      //     if (item.data?.action === 'creation') {
+      //       type = 'creation';
+      //       title = `created this Lead`;
+      //       icon = <UserPlus className="w-4 h-4 text-gray-500" />;
+      //     }
+      //     else if (typeof item.data === "string") {
+      //       // handle string safely
+      //       title = `${item.owner} ${item.data}`;
+      //     }
 
-          return {
-            id: item.name || `other-${item.creation}`,
-            type,
-            title,
-            description: '',
-            timestamp: item.creation,
-            user: item.owner,
-            icon,
-            data: item.data,
-          };
-        });
+      //     return {
+      //       id: item.name || `other-${item.creation}`,
+      //       type,
+      //       title,
+      //       description: '',
+      //       timestamp: item.creation,
+      //       user: item.owner,
+      //       icon,
+      //       data: item.data,
+      //     };
+      //   });
 
       // const fileActivities = rawFiles.map((file: any) => ({
       //   id: file.name || `file-${file.file_url}`,
@@ -852,7 +939,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
         ...commentActivities,
         ...timelineActivities,
         ...fileActivities,
-        ...otherActivities
+        // ...otherActivities
       ];
 
       allActivities.sort((a, b) => {
@@ -932,10 +1019,94 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
     }));
   };
 
+  // const fetchCallLogs = async () => {
+  //   setCallsLoading(true);
+  //   try {
+  //     const response = await fetch(`${API_BASE_URL}/method/frappe.client.get_list`, {
+  //       method: 'POST',
+  //       headers: {
+  //         'Authorization': AUTH_TOKEN,
+  //         'Content-Type': 'application/json'
+  //       },
+  //       body: JSON.stringify({
+  //         doctype: 'CRM Call Log',
+  //         filters: JSON.stringify([
+  //           ['reference_doctype', '=', 'CRM Lead'],
+  //           ['reference_docname', '=', lead.name]
+  //         ]),
+  //         fields: JSON.stringify(['name', 'from', 'to', 'status', 'type', 'duration', 'creation', 'owner'])
+  //       })
+  //     });
+
+  //     if (response.ok) {
+  //       const result = await response.json();
+  //       setCallLogs(result.message || []);
+  //     }
+  //   } catch (error) {
+  //     console.error('Error fetching call logs:', error);
+  //     showToast('Failed to fetch call logs', { type: 'error' });
+  //   } finally {
+  //     setCallsLoading(false);
+  //   }
+  // };
+
+  // const fetchCallLogs = async () => {
+  //   setCallsLoading(true);
+  //   try {
+  //     // --- 1. First API Call (frappe.client.get_list) ---
+  //     // This call runs first, as requested. We wait for it to complete
+  //     // but we will not use its response to update the UI.
+  //     await fetch(`${API_BASE_URL}/method/frappe.client.get_list`, {
+  //       method: 'POST',
+  //       headers: {
+  //         'Authorization': AUTH_TOKEN,
+  //         'Content-Type': 'application/json'
+  //       },
+  //       body: JSON.stringify({
+  //         doctype: 'CRM Call Log',
+  //         filters: JSON.stringify([
+  //           ['reference_doctype', '=', 'CRM Lead'],
+  //           ['reference_docname', '=', lead.name]
+  //         ]),
+  //         fields: JSON.stringify(['name', 'from', 'to', 'status', 'type', 'duration', 'creation', 'owner'])
+  //       })
+  //     });
+
+  //     // --- 2. Second API Call (get_call_log) ---
+  //     // This call runs after the first one is finished.
+  //     // The data from this response will be shown in the call logs table.
+  //     const response = await fetch(`${API_BASE_URL}/method/crm.fcrm.doctype.crm_call_log.crm_call_log.get_call_log`, {
+  //       method: 'POST',
+  //       headers: {
+  //         'Authorization': AUTH_TOKEN, // Token is included
+  //         'Content-Type': 'application/json'
+  //       },
+  //       body: JSON.stringify({
+  //         name: lead.name // Passing the dynamic lead name
+  //       })
+  //     });
+
+  //     if (response.ok) {
+  //       const result = await response.json();
+  //       // Update the state with the data from the SECOND API call
+  //       setCallLogs(result.message || []);
+  //     } else {
+  //       throw new Error(`API Error: ${response.statusText}`);
+  //     }
+
+  //   } catch (error) {
+  //     console.error('Error fetching call logs:', error);
+  //     showToast('Failed to fetch call logs', { type: 'error' });
+  //   } finally {
+  //     setCallsLoading(false);
+  //   }
+  // };
+
   const fetchCallLogs = async () => {
     setCallsLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/method/frappe.client.get_list`, {
+      // 1. First, fetch the initial list of all call logs to get their names.
+      const listResponse = await fetch(`${API_BASE_URL}/method/frappe.client.get_list`, {
         method: 'POST',
         headers: {
           'Authorization': AUTH_TOKEN,
@@ -947,14 +1118,44 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
             ['reference_doctype', '=', 'CRM Lead'],
             ['reference_docname', '=', lead.name]
           ]),
-          fields: JSON.stringify(['name', 'from', 'to', 'status', 'type', 'duration', 'creation', 'owner'])
+          fields: JSON.stringify(['name']) // We only need the 'name' for the next step
         })
       });
 
-      if (response.ok) {
-        const result = await response.json();
-        setCallLogs(result.message || []);
+      if (!listResponse.ok) {
+        throw new Error(`Failed to fetch initial call list: ${listResponse.statusText}`);
       }
+
+      const listData = await listResponse.json();
+      const callSummaries = listData.message || [];
+
+      if (callSummaries.length === 0) {
+        setCallLogs([]); // If there are no calls, set state to empty and exit.
+        return;
+      }
+
+      // 2. Create an array of promises. Each promise is an API call to get the details for one call log.
+      const detailPromises = callSummaries.map((summary: { name: any; }) =>
+        fetch(`${API_BASE_URL}/method/crm.fcrm.doctype.crm_call_log.crm_call_log.get_call_log`, {
+          method: 'POST',
+          headers: {
+            'Authorization': AUTH_TOKEN,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ name: summary.name }) // Pass the unique name for each call
+        }).then(res => res.json()) // Parse the JSON response for each call
+      );
+
+      // 3. Use Promise.all to wait for ALL the detail-fetching API calls to complete.
+      const detailResponses = await Promise.all(detailPromises);
+
+      // 4. The result is an array of responses. We need to combine their 'message' properties.
+      // .flatMap() is a clean way to merge the arrays from each response.
+      const allCallLogs = detailResponses.flatMap(response => response.message || []);
+
+      // 5. Finally, update the state a single time with the complete, combined list of call logs.
+      setCallLogs(allCallLogs);
+
     } catch (error) {
       console.error('Error fetching call logs:', error);
       showToast('Failed to fetch call logs', { type: 'error' });
@@ -1195,38 +1396,32 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
     }
   };
 
-  const fetchUserOptions = async () => {
+  const fetchCallerOptions = async () => {
     try {
       const session = getUserSession();
       const sessionCompany = session?.company;
-
-      if (!sessionCompany) {
-        setUserOptions([]);
-        return;
-      }
-
-      const response = await fetch(`${API_BASE_URL}/method/frappe.client.get_list`, {
+      const response = await fetch(`${API_BASE_URL}/method/frappe.desk.search.search_link`, {
         method: 'POST',
         headers: {
           'Authorization': AUTH_TOKEN,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          doctype: 'User',
-          filters: JSON.stringify([['company', '=', sessionCompany]]),
-          fields: JSON.stringify(['email'])
+          doctype: "User", // Assuming you are searching for users
+          txt: "",
+          filters: sessionCompany ? { company: sessionCompany } : null
         })
       });
 
       if (response.ok) {
         const result = await response.json();
-        setUserOptions(result.message?.map((u: any) => u.email) || []);
+        // The API response is an array of {value, description}, so we can set it directly
+        setCallerOptions(result.message || []);
       }
     } catch (error) {
-      console.error('Error fetching users:', error);
+      console.error('Error fetching caller options:', error);
     }
   };
-
 
   const fetchTerritoryOptions = async () => {
     try {
@@ -1396,7 +1591,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
 
   useEffect(() => {
     fetchLeadData();
-    fetchUserOptions();
+    fetchCallerOptions();
     fetchOrganizationOptions();
     fetchContactOptions();
   }, []);
@@ -1440,37 +1635,31 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
         throw new Error('Failed to fetch lead details');
       }
 
-      const leadData = await leadResponse.json();
+      // --- NEW LOGIC STARTS HERE ---
+      // Second API call: Fetch organization details if an existing one was provided.
+      if (existing_organization) {
+        console.log(`Fetching details for organization: ${existing_organization}`);
 
-      // Create deal with the provided parameters
-      // const dealResponse = await fetch(`${API_BASE_URL}/method/frappe.client.insert`, {
-      //   method: 'POST',
-      //   headers: {
-      //     'Authorization': AUTH_TOKEN,
-      //     'Content-Type': 'application/json'
-      //   },
-      //   body: JSON.stringify({
-      //     doc: JSON.stringify({
-      //       doctype: 'CRM Deal',
-      //       organization: existing_organization || leadData.message.organization,
-      //       contact: existing_contact || null,
-      //       website: leadData.message.website,
-      //       industry: leadData.message.industry,
-      //       territory: leadData.message.territory,
-      //       annual_revenue: leadData.message.annual_revenue,
-      //       salutation: leadData.message.salutation,
-      //       first_name: leadData.message.first_name,
-      //       company: sessionCompany,
-      //       // Include any additional deal data passed in the params
-      //       ...dealData
-      //     })
-      //   })
-      // });
+        const orgDetailsResponse = await fetch(`${API_BASE_URL}/method/frappe.client.get`, {
+          method: 'POST', // Using POST as per Frappe's client API patterns
+          headers: {
+            'Authorization': AUTH_TOKEN,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            doctype: "CRM Organization",
+            name: existing_organization // Use the selected organization here
+          })
+        });
 
-      // if (!dealResponse.ok) {
-      //   throw new Error('Failed to create deal');
-      // }
+        if (!orgDetailsResponse.ok) {
+          throw new Error('Failed to fetch organization details after conversion');
+        }
 
+        const orgData = await orgDetailsResponse.json();
+        // You can now use the fetched organization data. For now, we'll just log it.
+        console.log('Successfully fetched organization details:', orgData.message);
+      }
       // Update lead as converted
       const updateLeadResponse = await fetch(`${API_BASE_URL}/method/frappe.client.set_value`, {
         method: 'POST',
@@ -2056,11 +2245,12 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
   }, []);
 
 
-  const handleSave = async (e: { status?: string; id?: string; name?: string; firstName?: string; lastName?: string | undefined; organization?: string; email?: string; mobile?: string; assignedTo?: string; lastModified?: string; website?: string | undefined; territory?: string | undefined; industry?: string | undefined; jobTitle?: string | undefined; source?: string | undefined; salutation?: string | undefined; leadId?: string; owner?: string | undefined; creation?: string | undefined; modified?: string | undefined; modified_by?: string | undefined; docstatus?: number | undefined; idx?: number | undefined; mobile_no?: string | undefined; naming_series?: string | undefined; lead_name?: string | undefined; gender?: string | undefined; no_of_employees?: string | undefined; annual_revenue?: number | undefined; image?: string | undefined; first_name?: string | undefined; last_name?: string | undefined; lead_owner?: string | undefined; converted?: string | undefined; preventDefault?: any; }) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/method/frappe.client.set_value`, {
+      // First API Call: Update the lead data on the server (this part is correct)
+      const setValueResponse = await fetch(`${API_BASE_URL}/method/frappe.client.set_value`, {
         method: 'POST',
         headers: {
           'Authorization': AUTH_TOKEN,
@@ -2081,21 +2271,62 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
             industry: editedLead.industry,
             job_title: editedLead.jobTitle,
             source: editedLead.source,
-            salutation: editedLead.salutation
+            salutation: editedLead.salutation,
+            lead_owner: editedLead.lead_owner
           }
         })
       });
 
-      if (response.ok) {
-        onSave(editedLead);
-        setIsEditing(false);
-        showToast('Lead updated successfully', { type: 'success' });
-      } else {
+      if (!setValueResponse.ok) {
         throw new Error('Failed to update lead');
       }
+
+      // Second API Call: Fetch the updated lead data
+      const getResponse = await fetch(`${API_BASE_URL}/method/frappe.client.get`, {
+        method: 'POST',
+        headers: {
+          'Authorization': AUTH_TOKEN,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          doctype: 'CRM Lead',
+          name: lead.name
+        })
+      });
+
+      if (!getResponse.ok) {
+        throw new Error('Failed to fetch updated lead data after saving.');
+      }
+
+      const result = await getResponse.json();
+      const updatedLeadFromServer = result.message;
+
+      // --- ✨ NEW MAPPING LOGIC ADDED HERE ---
+      // Map the API response (snake_case) to your component's state structure (camelCase).
+      const mappedLead: Lead = {
+        ...updatedLeadFromServer, // Copy all matching properties
+        firstName: updatedLeadFromServer.first_name,  // Map first_name -> firstName
+        lastName: updatedLeadFromServer.last_name,    // Map last_name -> lastName
+        mobile: updatedLeadFromServer.mobile_no,      // Map mobile_no -> mobile
+        jobTitle: updatedLeadFromServer.job_title,    // Map job_title -> jobTitle
+        // Ensure other properties from the Lead interface are present if they don't exist on the server response
+        id: updatedLeadFromServer.name, // Assuming 'name' is the ID
+        leadId: updatedLeadFromServer.name,
+        assignedTo: updatedLeadFromServer.lead_owner,
+        lastModified: updatedLeadFromServer.modified,
+      };
+
+      // Update the local state with the correctly mapped data
+      setEditedLead(mappedLead);
+
+      // Propagate changes and update UI
+      onSave(mappedLead);
+      setIsEditing(false);
+      showToast('Lead updated successfully', { type: 'success' });
+
     } catch (error) {
-      console.error('Error updating lead:', error);
-      showToast('Failed to update lead', { type: 'error' });
+      console.error('Error in save process:', error);
+      showToast('An error occurred while saving the lead', { type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -2322,7 +2553,18 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
     }
   };
 
+  // Define an array of tabs where the modal should NOT close automatically.
+  const modalSafeTabs = ['comments', 'emails', 'activity'];
 
+  useEffect(() => {
+    // Check if the modal is open and if the active tab is NOT in our safe list.
+    if (showEmailModal && modalSafeTabs.includes(activeTab)) {
+      // If both are true, close the modal and reset its state.
+      setShowEmailModal(false);
+      setReplyData(undefined);
+      setEmailModalMode("reply");
+    }
+  }, [activeTab]); // This effect runs only when `activeTab` changes.
 
 
   return (
@@ -2510,7 +2752,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
 
                     // Show success toast
                     showToast('Status updated successfully', { type: 'success' });
-
+                    await fetchActivities();
                   } else {
                     throw new Error('Failed to update status');
                   }
@@ -3192,34 +3434,49 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                           </div>
                         );
                       }
+                      // Replace this block inside the return statement's activities.map()
                       case 'comment': {
-                        const commentData = comments.find(c => c.name === activity.id);
-                        if (!commentData) return null;
+                        // Use the 'activity' object directly, which now has all the comment data.
                         return (
                           <div key={activity.id} className="relative">
                             <div className="flex justify-between items-center mb-2">
                               <div className="flex items-center gap-4">
                                 <div className="mt-1 text-gray-400"><FaRegComment size={18} /></div>
-                                <div className={`w-8 h-8 flex items-center justify-center rounded-full ${theme === 'dark' ? 'bg-gray-400' : 'bg-gray-200'} text-sm font-semibold`}>{commentData.owner?.charAt(0).toUpperCase() || "?"}</div>
-                                <p className={`text-sm font-medium ${textSecondaryColor}`}>{commentData.owner || 'Someone'} added a comment</p>
+                                {/* Use activity.user, which now holds the fullname */}
+                                <div className={`w-8 h-8 flex items-center justify-center rounded-full ${theme === 'dark' ? 'bg-gray-400' : 'bg-gray-200'} text-sm font-semibold`}>
+                                  {activity.user?.charAt(0).toUpperCase() || "?"}
+                                </div>
+                                <p className={`text-sm font-medium ${textSecondaryColor}`}>
+                                  {activity.user || 'Someone'} added a comment
+                                </p>
                               </div>
-                              <p className={`text-xs ${textSecondaryColor}`}>{getRelativeTime(commentData.creation)}</p>
+                              <p className={`text-xs ${textSecondaryColor}`}>{getRelativeTime(activity.timestamp)}</p>
                             </div>
                             <div className={`border ${borderColor} rounded-lg p-4 ml-9 mt-2`}>
-                              <div className={`${textColor} mb-2 whitespace-pre-wrap`}>{stripHtml(commentData.content)}</div>
-                              {commentData.attachments && commentData.attachments.length > 0 && (<div className="mt-4">
-                                <div className="flex flex-wrap gap-3">
-                                  {commentData.attachments.map((attachment: any, index: number) => {
-                                    const baseURL = "http://103.214.132.20:8002";
-                                    const fullURL = attachment.file_url && attachment.file_url.startsWith("http") ? attachment.file_url : `${baseURL}${attachment.file_url || ''}`;
-                                    return (
-                                      <a key={index} href={fullURL} target="_blank" rel="noopener noreferrer" className={`flex items-center border ${borderColor} px-3 py-1 rounded-md ${theme === 'dark' ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-50 hover:bg-gray-100'} transition-colors`}>
-                                        <span className="mr-2 flex items-center gap-1 truncate max-w-[200px] text-sm"><IoDocument className="w-3 h-3 mr-1" />{attachment.file_name || 'Unnamed file'}</span>
-                                      </a>
-                                    );
-                                  })}
+                              {/* Use activity.description which holds the HTML content */}
+                              <div className={`${textColor} mb-2 whitespace-pre-wrap`}>{stripHtml(activity.description)}</div>
+
+                              {/* Render attachments from the activity object */}
+                              {activity.attachments && activity.attachments.length > 0 && (
+                                <div className="mt-4">
+                                  <div className="flex flex-wrap gap-3">
+                                    {activity.attachments.map((attachment: any, index: number) => {
+                                      const baseURL = "http://103.214.132.20:8002";
+                                      const fullURL = attachment.file_url && attachment.file_url.startsWith("http")
+                                        ? attachment.file_url
+                                        : `${baseURL}${attachment.file_url || ''}`;
+                                      return (
+                                        <a key={index} href={fullURL} target="_blank" rel="noopener noreferrer" className={`flex items-center border ${borderColor} px-3 py-1 rounded-md ${theme === 'dark' ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-50 hover:bg-gray-100'} transition-colors`}>
+                                          <span className="mr-2 flex items-center gap-1 truncate max-w-[200px] text-sm">
+                                            <IoDocument className="w-3 h-3 mr-1" />
+                                            {attachment.file_name || 'Unnamed file'}
+                                          </span>
+                                        </a>
+                                      );
+                                    })}
+                                  </div>
                                 </div>
-                              </div>)}
+                              )}
                             </div>
                           </div>
                         );
@@ -3385,7 +3642,6 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                       case 'grouped_change': {
                         const isExpanded = expandedGroup === activity.id;
                         const changeCount = activity.data?.changes?.length || 1;
-
                         return (
                           <div key={activity.id} className="flex items-start space-x-3">
                             {/* Icon */}
@@ -3883,7 +4139,8 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                         date: formatDateRelative(editingCall.creation),
                         duration: editingCall.duration,
                         status: editingCall.status,
-                        name: editingCall.name
+                        name: editingCall.name,
+                        _notes: editingCall._notes || []
                       }}
                       onClose={() => setShowPopup(false)}
                       onTaskCreated={fetchTasks}
@@ -3897,11 +4154,13 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                           duration: editingCall.duration || '',
                           receiver: editingCall.to || editingCall._receiver?.label || '',
                           name: editingCall.name || '',
+
                         });
                         setIsEditMode(true);
                         setShowPopup(false);
                         setShowCallModal(true);
                       }}
+                      fetchCallLogs={fetchCallLogs}
                       theme={theme}
                     />
                   )}
@@ -3999,9 +4258,10 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                       className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
                     >
                       <option value="">Select Caller</option>
-                      {userOptions.map((user) => (
-                        <option key={user} value={user}>
-                          {user}
+                      {/* Updated mapping logic here */}
+                      {callerOptions.map((user) => (
+                        <option key={user.value} value={user.value}>
+                          {user.description}
                         </option>
                       ))}
                     </select>
@@ -4015,12 +4275,13 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                     <select
                       value={callForm.receiver}
                       onChange={(e) => setCallForm({ ...callForm, receiver: e.target.value })}
-                      className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
+                      className={`w-full px-3 py-2 border ${borderColor}rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
                     >
                       <option value="">Select Receiver</option>
-                      {userOptions.map((user) => (
-                        <option key={user} value={user}>
-                          {user}
+                      {/* Updated mapping logic here as well */}
+                      {callerOptions.map((user) => (
+                        <option key={user.value} value={user.value}>
+                          {user.description}
                         </option>
                       ))}
                     </select>
@@ -5007,7 +5268,8 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
               date: formatDateRelative(editingCall.creation),
               duration: editingCall.duration,
               status: editingCall.status,
-              name: editingCall.name
+              name: editingCall.name,
+              _notes: editingCall._notes || []
             }}
             onClose={() => setCallShowPopup(false)}
             onAddTask={handleAddTaskFromCall}
@@ -5026,6 +5288,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
               setShowCallModal(true);
             }}
             theme={theme}
+            fetchCallLogs={fetchCallLogs}
           />
         )}
         {showCreateTerritoryModal && (

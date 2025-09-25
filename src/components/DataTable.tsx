@@ -106,8 +106,6 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isAssignPopupOpen, setIsAssignPopupOpen] = useState(false);
   const [isClearAssignmentPopupOpen, setIsClearAssignmentPopupOpen] = useState(false);
-
-
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
 
@@ -873,17 +871,20 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
         <div className="flex items-center space-x-2">
           <div className="flex items-center space-x-2">
             {/* Export Excel Button */}
-            <div title="Export Excel">
-              <button
-                onClick={() => exportToExcel(getFilteredAndSortedData(), 'Leads')}
-                className={`px-3 py-2 text-sm border rounded-lg transition-colors ${theme === 'dark'
-                  ? 'border-purple-500/30 text-white hover:bg-purple-800/50'
-                  : 'border-gray-300 hover:bg-gray-50'
-                  }`}
-              >
-                <Download className="w-4 h-4" />
-              </button>
-            </div>
+            {/* Export Excel Button - Renders only if there's data */}
+            {filteredDataLength > 0 && (
+              <div title="Export Excel">
+                <button
+                  onClick={() => exportToExcel(getFilteredAndSortedData(), 'Leads')}
+                  className={`px-3 py-2 text-sm border rounded-lg transition-colors ${theme === 'dark'
+                    ? 'border-purple-500/30 text-white hover:bg-purple-800/50'
+                    : 'border-gray-300 hover:bg-gray-50'
+                    }`}
+                >
+                  <Download className="w-4 h-4" />
+                </button>
+              </div>
+            )}
           </div>
 
           <span className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>
@@ -1033,7 +1034,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
           <div className="text-center py-12">
             <div className={theme === 'dark' ? 'text-white' : 'text-gray-500'}>No results found</div>
             <div className={`text-sm mt-1 ${theme === 'dark' ? 'text-gray-500' : 'text-white'}`}>
-             Please adjust your search criteria or filters
+              Please adjust your search criteria or filters
             </div>
           </div>
         )}

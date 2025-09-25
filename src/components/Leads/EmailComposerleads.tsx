@@ -12,7 +12,7 @@ import { getUserSession } from "../../utils/session";
 import { FaRegComment } from "react-icons/fa6";
 import { apiAxios } from "../../api/apiUrl";
 import { showToast } from "../../utils/toast";
-
+import axios from "axios";
 // const showToast = (msg, opts) => alert(msg);
 
 interface EmailComposerProps {
@@ -33,8 +33,14 @@ interface EmailComposerProps {
     };
 }
 
+interface User {
+    value: string;
+    description: string;
+}
+
 const API_BASE_URL = "http://103.214.132.20:8002/api/method/frappe.core.doctype.communication.email.make";
 const AUTH_TOKEN = "token 1b670b800ace83b:f32066fea74d0fe";
+const SEARCH_API_URL = "http://103.214.132.20:8002/api/method/frappe.desk.search.search_link";
 
 export default function EmailComposerleads({
     mode = "reply",
@@ -70,7 +76,11 @@ export default function EmailComposerleads({
     const hasMessageContent = emailForm.message.trim().length > 0;
     const [generatingContent, setGeneratingContent] = useState(false);
     const [lastGeneratedSubject, setLastGeneratedSubject] = useState<string>("");
-
+    const [userSuggestions, setUserSuggestions] = useState<User[]>([]);
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const [searchLoading, setSearchLoading] = useState(false);
+    const recipientInputRef = useRef<HTMLInputElement>(null);
+    const suggestionsRef = useRef<HTMLDivElement>(null);
     const userSession = getUserSession();
     const senderUsername = userSession?.username || "Administrator";
 
@@ -137,20 +147,17 @@ export default function EmailComposerleads({
             for (const email of bccEmails) {
                 if (!isValidEmail(email)) {
                     // showToast(`Invalid email address in 'Bcc' field: ${email}`, { type: "error" });
-                     showToast(`Invalid email address in 'Bcc' field,`, { type: "error" });
+                    showToast(`Invalid email address in 'Bcc' field,`, { type: "error" });
                     return;
                 }
             }
         }
-
-        // --- End of new validation code ---
 
         // This is your existing code
         if (!emailForm.recipient.trim() || !emailForm.message.trim() || !emailForm.subject.trim()) {
             showToast("Please fill all required fields", { type: "error" });
             return;
         }
-
 
         setLoading(true);
         try {
@@ -325,6 +332,88 @@ export default function EmailComposerleads({
         onClose();
     };
 
+    const fetchUserSuggestions = async (searchText: string) => {
+        if (!searchText.trim()) {
+            setUserSuggestions([]);
+            setShowSuggestions(false);
+            return;
+        }
+
+        setSearchLoading(true);
+        try {
+            const payload = { txt: searchText, doctype: "User", filters: { company: "" } };
+            const response = await axios.post(SEARCH_API_URL, payload, {
+                headers: { Authorization: AUTH_TOKEN, "Content-Type": "application/json" },
+            });
+
+            if (response.data && response.data.message) {
+                const suggestions = response.data.message.map((user: any) => ({
+                    value: user.value,
+                    description: user.description || user.value
+                }));
+                setUserSuggestions(suggestions);
+                setShowSuggestions(suggestions.length > 0);
+            }
+        } catch (error) {
+            console.error("Error fetching user suggestions:", error);
+            setUserSuggestions([]);
+            setShowSuggestions(false);
+        } finally {
+            setSearchLoading(false);
+        }
+    };
+
+    const handleRecipientChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        setEmailForm(f => ({ ...f, recipient: value }));
+        if (value.trim()) {
+            setShowSuggestions(true);
+        } else {
+            setShowSuggestions(false);
+        }
+    };
+
+    const handleSuggestionClick = (user: User) => {
+        setEmailForm(f => ({ ...f, recipient: user.value }));
+        setShowSuggestions(false);
+    };
+
+    const handleRecipientKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Escape') {
+            setShowSuggestions(false);
+        }
+    };
+
+    // 👈 6. Add useEffect for debounced search
+    useEffect(() => {
+        const timeoutId = setTimeout(() => {
+            fetchUserSuggestions(emailForm.recipient);
+        }, 300); // 300ms delay
+
+        return () => clearTimeout(timeoutId);
+    }, [emailForm.recipient]);
+
+    // 👈 7. Update handleClickOutside useEffect
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target as Node)) {
+                setShowEmojiPicker(false);
+            }
+            // Close suggestions when clicking outside
+            if (
+                suggestionsRef.current && !suggestionsRef.current.contains(event.target as Node) &&
+                recipientInputRef.current && !recipientInputRef.current.contains(event.target as Node)
+            ) {
+                setShowSuggestions(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, []);
+
     return (
         <div
             className={`max-full mx-auto rounded-md shadow-sm p-4 space-y-4 mb-5 border ${theme === "dark"
@@ -407,14 +496,39 @@ export default function EmailComposerleads({
                                 }`}
                         >
                             <span className={`w-12 ${theme === "dark" ? "text-white" : "text-gray-500"}`}>To:</span>
-                            <input
-                                type="email"
-                                value={emailForm.recipient}
-                                onChange={e => setEmailForm(f => ({ ...f, recipient: e.target.value }))}
-                                className={`px-2 py-1 rounded font-medium outline-none flex-1 ${theme === "dark" ? "bg-gray-700 text-white" : "bg-gray-100 text-gray-800"
-                                    }`}
-                                placeholder="Recipient email"
-                            />
+                            <div className="relative flex-1">
+                                <input
+                                    ref={recipientInputRef}
+                                    type="email"
+                                    value={emailForm.recipient}
+                                    onChange={handleRecipientChange}
+                                    onKeyDown={handleRecipientKeyDown}
+                                    className={`px-2 py-1 rounded font-medium outline-none w-full ${theme === "dark" ? "bg-gray-700 text-white" : "bg-gray-100 text-gray-800"}`}
+                                    placeholder="Recipient email"
+                                />
+                                {showSuggestions && (
+                                    <div ref={suggestionsRef} className={`absolute left-0 right-0 top-full mt-1 z-50 max-h-60 overflow-y-auto rounded-md shadow-lg ${theme === "dark" ? "bg-gray-800 border border-gray-700" : "bg-white border border-gray-300"}`}>
+                                        {searchLoading ? (
+                                            <div className={`px-3 py-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`}>Loading...</div>
+                                        ) : userSuggestions.length > 0 ? (
+                                            userSuggestions.map((user, index) => (
+                                                <div
+                                                    key={index}
+                                                    className={`px-3 py-2 cursor-pointer hover:bg-opacity-50 text-sm border-b ${theme === "dark" ? "hover:bg-gray-700 border-gray-700 text-white" : "hover:bg-gray-100 border-gray-200 text-gray-800"}`}
+                                                    onClick={() => handleSuggestionClick(user)}
+                                                >
+                                                    <div className="font-medium">{user.value}</div>
+                                                    {user.description && (
+                                                        <div className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>{user.description}</div>
+                                                    )}
+                                                </div>
+                                            ))
+                                        ) : emailForm.recipient.trim() && (
+                                            <div className={`px-3 py-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`}>No users found</div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
                         {shouldShowCc && (

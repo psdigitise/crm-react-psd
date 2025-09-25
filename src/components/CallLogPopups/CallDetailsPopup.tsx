@@ -8,6 +8,7 @@ import { HiOutlineArrowRight } from 'react-icons/hi';
 import { GoArrowUpRight } from 'react-icons/go';
 import { PiDotsThreeOutlineFill } from 'react-icons/pi';
 import { SquarePen } from 'lucide-react';
+import { showToast } from '../../utils/toast';
 
 interface CallDetailsPopupProps {
     onClose: () => void;
@@ -22,16 +23,28 @@ interface CallDetailsPopupProps {
         duration: string;
         status: string;
         id?: string;
+        name: string;
+        _notes?: Note[];
     };
     onEdit?: () => void;
     onTaskCreated?: () => void;
+    fetchCallLogs: () => Promise<void>;
 }
 
+// interface Note {
+//     name: string;
+//     title: string;
+//     content: string;
+//     creation: string;
+// }
 interface Note {
     name: string;
     title: string;
     content: string;
+    reference_doctype: string;
+    reference_docname: string;
     creation: string;
+    owner: string;
 }
 
 interface Task {
@@ -47,13 +60,16 @@ interface Task {
 
 const AUTH_TOKEN = "token 1b670b800ace83b:f32066fea74d0fe";
 
-export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTaskCreated }: CallDetailsPopupProps) => {
+export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTaskCreated, fetchCallLogs }: CallDetailsPopupProps) => {
     const [openMenu, setOpenMenu] = useState(false);
     const [showAddTask, setShowAddTask] = useState(false);
     const [isAddingNote, setIsAddingNote] = useState(false);
     const [isEditingNote, setIsEditingNote] = useState(false);
     const [isEditingTask, setIsEditingTask] = useState(false);
-    const [note, setNote] = useState<Note | null>(null);
+    // const [note, setNote] = useState<Note | null>(null);
+    // Inside the CallDetailsPopup component
+    const [note, setNote] = useState(call._notes || []);// Changed to handle an array of notes
+    console.log("note", note)
     const [task, setTask] = useState<Task | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [taskForm, setTaskForm] = useState({
@@ -71,45 +87,24 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
     });
 
     // Fetch existing notes and tasks when the component mounts
+    // useEffect(() => {
+    //     fetchNotes();
+    //     fetchTasks();
+    // }, [call.id]);
+
+    // Fetches tasks and sets notes from props when the component mounts
     useEffect(() => {
-        fetchNotes();
+        // --- Note Handling (Updated for multiple notes) ---
+        // Use the entire _notes array from the call prop, or an empty array if it doesn't exist.
+        console.log("Call prop received:", call);
+        console.log("Notes from call:", call._notes);
+
+        setNote(call._notes || []);
+
+        // --- Task Handling (No Change) ---
         fetchTasks();
-    }, [call.id]);
+    }, [call]);
 
-    const fetchNotes = async () => {
-        if (!call.id) return;
-
-        try {
-            const response = await fetch(`http://103.214.132.20:8002/api/resource/FCRM Note?filters=[["reference_docname","=","${call.id}"]]`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': AUTH_TOKEN,
-                }
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                if (data.data && data.data.length > 0) {
-                    const noteData = data.data[0];
-                    setNote({
-                        name: noteData.name,
-                        title: noteData.title || "Untitled Note",
-                        content: noteData.content || "",
-                        creation: noteData.creation || new Date().toISOString()
-                    });
-                } else {
-                    setNote(null);
-                }
-            } else {
-                console.error("Failed to fetch notes:", response.status);
-                setNote(null);
-            }
-        } catch (error) {
-            console.error("Error fetching notes:", error);
-            setNote(null);
-        }
-    };
 
     const fetchTasks = async () => {
         if (!call.id) return;
@@ -150,14 +145,73 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
         }
     };
 
+    // const handleAddNote = async () => {
+    //     if (!noteForm.title) return;
+
+    //     setIsLoading(true);
+    //     try {
+    //         const payload = {
+    //             // call_sid: call.id || "",
+    //             doc: {
+    //                 doctype: "FCRM Note",
+    //                 title: noteForm.title,
+    //                 content: noteForm.content,
+    //                 reference_doctype: call.reference_doctype || "CRM Lead",
+    //                 reference_docname: call.id || ""
+    //             }
+    //         };
+
+    //         const response = await fetch('http://103.214.132.20:8002/api/method/frappe.client.insert', {
+    //             method: 'POST',
+    //             headers: {
+    //                 'Content-Type': 'application/json',
+    //                 'Authorization': AUTH_TOKEN,
+    //             },
+    //             body: JSON.stringify(payload)
+    //         });
+
+    //         if (!response.ok) {
+    //             const errorData = await response.json();
+    //             console.error("API Error:", errorData);
+    //             throw new Error(errorData.message || 'Failed to create note');
+    //         }
+
+    //         const data = await response.json();
+    //         const newNote: Note = {
+    //             name: data.message.name,
+    //             title: data.message.title || noteForm.title,
+    //             content: data.message.content || noteForm.content,
+    //             creation: data.message.creation || new Date().toISOString()
+    //         };
+
+    //         setNote(newNote);
+    //         setNoteForm({ name: '', title: '', content: '' });
+    //         setIsAddingNote(false);
+
+    //     } catch (error) {
+    //         console.error("Error creating note:", error);
+    //         const mockNote = {
+    //             name: `NOTE-${Math.floor(Math.random() * 1000)}`,
+    //             title: noteForm.title,
+    //             content: noteForm.content,
+    //             creation: new Date().toISOString()
+    //         };
+    //         setNote(mockNote);
+    //         setNoteForm({ name: '', title: '', content: '' });
+    //         setIsAddingNote(false);
+    //     } finally {
+    //         setIsLoading(false);
+    //     }
+    // };
+
     const handleAddNote = async () => {
         if (!noteForm.title) return;
 
         setIsLoading(true);
         try {
-            const payload = {
-                call_sid: call.id || "",
-                note: {
+            // --- First API Call: Insert the note ---
+            const insertPayload = {
+                doc: {
                     doctype: "FCRM Note",
                     title: noteForm.title,
                     content: noteForm.content,
@@ -166,61 +220,87 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
                 }
             };
 
-            const response = await fetch('http://103.214.132.20:8002/api/method/crm.integrations.api.add_note_to_call_log', {
+            const insertResponse = await fetch('http://103.214.132.20:8002/api/method/frappe.client.insert', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': AUTH_TOKEN,
                 },
-                body: JSON.stringify(payload)
+                body: JSON.stringify(insertPayload)
             });
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                console.error("API Error:", errorData);
+            if (!insertResponse.ok) {
+                const errorData = await insertResponse.json();
+                console.error("API Error (insert note):", errorData);
                 throw new Error(errorData.message || 'Failed to create note');
             }
 
-            const data = await response.json();
-            const newNote: Note = {
-                name: data.message.name,
-                title: data.message.title || noteForm.title,
-                content: data.message.content || noteForm.content,
-                creation: data.message.creation || new Date().toISOString()
+            const insertData = await insertResponse.json();
+            const createdNote = insertData.message; // This is the note object from the response
+
+            // --- Second API Call: Add note to call log ---
+            // This call is made only if the first one was successful
+            console.log("Preparing to add note to call log...");
+
+            const addToCallLogPayload = {
+                call_sid: call.name || "", // Using call.id from props as the call_sid
+                note: createdNote        // Using the full 'message' object from the first API response
             };
 
-            setNote(newNote);
-            setNoteForm({ name: '', title: '', content: '' });
-            setIsAddingNote(false);
+            const addToCallLogResponse = await fetch('http://103.214.132.20:8002/api/method/crm.integrations.api.add_note_to_call_log', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': AUTH_TOKEN,
+                },
+                body: JSON.stringify(addToCallLogPayload)
+            });
 
-        } catch (error) {
-            console.error("Error creating note:", error);
-            const mockNote = {
-                name: `NOTE-${Math.floor(Math.random() * 1000)}`,
-                title: noteForm.title,
-                content: noteForm.content,
-                creation: new Date().toISOString()
-            };
-            setNote(mockNote);
+            if (!addToCallLogResponse.ok) {
+                const errorData = await addToCallLogResponse.json();
+                console.error("API Error (add note to call log):", errorData);
+                throw new Error(errorData.message || 'Failed to link note to call log');
+            }
+
+            console.log("Successfully linked note to call log.");
+            // --- Both API calls were successful, now update the UI ---
+
+
             setNoteForm({ name: '', title: '', content: '' });
             setIsAddingNote(false);
+            onClose();
+            if (fetchCallLogs && typeof fetchCallLogs === 'function') {
+                try {
+                    await fetchCallLogs();
+                } catch (error) {
+                    console.error('Error refreshing call logs:', error);
+                }
+            }
+
+        } catch (error: any) {
+            console.error("An error occurred during the note creation process:", error);
+            showToast(error.message || 'Failed to create note', { type: 'error' });
         } finally {
             setIsLoading(false);
         }
     };
 
+    // Inside the CallDetailsPopup component
+
     const handleEditNote = async () => {
-        if (!noteForm.title || !note) return;
+        if (!noteForm.title || !note || note.length === 0) return;
 
         setIsLoading(true);
+
         try {
+            const noteToUpdate = note[0]; // Get the first note from the array
             const payload = {
                 doctype: "FCRM Note",
-                name: note.name,
+                name: noteToUpdate.name,
                 fieldname: {
                     title: noteForm.title,
-                    content: noteForm.content
-                }
+                    content: noteForm.content,
+                },
             };
 
             const response = await fetch('http://103.214.132.20:8002/api/method/frappe.client.set_value', {
@@ -229,39 +309,44 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
                     'Content-Type': 'application/json',
                     'Authorization': AUTH_TOKEN,
                 },
-                body: JSON.stringify(payload)
+                body: JSON.stringify(payload),
             });
 
             if (!response.ok) {
-                throw new Error('Failed to update note');
+                const errorData = await response.json();
+                console.error("API Error (edit note):", errorData);
+                throw new Error(errorData.message || 'Failed to update note');
             }
 
-            const updatedNote: Note = {
-                name: note.name,
-                title: noteForm.title,
-                content: noteForm.content,
-                creation: note.creation
-            };
+            const data = await response.json();
+            console.log("Note updated successfully:", data.message);
 
-            setNote(updatedNote);
+            // Update the local state with the edited note data
+            const updatedNotes = note.map((n) =>
+                n.name === noteToUpdate.name ? { ...n, title: noteForm.title, content: noteForm.content } : n
+            );
+            setNote(updatedNotes);
+
+            // Reset form and state
             setNoteForm({ name: '', title: '', content: '' });
+            onClose(); // Close the popup after successful update
             setIsEditingNote(false);
+            if (fetchCallLogs && typeof fetchCallLogs === 'function') {
+                await fetchCallLogs();
+            }
 
-        } catch (error) {
+
+
+
+        } catch (error: any) {
             console.error("Error updating note:", error);
-            const updatedNote = {
-                name: note.name,
-                title: noteForm.title,
-                content: noteForm.content,
-                creation: note.creation
-            };
-            setNote(updatedNote);
-            setNoteForm({ name: '', title: '', content: '' });
-            setIsEditingNote(false);
+            showToast(error.message || 'Failed to update note', { type: 'error' });
         } finally {
             setIsLoading(false);
         }
     };
+
+    // ... rest of the component
 
     const handleEditTask = async () => {
         if (!taskForm.title || !task) return;
@@ -391,17 +476,20 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
 
     const handleEditNoteClick = () => {
         setOpenMenu(false);
+
+        // Get the first note if there are multiple
+        const firstNote = note && note.length > 0 ? note[0] : null;
+
         setNoteForm({
-            name: note?.name || '',
-            title: note?.title || '',
-            content: note?.content || ''
+            name: firstNote?.name || '',
+            title: firstNote?.title || '',
+            content: firstNote?.content || ''
         });
         setIsEditingNote(true);
         setIsAddingNote(false);
         setShowAddTask(false);
         setIsEditingTask(false);
     };
-
     const handleTaskSubmit = async () => {
         if (!taskForm.title?.trim()) {
             return;
@@ -552,6 +640,7 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
                 </div>
 
                 {/* Dropdown menu */}
+                {/* Dropdown menu */}
                 {openMenu && (
                     <div
                         className="absolute top-12 right-4 w-32 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-10"
@@ -574,7 +663,8 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
                         )}
 
                         <div className="flex justify-between items-center">
-                            {note ? (
+                            {/* FIXED: Check if notes array has any items */}
+                            {note && note.length > 0 ? (
                                 <button
                                     onClick={handleEditNoteClick}
                                     className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 w-full text-left"
@@ -868,7 +958,7 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
                                     <span className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>{call.date}</span>
                                 </div>
 
-                                <div className="flex items-center gap-2">
+                                8<div className="flex items-center gap-2">
                                     <LuTimer className={theme === 'dark' ? 'text-white' : 'text-gray-900'} />
                                     <span className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>{call.duration}</span>
                                 </div>
@@ -879,30 +969,29 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
                                 </div>
                             </div>
 
-
-                            {/* Notes Section */}
-                            {note && (
-                                <div className="border-t pt-4 border-gray-200 dark:border-gray-700">
-                                    <h4 className={`font-medium mb-3 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                                        Notes
-                                    </h4>
-                                    <div className="space-y-3">
-                                        <div className={`p-3 rounded-lg ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-50'}`}>
-                                            <div className="flex justify-between items-start mb-2">
-                                                <h5 className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                                                    {note.title}
-                                                </h5>
+                            {note.length > 0 && (
+                                <div className="border-t pt-4 border-gray-200 dark:border-gray-700 space-y-3">
+                                    {note.map((noteItem) => (
+                                        <div
+                                            key={noteItem.name}
+                                            className={`flex items-start gap-3 p-3 rounded-lg ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-50'}`}
+                                        >
+                                            <IoDocumentTextOutline className={`w-5 h-5 mt-1 flex-shrink-0 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`} />
+                                            <div className="flex-1">
+                                                <h4 className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
+                                                    {noteItem.title}
+                                                </h4>
+                                                <p className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
+                                                    {noteItem.content.replace(/<p>|<\/p>/g, '')}
+                                                </p>
                                             </div>
-                                            <p className={`text-sm mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-                                                {note.content}
-                                            </p>
-                                            <p className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
-                                                {formatDate(note.creation)}
-                                            </p>
                                         </div>
-                                    </div>
+                                    ))}
                                 </div>
                             )}
+
+                            {/* Inside your CallDetailsPopup JSX */}
+
 
                             {/* Tasks Section */}
 
