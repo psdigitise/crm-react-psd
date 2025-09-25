@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Mail, Lock, Eye, EyeOff, Loader2, User, Building2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Mail, Lock, Eye, EyeOff, Loader2, User, Building2, CheckCircle, X } from 'lucide-react';
 import { setUserSession } from '../utils/session';
 import { FiPhone } from 'react-icons/fi';
 import axios from 'axios';
@@ -40,6 +40,52 @@ interface CompanyData {
   no_employees: string;
 }
 
+interface ToastProps {
+  message: string;
+  type: 'success' | 'error';
+  isVisible: boolean;
+  onClose: () => void;
+}
+
+const Toast: React.FC<ToastProps> = ({ message, type, isVisible, onClose }) => {
+  useEffect(() => {
+    if (isVisible) {
+      const timer = setTimeout(() => {
+        onClose();
+      }, 5000); // Auto hide after 5 seconds
+
+      return () => clearTimeout(timer);
+    }
+  }, [isVisible, onClose]);
+
+  if (!isVisible) return null;
+
+  return (
+    <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top-2">
+      <div className={`flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg border ${
+        type === 'success' 
+          ? 'bg-green-50 border-green-200 text-green-800' 
+          : 'bg-red-50 border-red-200 text-red-800'
+      }`}>
+        {type === 'success' ? (
+          <CheckCircle className="w-5 h-5 text-green-600" />
+        ) : (
+          <X className="w-5 h-5 text-red-600" />
+        )}
+        <p className="text-sm font-medium max-w-sm">{message}</p>
+        <button
+          onClick={onClose}
+          className={`ml-2 ${
+            type === 'success' ? 'text-green-600 hover:text-green-800' : 'text-red-600 hover:text-red-800'
+          }`}
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  );
+};
+
 function getTodayISODate() {
   const today = new Date();
   return today.toISOString().slice(0, 10); // "2025-07-22"
@@ -55,6 +101,14 @@ export function LoginPage({ onLogin }: LoginPageProps) {
   const [passwordError, setPasswordError] = useState("");
   // Add state for the phone number
   const [phoneNumber, setPhoneNumber] = useState('');
+  
+  // Toast state
+  const [toast, setToast] = useState({
+    isVisible: false,
+    message: '',
+    type: 'success' as 'success' | 'error'
+  });
+
   // Register form state
   const [registerData, setRegisterData] = useState<RegisterData>({
     email: '',
@@ -71,6 +125,18 @@ export function LoginPage({ onLogin }: LoginPageProps) {
     company_name: '',
     no_employees: ''
   });
+
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToast({
+      isVisible: true,
+      message,
+      type
+    });
+  };
+
+  const hideToast = () => {
+    setToast(prev => ({ ...prev, isVisible: false }));
+  };
 
   const validatePassword = (password: string) => {
     const capitalRegex = /[A-Z]/;
@@ -146,119 +212,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
       setLoading(false);
     }
   };
-
-  // const handleRegister = async (e: React.FormEvent) => {
-  //   e.preventDefault();
-  //   setLoading(true);
-  //   setError("");
-
-  //   if (!registerData.email || !registerData.first_name || !companyData.company_name || !companyData.no_employees) {
-  //     setError("Please fill in all required fields");
-  //     setLoading(false);
-  //     return;
-  //   }
-
-  //   try {
-  //     // 1️⃣ First call Company API
-  //     const companyPayload = {
-  //       company_name: companyData.company_name,
-  //       email_id: registerData.email, // use register email
-  //       no_employees: companyData.no_employees, // take from a state
-  //     };
-
-  //     const companyResponse = await fetch(
-  //       "http://103.214.132.20:8002/api/v2/document/Company/",
-  //       {
-  //         method: "POST",
-  //         headers: {
-  //           "Content-Type": "application/json",
-  //           Authorization: AUTH_TOKEN, // include token if required
-  //         },
-  //         body: JSON.stringify(companyPayload),
-  //       }
-  //     );
-
-  //     if (!companyResponse.ok) {
-  //       throw new Error("Failed to create company");
-  //     }
-
-  //     const companyResult = await companyResponse.json();
-  //     console.log("Company created:", companyResult);
-
-  //     // 2️⃣ Now create User using frappe.client.save
-  //     const userDoc = {
-  //       doctype: "User",
-  //       email: registerData.email,
-  //       first_name: registerData.first_name,
-  //       role_profile_name: registerData.role_profile_name,
-  //       company: companyData.company_name, // link company name
-  //       phone: phoneNumber,
-  //       enabled: 1,
-  //       user_type: "System User",
-  //     };
-
-  //     const userResponse = await apiAxios.post(
-  //       "/api/method/frappe.client.save",
-  //       { doc: userDoc },
-  //       {
-  //         headers: {
-  //           "Content-Type": "application/json",
-  //           Authorization: AUTH_TOKEN,
-  //         },
-  //       }
-  //     );
-
-  //     if (userResponse.data && userResponse.data.message) {
-  //       const sessionData = {
-  //         full_name: registerData.first_name,
-  //         email: registerData.email,
-  //         phone: phoneNumber,
-  //         username: registerData.email,
-  //         company: companyData.company_name,
-  //         sid: "",
-  //         api_key: "",
-  //         api_secret: "",
-  //       };
-
-  //       setUserSession(sessionData);
-  //       setRegisterData({
-  //         email: "",
-  //         first_name: "",
-  //         company: "",
-  //         role_profile_name: "Only If Create",
-  //         new_password: "",
-  //       });
-  //       setCompanyData({
-  //         company_logo: null,
-  //         start_date: getTodayISODate(),
-  //         company_name: "",
-  //         no_employees: "",
-  //       });
-  //       setEmail(registerData.email);
-  //       setIsRegisterMode(false);
-  //       setError("");
-  //       //onLogin();
-  //       // setShowCrmModal(true);
-  //     } else {
-  //       throw new Error("Registration failed: No response message");
-  //     }
-  //   } catch (error) {
-  //     if (axios.isAxiosError(error)) {
-  //       setError(
-  //         error.response?.data?.message ||
-  //         error.message ||
-  //         "Registration failed"
-  //       );
-  //     } else if (error instanceof Error) {
-  //       setError(error.message);
-  //     } else {
-  //       setError("An unexpected error occurred during registration.");
-  //     }
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
-
+  
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -378,7 +332,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
         throw new Error("User creation failed: No response message");
       }
 
-      // ✅ Success - setup session
+      // ✅ Success - setup session and show toast
       const sessionData = {
         full_name: registerData.first_name,
         email: registerData.email,
@@ -390,9 +344,10 @@ export function LoginPage({ onLogin }: LoginPageProps) {
         api_secret: "",
       };
 
-      setUserSession(sessionData);
-
       // Reset forms
+      const userEmail = registerData.email;
+      const userName = registerData.first_name;
+      
       setRegisterData({
         email: "",
         first_name: "",
@@ -407,9 +362,15 @@ export function LoginPage({ onLogin }: LoginPageProps) {
         no_employees: "",
       });
 
-      setEmail(registerData.email);
+      setEmail(userEmail);
       setIsRegisterMode(false);
       setError("");
+
+      // Show success toast
+      showToast(
+        `Your account has been successfully created. You will receive an activation email at your registered email address.`,
+        'success'
+      );
 
     } catch (error) {
       let errorMessage = "Registration failed";
@@ -421,12 +382,12 @@ export function LoginPage({ onLogin }: LoginPageProps) {
       }
 
       setError(errorMessage);
+      showToast(errorMessage, 'error');
 
     } finally {
       setLoading(false);
     }
   };
-
 
   const handleRegisterInputChange = (field: string, value: string) => {
     setRegisterData((prev) => ({ ...prev, [field]: value }));
@@ -438,7 +399,15 @@ export function LoginPage({ onLogin }: LoginPageProps) {
   };
 
   return (
-    <div className="min-h-screen  flex items-center justify-center px-4" style={{ backgroundImage: "url(../../public/assets/images/bg-circle.png)", backgroundRepeat: "no-repeat", backgroundSize: "cover" }}>
+    <div className="min-h-screen flex items-center justify-center px-4" style={{ backgroundImage: "url(../../public/assets/images/bg-circle.png)", backgroundRepeat: "no-repeat", backgroundSize: "cover" }}>
+      {/* Toast Component */}
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        isVisible={toast.isVisible}
+        onClose={hideToast}
+      />
+
       <div className="max-w-md w-full">
         {/* Logo */}
         <div className="text-center">
@@ -455,11 +424,9 @@ export function LoginPage({ onLogin }: LoginPageProps) {
         <div className="bg-white/100 rounded-xl shadow-md border border-gray-300 p-8">
           {isRegisterMode ? (
             /* Register Form */
-            // <form onSubmit={handleRegister} className="space-y-6">
             <form onSubmit={handleRegister} className="space-y-6">
-
               <h1 className="text-[1.7rem] text-center font-[600] text-gray-900">
-                {isRegisterMode ? 'Create Account' : 'Login to ERPNext.ai'}
+                Create Account
               </h1>
               {/* Error Message */}
               {error && (
@@ -467,8 +434,6 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                   <p className="text-red-800 text-sm">{error}</p>
                 </div>
               )}
-
-
 
               <div>
                 <label className="block text-sm font-medium text-black mb-1">
@@ -488,7 +453,6 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                 </div>
               </div>
 
-
               {/* Email Field */}
               <div>
                 <label className="block text-sm font-medium text-black mb-1">
@@ -500,7 +464,6 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                     type="email"
                     value={registerData.email}
                     onChange={(e) => handleRegisterInputChange('email', e.target.value)}
-                    // className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50"
                     className="w-full pl-10 pr-4 py-3 border border-white rounded-lg bg-transparent text-black !placeholder-gray-500 focus:outline-none"
                     placeholder="your@email.com"
                     required
@@ -509,13 +472,12 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                 </div>
               </div>
 
-              {/* Confirm Password Field */}
+              {/* Phone Number Field */}
               <div>
                 <label className="block text-sm font-medium text-black mb-1">
                   Phone Number <span className="text-red-500">*</span>
                 </label>
                 <div className="relative border border-gray-400 rounded-lg">
-                  {/* Phone icon instead of lock */}
                   <FiPhone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
                     type="tel"
@@ -606,7 +568,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             /* Login Form */
             <form onSubmit={handleLogin} className="space-y-6">
               <h1 className="text-[1.7rem] text-center font-[600] text-gray-900">
-                {isRegisterMode ? 'Create Account' : 'Login to ERPNext.ai'}
+                Login to ERPNext.ai
               </h1>
               {/* Error Message */}
               {error && (
@@ -615,11 +577,9 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                 </div>
               )}
 
-
-
               {/* Email Field */}
               <div>
-                <label className="block text-md font-medium  text-black mb-1">
+                <label className="block text-md font-medium text-black mb-1">
                   Email Address
                 </label>
                 <div className="relative border border-gray-400 rounded-lg">
@@ -628,7 +588,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full  pl-10 pr-4 py-3 border border-white !placeholder-shown:font-[20px] rounded-lg bg-transparent text-black !placeholder-gray-500 focus:outline-none"
+                    className="w-full pl-10 pr-4 py-3 border border-white !placeholder-shown:font-[20px] rounded-lg bg-transparent text-black !placeholder-gray-500 focus:outline-none"
                     placeholder="Enter Email Address"
                     required
                     disabled={loading}
@@ -663,10 +623,6 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                 </div>
               </div>
 
-              {/* Company Name Field */}
-
-
-
               {/* Forgot Password */}
               <div className="text-right">
                 <button
@@ -683,11 +639,9 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                 type="submit"
                 disabled={loading}
                 className="w-full items-center bg-gradient-to-r from-[#35bce7] to-[#082a87] text-[#ffffff] py-3 rounded-lg font-medium hover:bg-gray-100 transition-colors"
-
               >
                 {loading ? (
                   <>
-                    {/* <Loader2 className="w-5 h-5 animate-spin mr-2" /> */}
                     Signing in...
                   </>
                 ) : (
@@ -701,7 +655,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                   <div className="w-full border-t border-gray-300" />
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white  text-gray-500">or</span>
+                  <span className="px-2 bg-white text-gray-500">or</span>
                 </div>
               </div>
 
