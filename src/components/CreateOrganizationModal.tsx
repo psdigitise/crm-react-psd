@@ -535,7 +535,7 @@ export function CreateOrganizationModal({ isOpen, onClose, onSubmit }: CreateOrg
                     Website
                   </label>
                   <input
-                    type="url"
+                    type="text"
                     name="website"
                     value={formData.website}
                     onChange={handleChange}

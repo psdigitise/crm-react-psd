@@ -16,7 +16,6 @@ import axios from "axios";
 import { Deal } from "./DealDetailView";
 import { apiAxios } from "../api/apiUrl";
 
-
 interface EmailComposerProps {
   mode: string;
   onClose: () => void;
@@ -36,6 +35,12 @@ const showToast = (msg, opts) => alert(msg);
 
 const API_BASE_URL = "http://103.214.132.20:8002/api/method/frappe.core.doctype.communication.email.make";
 const AUTH_TOKEN = "token 1b670b800ace83b:f32066fea74d0fe"; // Replace with your actual token
+const SEARCH_API_URL = "http://103.214.132.20:8002/api/method/frappe.desk.search.search_link";
+
+interface User {
+  value: string;
+  description: string;
+}
 
 export default function EmailOrCommentComposer({ deal, onClose, mode, dealName, fetchEmails, selectedEmail, clearSelectedEmail, fetchComments, onSubjectChange, generatedContent, generatingContent }: EmailComposerProps) {
   const { theme } = useTheme();
@@ -54,6 +59,13 @@ export default function EmailOrCommentComposer({ deal, onClose, mode, dealName, 
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const emojiPickerRef = useRef<HTMLDivElement | null>(null);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+
+  // New states for autocomplete
+  const [userSuggestions, setUserSuggestions] = useState<User[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const recipientInputRef = useRef<HTMLInputElement>(null);
+  const suggestionsRef = useRef<HTMLDivElement>(null);
 
   const userSession = getUserSession();
   const senderUsername = userSession?.username || "Administrator";
@@ -75,16 +87,105 @@ export default function EmailOrCommentComposer({ deal, onClose, mode, dealName, 
       ) {
         setShowEmojiPicker(false);
       }
+      
+      // Close suggestions when clicking outside
+      if (
+        suggestionsRef.current &&
+        !suggestionsRef.current.contains(event.target as Node) &&
+        recipientInputRef.current &&
+        !recipientInputRef.current.contains(event.target as Node)
+      ) {
+        setShowSuggestions(false);
+      }
     };
 
-    if (showEmojiPicker) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
+    document.addEventListener("mousedown", handleClickOutside);
 
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [showEmojiPicker]);
+
+  // Fetch user suggestions
+  const fetchUserSuggestions = async (searchText: string) => {
+    if (!searchText.trim()) {
+      setUserSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    setSearchLoading(true);
+    try {
+      const payload = {
+        txt: searchText,
+        doctype: "User",
+        filters: {
+          company: ""
+        }
+      };
+
+      const response = await axios.post(SEARCH_API_URL, payload, {
+        headers: {
+          Authorization: AUTH_TOKEN,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.data && response.data.message) {
+        const suggestions = response.data.message.map((user: any) => ({
+          value: user.value,
+          description: user.description || user.value
+        }));
+        setUserSuggestions(suggestions);
+        setShowSuggestions(suggestions.length > 0);
+      }
+    } catch (error) {
+      console.error("Error fetching user suggestions:", error);
+      setUserSuggestions([]);
+      setShowSuggestions(false);
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  // Debounced search function
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      fetchUserSuggestions(emailForm.recipient);
+    }, 300); // Wait 300ms after typing stops
+
+    return () => clearTimeout(timeoutId);
+  }, [emailForm.recipient]);
+
+  const handleRecipientChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setEmailForm(f => ({ ...f, recipient: value }));
+    
+    // Show suggestions only if there's text
+    if (value.trim()) {
+      setShowSuggestions(true);
+    } else {
+      setShowSuggestions(false);
+    }
+  };
+
+  const handleSuggestionClick = (user: User) => {
+    setEmailForm(f => ({ ...f, recipient: user.value }));
+    setShowSuggestions(false);
+  };
+
+  const handleRecipientKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Escape') {
+      setShowSuggestions(false);
+    } else if (e.key === 'ArrowDown' && userSuggestions.length > 0) {
+      e.preventDefault();
+      // Focus first suggestion (you can enhance this to navigate through suggestions)
+      const firstSuggestion = document.getElementById('suggestion-0');
+      if (firstSuggestion) {
+        (firstSuggestion as HTMLElement).focus();
+      }
+    }
+  };
 
   const UPLOAD_API_URL = "http://103.214.132.20:8002/api/method/upload_file";
 
@@ -349,14 +450,66 @@ export default function EmailOrCommentComposer({ deal, onClose, mode, dealName, 
                 }`}
             >
               <span className={`w-12 ${theme === "dark" ? "text-white" : "text-gray-500"}`}>To:</span>
-              <input
-                type="email"
-                value={emailForm.recipient}
-                onChange={e => setEmailForm(f => ({ ...f, recipient: e.target.value }))}
-                className={`px-2 py-1 rounded font-medium outline-none flex-1 ${theme === "dark" ? "bg-gray-700 text-white" : "bg-gray-100 text-gray-800"
-                  }`}
-                placeholder="Recipient email"
-              />
+              <div className="relative flex-1">
+                <input
+                  ref={recipientInputRef}
+                  type="email"
+                  value={emailForm.recipient}
+                  onChange={handleRecipientChange}
+                  onKeyDown={handleRecipientKeyDown}
+                  className={`px-2 py-1 rounded font-medium outline-none w-full ${theme === "dark" ? "bg-gray-700 text-white" : "bg-gray-100 text-gray-800"
+                    }`}
+                  placeholder="Recipient email"
+                />
+                
+                {/* Suggestions Dropdown */}
+                {showSuggestions && (
+                  <div
+                    ref={suggestionsRef}
+                    className={`absolute left-0 right-0 top-full mt-1 z-50 max-h-60 overflow-y-auto rounded-md shadow-lg ${
+                      theme === "dark" 
+                        ? "bg-gray-800 border border-gray-700" 
+                        : "bg-white border border-gray-300"
+                    }`}
+                  >
+                    {searchLoading ? (
+                      <div className={`px-3 py-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`}>
+                        Loading...
+                      </div>
+                    ) : userSuggestions.length > 0 ? (
+                      userSuggestions.map((user, index) => (
+                        <div
+                          key={index}
+                          id={`suggestion-${index}`}
+                          className={`px-3 py-2 cursor-pointer hover:bg-opacity-50 text-sm border-b ${
+                            theme === "dark" 
+                              ? "hover:bg-gray-700 border-gray-700 text-white" 
+                              : "hover:bg-gray-100 border-gray-200 text-gray-800"
+                          }`}
+                          onClick={() => handleSuggestionClick(user)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              handleSuggestionClick(user);
+                            }
+                          }}
+                          tabIndex={0}
+                        >
+                          <div className="font-medium">{user.value}</div>
+                          {user.description && (
+                            <div className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                              {user.description}
+                            </div>
+                          )}
+                        </div>
+                      ))
+                    ) : emailForm.recipient.trim() && (
+                      <div className={`px-3 py-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`}>
+                        No users found
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
               <div className="flex gap-2 ml-2 mt-1">
                 <span
                   className={`cursor-pointer select-none ${theme === "dark" ? "text-gray-300" : "text-gray-500"

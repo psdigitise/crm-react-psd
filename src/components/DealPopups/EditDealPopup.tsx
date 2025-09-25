@@ -235,9 +235,17 @@ export const EditDealPopup: React.FC<EditDealPopupProps> = ({
                 } focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                 disabled={loading || !!fetchError}
               >
-                <option value="">Select a field</option>
+                <option  className={`w-full p-2.5 rounded-md border ${
+                      theme === 'dark' 
+                        ? 'bg-gray-700 border-gray-600 text-white' 
+                        : 'border-gray-300 text-gray-900'
+                    } focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`} value="">Select a field</option>
                 {fieldOptions.map((field) => (
-                  <option key={field.value} value={field.value}>
+                  <option  className={`w-full p-2.5 rounded-md border ${
+                      theme === 'dark' 
+                        ? 'bg-gray-700 border-gray-600 text-white' 
+                        : 'border-gray-300 text-gray-900'
+                    } focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`} key={field.value} value={field.value}>
                     {field.label}
                   </option>
                 ))}
@@ -260,13 +268,21 @@ export const EditDealPopup: React.FC<EditDealPopupProps> = ({
                     } focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                     disabled={loading}
                   >
-                    <option value="">Select a value</option>
+                    <option  className={`w-full p-2.5 rounded-md border ${
+                      theme === 'dark' 
+                        ? 'bg-gray-700 border-gray-600 text-white' 
+                        : 'border-gray-300 text-gray-900'
+                    } focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`} value="">Select a value</option>
                     {fieldOptions
                       .find(f => f.value === selectedField)
                       ?.options?.split('\n')
                       .filter(option => option.trim() !== '')
                       .map((option) => (
-                        <option key={option} value={option}>
+                        <option  className={`w-full p-2.5 rounded-md border ${
+                      theme === 'dark' 
+                        ? 'bg-gray-700 border-gray-600 text-white' 
+                        : 'border-gray-300 text-gray-900'
+                    } focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`} key={option} value={option}>
                           {option}
                         </option>
                       ))}

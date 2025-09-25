@@ -90,7 +90,7 @@ export const DeleteAttachmentPopup: React.FC<DeleteAttachmentPopupProps> = ({
                         <p className={`text-lg ${
                             theme === 'dark' ? 'text-white' : 'text-gray-500'
                         }`}>
-                           Are you sure you want to delete this attachment?
+                            Are you sure you want to delete this attachment?
                         </p>
                     </div>
                 </div>

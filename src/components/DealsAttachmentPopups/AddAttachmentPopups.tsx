@@ -4,6 +4,7 @@ import { BiLink } from 'react-icons/bi';
 import { LuMonitor, LuUpload } from 'react-icons/lu';
 import { Trash2 } from 'lucide-react';
 import { FaArrowLeft } from 'react-icons/fa6';
+import { AUTH_TOKEN } from '../../api/apiUrl';
 
 type FileWithPrivacy = {
   file: File;
@@ -105,7 +106,7 @@ const UploadAttachmentPopup: React.FC<Props> = ({
 
     setIsUploading(true);
     try {
-      const token = "1b670b800ace83b:f82627cb56de7f6";
+      const token = AUTH_TOKEN ;
 
       // If link input is shown and valid, upload using from_link
       if (showLinkInput && isValidLink(linkUrl)) {
@@ -119,7 +120,7 @@ const UploadAttachmentPopup: React.FC<Props> = ({
         const response = await fetch("http://103.214.132.20:8002/api/method/upload_file", {
           method: "POST",
           headers: {
-            Authorization: `token ${token}`,
+            Authorization: AUTH_TOKEN ,
           },
           body: formData,
         });
@@ -148,7 +149,8 @@ const UploadAttachmentPopup: React.FC<Props> = ({
         const formData = new FormData();
         formData.append("doctype", "CRM Deal");
         formData.append("docname", dealName);
-        formData.append("type", isImageFile(fileItem.file.name) ? "image" : "file");
+        // formData.append("type", isImageFile(fileItem.file.name) ? "image" : "file");
+        formData.append("type", fileItem.file.type || "application/octet-stream");
         formData.append("file", fileItem.file);
         formData.append("is_private", fileItem.isPrivate ? "1" : "0");
         formData.append("folder", "Home/Attachments");
@@ -156,7 +158,7 @@ const UploadAttachmentPopup: React.FC<Props> = ({
         const response = await fetch("http://103.214.132.20:8002/api/method/upload_file", {
           method: "POST",
           headers: {
-            Authorization: `token ${token}`,
+            Authorization: AUTH_TOKEN ,
           },
           body: formData,
         });

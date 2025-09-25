@@ -10,8 +10,8 @@ import { IoCloseOutline, IoDocument, IoLockClosedOutline, IoLockOpenOutline } fr
 import { LuCalendar, LuReply, LuReplyAll, LuUpload } from 'react-icons/lu';
 import { PiDotsThreeOutlineBold } from 'react-icons/pi';
 import { TiDocumentText } from 'react-icons/ti';
-import { apiAxios } from '../api/apiUrl';
-import axios from 'axios';
+// import { apiAxios } from '../api/apiUrl';
+import { apiAxios, AUTH_TOKEN } from '../api/apiUrl';
 import Select from 'react-select';
 import { darkSelectStyles } from '../components/Dropdownstyles/darkSelectStyles'
 import { getUserSession } from '../utils/session';
@@ -204,7 +204,7 @@ const commentTypes = [
 ];
 
 const API_BASE_URL = 'http://103.214.132.20:8002/api';
-const AUTH_TOKEN = 'token 1b670b800ace83b:f32066fea74d0fe';
+// const AUTH_TOKEN = 'AUTH_TOKEN';
 
 
 export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
@@ -248,6 +248,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
   const Username = userSession?.username || "Administrator";
   const [organizationSearch, setOrganizationSearch] = useState('');
   const [showCreateOrganizationModal, setShowCreateOrganizationModal] = useState(false);
+  const [emailModalTab, setEmailModalTab] = useState<TabType | null>(null);
   const [territorySearch, setTerritorySearch] = useState('');
   const [showCreateTerritoryModal, setShowCreateTerritoryModal] = useState(false);
   // Form states
@@ -262,7 +263,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
     status: 'Ringing',
     type: 'Outgoing',
     duration: '',
-    name: ''
+    name: '',
+    receiver: ''
   });
 
   const [commentForm, setCommentForm] = useState({
@@ -347,7 +349,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         {
           method: 'POST',
           headers: {
-            'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe',
+            'Authorization': AUTH_TOKEN,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
@@ -392,7 +394,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         {
           method: 'POST',
           headers: {
-            'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe',
+            'Authorization': AUTH_TOKEN,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
@@ -434,6 +436,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
     }
   }, [deal.name]);
 
+
+
   const fetchComments = useCallback(async () => {
     setCommentsLoading(true);
     try {
@@ -442,7 +446,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
       const response = await fetch(url, {
         method: 'POST',
         headers: {
-          'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe',
+          'Authorization': AUTH_TOKEN,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -489,7 +493,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         {
           method: 'POST',
           headers: {
-            'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe',
+            'Authorization': AUTH_TOKEN,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
@@ -519,7 +523,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         {
           method: 'POST',
           headers: {
-            'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe',
+            'Authorization': AUTH_TOKEN,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
@@ -623,6 +627,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
       setNotesLoading(false);
     }
   };
+
+
 
   const editNote = async () => {
     if (!noteForm.title.trim()) {
@@ -737,7 +743,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
       const response = await fetch(`${API_BASE_URL}/method/frappe.client.insert`, {
         method: 'POST',
         headers: {
-          'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe',
+          'Authorization': AUTH_TOKEN,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -795,7 +801,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
       const response = await fetch(`${API_BASE_URL}/method/frappe.client.set_value`, {
         method: 'POST',
         headers: {
-          'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe',
+          'Authorization': AUTH_TOKEN,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -890,7 +896,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
       const response = await fetch(`${API_BASE_URL}/v2/document/CRM Call Log/${name}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe',
+          'Authorization': AUTH_TOKEN,
           'Content-Type': 'application/json'
         }
       });
@@ -982,7 +988,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         {
           method: 'POST',
           headers: {
-            'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe',
+            'Authorization': AUTH_TOKEN,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
@@ -1027,7 +1033,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         {
           method: 'DELETE',
           headers: {
-            'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe',
+            'Authorization': AUTH_TOKEN,
             'Content-Type': 'application/json'
           }
         }
@@ -1077,14 +1083,14 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         {
           method: 'POST',
           headers: {
-            'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe',
+            'Authorization': AUTH_TOKEN,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            doctype: 'CRM Deal',   // Document type
-            name: deal.name,       // The document's name/ID
+            doctype: 'CRM Deal',
+            name: deal.name,
             fieldname: {
-              status: newStatus    // Field(s) to update
+              status: newStatus
             }
           })
         }
@@ -1093,6 +1099,14 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
       if (response.ok) {
         setEditedDeal(updatedDeal);
         onSave(updatedDeal);
+
+        // Show success toast message
+        showToast('Status updated successfully!', { type: 'success' });
+
+        // Refresh the activity tab
+        if (activeTab === 'activity') {
+          await fetchAllActivities();
+        }
       } else {
         throw new Error('Failed to update status');
       }
@@ -1105,6 +1119,49 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
     }
   };
 
+  // Add to your state variables
+  const [docinfo, setDocinfo] = useState({
+    user_info: {
+      "santhaashwingsdigitise@gmail.com": {
+        fullname: "john-2",
+        image: null,
+        name: "santhaashwingsdigitise@gmail.com",
+        email: "santhaashwingsdigitise@gmail.com",
+        time_zone: "Asia/Kolkata"
+      },
+      "Administrator": {
+        fullname: "Administrator",
+        image: null,
+        name: "Administrator",
+        email: "hariprasad@psdigitise.com",
+        time_zone: "Asia/Kolkata"
+      }
+    },
+    comments: [],
+    shared: []
+  });
+
+
+
+  // Or if you need to fetch this data, add a useEffect to fetch it
+  useEffect(() => {
+    // Fetch docinfo if needed
+  }, []);
+
+  // Helper function to get fullname from username
+  const getFullname = (username: string): string => {
+    if (!username) return 'Unknown';
+
+    // Check if we have user info in docinfo
+    const userInfo = docinfo.user_info[username];
+    if (userInfo && userInfo.fullname) {
+      return userInfo.fullname;
+    }
+
+    // Fallback: return the username or a formatted version
+    return username.split('@')[0] || username;
+  };
+
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
 
   // Replace your entire fetchAllActivities function with this one
@@ -1115,12 +1172,18 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         `${API_BASE_URL}/method/crm.api.activities.get_activities`,
         {
           method: 'POST',
-          headers: { 'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe', 'Content-Type': 'application/json' },
+          // headers: { 'Authorization': AUTH_TOKEN, 'Content-Type': 'application/json' },
+          headers: {
+            'Authorization': AUTH_TOKEN,
+            'Content-Type': 'application/json'
+          },
           body: JSON.stringify({
             name: deal.name
           })
         }
       );
+      //  'Authorization': AUTH_TOKEN,
+      //       'Content-Type': 'application/json'
 
       if (!response.ok) throw new Error('Failed to fetch activities');
 
@@ -1152,8 +1215,12 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
 
       // 2. Map all data into a single, unified 'activities' list for the timeline view
       const callActivities = rawCallLogs.map((call: any) => ({
-        id: call.name, type: 'call', title: `${call.type} Call`,
-        description: ``, timestamp: call.creation, user: call.caller || call.receiver || 'Unknown',
+        id: call.name,
+        type: 'call',
+        title: `${call.type} Call`,
+        description: ``,
+        timestamp: call.creation,
+        user: getFullname(call.caller || call.receiver || 'Unknown'), // Use fullname here
         icon: <Phone className="w-4 h-4 text-green-500" />,
       }));
 
@@ -1164,8 +1231,12 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
       // }));
 
       const taskActivities = rawTasks.map((task: any) => ({
-        id: task.name, type: 'task', title: `Task Created: ${task.title}`,
-        description: ``, timestamp: task.modified, user: task.assigned_to || 'Unassigned',
+        id: task.name,
+        type: 'task',
+        title: `Task Created: ${task.title}`,
+        description: ``,
+        timestamp: task.modified,
+        user: getFullname(task.assigned_to || 'Unassigned'), // Use fullname here
         icon: <SiTicktick className="w-4 h-4 text-gray-600" />,
       }));
 
@@ -1178,31 +1249,80 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         title: 'Attachment Added',
         description: attachment.file_name,
         timestamp: attachment.creation,
-        user: attachment.owner,
+        user: getFullname(attachment.owner), // Use fullname here
         icon: <Paperclip className="w-4 h-4 text-gray-500" />,
-        attachmentData: attachment // Include the full attachment data
+        attachmentData: attachment
       }));
 
       const timelineActivities = timelineItems.map((item: any) => {
         // Mapping logic for timeline items (creation, comment, communication, changed, added)
         switch (item.activity_type) {
           case 'creation':
-            return { id: `creation-${item.creation}`, type: 'edit', title: `${item.owner} ${item.data}`, description: '', timestamp: item.creation, user: item.owner, icon: <UserPlus className="w-4 h-4 text-gray-500" /> };
+            return {
+              id: `creation-${item.creation}`,
+              type: 'edit',
+              title: `${getFullname(item.owner)} ${item.data}`, // Use fullname here
+              description: '',
+              timestamp: item.creation,
+              user: getFullname(item.owner), // Use fullname here
+              icon: <UserPlus className="w-4 h-4 text-gray-500" />
+            };
           case 'comment':
             if (item.content?.toLowerCase().includes('converted')) {
-              return { id: item.name, type: 'edit', title: `${item.owner} converted the lead to this deal.`, description: '', timestamp: item.creation, user: item.owner, icon: <RxLightningBolt className="w-4 h-4 text-blue-500" /> };
+              return {
+                id: item.name,
+                type: 'edit',
+                title: `${getFullname(item.owner)} converted the lead to this deal.`, // Use fullname here
+                description: '',
+                timestamp: item.creation,
+                user: getFullname(item.owner), // Use fullname here
+                icon: <RxLightningBolt className="w-4 h-4 text-blue-500" />
+              };
             }
-            return { id: item.name, type: 'comment', title: 'New Comment', description: item.content.replace(/<[^>]+>/g, ''), timestamp: item.creation, user: item.owner, icon: <MessageSquare className="w-4 h-4 text-purple-500" /> };
+            return {
+              id: item.name,
+              type: 'comment',
+              title: 'New Comment',
+              description: item.content.replace(/<[^>]+>/g, ''),
+              timestamp: item.creation,
+              user: getFullname(item.owner), // Use fullname here
+              icon: <MessageSquare className="w-4 h-4 text-purple-500" />
+            };
           case 'communication':
-            return { id: item.name || `comm-${item.creation}`, type: 'email', title: `Email: ${item.data.subject}`, description: ``, timestamp: item.creation, user: item.data.sender_full_name || item.data.sender, icon: <Mail className="w-4 h-4 text-red-500" /> };
+            return {
+              id: item.name || `comm-${item.creation}`,
+              type: 'email',
+              title: `Email: ${item.data.subject}`,
+              description: ``,
+              timestamp: item.creation,
+              user: getFullname(item.data.sender_full_name || item.data.sender), // Use fullname here
+              icon: <Mail className="w-4 h-4 text-red-500" />
+            };
           case 'added':
           case 'changed':
             if (item.other_versions?.length > 0) {
               const allChanges = [item, ...item.other_versions];
-              return { id: `group-${item.creation}`, type: 'grouped_change', timestamp: item.creation, user: item.owner, icon: <Layers className="w-4 h-4 text-white" />, changes: allChanges };
+              return {
+                id: `group-${item.creation}`,
+                type: 'grouped_change',
+                timestamp: item.creation,
+                user: getFullname(item.owner), // Use fullname here
+                icon: <Layers className="w-4 h-4 text-white" />,
+                changes: allChanges
+              };
             }
-            const actionText = item.activity_type === 'added' ? `added value for ${item.data.field_label}: '${item.data.value}'` : `changed ${item.data.field_label} from '${item.data.old_value || "nothing"}' to '${item.data.value}'`;
-            return { id: `change-${item.creation}`, type: 'edit', title: `${item.owner} ${actionText}`, description: '', timestamp: item.creation, user: item.owner, icon: <RxLightningBolt className="w-4 h-4 text-yellow-500" /> };
+            const actionText = item.activity_type === 'added'
+              ? `added value for ${item.data.field_label}: '${item.data.value}'`
+              : `changed ${item.data.field_label} from '${item.data.old_value || "nothing"}' to '${item.data.value}'`;
+            return {
+              id: `change-${item.creation}`,
+              type: 'edit',
+              title: `${getFullname(item.owner)} ${actionText}`, // Use fullname here
+              description: '',
+              timestamp: item.creation,
+              user: getFullname(item.owner), // Use fullname here
+              icon: <RxLightningBolt className="w-4 h-4 text-yellow-500" />
+            };
           default: return null;
         }
       }).filter(Boolean);
@@ -1218,7 +1338,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
     } finally {
       setActivityLoading(false);
     }
-  }, [deal.name]); // Add dependencies
+  }, [deal.name, docinfo.user_info]); // Add dependencies
 
   // Add to useEffect
   // Replace your existing useEffect with this one
@@ -1310,7 +1430,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         },
         {
           headers: {
-            'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe',
+            'Authorization': AUTH_TOKEN,
             'Content-Type': 'application/json'
           }
         }
@@ -1383,7 +1503,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         payload,
         {
           headers: {
-            'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe',
+            'Authorization': AUTH_TOKEN,
             'Content-Type': 'application/json',
           },
         }
@@ -1417,7 +1537,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
           {
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe'
+              'Authorization': 'AUTH_TOKEN'
             }
           }
         );
@@ -1455,7 +1575,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
           {
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe'
+              'Authorization': 'AUTH_TOKEN'
             }
           }
         );
@@ -1493,7 +1613,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
           {
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe'
+              'Authorization': 'AUTH_TOKEN'
             }
           }
         );
@@ -1547,7 +1667,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         },
         {
           headers: {
-            Authorization: 'token 1b670b800ace83b:f32066fea74d0fe',
+            'Authorization': AUTH_TOKEN,
             'Content-Type': 'application/json'
           }
         }
@@ -2265,7 +2385,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                             <span className="flex items-center justify-center w-6 h-6 rounded-full bg-gray-500 text-gray-300 font-bold text-xs">
                               {note.owner?.charAt(0).toUpperCase() || "-"}
                             </span>
-                            <span className={textSecondaryColor}>{note.owner}</span>
+                            <span className={textSecondaryColor}>{getFullname(note.owner)}</span>
                           </div>
                           <span className={`${textSecondaryColor} font-medium`}>
                             {getRelativeTime(note.creation)}
@@ -2407,6 +2527,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                       from: '',
                       to: '',
                       status: 'Ringing',
+                      receiver: '',
+                      caller: '',
                       type: 'Outgoing',
                       duration: '',
                       name: ''
@@ -2434,6 +2556,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                         status: 'Ringing',
                         type: 'Outgoing',
                         duration: '',
+                        caller: '',
+                        receiver: '',
                         name: ''
                       });
                       setShowCallModal(true);
@@ -2473,7 +2597,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
 
                           {/* Text */}
                           <span className="ml-2 text-sm text-white">
-                            {call._caller?.label || "Unknown"} has reached out
+                            {getFullname(call._caller?.label || "Unknown")} has reached out
                           </span>
                         </div>
 
@@ -2565,6 +2689,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                           type: editingCall.type || 'Outgoing',
                           duration: editingCall.duration || '',
                           name: editingCall.name || '',
+                          caller: editingCall.caller || '',
+                          receiver: editingCall.receiver || '',
                         });
                         setIsEditMode(true);
                         setShowPopup(false);
@@ -2585,19 +2711,34 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
             <div className={`w-full max-w-2xl ${cardBgColor} rounded-lg shadow-lg p-6 relative border ${borderColor}`}>
               <button
-                onClick={() => setShowCallModal(false)}
+                onClick={() => {
+                  setShowCallModal(false);
+                  setCallForm({ from: '', to: '', status: 'Ringing', type: 'Outgoing', duration: '', receiver: '', name: '' });
+                }}
                 className="absolute top-2 right-3 text-gray-500 hover:text-gray-700 dark:hover:text-white"
               >
                 ✕
               </button>
 
-              <h3 className={`text-lg font-semibold ${textColor} mb-4`}>{isEditMode ? 'Edit Call Log' : 'New Call Log'}</h3>
+              <h3 className={`text-lg font-semibold ${textColor} mb-4`}>
+                {isEditMode ? 'Edit Call Log' : 'New Call Log'}
+              </h3>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>Type <span className='text-red-500'>*</span></label>
                   <select
                     value={callForm.type}
-                    onChange={(e) => setCallForm({ ...callForm, type: e.target.value })}
+                    onChange={(e) => {
+                      const newType = e.target.value;
+                      setCallForm({
+                        ...callForm,
+                        type: newType,
+                        // Reset caller/receiver when type changes
+                        caller: newType === 'Incoming' ? '' : callForm.caller,
+                        receiver: newType === 'Outgoing' ? '' : callForm.receiver
+                      });
+                    }}
                     className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
                   >
                     <option value="Outgoing">Outgoing</option>
@@ -2612,9 +2753,10 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                     value={callForm.to}
                     onChange={(e) => setCallForm({ ...callForm, to: e.target.value })}
                     className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
-                    placeholder="To"
+                    placeholder="To phone number"
                   />
                 </div>
+
                 <div>
                   <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>From <span className='text-red-500'>*</span></label>
                   <input
@@ -2622,9 +2764,10 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                     value={callForm.from}
                     onChange={(e) => setCallForm({ ...callForm, from: e.target.value })}
                     className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
-                    placeholder="From"
+                    placeholder="From phone number"
                   />
                 </div>
+
                 <div>
                   <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>Status</label>
                   <select
@@ -2637,6 +2780,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                     ))}
                   </select>
                 </div>
+
                 <div>
                   <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>Duration</label>
                   <input
@@ -2644,9 +2788,45 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                     value={callForm.duration}
                     onChange={(e) => setCallForm({ ...callForm, duration: e.target.value })}
                     className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
-                    placeholder="Call duration"
+                    placeholder="Call duration in seconds"
                   />
                 </div>
+
+                {callForm.type === 'Outgoing' && (
+                  <div>
+                    <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>Caller</label>
+                    <select
+                      value={callForm.caller}
+                      onChange={(e) => setCallForm({ ...callForm, caller: e.target.value })}
+                      className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
+                    >
+                      <option value="">Select Caller</option>
+                      {OwnersOptions.map((user: any) => (
+                        <option key={user.value} value={user.value}>
+                          {user.description || user.label}  {/* Show description instead of label */}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {callForm.type === 'Incoming' && (
+                  <div>
+                    <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>Call Received By</label>
+                    <select
+                      value={callForm.receiver}
+                      onChange={(e) => setCallForm({ ...callForm, receiver: e.target.value })}
+                      className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
+                    >
+                      <option value="">Select Receiver</option>
+                      {OwnersOptions.map((user: any) => (
+                        <option key={user.value} value={user.value}>
+                          {user.description || user.label}  {/* Show description instead of label */}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
 
               <div className="flex justify-end mt-6">
@@ -2661,6 +2841,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                     if (success) {
                       setShowCallModal(false);
                       setIsEditMode(false);
+                      setCallForm({ from: '', to: '', status: 'Ringing', type: 'Outgoing', duration: '', receiver: '', name: '' });
                     }
                   }}
                   disabled={callsLoading}
@@ -2674,7 +2855,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         )}
 
         {activeTab === 'comments' && (
-          <div className="space-y-6">
+          <div className="">
             <div className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} p-6`}>
               <div className="flex justify-between items-center gap-5 mb-6">
                 <h3 className={`text-lg font-semibold ${textColor} mb-2`}>Comments</h3>
@@ -2731,7 +2912,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                             {comment.owner?.charAt(0).toUpperCase() || "?"}
                           </div>
                           <p className={`text-sm font-medium ${textSecondaryColor}`}>
-                            {Username} added a {comment.comment_type}
+                            {getFullname(comment.owner)} added a {comment.comment_type}
                           </p>
                         </div>
                         <p className="text-sm text-white">
@@ -2785,7 +2966,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
             </div>
 
             {/* Composer */}
-            <div ref={composerRef} className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} p-6`}>
+            <div ref={composerRef} className={`${cardBgColor} border-t ${borderColor} w-[-webkit-fill-available] pt-4 pb-4 absolute bottom-0  overflow-hidden`}>
               {!showEmailModal && (
                 <div className="flex gap-4 mt-4">
                   <button
@@ -2809,7 +2990,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                   </button>
                 </div>
               )}
-             {showEmailModal && activeTab === 'comments' && (
+              {showEmailModal && activeTab === 'comments' && (
                 <EmailComposer
                   mode={emailModalMode}
                   dealName={deal.name}
@@ -2817,7 +2998,10 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                   fetchComments={fetchComments}
                   selectedEmail={selectedEmail}
                   clearSelectedEmail={() => setSelectedEmail(null)}
-                  onClose={() => setShowEmailModal(false)}
+                  onClose={() => {
+                    setShowEmailModal(false);
+                    setEmailModalTab(null);
+                  }}
                 />
               )}
             </div>
@@ -2938,7 +3122,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                             {note.assigned_to?.charAt(0).toUpperCase() || "U"}
                           </div>
                           <span className={textSecondaryColor}>
-                            {note.assigned_to || 'Unassigned'}
+                            {getFullname(note.assigned_to) || 'Unassigned'}
                           </span>
 
                           {/* Due date */}
@@ -3277,7 +3461,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         )}
 
         {activeTab === 'emails' && (
-          <div className="space-y-6">
+          <div className="">
             <div className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} p-6`}>
               <div className='flex items-center justify-between gap-5 mb-6'>
                 <h3 className={`text-lg font-semibold ${textColor} mb-0`}>Emails</h3>
@@ -3438,7 +3622,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
 
             <div
               ref={composerRef}
-              className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} p-6`}>
+              className={`${cardBgColor} border-t ${borderColor} w-[-webkit-fill-available] pt-4 pb-4 absolute bottom-0  overflow-hidden`}>
               {/* Show Reply/Comment buttons when modal is closed */}
               {!showEmailModal && (
                 <div className="flex gap-4 mt-4">
@@ -3474,591 +3658,601 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                   selectedEmail={selectedEmail}
                   clearSelectedEmail={() => setSelectedEmail(null)} // Add this line
                   deal={deal} // Add this line
-                  onClose={() => setShowEmailModal(false)} />
+                  onClose={() => {
+                    setShowEmailModal(false);
+                    setEmailModalTab(null);
+                  }} />
               )}
             </div>
           </div>
         )}
 
         {activeTab === 'activity' && (
-          <div className={`relative rounded-lg shadow-sm border p-6 pb-24 ${theme === 'dark' ? `bg-gray-900 border-gray-700` : 'bg-white border-gray-200'}`}>
-            <h3 className={`text-lg font-semibold mb-6 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Activity</h3>
+          <div className="">
+            <div className={`relative rounded-lg shadow-sm border p-6 pb-24 ${theme === 'dark' ? `bg-gray-900 border-gray-700` : 'bg-white border-gray-200'}`}>
+              <h3 className={`text-lg font-semibold mb-6 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Activity</h3>
 
-            {activityLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
-              </div>
-            ) : activities.length === 0 ? (
-              <div className="text-center py-8">
-                <RiShining2Line className={`w-12 h-12 ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'} mx-auto mb-4`} />
-                <p className={`${theme === 'dark' ? 'text-white' : 'text-gray-500'}`}>No activities yet</p>
-              </div>
-            ) : (
-              <>
-                <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
-                  {activities.slice().reverse().map((activity) => {
+              {activityLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+                </div>
+              ) : activities.length === 0 ? (
+                <div className="text-center py-8">
+                  <RiShining2Line className={`w-12 h-12 ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'} mx-auto mb-4`} />
+                  <p className={`${theme === 'dark' ? 'text-white' : 'text-gray-500'}`}>No activities yet</p>
+                </div>
+              ) : (
+                <>
+                  <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+                    {activities.slice().reverse().map((activity) => {
 
-                    if (activity.type === 'call') {
-                      const callData = callLogs.find(c => c.name === activity.id);
-                      if (!callData) return null;
-                      return (
-                        <div key={activity.id}>
-                          <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center">
-                              <div
-                                className={`p-2 rounded-full mr-3 flex items-center justify-center
-                                ${callData.type === 'Inbound' || callData.type === 'Incoming'
-                                    ? 'bg-blue-100 text-blue-600'
-                                    : 'bg-green-100 text-green-600'
-                                  }`}
-                                style={{ width: '32px', height: '32px' }}
-                              >
-                                {callData.type === 'Inbound' || callData.type === 'Incoming' ? (
-                                  <SlCallIn className="w-4 h-4" />
-                                ) : (
-                                  <SlCallOut className="w-4 h-4" />
-                                )}
-                              </div>
-                              <div
-                                className={`p-2 rounded-full flex items-center justify-center mr-3 ${theme === 'dark' ? 'bg-gray-700 text-gray-200' : 'bg-gray-200 text-gray-700'} font-medium`}
-                                style={{ width: '32px', height: '32px' }}
-                              >
-                                {(callData._caller?.label || callData.from)?.charAt(0).toUpperCase() || "U"}
-                              </div>
-                              <span className={`ml-2 text-sm ${textColor}`}>
-                                {callData._caller?.label || callData.from} has reached out
-                              </span>
-                            </div>
-                            <p className={`text-xs ${textSecondaryColor}`}>
-                              {getRelativeTime(activity.timestamp)}
-                            </p>
-                          </div>
-
-                          {/* Card body with call details */}
-                          <div
-                            onClick={() => handleLabelClick(callData, true)}
-                            className={`relative border ${borderColor} rounded-lg ml-12 p-4 flex flex-col`}>
-                            <div className="flex items-center justify-between mb-2">
-                              <p className={`text-lg font-medium ${textColor}`}>
-                                {callData.type} Call
-                              </p>
-                            </div>
-                            <div className="flex items-start justify-start mt-2 gap-4">
-                              <p className={`text-sm ${textSecondaryColor} flex items-center`}>
-                                <IoIosCalendar className="mr-1" />
-                                {formatDateRelative(callData.creation)}
-                              </p>
-                              <p className={`text-sm ${textSecondaryColor}`}>
-                                {callData.duration}
-                              </p>
-                              <span
-                                className={`text-xs px-2 py-1 rounded ${callData.status === 'Completed'
-                                  ? 'bg-green-100 text-green-800'
-                                  : callData.status === 'Ringing'
-                                    ? 'bg-yellow-100 text-yellow-800'
-                                    : 'bg-gray-100 text-gray-800'
-                                  }`}
-                              >
-                                {callData.status}
-                              </span>
-                            </div>
-                            {/* Overlapping avatars for caller/receiver */}
-                            <div className="absolute right-4 top-1/2 -translate-y-1/2 flex -space-x-4">
-                              <div
-                                onClick={() => handleLabelClick(callData)}
-                                className={`p-2 rounded-full flex items-center justify-center cursor-pointer ${theme === 'dark' ? 'bg-gray-600 text-gray-100' : 'bg-gray-400 text-gray-800'} font-medium`}
-                                style={{ width: '32px', height: '32px' }}
-                                title={callData._caller?.label || callData.from}
-                              >
-                                {(callData._caller?.label || callData.from)?.charAt(0).toUpperCase()}
-                              </div>
-                              <div
-                                onClick={() => handleLabelClick(callData)}
-                                className={`p-2 rounded-full flex items-center justify-center cursor-pointer ${theme === 'dark' ? 'bg-gray-600 text-gray-100' : 'bg-gray-400 text-gray-800'} font-medium`}
-                                style={{ width: '32px', height: '32px' }}
-                                title={callData._receiver?.label || callData.to}
-                              >
-                                {(callData._receiver?.label || callData.to)?.charAt(0).toUpperCase()}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    }
-                    // else if (activity.type === 'note') {
-                    //   const noteData = notes.find(n => n.name === activity.id);
-                    //   if (!noteData) return null;
-
-                    //   return (
-                    //     <div key={activity.id} className="flex items-start space-x-3">
-                    //       {/* Icon */}
-                    //       <div className={`p-2 rounded-full ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-100'}`}>
-                    //         {activity.icon}
-                    //       </div>
-                    //       {/* Note Card */}
-                    //       <div className={`flex-1 border ${borderColor} rounded-lg p-4 relative`}>
-                    //         <div className="flex items-center justify-between mb-2">
-                    //           <h4 className={`text-lg font-semibold ${textColor}`}>{noteData.title}</h4>
-                    //           <div className="relative">
-                    //             <button
-                    //               onClick={(e) => {
-                    //                 e.stopPropagation();
-                    //                 setOpenMenuId(openMenuId === noteData.name ? null : noteData.name);
-                    //               }}
-                    //               className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600"
-                    //             >
-                    //               <BsThreeDots className="w-4 h-4" />
-                    //             </button>
-                    //             {/* Dropdown Menu for the note */}
-                    //             {openMenuId === noteData.name && (
-                    //               <div className={`absolute right-0 mt-2 w-28 rounded-lg shadow-lg z-10 ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border'}`}>
-                    //                 <button
-                    //                   onClick={(e) => {
-                    //                     e.stopPropagation();
-                    //                     // deleteNote(noteData.name); // Ensure you have this function
-                    //                     setOpenMenuId(null);
-                    //                   }}
-                    //                   className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 w-full text-left text-red-500"
-                    //                 >
-                    //                   <Trash2 className="w-4 h-4" />
-                    //                   <span>Delete</span>
-                    //                 </button>
-                    //               </div>
-                    //             )}
-                    //           </div>
-                    //         </div>
-                    //         <p className={`text-base font-semibold ${textSecondaryColor} whitespace-pre-wrap`}>
-                    //           {noteData.content}
-                    //         </p>
-                    //         <div className="flex justify-between items-center mt-4 pt-2 border-t dark:border-gray-700 text-sm gap-2">
-                    //           <div className="flex items-center gap-2">
-                    //             <span className="flex items-center justify-center w-6 h-6 rounded-full bg-gray-500 text-white font-bold text-xs">
-                    //               {noteData.owner?.charAt(0).toUpperCase() || "-"}
-                    //             </span>
-                    //             <span className={textSecondaryColor}>{noteData.owner}</span>
-                    //           </div>
-                    //           <span className={`${textSecondaryColor} font-medium`}>
-                    //             {getRelativeTime(noteData.creation)}
-                    //           </span>
-                    //         </div>
-                    //       </div>
-                    //     </div>
-                    //   );
-                    // }
-                    else if (activity.type === 'comment') {
-                      const commentData = comments.find(c => c.name === activity.id);
-                      if (!commentData) return null;
-
-                      return (
-                        <div key={activity.id} className="relative">
-                          <div className="flex justify-between items-center mb-2">
-                            <div className="flex items-center gap-4">
-                              <div className="mt-1 text-gray-400">
-                                <FaRegComment size={18} />
-                              </div>
-                              <div className={`w-8 h-8 flex items-center justify-center rounded-full ${theme === 'dark' ? 'bg-gray-400' : 'bg-gray-200'} text-sm font-semibold`}>
-                                {commentData.owner?.charAt(0).toUpperCase() || "?"}
-                              </div>
-                              <p className={`text-sm font-medium ${textSecondaryColor}`}>
-                                {commentData.owner} added a comment
-                              </p>
-                            </div>
-                            <p className={`text-xs ${textSecondaryColor}`}>
-                              {getRelativeTime(commentData.creation)}
-                            </p>
-                          </div>
-                          <div className={`border ${borderColor} rounded-lg p-4 ml-9 mt-2`}>
-                            <div className={`${textColor} mb-2 whitespace-pre-wrap`}>
-                              {commentData.content.replace(/<[^>]+>/g, '')}
-                            </div>
-                            {/* Attachments Section */}
-                            {commentData.attachments && commentData.attachments.length > 0 && (
-                              <div className="mt-4">
-                                <div className="flex flex-wrap gap-3">
-                                  {commentData.attachments.map((attachment, index) => {
-                                    const baseURL = "http://103.214.132.20:8002";
-                                    const fullURL = attachment.file_url.startsWith("http")
-                                      ? attachment.file_url
-                                      : `${baseURL}${attachment.file_url}`;
-                                    return (
-                                      <a
-                                        key={index}
-                                        href={fullURL}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className={`flex items-center border ${borderColor} px-3 py-1 rounded-md ${theme === 'dark' ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-50 hover:bg-gray-100'} transition-colors`}
-                                      >
-                                        <span className="mr-2 flex items-center gap-1 truncate max-w-[200px] text-sm">
-                                          <IoDocument className="w-3 h-3 mr-1" />
-                                          {attachment.file_name}
-                                        </span>
-                                      </a>
-                                    );
-                                  })}
+                      if (activity.type === 'call') {
+                        const callData = callLogs.find(c => c.name === activity.id);
+                        if (!callData) return null;
+                        return (
+                          <div key={activity.id}>
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex items-center">
+                                <div
+                                  className={`p-2 rounded-full mr-3 flex items-center justify-center
+                                  ${callData.type === 'Inbound' || callData.type === 'Incoming'
+                                      ? 'bg-blue-100 text-blue-600'
+                                      : 'bg-green-100 text-green-600'
+                                    }`}
+                                  style={{ width: '32px', height: '32px' }}
+                                >
+                                  {callData.type === 'Inbound' || callData.type === 'Incoming' ? (
+                                    <SlCallIn className="w-4 h-4" />
+                                  ) : (
+                                    <SlCallOut className="w-4 h-4" />
+                                  )}
                                 </div>
+                                <div
+                                  className={`p-2 rounded-full flex items-center justify-center mr-3 ${theme === 'dark' ? 'bg-gray-700 text-gray-200' : 'bg-gray-200 text-gray-700'} font-medium`}
+                                  style={{ width: '32px', height: '32px' }}
+                                >
+                                  {(callData._caller?.label || callData.from)?.charAt(0).toUpperCase() || "U"}
+                                </div>
+                                <span className={`ml-2 text-sm ${textColor}`}>
+                                  {callData._caller?.label || callData.from} has reached out
+                                </span>
                               </div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    }
-
-                    else if (activity.type === 'attachments') {
-                      // Find the corresponding attachment data
-                      const attachmentData = activity.attachmentData;
-                      if (!attachmentData) return null;
-
-                      return (
-                        <div key={activity.id} className="flex items-start space-x-3">
-                          <div className={`p-2 rounded-full text-white ${theme === 'dark' ? 'bg-gray-600' : 'bg-gray-100'}`}>
-                            <Paperclip className="w-4 h-4" />
-                          </div>
-                          <div className="flex-1 min-w-0 pt-1.5">
-                            <div className="flex items-center justify-between">
-                              <p className={`text-sm ${textColor}`}>
-                                <span className="font-medium">{activity.user}</span> added an attachment
-                              </p>
                               <p className={`text-xs ${textSecondaryColor}`}>
                                 {getRelativeTime(activity.timestamp)}
                               </p>
                             </div>
 
-                            {/* Attachment preview */}
-                            <div className={`mt-2 border ${borderColor} rounded-lg p-3`}>
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center">
-                                  {isImageFile(attachmentData.file_name) ? (
-                                    <img
-                                      src={`http://103.214.132.20:8002${attachmentData.file_url}`}
-                                      alt={attachmentData.file_name}
-                                      className="w-12 h-12 mr-3 object-cover rounded border border-gray-400"
-                                    />
-                                  ) : (
-                                    <div className="w-12 h-12 mr-3 flex items-center justify-center border border-gray-400 rounded">
-                                      <IoDocument className={`w-6 h-6 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`} />
-                                    </div>
-                                  )}
-                                  <div>
-                                    <p className={`font-medium ${textColor}`}>{attachmentData.file_name}</p>
-                                    <p className={`text-sm ${textSecondaryColor}`}>
-                                      {attachmentData.file_size ? formatFileSize(attachmentData.file_size) : 'Unknown size'}
-                                    </p>
-                                  </div>
-                                </div>
-
-                                <div className="flex items-center space-x-2">
-                                  {attachmentData.is_private === 1 ? (
-                                    <IoLockClosedOutline className={`w-4 h-4 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`} title="Private" />
-                                  ) : (
-                                    <IoLockOpenOutline className={`w-4 h-4 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`} title="Public" />
-                                  )}
-
-                                  <a
-                                    href={`http://103.214.132.20:8002${attachmentData.file_url}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className={`p-1.5 rounded-full ${theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-200'}`}
-                                    onClick={(e) => e.stopPropagation()}
-                                  >
-                                    <LuUpload className={`w-4 h-4 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`} />
-                                  </a>
-                                </div>
+                            {/* Card body with call details */}
+                            <div
+                              onClick={() => handleLabelClick(callData, true)}
+                              className={`relative border ${borderColor} rounded-lg ml-12 p-4 flex flex-col`}>
+                              <div className="flex items-center justify-between mb-2">
+                                <p className={`text-lg font-medium ${textColor}`}>
+                                  {callData.type} Call
+                                </p>
                               </div>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    }
-                    else if (activity.type === 'email') {
-                      // Find the corresponding detailed email data
-                      const emailData = emails.find(e => e.id === activity.id);
-                      if (!emailData) return null; // Fallback if data not found
-
-                      return (
-                        <div key={emailData.id} className="flex items-start w-full">
-                          {/* Avatar Circle */}
-                          <div className={`w-8 h-8 flex items-center justify-center rounded-full ${theme === 'dark' ? 'bg-gray-400' : 'bg-gray-200'} text-sm font-semibold`}>
-                            {emailData.fromName?.charAt(0).toUpperCase() || "?"}
-                          </div>
-
-                          {/* Email Card */}
-                          <div className={`flex-1 border ${borderColor} rounded-lg p-4 hover:shadow-md transition-shadow`}>
-                            <div className="flex justify-between items-start mb-2">
-                              <h4 className={`font-medium ${textColor}`}>
-                                {emailData.fromName} &lt;{emailData.from}&gt;
-                              </h4>
-
-                              {/* Right-side controls */}
-                              <div className="flex items-center gap-3 ml-auto">
-                                <span className={`text-xs ${textSecondaryColor}`}>
-                                  {getRelativeTime(emailData.creation)} {/* Use your existing formatDate function */}
+                              <div className="flex items-start justify-start mt-2 gap-4">
+                                <p className={`text-sm ${textSecondaryColor} flex items-center`}>
+                                  <IoIosCalendar className="mr-1" />
+                                  {formatDateRelative(callData.creation)}
+                                </p>
+                                <p className={`text-sm ${textSecondaryColor}`}>
+                                  {callData.duration}
+                                </p>
+                                <span
+                                  className={`text-xs px-2 py-1 rounded ${callData.status === 'Completed'
+                                    ? 'bg-green-100 text-green-800'
+                                    : callData.status === 'Ringing'
+                                      ? 'bg-yellow-100 text-yellow-800'
+                                      : 'bg-gray-100 text-gray-800'
+                                    }`}
+                                >
+                                  {callData.status}
                                 </span>
-                                <button
-                                  onClick={() => {
-                                    setSelectedEmail(emailData);
-                                    setEmailModalMode("reply");
-                                    setShowEmailModal(true);
-                                  }}
-                                  className={`${textColor}`}
-                                  title="Reply"
+                              </div>
+                              {/* Overlapping avatars for caller/receiver */}
+                              <div className="absolute right-4 top-1/2 -translate-y-1/2 flex -space-x-4">
+                                <div
+                                  onClick={() => handleLabelClick(callData)}
+                                  className={`p-2 rounded-full flex items-center justify-center cursor-pointer ${theme === 'dark' ? 'bg-gray-600 text-gray-100' : 'bg-gray-400 text-gray-800'} font-medium`}
+                                  style={{ width: '32px', height: '32px' }}
+                                  title={callData._caller?.label || callData.from}
                                 >
-                                  <LuReply className="w-4 h-4" />
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setSelectedEmail(emailData);
-                                    setEmailModalMode("reply-all");
-                                    setShowEmailModal(true);
-                                  }}
-                                  className={`${textColor}`}
-                                  title="Reply All"
+                                  {(callData._caller?.label || callData.from)?.charAt(0).toUpperCase()}
+                                </div>
+                                <div
+                                  onClick={() => handleLabelClick(callData)}
+                                  className={`p-2 rounded-full flex items-center justify-center cursor-pointer ${theme === 'dark' ? 'bg-gray-600 text-gray-100' : 'bg-gray-400 text-gray-800'} font-medium`}
+                                  style={{ width: '32px', height: '32px' }}
+                                  title={callData._receiver?.label || callData.to}
                                 >
-                                  <LuReplyAll className="w-4 h-4" />
-                                </button>
+                                  {(callData._receiver?.label || callData.to)?.charAt(0).toUpperCase()}
+                                </div>
                               </div>
                             </div>
+                          </div>
+                        );
+                      }
+                      // else if (activity.type === 'note') {
+                      //   const noteData = notes.find(n => n.name === activity.id);
+                      //   if (!noteData) return null;
 
-                            <h4 className={`font-medium ${textColor}`}>{emailData.subject}</h4>
+                      //   return (
+                      //     <div key={activity.id} className="flex items-start space-x-3">
+                      //       {/* Icon */}
+                      //       <div className={`p-2 rounded-full ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-100'}`}>
+                      //         {activity.icon}
+                      //       </div>
+                      //       {/* Note Card */}
+                      //       <div className={`flex-1 border ${borderColor} rounded-lg p-4 relative`}>
+                      //         <div className="flex items-center justify-between mb-2">
+                      //           <h4 className={`text-lg font-semibold ${textColor}`}>{noteData.title}</h4>
+                      //           <div className="relative">
+                      //             <button
+                      //               onClick={(e) => {
+                      //                 e.stopPropagation();
+                      //                 setOpenMenuId(openMenuId === noteData.name ? null : noteData.name);
+                      //               }}
+                      //               className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600"
+                      //             >
+                      //               <BsThreeDots className="w-4 h-4" />
+                      //             </button>
+                      //             {/* Dropdown Menu for the note */}
+                      //             {openMenuId === noteData.name && (
+                      //               <div className={`absolute right-0 mt-2 w-28 rounded-lg shadow-lg z-10 ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border'}`}>
+                      //                 <button
+                      //                   onClick={(e) => {
+                      //                     e.stopPropagation();
+                      //                     // deleteNote(noteData.name); // Ensure you have this function
+                      //                     setOpenMenuId(null);
+                      //                   }}
+                      //                   className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 w-full text-left text-red-500"
+                      //                 >
+                      //                   <Trash2 className="w-4 h-4" />
+                      //                   <span>Delete</span>
+                      //                 </button>
+                      //               </div>
+                      //             )}
+                      //           </div>
+                      //         </div>
+                      //         <p className={`text-base font-semibold ${textSecondaryColor} whitespace-pre-wrap`}>
+                      //           {noteData.content}
+                      //         </p>
+                      //         <div className="flex justify-between items-center mt-4 pt-2 border-t dark:border-gray-700 text-sm gap-2">
+                      //           <div className="flex items-center gap-2">
+                      //             <span className="flex items-center justify-center w-6 h-6 rounded-full bg-gray-500 text-white font-bold text-xs">
+                      //               {noteData.owner?.charAt(0).toUpperCase() || "-"}
+                      //             </span>
+                      //             <span className={textSecondaryColor}>{noteData.owner}</span>
+                      //           </div>
+                      //           <span className={`${textSecondaryColor} font-medium`}>
+                      //             {getRelativeTime(noteData.creation)}
+                      //           </span>
+                      //         </div>
+                      //       </div>
+                      //     </div>
+                      //   );
+                      // }
+                      else if (activity.type === 'comment') {
+                        const commentData = comments.find(c => c.name === activity.id);
+                        if (!commentData) return null;
 
-                            <div className="mb-2">
-                              <span className={`text-sm ${textColor}`}>
-                                <strong>To:</strong> {emailData.to}
-                              </span>
+                        return (
+                          <div key={activity.id} className="relative">
+                            <div className="flex justify-between items-center mb-2">
+                              <div className="flex items-center gap-4">
+                                <div className="mt-1 text-gray-400">
+                                  <FaRegComment size={18} />
+                                </div>
+                                <div className={`w-8 h-8 flex items-center justify-center rounded-full ${theme === 'dark' ? 'bg-gray-400' : 'bg-gray-200'} text-sm font-semibold`}>
+                                  {commentData.owner?.charAt(0).toUpperCase() || "?"}
+                                </div>
+                                <p className={`text-sm font-medium ${textSecondaryColor}`}>
+                                  {commentData.owner} added a comment
+                                </p>
+                              </div>
+                              <p className={`text-xs ${textSecondaryColor}`}>
+                                {getRelativeTime(commentData.creation)}
+                              </p>
                             </div>
-
-                            <div className={`mt-4 pt-2 border-t ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'} flex flex-col items-start`}>
-                              <div
-                                className={`${textColor} mb-2 whitespace-pre-wrap mt-4 w-full`}
-                                dangerouslySetInnerHTML={{
-                                  __html: emailData.content.includes('\n\n---\n\n')
-                                    ? emailData.content.split('\n\n---\n\n')[1]
-                                    : emailData.content
-                                }}
-                              />
-
-                              {/* Attachments */}
-                              {emailData.attachments.map((attachment, index) => {
-                                const baseURL = "http://103.214.132.20:8002";
-                                const fullURL = attachment.file_url.startsWith("http") ? attachment.file_url : `${baseURL}${attachment.file_url}`;
-                                return (
-                                  <a key={index} href={fullURL} target="_blank" rel="noopener noreferrer" className={`px-3 py-1 border ${borderColor} rounded-md text-sm flex items-center ${theme === "dark" ? "bg-gray-700 text-white" : "bg-gray-200 text-gray-800"}`}>
-                                    <IoDocument className="w-3 h-3 mr-1" />
-                                    {attachment.file_name}
-                                  </a>
-                                );
-                              })}
-
-                              {/* Expand original message button */}
-                              {emailData.content.includes('\n\n---\n\n') && (
-                                <div className="mt-2">
-                                  <button
-                                    className={`text-sm ${textColor} inline-flex items-center justify-center w-10 h-6 rounded-full ${theme === "dark" ? "bg-gray-700" : "bg-gray-200"}`}
-                                    onClick={() => setExpandedEmailId(prev => (prev === emailData.id ? null : emailData.id))}
-                                    title="Show original message"
-                                  >
-                                    <PiDotsThreeOutlineBold />
-                                  </button>
-
-                                  {/* Conditionally show original content */}
-                                  {expandedEmailId === emailData.id && (
-                                    <div
-                                      className={`mt-4 border-l-4 pl-4 italic font-semibold text-sm ${theme === "dark" ? "border-gray-500 text-gray-300" : "border-gray-600 text-gray-700"}`}
-                                      dangerouslySetInnerHTML={{ __html: emailData.content.split('\n\n---\n\n')[0] }}
-                                    />
-                                  )}
+                            <div className={`border ${borderColor} rounded-lg p-4 ml-9 mt-2`}>
+                              <div className={`${textColor} mb-2 whitespace-pre-wrap`}>
+                                {commentData.content.replace(/<[^>]+>/g, '')}
+                              </div>
+                              {/* Attachments Section */}
+                              {commentData.attachments && commentData.attachments.length > 0 && (
+                                <div className="mt-4">
+                                  <div className="flex flex-wrap gap-3">
+                                    {commentData.attachments.map((attachment, index) => {
+                                      const baseURL = "http://103.214.132.20:8002";
+                                      const fullURL = attachment.file_url.startsWith("http")
+                                        ? attachment.file_url
+                                        : `${baseURL}${attachment.file_url}`;
+                                      return (
+                                        <a
+                                          key={index}
+                                          href={fullURL}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className={`flex items-center border ${borderColor} px-3 py-1 rounded-md ${theme === 'dark' ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-50 hover:bg-gray-100'} transition-colors`}
+                                        >
+                                          <span className="mr-2 flex items-center gap-1 truncate max-w-[200px] text-sm">
+                                            <IoDocument className="w-3 h-3 mr-1" />
+                                            {attachment.file_name}
+                                          </span>
+                                        </a>
+                                      );
+                                    })}
+                                  </div>
                                 </div>
                               )}
                             </div>
                           </div>
-                        </div>
-                      );
-                    } else if (activity.type === 'task') {
-                      // Find the corresponding detailed task data from the `tasks` state
-                      const taskData = tasks.find(t => t.name === activity.id);
-                      if (!taskData) return null; // Fallback if data not found
+                        );
+                      }
 
-                      return (
-                        <div key={taskData.name} className="flex items-start w-full space-x-3">
-                          {/* Icon on the left */}
-                          <div className={`p-2 rounded-full mt-1 ${theme === 'dark' ? 'bg-orange-900' : 'bg-orange-100'}`}>
-                            <SiTicktick className="w-4 h-4 text-white" />
-                          </div>
+                      else if (activity.type === 'attachments') {
+                        // Find the corresponding attachment data
+                        const attachmentData = activity.attachmentData;
+                        if (!attachmentData) return null;
 
-                          {/* Detailed Task Card */}
-                          <div
-                            onClick={() => {
-                              // Your existing logic to open the edit modal
-                              setTaskForm({
-                                title: taskData.title,
-                                description: taskData.description,
-                                status: taskData.status,
-                                priority: taskData.priority,
-                                due_date: taskData.due_date ? taskData.due_date.split(' ')[0] : '',
-                                assigned_to: taskData.assigned_to,
-                              });
-                              setIsEditMode(true);
-                              setCurrentTaskId(taskData.name);
-                              setShowTaskModal(true);
-                            }}
-                            className={`flex-1 border ${borderColor} rounded-lg p-4 cursor-pointer hover:shadow-md`}
-                          >
-                            <div className="flex justify-between items-start mb-2">
-                              <h4 className={`font-medium ${textColor}`}>{taskData.title}</h4>
+                        return (
+                          <div key={activity.id} className="flex items-start space-x-3">
+                            <div className={`p-2 rounded-full text-white ${theme === 'dark' ? 'bg-gray-600' : 'bg-gray-100'}`}>
+                              <Paperclip className="w-4 h-4" />
                             </div>
-
-                            <div className="mt-1 text-sm flex justify-between items-center flex-wrap gap-2">
-                              {/* Left side: Assignee, Date, Priority */}
-                              <div className="flex items-center gap-4 flex-wrap">
-                                <div className="flex items-center gap-1">
-                                  <div className={`w-8 h-8 flex items-center justify-center rounded-full ${theme === 'dark' ? 'bg-gray-400' : 'bg-gray-200'} text-sm font-semibold`}>
-                                    {taskData.assigned_to?.charAt(0).toUpperCase() || "U"}
-                                  </div>
-                                  <span className={textSecondaryColor}>{taskData.assigned_to || 'Unassigned'}</span>
-                                </div>
-
-                                {taskData.due_date && (
-                                  <span className={`flex items-center gap-1 ${textSecondaryColor}`}>
-                                    <LuCalendar className="w-3.5 h-3.5" />
-                                    {formatDate(taskData.due_date)}
-                                  </span>
-                                )}
-
-                                <span className="flex items-center gap-1.5">
-                                  <span className={`w-2.5 h-2.5 rounded-full ${taskData.priority === 'High' ? 'bg-red-500'
-                                    : taskData.priority === 'Medium' ? 'bg-yellow-500'
-                                      : 'bg-gray-400'
-                                    }`}></span>
-                                  <span className={`text-xs font-medium ${textSecondaryColor}`}>{taskData.priority}</span>
-                                </span>
+                            <div className="flex-1 min-w-0 pt-1.5">
+                              <div className="flex items-center justify-between">
+                                <p className={`text-sm ${textColor}`}>
+                                  <span className="font-medium">{activity.user}</span> added an attachment
+                                </p>
+                                <p className={`text-xs ${textSecondaryColor}`}>
+                                  {getRelativeTime(activity.timestamp)}
+                                </p>
                               </div>
 
-                              {/* Right side: Status and Menu */}
-                              <div className="flex items-center gap-2">
-                                <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${taskData.status === 'Done'
-                                  ? (theme === 'dark' ? 'bg-green-900 text-green-200' : 'bg-green-100 text-green-800')
-                                  : (theme === 'dark' ? 'bg-blue-900 text-blue-200' : 'bg-blue-100 text-blue-800')
-                                  }`}>
-                                  {taskData.status}
-                                </span>
-                                <div className="relative">
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setOpenMenuId(openMenuId === taskData.name ? null : taskData.name);
-                                    }}
-                                    className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full"
-                                  >
-                                    <BsThreeDots className={`w-4 h-4 ${textColor}`} />
-                                  </button>
-                                  {openMenuId === taskData.name && (
-                                    <div className="absolute right-0 mt-2 w-28 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-10">
-                                      {/* Your delete button logic here */}
+                              {/* Attachment preview */}
+                              <div className={`mt-2 border ${borderColor} rounded-lg p-3`}>
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center">
+                                    {isImageFile(attachmentData.file_name) ? (
+                                      <img
+                                        src={`http://103.214.132.20:8002${attachmentData.file_url}`}
+                                        alt={attachmentData.file_name}
+                                        className="w-12 h-12 mr-3 object-cover rounded border border-gray-400"
+                                      />
+                                    ) : (
+                                      <div className="w-12 h-12 mr-3 flex items-center justify-center border border-gray-400 rounded">
+                                        <IoDocument className={`w-6 h-6 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`} />
+                                      </div>
+                                    )}
+                                    <div>
+                                      <p className={`font-medium ${textColor}`}>{attachmentData.file_name}</p>
+                                      <p className={`text-sm ${textSecondaryColor}`}>
+                                        {attachmentData.file_size ? formatFileSize(attachmentData.file_size) : 'Unknown size'}
+                                      </p>
                                     </div>
-                                  )}
+                                  </div>
+
+                                  <div className="flex items-center space-x-2">
+                                    {attachmentData.is_private === 1 ? (
+                                      <IoLockClosedOutline className={`w-4 h-4 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`} title="Private" />
+                                    ) : (
+                                      <IoLockOpenOutline className={`w-4 h-4 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`} title="Public" />
+                                    )}
+
+                                    <a
+                                      href={`http://103.214.132.20:8002${attachmentData.file_url}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className={`p-1.5 rounded-full ${theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-200'}`}
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      <LuUpload className={`w-4 h-4 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`} />
+                                    </a>
+                                  </div>
                                 </div>
                               </div>
                             </div>
                           </div>
-                        </div>
-                      );
-                    }
-                    else if (activity.type === 'grouped_change') {
-                      const isExpanded = expandedGroup === activity.id;
-                      const changeCount = activity.changes.length;
+                        );
+                      }
+                      else if (activity.type === 'email') {
+                        // Find the corresponding detailed email data
+                        const emailData = emails.find(e => e.id === activity.id);
+                        if (!emailData) return null; // Fallback if data not found
 
-                      return (
-                        <div key={activity.id} className="flex items-start space-x-3">
-                          {/* Icon */}
-                          <div className={`p-2 rounded-full text-white ${theme === 'dark' ? 'bg-gray-600' : 'bg-gray-100'}`}>
-                            {activity.icon}
-                          </div>
-
-                          {/* Content */}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between">
-                              <button onClick={() => setExpandedGroup(isExpanded ? null : activity.id)} className={`text-sm text-left ${textColor} flex items-center gap-2`}>
-                                {isExpanded ? 'Hide' : 'Show'} +{changeCount} changes from <span className="font-medium">{activity.user}</span>
-                                <FiChevronDown className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-                              </button>
-                              <p className={`text-xs ${textSecondaryColor}`}>{getRelativeTime(activity.timestamp)}</p>
+                        return (
+                          <div key={emailData.id} className="flex items-start w-full">
+                            {/* Avatar Circle */}
+                            <div className={`w-8 h-8 flex items-center justify-center rounded-full ${theme === 'dark' ? 'bg-gray-400' : 'bg-gray-200'} text-sm font-semibold`}>
+                              {emailData.fromName?.charAt(0).toUpperCase() || "?"}
                             </div>
 
-                            {/* Expanded List of Changes */}
-                            {isExpanded && (
-                              <div className="mt-2 pl-4 border-l-2 border-gray-300 dark:border-gray-700 space-y-1">
-                                {activity.changes.map((change: any) => (
-                                  <p key={change.creation} className={`text-sm ${textSecondaryColor}`}>
-                                    <span className="font-semibold text-gray-700 dark:text-gray-300">{change.data.field_label}:</span>
-                                    {change.data.old_value != null
-                                      ? <> Changed from '{change.data.old_value}' to <span className="font-semibold text-gray-700 dark:text-gray-300">'{change.data.value}'</span></>
-                                      : <> Added <span className="font-semibold text-gray-700 dark:text-gray-300">'{change.data.value}'</span></>
-                                    }
-                                  </p>
-                                ))}
+                            {/* Email Card */}
+                            <div className={`flex-1 border ${borderColor} rounded-lg p-4 hover:shadow-md transition-shadow`}>
+                              <div className="flex justify-between items-start mb-2">
+                                <h4 className={`font-medium ${textColor}`}>
+                                  {emailData.fromName} &lt;{emailData.from}&gt;
+                                </h4>
+
+                                {/* Right-side controls */}
+                                <div className="flex items-center gap-3 ml-auto">
+                                  <span className={`text-xs ${textSecondaryColor}`}>
+                                    {getRelativeTime(emailData.creation)} {/* Use your existing formatDate function */}
+                                  </span>
+                                  <button
+                                    onClick={() => {
+                                      setSelectedEmail(emailData);
+                                      setEmailModalMode("reply");
+                                      setShowEmailModal(true);
+                                    }}
+                                    className={`${textColor}`}
+                                    title="Reply"
+                                  >
+                                    <LuReply className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setSelectedEmail(emailData);
+                                      setEmailModalMode("reply-all");
+                                      setShowEmailModal(true);
+                                    }}
+                                    className={`${textColor}`}
+                                    title="Reply All"
+                                  >
+                                    <LuReplyAll className="w-4 h-4" />
+                                  </button>
+                                </div>
                               </div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    }
-                    else {
-                      // Default style for all other activities (Notes, Tasks, Comments, etc.)
-                      return (
-                        <div key={activity.id} className="flex items-start space-x-3">
-                          <div className={`p-2 rounded-full text-white  ${theme === 'dark' ? 'bg-gray-600' : 'bg-gray-100'}`}>
-                            {React.isValidElement(activity.icon)
-                              ? React.cloneElement(activity.icon, { style: { color: 'white' } })
-                              : activity.icon}
-                          </div>
-                          <div className="flex-1 min-w-0 pt-1.5">
-                            <div className="flex items-center justify-between">
-                              <p className={`text-sm ${textColor}`}>
-                                <span className="font-medium">{activity.user}</span> {activity.description.split(activity.user)[1] || activity.title}
-                              </p>
-                              <p className={`text-xs ${textSecondaryColor}`}>
-                                {getRelativeTime(activity.timestamp)}
-                              </p>
+
+                              <h4 className={`font-medium ${textColor}`}>{emailData.subject}</h4>
+
+                              <div className="mb-2">
+                                <span className={`text-sm ${textColor}`}>
+                                  <strong>To:</strong> {emailData.to}
+                                </span>
+                              </div>
+
+                              <div className={`mt-4 pt-2 border-t ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'} flex flex-col items-start`}>
+                                <div
+                                  className={`${textColor} mb-2 whitespace-pre-wrap mt-4 w-full`}
+                                  dangerouslySetInnerHTML={{
+                                    __html: emailData.content.includes('\n\n---\n\n')
+                                      ? emailData.content.split('\n\n---\n\n')[1]
+                                      : emailData.content
+                                  }}
+                                />
+
+                                {/* Attachments */}
+                                {emailData.attachments.map((attachment, index) => {
+                                  const baseURL = "http://103.214.132.20:8002";
+                                  const fullURL = attachment.file_url.startsWith("http") ? attachment.file_url : `${baseURL}${attachment.file_url}`;
+                                  return (
+                                    <a key={index} href={fullURL} target="_blank" rel="noopener noreferrer" className={`px-3 py-1 border ${borderColor} rounded-md text-sm flex items-center ${theme === "dark" ? "bg-gray-700 text-white" : "bg-gray-200 text-gray-800"}`}>
+                                      <IoDocument className="w-3 h-3 mr-1" />
+                                      {attachment.file_name}
+                                    </a>
+                                  );
+                                })}
+
+                                {/* Expand original message button */}
+                                {emailData.content.includes('\n\n---\n\n') && (
+                                  <div className="mt-2">
+                                    <button
+                                      className={`text-sm ${textColor} inline-flex items-center justify-center w-10 h-6 rounded-full ${theme === "dark" ? "bg-gray-700" : "bg-gray-200"}`}
+                                      onClick={() => setExpandedEmailId(prev => (prev === emailData.id ? null : emailData.id))}
+                                      title="Show original message"
+                                    >
+                                      <PiDotsThreeOutlineBold />
+                                    </button>
+
+                                    {/* Conditionally show original content */}
+                                    {expandedEmailId === emailData.id && (
+                                      <div
+                                        className={`mt-4 border-l-4 pl-4 italic font-semibold text-sm ${theme === "dark" ? "border-gray-500 text-gray-300" : "border-gray-600 text-gray-700"}`}
+                                        dangerouslySetInnerHTML={{ __html: emailData.content.split('\n\n---\n\n')[0] }}
+                                      />
+                                    )}
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      );
-                    }
-                  })}
-                </div>
+                        );
+                      } else if (activity.type === 'task') {
+                        // Find the corresponding detailed task data from the `tasks` state
+                        const taskData = tasks.find(t => t.name === activity.id);
+                        if (!taskData) return null; // Fallback if data not found
 
-                {/* <div className="flex justify-between items-center">
-                  <button
-                    onClick={handlePrevious}
-                    disabled={currentPage === 1}
-                    className={`text-sm px-3 py-1 border rounded-md ${theme === 'dark'
-                      ? 'text-white bg-dark-accent hover:bg-purple-800/50 border-purple-500/30'
-                      : 'text-gray-700 bg-gray-100 hover:bg-gray-200 border-gray-300'
-                      } disabled:opacity-50`}
-                  >
-                    Previous
-                  </button>
+                        return (
+                          <div key={taskData.name} className="flex items-start w-full space-x-3">
+                            {/* Icon on the left */}
+                            <div className={`p-2 rounded-full mt-1 ${theme === 'dark' ? 'bg-orange-900' : 'bg-orange-100'}`}>
+                              <SiTicktick className="w-4 h-4 text-white" />
+                            </div>
 
-                  <p className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>
-                    Page {currentPage} of {totalPages}
-                  </p>
+                            {/* Detailed Task Card */}
+                            <div
+                              onClick={() => {
+                                // Your existing logic to open the edit modal
+                                setTaskForm({
+                                  title: taskData.title,
+                                  description: taskData.description,
+                                  status: taskData.status,
+                                  priority: taskData.priority,
+                                  due_date: taskData.due_date ? taskData.due_date.split(' ')[0] : '',
+                                  assigned_to: taskData.assigned_to,
+                                });
+                                setIsEditMode(true);
+                                setCurrentTaskId(taskData.name);
+                                setShowTaskModal(true);
+                              }}
+                              className={`flex-1 border ${borderColor} rounded-lg p-4 cursor-pointer hover:shadow-md`}
+                            >
+                              <div className="flex justify-between items-start mb-2">
+                                <h4 className={`font-medium ${textColor}`}>{taskData.title}</h4>
+                              </div>
 
-                  <button
-                    onClick={handleNext}
-                    disabled={currentPage === totalPages}
-                    className={`text-sm px-3 py-1 border rounded-md ${theme === 'dark'
-                      ? 'text-white bg-dark-accent hover:bg-purple-800/50 border-purple-500/30'
-                      : 'text-gray-700 bg-gray-100 hover:bg-gray-200 border-gray-300'
-                      } disabled:opacity-50`}
-                  >
-                    Next
-                  </button>
-                </div> */}
-              </>
-            )}
+                              <div className="mt-1 text-sm flex justify-between items-center flex-wrap gap-2">
+                                {/* Left side: Assignee, Date, Priority */}
+                                <div className="flex items-center gap-4 flex-wrap">
+                                  <div className="flex items-center gap-1">
+                                    <div className={`w-8 h-8 flex items-center justify-center rounded-full ${theme === 'dark' ? 'bg-gray-400' : 'bg-gray-200'} text-sm font-semibold`}>
+                                      {taskData.assigned_to?.charAt(0).toUpperCase() || "U"}
+                                    </div>
+                                    <span className={textSecondaryColor}>{taskData.assigned_to || 'Unassigned'}</span>
+                                  </div>
+
+                                  {taskData.due_date && (
+                                    <span className={`flex items-center gap-1 ${textSecondaryColor}`}>
+                                      <LuCalendar className="w-3.5 h-3.5" />
+                                      {formatDate(taskData.due_date)}
+                                    </span>
+                                  )}
+
+                                  <span className="flex items-center gap-1.5">
+                                    <span className={`w-2.5 h-2.5 rounded-full ${taskData.priority === 'High' ? 'bg-red-500'
+                                      : taskData.priority === 'Medium' ? 'bg-yellow-500'
+                                        : 'bg-gray-400'
+                                      }`}></span>
+                                    <span className={`text-xs font-medium ${textSecondaryColor}`}>{taskData.priority}</span>
+                                  </span>
+                                </div>
+
+                                {/* Right side: Status and Menu */}
+                                <div className="flex items-center gap-2">
+                                  <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${taskData.status === 'Done'
+                                    ? (theme === 'dark' ? 'bg-green-900 text-green-200' : 'bg-green-100 text-green-800')
+                                    : (theme === 'dark' ? 'bg-blue-900 text-blue-200' : 'bg-blue-100 text-blue-800')
+                                    }`}>
+                                    {taskData.status}
+                                  </span>
+                                  <div className="relative">
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setOpenMenuId(openMenuId === taskData.name ? null : taskData.name);
+                                      }}
+                                      className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full"
+                                    >
+                                      <BsThreeDots className={`w-4 h-4 ${textColor}`} />
+                                    </button>
+                                    {openMenuId === taskData.name && (
+                                      <div className="absolute right-0 mt-2 w-28 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-10">
+                                        {/* Your delete button logic here */}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }
+                      else if (activity.type === 'grouped_change') {
+                        const isExpanded = expandedGroup === activity.id;
+                        const changeCount = activity.changes.length;
+
+                        // Map username to fullname using your docinfo structure
+                        const userFullname = docinfo.user_info[activity.user]?.fullname || activity.user;
+
+                        return (
+                          <div key={activity.id} className="flex items-start space-x-3">
+                            {/* Icon */}
+                            <div className={`p-2 rounded-full text-white ${theme === 'dark' ? 'bg-gray-600' : 'bg-gray-100'}`}>
+                              {activity.icon}
+                            </div>
+
+                            {/* Content */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between">
+                                <button onClick={() => setExpandedGroup(isExpanded ? null : activity.id)} className={`text-sm text-left ${textColor} flex items-center gap-2`}>
+                                  {isExpanded ? 'Hide' : 'Show'} +{changeCount} changes from <span className="font-medium">{getFullname(userFullname)}</span>
+                                  <FiChevronDown className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                                </button>
+                                <p className={`text-xs ${textSecondaryColor}`}>{getRelativeTime(activity.timestamp)}</p>
+                              </div>
+
+                              {/* Expanded List of Changes */}
+                              {isExpanded && (
+                                <div className="mt-2 pl-4 border-l-2 border-gray-300 dark:border-gray-700 space-y-1">
+                                  {activity.changes.map((change: any) => (
+                                    <p key={change.creation} className={`text-sm ${textSecondaryColor}`}>
+                                      <span className="font-semibold text-gray-700 dark:text-gray-300">{change.data.field_label}:</span>
+                                      {change.data.old_value != null
+                                        ? <> Changed from '{change.data.old_value}' to <span className="font-semibold text-gray-700 dark:text-gray-300">'{change.data.value}'</span></>
+                                        : <> Added <span className="font-semibold text-gray-700 dark:text-gray-300">'{change.data.value}'</span></>
+                                      }
+                                    </p>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      }
+                      else {
+                        // Default style for all other activities (Notes, Tasks, Comments, etc.)
+                        return (
+                          <div key={activity.id} className="flex items-start space-x-3">
+                            <div className={`p-2 rounded-full text-white  ${theme === 'dark' ? 'bg-gray-600' : 'bg-gray-100'}`}>
+                              {React.isValidElement(activity.icon)
+                                ? React.cloneElement(activity.icon, { style: { color: 'white' } })
+                                : activity.icon}
+                            </div>
+                            <div className="flex-1 min-w-0 pt-1.5">
+                              <div className="flex items-center justify-between">
+                                <p className={`text-sm ${textColor}`}>
+                                  {activity.description || activity.title}
+                                </p>
+                                <p className={`text-xs ${textSecondaryColor}`}>
+                                  {getRelativeTime(activity.timestamp)}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }
+                    })}
+                  </div>
+
+                  {/* <div className="flex justify-between items-center">
+                    <button
+                      onClick={handlePrevious}
+                      disabled={currentPage === 1}
+                      className={`text-sm px-3 py-1 border rounded-md ${theme === 'dark'
+                        ? 'text-white bg-dark-accent hover:bg-purple-800/50 border-purple-500/30'
+                        : 'text-gray-700 bg-gray-100 hover:bg-gray-200 border-gray-300'
+                        } disabled:opacity-50`}
+                    >
+                      Previous
+                    </button>
+
+                    <p className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>
+                      Page {currentPage} of {totalPages}
+                    </p>
+
+                    <button
+                      onClick={handleNext}
+                      disabled={currentPage === totalPages}
+                      className={`text-sm px-3 py-1 border rounded-md ${theme === 'dark'
+                        ? 'text-white bg-dark-accent hover:bg-purple-800/50 border-purple-500/30'
+                        : 'text-gray-700 bg-gray-100 hover:bg-gray-200 border-gray-300'
+                        } disabled:opacity-50`}
+                    >
+                      Next
+                    </button>
+                  </div> */}
+                </>
+              )}
+
+
+            </div>
             {/* Sticky Action Footer */}
             <div
               ref={composerRef}
-              className={`absolute bottom-0 left-0 right-0 p-4 border-t ${theme === 'dark' ? `bg-gray-900 border-gray-700` : `bg-gray-50 border-gray-200`} rounded-b-lg`}
+              className={`${cardBgColor} border-t ${borderColor} w-[-webkit-fill-available] pt-4 pb-4 absolute bottom-0  overflow-hidden`}
             >
               {!showEmailModal ? (
                 <div className="flex gap-4">
@@ -4066,6 +4260,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                     className={`flex items-center gap-2 px-3 py-1 rounded-md text-sm ${theme === "dark" ? "text-gray-300 hover:bg-gray-700" : "text-gray-600 hover:bg-gray-200"}`}
                     onClick={() => {
                       setEmailModalMode("reply");
+                      setEmailModalTab('activity');
                       setShowEmailModal(true);
                       setSelectedEmail(null);                // Clear selected email
                       setEmailModalMode("new");
@@ -4077,6 +4272,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                     className={`flex items-center gap-2 px-3 py-1 rounded-md text-sm ${theme === "dark" ? "text-gray-300 hover:bg-gray-700" : "text-gray-400 hover:bg-gray-200"}`}
                     onClick={() => {
                       setEmailModalMode("comment");
+                      setEmailModalTab('activity');
                       setShowEmailModal(true);
                     }}
                   >
@@ -4092,7 +4288,10 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                   selectedEmail={selectedEmail}
                   clearSelectedEmail={() => setSelectedEmail(null)}
                   deal={deal}
-                  onClose={() => setShowEmailModal(false)}
+                  onClose={() => {
+                    setShowEmailModal(false);
+                    setEmailModalTab(null);
+                  }}
                 />
               )}
             </div>

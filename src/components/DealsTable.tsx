@@ -692,7 +692,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
   }
 
   return (
-    <div className=" max-h-[68vh] overflow-y-auto pr-3">
+    <div className=" max-h-[100vh]  pr-3">
       {/* Action Bar */}
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
         <div className="flex items-center space-x-2">
@@ -847,16 +847,19 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
           </div>
         </div>
         <div className="flex items-center space-x-2">
-          <button
-            onClick={exportToExcel}
-            title="Export to Excel"
-            className={`p-2 text-sm border rounded-lg transition-colors flex items-center justify-center ${theme === 'dark'
-              ? 'border-purple-500/30 text-white hover:bg-purple-800/50'
-              : 'border-gray-300 hover:bg-gray-50'
-              }`}
-          >
-            <Download className="w-4 h-4" />
-          </button>
+          {/* Only show download button when there's data */}
+          {sortedData.length > 0 && (
+            <button
+              onClick={exportToExcel}
+              title="Export to Excel"
+              className={`p-2 text-sm border rounded-lg transition-colors flex items-center justify-center ${theme === 'dark'
+                ? 'border-purple-500/30 text-white hover:bg-purple-800/50'
+                : 'border-gray-300 hover:bg-gray-50'
+                }`}
+            >
+              <Download className="w-4 h-4" />
+            </button>
+          )}
           <span className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>
             Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, sortedData.length)} of {sortedData.length} results
           </span>
@@ -951,7 +954,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
           <div className="text-center py-12">
             <div className={theme === 'dark' ? 'text-white' : 'text-gray-500'}>No results found</div>
             <div className={`text-sm mt-1 ${theme === 'dark' ? 'text-gray-500' : 'text-white'}`}>
-             Please adjust your search criteria or filters
+              Please adjust your search criteria or filters
             </div>
           </div>
         )}
@@ -1047,12 +1050,16 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
               <div className="absolute right-0 bottom-10 bg-white dark:bg-gray-700 shadow-lg rounded-md border dark:border-gray-600 py-1 w-40 z-50">
                 <button
                   onClick={() => {
-                    if (selectedDeals.length === 1) {
-                      const dealToEdit = deals.find(d => d.id === selectedDeals[0]);
-                      if (dealToEdit) handleEditClick(dealToEdit);
-                    }
+                    // Remove the single selection restriction
+                    setIsEditPopupOpen(true);
+                    setShowDropdown(false);
                   }}
-                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">
+                  className={`block w-full text-left px-4 py-2 text-sm ${selectedDeals.length === 0
+                      ? 'text-gray-400 cursor-not-allowed'
+                      : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600'
+                    }`}
+                  disabled={selectedDeals.length === 0}
+                >
                   Edit
                 </button>
                 <button

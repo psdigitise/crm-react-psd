@@ -19,7 +19,7 @@ import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { dashboardStats, todayTasks, openDeals, todayLeads, dealsClosingThisMonth, todaytasks } from '../data/sampleData';
 import { useTheme } from './ThemeProvider';
 import axios from 'axios';
-import { apiAxios } from '../api/apiUrl';
+import { apiAxios, AUTH_TOKEN } from '../api/apiUrl';
 import { Lead, LeadTable } from '../Dashboardtables/Leadstable';
 import { DealsTable } from './DealsTable';
 import { Deals, Dealstable } from '../Dashboardtables/DealsTable';
@@ -48,7 +48,6 @@ interface StatusCounts {
   'Proposal/Quotation': number
 }
 
-
 interface MetricCardProps {
   title: string;
   value: string | number;
@@ -58,29 +57,19 @@ interface MetricCardProps {
   color: string;
 }
 
-
 function MetricCard({ title, value, change, icon, trend, color }: MetricCardProps) {
   const { theme } = useTheme();
-
 
   return (
     <div className={`rounded-3xl shadow-sm border p-6 hover:shadow-md transition-shadow relative ${theme === 'dark'
       ? 'bg-[#6200ee] border-purple-500/30'
       : 'bg-white border-gray-100'
       }`}>
-      {/* <div className="flex items-center justify-between mb-4"> */}
       <div className={`absolute right-3 top-4 p-3 rounded-full ${color}`}>
         {icon}
       </div>
-      {/* <div className={`flex items-center space-x-1 text-sm font-medium ${trend === 'up' ? 'text-green-600' : 'text-red-600'
-          }`}>
-          {trend === 'up' ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
-          <span>{Math.abs(change)}%</span>
-        </div> */}
-      {/* </div> */}
       <div className="space-y-1">
         <p className={`text-base font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>{title}</p>
-
         <p className={`text-4xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{value}</p>
       </div>
     </div>
@@ -154,7 +143,6 @@ interface TaskTableProps {
   compact?: boolean;
 }
 
-
 function TaskTable({ title, data, compact = false }: TaskTableProps) {
   const { theme } = useTheme();
   return (
@@ -224,10 +212,6 @@ function TaskTable({ title, data, compact = false }: TaskTableProps) {
                       }`}>
                       {item.dueDate}
                     </td>
-                    {/* <td className={`px-4 sm:px-6 py-4 whitespace-nowrap text-sm hidden md:table-cell ${theme === 'dark' ? 'text-white' : 'text-gray-900'
-                      }`}>
-                      {item.status}
-                    </td> */}
                   </>
                 )}
                 <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
@@ -268,10 +252,13 @@ export function Dashboard() {
     'Proposal/Quotation': 0
   } as const);
   const [taskData, setTaskData] = useState<TaskTableProps["data"]>([]);
-  console.log("taskData", taskData)
   const [leadTableData, setLeadTableData] = useState<Lead[]>([]);
   const [DealsTableData, setDealsTableData] = useState<Deals[]>([]);
   const [TodayLeadsData, setTodayLeadsTableData] = useState<TodayLeads[]>([]);
+
+  // New state variables for dynamic metric data
+  const [contactCount, setContactCount] = useState(0);
+  const [organizationCount, setOrganizationCount] = useState(0);
 
   useEffect(() => {
     const userSession = getUserSession();
@@ -280,7 +267,7 @@ export function Dashboard() {
       'http://103.214.132.20:8002/api/v2/document/CRM Deal',
       {
         headers: {
-          Authorization: 'token 1b670b800ace83b:9f48cd1310e112b',
+          Authorization: AUTH_TOKEN,
         },
         params: {
           fields: JSON.stringify(["name", "status"]),
@@ -291,7 +278,6 @@ export function Dashboard() {
       .then((response) => {
         const data = response.data.data;
 
-        // Initialize counters
         let counts = {
           Qualification: 0,
           Lost: 0,
@@ -302,12 +288,10 @@ export function Dashboard() {
           'Proposal/Quotation': 0
         };
 
-        // Count each status
         data.forEach((deal: Deal) => {
           if (counts.hasOwnProperty(deal.status)) {
             counts[deal.status]++;
           } else {
-            // Optional: to handle unexpected statuses
             counts[deal.status] = 1;
           }
         });
@@ -322,15 +306,128 @@ export function Dashboard() {
       });
   }, []);
 
-  // const conversionData = [
-  //   { name: 'Won', value: statusCounts.Won, color: '#EF4444' },
-  //   { name: 'Lost', value: statusCounts.Lost, color: '#3B82F6' },
-  //   { name: 'Qualified', value: statusCounts.Qualification, color: '#10B981' },
-  //   { name: 'Demo/Making', value: statusCounts['Demo/Making'], color: '#F59E0B' },
-  //   { name: 'Ready to Close', value: statusCounts['Ready to Close'], color: '#4603131f' },
-  //   { name: 'Negotiation', value: statusCounts.Negotiation, color: '#0ad311' },
-  //   { name: 'Proposal/Quotation', value: statusCounts['Proposal/Quotation'], color: '#d3c40a' },
-  // ];
+  // useEffect(() => {
+  //   const fetchContactCount = async () => {
+  //     try {
+  //       const userSession = getUserSession();
+  //       const Company = userSession?.company;
+  //       const response = await axios.post(
+  //         'http://103.214.132.20:8002/api/method/crm.fcrm.doctype.crm_fields_layout.crm_fields_layout.get_fields_layout',
+  //         {
+  //           doctype: "Contact",
+  //           type: "Quick Entry"
+  //         },
+  //         {
+  //           headers: {
+  //             Authorization: AUTH_TOKEN,
+  //             filters: JSON.stringify({ company: Company }),
+  //           }
+  //         }
+  //       );
+
+  //       if (response.data && response.data.data) {
+  //         setContactCount(response.data.data.length || 0);
+  //       }
+  //     } catch (error) {
+  //       console.error('Error fetching contact count:', error);
+  //       setContactCount(0);
+  //     }
+  //   };
+
+  //   fetchContactCount();
+  // }, []);
+  // API call to get contact count
+  useEffect(() => {
+    const fetchContactCount = async () => {
+      try {
+        const userSession = getUserSession();
+        const Company = userSession?.company;
+        const response = await axios.get(
+          'http://103.214.132.20:8002/api/v2/document/Contact',
+          {
+            headers: {
+              Authorization: AUTH_TOKEN,
+            },
+            params: {
+              fields: JSON.stringify(["name"]), // Only fetch name field to minimize data
+              filters: JSON.stringify({ company: Company }),
+            }
+          }
+        );
+
+        if (response.data && response.data.data) {
+          setContactCount(response.data.data.length || 0);
+        }
+      } catch (error) {
+        console.error('Error fetching contact count:', error);
+        setContactCount(0);
+      }
+    };
+
+    fetchContactCount();
+  }, []);
+
+  // API call to get organization count
+  // useEffect(() => {
+  //   const fetchOrganizationCount = async () => {
+  //     try {
+  //       const userSession = getUserSession();
+  //       const Company = userSession?.company;
+  //       const response = await axios.post(
+  //         'http://103.214.132.20:8002/api/method/crm.fcrm.doctype.crm_fields_layout.crm_fields_layout.get_fields_layout',
+  //         {
+  //           doctype: "CRM Organization",
+  //           type: "Quick Entry"
+  //         },
+  //         {
+  //           headers: {
+  //             Authorization: AUTH_TOKEN,
+  //             filters: JSON.stringify({ company: Company }),
+  //           }
+  //         }
+  //       );
+
+  //       if (response.data && response.data.data) {
+  //         setOrganizationCount(response.data.data.length || 0);
+  //       }
+  //     } catch (error) {
+  //       console.error('Error fetching organization count:', error);
+  //       setOrganizationCount(0);
+  //     }
+  //   };
+
+  //   fetchOrganizationCount();
+  // }, []);
+
+  useEffect(() => {
+    const fetchOrganizationCount = async () => {
+      try {
+        const userSession = getUserSession();
+        const Company = userSession?.company;
+        const response = await axios.get(
+          'http://103.214.132.20:8002/api/v2/document/CRM Organization',
+          {
+            headers: {
+              Authorization: AUTH_TOKEN,
+            },
+            params: {
+              fields: JSON.stringify(["name"]), // Only fetch name field to minimize data
+              filters: JSON.stringify({ company: Company }),
+            }
+          }
+        );
+
+        if (response.data && response.data.data) {
+          setOrganizationCount(response.data.data.length || 0);
+        }
+      } catch (error) {
+        console.error('Error fetching organization count:', error);
+        setOrganizationCount(0);
+      }
+    };
+
+    fetchOrganizationCount();
+  }, []);
 
   const conversionData = [
     { name: 'Won', value: statusCounts.Won, color: '#5a2c93' },
@@ -342,16 +439,15 @@ export function Dashboard() {
     { name: 'Proposal/Quotation', value: statusCounts['Proposal/Quotation'], color: '#613085' },
   ];
 
-
   useEffect(() => {
     const userSession = getUserSession();
     const Company = userSession?.company;
     axios.get('http://103.214.132.20:8002/api/v2/document/CRM Lead/', {
       headers: {
-        Authorization: 'token 1b670b800ace83b:9f48cd1310e112b',
+        Authorization: AUTH_TOKEN,
       },
       params: {
-        filters: JSON.stringify({ company: Company }),
+        filters: JSON.stringify({ company: Company, converted: 0  }),
       },
     })
       .then((response) => {
@@ -363,7 +459,7 @@ export function Dashboard() {
       });
   }, []);
 
-  //TodayTasks api
+  // TodayTasks api
   useEffect(() => {
     const userSession = getUserSession();
     const Company = userSession?.company;
@@ -371,7 +467,7 @@ export function Dashboard() {
       '/api/v2/document/CRM Task',
       {
         headers: {
-          Authorization: 'token 1b670b800ace83b:9f48cd1310e112b',
+          Authorization: AUTH_TOKEN,
         },
         params: {
           fields: JSON.stringify(["description", "start_date", "due_date", "priority"]),
@@ -382,7 +478,6 @@ export function Dashboard() {
       .then((response) => {
         const data = response.data.data;
 
-        // Transform API response to match TaskTableProps["data"]
         const mappedTasks = data.map((task: any, index: number) => ({
           id: `${index}`,
           subject: task.description?.replace(/<[^>]+>/g, '') || 'No Description',
@@ -399,15 +494,14 @@ export function Dashboard() {
       });
   }, []);
 
-
-  //LeadsTable api
+  // LeadsTable api
   useEffect(() => {
     const userSession = getUserSession();
     const Company = userSession?.company;
     apiAxios
       .get('/api/v2/document/CRM Lead', {
         headers: {
-          Authorization: 'token 1b670b800ace83b:9f48cd1310e112b',
+          Authorization: AUTH_TOKEN,
         },
         params: {
           fields: JSON.stringify(["lead_name", "status"]),
@@ -422,7 +516,6 @@ export function Dashboard() {
           lead_name: item.lead_name,
           status: item.status
         }));
-        console.log("formattedLeads", formattedLeads)
         setLeadTableData(formattedLeads);
       })
       .catch((error) => {
@@ -430,14 +523,14 @@ export function Dashboard() {
       });
   }, []);
 
-  //DealsTable api
+  // DealsTable api
   useEffect(() => {
     const userSession = getUserSession();
     const Company = userSession?.company;
     apiAxios
       .get('/api/v2/document/CRM Deal', {
         headers: {
-          Authorization: 'token 1b670b800ace83b:9f48cd1310e112b',
+          Authorization: AUTH_TOKEN,
         },
         params: {
           fields: JSON.stringify(["organization", "status", "close_date"]),
@@ -453,7 +546,6 @@ export function Dashboard() {
           status: item.status || 'N/A',
           close_date: item.close_date || 'N/A',
         }));
-        console.log("formattedDeals", formattedDeals)
         setDealsTableData(formattedDeals);
       })
       .catch((error) => {
@@ -467,7 +559,7 @@ export function Dashboard() {
     apiAxios
       .get('/api/v2/document/CRM Lead', {
         headers: {
-          Authorization: 'token 1b670b800ace83b:9f48cd1310e112b',
+          Authorization: AUTH_TOKEN,
         },
         params: {
           fields: JSON.stringify(["status", "creation"]),
@@ -478,7 +570,6 @@ export function Dashboard() {
         const data = response?.data?.data;
 
         const today = new Date().toISOString().split("T")[0];
-        // Filter and map only leads created today, and show status
         const filteredLeads = (data || [])
           .filter((item: any) => {
             if (!item.creation) return false;
@@ -488,7 +579,7 @@ export function Dashboard() {
           .map((item: any, index: number) => ({
             id: `${index}`,
             status: item.status || 'N/A',
-            creation: item.creation || 'N/A', // still passed in case you want to show it
+            creation: item.creation || 'N/A',
           }));
 
         setTodayLeadsTableData(filteredLeads);
@@ -497,7 +588,6 @@ export function Dashboard() {
         console.error('Error fetching Today Leads table data:', error);
       });
   }, []);
-
 
   return (
     <div className={`p-4 sm:p-6 space-y-6 min-h-screen ${theme === 'dark'
@@ -533,11 +623,11 @@ export function Dashboard() {
       {/* Key Metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         <MetricCard
-          title="Total Revenue"
-          value="$348K"
+          title="Total Contacts"
+          value={contactCount}
           change={12.5}
           trend="up"
-          icon={<DollarSign className="w-6 h-6 text-purplebg" />}
+          icon={<Users className="w-6 h-6 text-purplebg" />}
           color="bg-black"
         />
         <MetricCard
@@ -557,8 +647,8 @@ export function Dashboard() {
           color="bg-black"
         />
         <MetricCard
-          title="Conversion Rate"
-          value="24.8%"
+          title="Total Organizations"
+          value={organizationCount}
           change={5.4}
           trend="up"
           icon={<TrendingUp className="w-6 h-6 text-purplebg" />}
@@ -567,7 +657,6 @@ export function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        {/* <TaskTable title="Today Task" data={todaytasks} compact={true} /> */}
         <TaskTable title="Today Task" data={taskData} compact={false} />
         <LeadTable title="Leads" data={leadTableData} />
         <TodayLeadstable title="Today Leads" data={TodayLeadsData} />
@@ -576,10 +665,6 @@ export function Dashboard() {
 
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 bg-white rounded-lg ">
-        {/* <div className="grid grid-cols-1 xl:">
-          <TaskTable title="My Deals Closing This Month" data={dealsClosingThisMonth} compact={true} />
-        </div> */}
-
         <div className=''>
           <ChartCard title="Lead Conversion Funnel">
             <ResponsiveContainer width="100%" height={300}>
@@ -623,7 +708,6 @@ export function Dashboard() {
           </ChartCard>
         </div>
 
-
         {/* Quick Actions */}
         <div className="grid grid-cols-1 relative">
           <div className='before:absolute before:content-[""] before:w-[2px] before:h-[70%] before:bg-black before:top-[20%]'></div>
@@ -660,7 +744,7 @@ export function Dashboard() {
 
                 onClick={() => {
                   window.history.pushState({}, '', '/deals');
-                  window.dispatchEvent(new PopStateEvent('popstate')); // Manually trigger React Router (if used)
+                  window.dispatchEvent(new PopStateEvent('popstate'));
                 }}
               >
                 <div className="flex items-center space-x-3">
@@ -710,4 +794,3 @@ export function Dashboard() {
     </div>
   );
 }
-

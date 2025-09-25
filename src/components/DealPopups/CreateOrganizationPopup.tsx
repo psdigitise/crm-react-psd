@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import { IoCloseOutline } from "react-icons/io5";
 import { apiAxios, AUTH_TOKEN } from "../../api/apiUrl";
 import { Listbox } from "@headlessui/react";
+import { getUserSession } from "../../utils/session";
+import { showToast } from "../../utils/toast";
 
 interface AddressOption {
     value: string;
@@ -58,11 +60,17 @@ export const CreateOrganizationPopup: React.FC<CreateOrganizationPopupProps> = (
     const fetchAddresses = async (searchTerm: string) => {
         setIsAddressLoading(true);
         try {
+            const session = getUserSession();
+            const sessionCompany = session?.company || '';
+
             const response = await apiAxios.post(
                 "/api/method/frappe.desk.search.search_link",
                 {
                     txt: searchTerm,
                     doctype: "Address",
+                   "filters": {
+                        "company": sessionCompany,
+                    }
                 },
                 {
                     headers: {
@@ -97,11 +105,16 @@ export const CreateOrganizationPopup: React.FC<CreateOrganizationPopupProps> = (
     const fetchTerritories = async (searchTerm: string) => {
         setIsTerritoryLoading(true);
         try {
+            const session = getUserSession();
+            const sessionCompany = session?.company || '';
             const response = await apiAxios.post(
                 "/api/method/frappe.desk.search.search_link",
                 {
                     txt: searchTerm,
                     doctype: "CRM Territory",
+                    "filters": {
+                        "company": sessionCompany,
+                    }
                 },
                 {
                     headers: {
@@ -165,16 +178,44 @@ export const CreateOrganizationPopup: React.FC<CreateOrganizationPopupProps> = (
         return () => clearTimeout(debounceTimer);
     }, [industrySearch, isOpen]);
 
+    const showToast = ({ title, message, type = 'info', duration = 3000 }) => {
+        // Create a simple toast element
+        const toast = document.createElement('div');
+        toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 12px 20px;
+        border-radius: 4px;
+        color: white;
+        z-index: 1000;
+        transition: opacity 0.3s;
+        background-color: ${type === 'success' ? '#28a745' : type === 'error' ? '#dc3545' : '#17a2b8'};
+    `;
+        toast.textContent = message;
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            setTimeout(() => document.body.removeChild(toast), 300);
+        }, duration);
+    };
+
 
 
     const handleSubmit = async () => {
         try {
+            const session = getUserSession();
+            const sessionCompany = session?.company || '';
             const payload = {
                 doc: {
                     doctype: "CRM Organization",
                     no_of_employees: formData.employees,
                     organization_name: formData.name,
                     territory: formData.territory,
+                   "filters": {
+                        "company": sessionCompany
+                    },
                     industry: formData.industry,
                     annual_revenue: parseFloat(
                         formData.revenue.toString().replace(/[^\d.-]/g, "")
@@ -197,11 +238,26 @@ export const CreateOrganizationPopup: React.FC<CreateOrganizationPopupProps> = (
 
             console.log("✅ Created organization:", response.data);
 
+            // Show success toast message
+            showToast({
+                title: "Success",
+                message: "Organization created successfully!",
+                type: "success",
+                duration: 3000
+            });
+
             // Close popup after success
             onClose();
         } catch (error: any) {
             console.error("❌ Error creating organization:", error);
-            alert(error.response?.data?.message || "Failed to create organization");
+
+            // Show error toast message
+            showToast({
+                title: "Error",
+                message: error.response?.data?.message || "Failed to create organization",
+                type: "error",
+                duration: 5000
+            });
         }
     };
 
@@ -523,7 +579,7 @@ export const CreateOrganizationPopup: React.FC<CreateOrganizationPopupProps> = (
                                                     ×
                                                 </button>
                                             </div>
-                                            
+
 
                                             {/* Options */}
                                             {isIndustryLoading ? (
