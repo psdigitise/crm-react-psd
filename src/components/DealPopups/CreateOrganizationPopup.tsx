@@ -68,9 +68,10 @@ export const CreateOrganizationPopup: React.FC<CreateOrganizationPopupProps> = (
                 {
                     txt: searchTerm,
                     doctype: "Address",
-                   "filters": {
-                        "company": sessionCompany,
-                    }
+                    //    filters: {
+                    //         company: sessionCompany,
+                    //     }
+                    company: sessionCompany,
                 },
                 {
                     headers: {
@@ -105,16 +106,16 @@ export const CreateOrganizationPopup: React.FC<CreateOrganizationPopupProps> = (
     const fetchTerritories = async (searchTerm: string) => {
         setIsTerritoryLoading(true);
         try {
-            const session = getUserSession();
-            const sessionCompany = session?.company || '';
+            // const session = getUserSession();
+            // const sessionCompany = session?.company || '';
             const response = await apiAxios.post(
                 "/api/method/frappe.desk.search.search_link",
                 {
                     txt: searchTerm,
                     doctype: "CRM Territory",
-                    "filters": {
-                        "company": sessionCompany,
-                    }
+                    // "filters": {
+                    //     "company": sessionCompany,
+                    // }
                 },
                 {
                     headers: {
@@ -213,9 +214,10 @@ export const CreateOrganizationPopup: React.FC<CreateOrganizationPopupProps> = (
                     no_of_employees: formData.employees,
                     organization_name: formData.name,
                     territory: formData.territory,
-                   "filters": {
-                        "company": sessionCompany
-                    },
+                    // "filters": {
+                    //     "company": sessionCompany
+                    // },
+                    company: sessionCompany,
                     industry: formData.industry,
                     annual_revenue: parseFloat(
                         formData.revenue.toString().replace(/[^\d.-]/g, "")
@@ -605,7 +607,7 @@ export const CreateOrganizationPopup: React.FC<CreateOrganizationPopupProps> = (
                                             ) : (
                                                 <div className="py-2 px-4 text-gray-500">No industries found</div>
                                             )}
-                                            <div className="sticky bottom-0 bg-white  border-t">
+                                            {/* <div className="sticky bottom-0 bg-white  border-t">
                                                 <button
                                                     type="button"
                                                     className="flex items-center w-full px-3 py-2 text-sm text-blue-600 hover:bg-gray-100"
@@ -617,10 +619,10 @@ export const CreateOrganizationPopup: React.FC<CreateOrganizationPopupProps> = (
                                                 >
                                                     + Create New
                                                 </button>
-                                            </div>
+                                            </div> */}
 
                                             {/* Clear */}
-                                            <div className="sticky bottom-0 bg-white border-t">
+                                            {/* <div className="sticky bottom-0 bg-white border-t">
                                                 <button
                                                     type="button"
                                                     className="flex items-center w-full px-3 py-2 text-sm text-red-600 hover:bg-gray-100"
@@ -632,7 +634,7 @@ export const CreateOrganizationPopup: React.FC<CreateOrganizationPopupProps> = (
                                                 >
                                                     ✕ Clear
                                                 </button>
-                                            </div>
+                                            </div> */}
                                         </Listbox.Options>
                                     </div>
                                 )}

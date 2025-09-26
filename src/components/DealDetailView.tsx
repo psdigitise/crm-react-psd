@@ -240,16 +240,13 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
   const [showEmailModal, setShowEmailModal] = useState(false);
   // const [showEmailModal, setShowEmailModal] = useState(false);
   const [emailModalMode, setEmailModalMode] = useState("reply"); // "reply" or "comment"
-
   // Replace your existing email state with these tab-specific states
   const [showEmailModalActivity, setShowEmailModalActivity] = useState(false);
   const [showEmailModalEmails, setShowEmailModalEmails] = useState(false);
   const [showEmailModalComments, setShowEmailModalComments] = useState(false);
-
   const [emailModalModeActivity, setEmailModalModeActivity] = useState("reply");
   const [emailModalModeEmails, setEmailModalModeEmails] = useState("new");
   const [emailModalModeComments, setEmailModalModeComments] = useState("comment");
-
   const [selectedEmailActivity, setSelectedEmailActivity] = useState<Email | null>(null);
   const [selectedEmailEmails, setSelectedEmailEmails] = useState<Email | null>(null);
   const [selectedEmailComments, setSelectedEmailComments] = useState<Email | null>(null);
@@ -264,6 +261,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
   const [emailModalTab, setEmailModalTab] = useState<TabType | null>(null);
   const [territorySearch, setTerritorySearch] = useState('');
   const [showCreateTerritoryModal, setShowCreateTerritoryModal] = useState(false);
+  // const [OwnersOptions, setOwnersOptions] = useState([]); // Before
+  const [userOptions, setUserOptions] = useState<{ value: string; label: string; }[]>([]); // After
   // Form states
   const [noteForm, setNoteForm] = useState({
     title: '',
@@ -1742,6 +1741,41 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
     setShowTaskModal(true);
   };
 
+  // Rename fetchOwners to fetchUsers for clarity
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const session = getUserSession();
+        const sessionCompany = session?.company;
+        const response = await apiAxios.post(
+          '/api/method/frappe.desk.search.search_link',
+          {
+            txt: "",
+            doctype: "User",
+            // filters: sessionCompany ? { company: sessionCompany } : null
+            company: sessionCompany
+          },
+          // ... headers
+        );
+
+        const data = response.data;
+
+        // Map the response to the correct { value, label } format
+        const options = data.message.map((item: { value: string; description: string; }) => ({
+          value: item.value,       // The email to send to the backend
+          label: item.description  // The full name to show in the dropdown
+        }));
+
+        setUserOptions(options); // Set the new state
+
+      } catch (err) {
+        console.error('Error fetching users:', err);
+        showToast('Failed to load user list', { type: 'error' });
+      }
+    };
+
+    fetchUsers();
+  }, []);
 
   return (
     <div className={`min-h-screen ${bgColor}`}>
@@ -3374,6 +3408,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                         </div>
 
                         {/* Assigned To */}
+                        {/* Inside the 'showTaskModal' JSX block */}
+
                         <div>
                           <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
                             Assigned To
@@ -3386,33 +3422,15 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                               : 'bg-white border-gray-300 text-gray-900'
                               }`}
                           >
-                            <option
-                              className={theme === 'dark' ? 'bg-gray-800 text-white' : ''}
-                              value="">Select Assign</option>
-                            <option
-                              className={theme === 'dark' ? 'bg-gray-800 text-white' : ''}
-                              value="hari@psd123.com">Hari</option>
-                            <option
-                              className={theme === 'dark' ? 'bg-gray-800 text-white' : ''}
-                              value="arun@psd.com">Arun</option>
-                            <option
-                              className={theme === 'dark' ? 'bg-gray-800 text-white' : ''}
-                              value="demo@psdigitise.com">DEMO</option>
-                            <option
-                              className={theme === 'dark' ? 'bg-gray-800 text-white' : ''}
-                              value="demo@psdigitise.com">DEMO</option>
-                            <option
-                              className={theme === 'dark' ? 'bg-gray-800 text-white' : ''}
-                              value="fen87joshi@yahoo.com">Feni</option>
-                            <option
-                              className={theme === 'dark' ? 'bg-gray-800 text-white' : ''}
-                              value="fenila@psd.com">Fenila</option>
-                            <option
-                              className={theme === 'dark' ? 'bg-gray-800 text-white' : ''}
-                              value="mx.techies@gmail.com">mx techies</option>
-                            <option
-                              className={theme === 'dark' ? 'bg-gray-800 text-white' : ''}
-                              value="prasad@psd.com">prasad</option>
+                            <option value="">Select Assignee</option>
+
+                            {/* Dynamically create options from the userOptions state */}
+                            {userOptions.map((user) => (
+                              <option key={user.value} value={user.value}>
+                                {user.label} {/* This will show the user's full name */}
+                              </option>
+                            ))}
+
                           </select>
                         </div>
                       </div>

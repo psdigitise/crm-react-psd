@@ -1595,6 +1595,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
         case 'files':
           await fetchFiles();
           break;
+          
         default:
           break;
       }
