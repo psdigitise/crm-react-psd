@@ -1614,14 +1614,14 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
   useEffect(() => {
     const fetchTerritory = async () => {
       try {
-        const session = getUserSession();
-        const sessionCompany = session?.company;
+        // const session = getUserSession();
+        // const sessionCompany = session?.company;
         const response = await apiAxios.post(
           '/api/method/frappe.desk.search.search_link',
           {
             txt: "",
             doctype: "CRM Territory",
-            filters: sessionCompany ? { company: sessionCompany } : null
+            // filters: sessionCompany ? { company: sessionCompany } : null
           },
           {
             headers: {
@@ -2198,7 +2198,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                                 ))}
 
                               {/* Create New */}
-                              <div className="sticky top-[44px] z-10 bg-white border-b">
+                              {/* <div className="sticky top-[44px] z-10 bg-white border-b">
                                 <button
                                   type="button"
                                   className="flex items-center w-full px-3 py-2 text-sm text-blue-600 hover:bg-gray-100"
@@ -2209,7 +2209,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                                 >
                                   + Create New
                                 </button>
-                              </div>
+                              </div> */}
 
                               {/* Clear */}
                               <div className="sticky top-[88px] z-10 bg-white border-b">
@@ -2234,7 +2234,6 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                         onClose={() => setShowCreateTerritoryModal(false)}
                         theme="dark"
                       />
-
                     </div>
                     <div>
                       <label className={`block text-sm font-medium ${textSecondaryColor}`}>Annual Revenue</label>

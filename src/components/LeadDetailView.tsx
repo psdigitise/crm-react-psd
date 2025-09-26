@@ -1439,8 +1439,8 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
 
   const fetchTerritoryOptions = async () => {
     try {
-      const session = getUserSession();
-      const sessionCompany = session?.company;
+      // const session = getUserSession();
+      // const sessionCompany = session?.company;
       const response = await fetch(`${API_BASE_URL}/method/frappe.desk.search.search_link`, {
         method: 'POST',
         headers: {
@@ -1450,7 +1450,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
         body: JSON.stringify({
           txt: "",
           doctype: "CRM Territory",
-          filters: sessionCompany ? { company: sessionCompany } : null
+         // filters: sessionCompany ? { company: sessionCompany } : null
 
         })
       });
@@ -3087,7 +3087,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                               ))}
 
                               {/* Create New Button */}
-                              <div className="sticky top-[44px] z-10 bg-white border-b">
+                              {/* <div className="sticky top-[44px] z-10 bg-white border-b">
                                 <button
                                   type="button"
                                   className="flex items-center w-full px-3 py-2 text-sm text-black-600 hover:bg-gray-100"
@@ -3098,7 +3098,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                                   <Plus className="w-4 h-4 mr-2" />
                                   Create New
                                 </button>
-                              </div>
+                              </div> */}
 
                               {/* Clear Button */}
                               <div className="sticky top-[88px] z-10 bg-white border-b">
