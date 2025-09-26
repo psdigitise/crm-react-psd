@@ -240,6 +240,19 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
   const [showEmailModal, setShowEmailModal] = useState(false);
   // const [showEmailModal, setShowEmailModal] = useState(false);
   const [emailModalMode, setEmailModalMode] = useState("reply"); // "reply" or "comment"
+
+  // Replace your existing email state with these tab-specific states
+  const [showEmailModalActivity, setShowEmailModalActivity] = useState(false);
+  const [showEmailModalEmails, setShowEmailModalEmails] = useState(false);
+  const [showEmailModalComments, setShowEmailModalComments] = useState(false);
+
+  const [emailModalModeActivity, setEmailModalModeActivity] = useState("reply");
+  const [emailModalModeEmails, setEmailModalModeEmails] = useState("new");
+  const [emailModalModeComments, setEmailModalModeComments] = useState("comment");
+
+  const [selectedEmailActivity, setSelectedEmailActivity] = useState<Email | null>(null);
+  const [selectedEmailEmails, setSelectedEmailEmails] = useState<Email | null>(null);
+  const [selectedEmailComments, setSelectedEmailComments] = useState<Email | null>(null);
   // Add to state variables
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [activityLoading, setActivityLoading] = useState(false);
@@ -1537,7 +1550,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
           {
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': 'AUTH_TOKEN'
+              'Authorization': AUTH_TOKEN
             }
           }
         );
@@ -1575,7 +1588,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
           {
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': 'AUTH_TOKEN'
+              'Authorization': AUTH_TOKEN
             }
           }
         );
@@ -1613,7 +1626,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
           {
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': 'AUTH_TOKEN'
+              'Authorization': AUTH_TOKEN
             }
           }
         );
@@ -2753,7 +2766,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                     value={callForm.to}
                     onChange={(e) => setCallForm({ ...callForm, to: e.target.value })}
                     className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
-                    placeholder="To phone number"
+                    placeholder="To"
                   />
                 </div>
 
@@ -2764,7 +2777,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                     value={callForm.from}
                     onChange={(e) => setCallForm({ ...callForm, from: e.target.value })}
                     className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
-                    placeholder="From phone number"
+                    placeholder="From"
                   />
                 </div>
 
@@ -2861,9 +2874,9 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                 <h3 className={`text-lg font-semibold ${textColor} mb-2`}>Comments</h3>
                 <button
                   onClick={() => {
-                    setSelectedEmail(null);
-                    setEmailModalMode("comment");
-                    setShowEmailModal(true);
+                    setSelectedEmailComments(null);
+                    setEmailModalModeComments("comment");
+                    setShowEmailModalComments(true);
                     setTimeout(() => {
                       composerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                     }, 100);
@@ -2887,9 +2900,9 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                   <p className={textSecondaryColor}>No comments</p>
                   <span
                     onClick={() => {
-                      setSelectedEmail(null);
-                      setEmailModalMode("comment");
-                      setShowEmailModal(true);
+                      setSelectedEmailComments(null);
+                      setEmailModalModeComments("comment");
+                      setShowEmailModalComments(true);
                       setTimeout(() => {
                         composerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                       }, 100);
@@ -2966,15 +2979,15 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
             </div>
 
             {/* Composer */}
-            <div ref={composerRef} className={`${cardBgColor} border-t ${borderColor} w-[-webkit-fill-available] pt-4 pb-4 absolute bottom-0  overflow-hidden`}>
-              {!showEmailModal && (
+            <div ref={composerRef} className={`${cardBgColor} border-t ${borderColor} w-[-webkit-fill-available] pt-4 pb-4 absolute bottom-0 overflow-hidden`}>
+              {!showEmailModalComments ? (
                 <div className="flex gap-4 mt-4">
                   <button
                     className={`flex items-center gap-1 ${theme === "dark" ? "text-white" : "text-gray-600"}`}
                     onClick={() => {
-                      setEmailModalMode("new");
-                      setShowEmailModal(true);
-                      setSelectedEmail(null);
+                      setEmailModalModeComments("new");
+                      setShowEmailModalComments(true);
+                      setSelectedEmailComments(null);
                     }}
                   >
                     <Mail size={14} /> Reply
@@ -2982,25 +2995,23 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                   <button
                     className={`flex items-center gap-1 ${theme === "dark" ? "text-white" : "text-gray-400"}`}
                     onClick={() => {
-                      setEmailModalMode("comment");
-                      setShowEmailModal(true);
+                      setEmailModalModeComments("comment");
+                      setShowEmailModalComments(true);
                     }}
                   >
                     <FaRegComment size={14} /> Comment
                   </button>
                 </div>
-              )}
-              {showEmailModal && activeTab === 'comments' && (
+              ) : (
                 <EmailComposer
-                  mode={emailModalMode}
+                  mode={emailModalModeComments}
                   dealName={deal.name}
                   fetchEmails={fetchEmails}
                   fetchComments={fetchComments}
-                  selectedEmail={selectedEmail}
-                  clearSelectedEmail={() => setSelectedEmail(null)}
+                  selectedEmail={selectedEmailComments}
+                  clearSelectedEmail={() => setSelectedEmailComments(null)}
                   onClose={() => {
-                    setShowEmailModal(false);
-                    setEmailModalTab(null);
+                    setShowEmailModalComments(false);
                   }}
                 />
               )}
@@ -3467,18 +3478,17 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                 <h3 className={`text-lg font-semibold ${textColor} mb-0`}>Emails</h3>
                 <button
                   onClick={() => {
-                    setSelectedEmail(null);                // Clear selected email
-                    setEmailModalMode("new");             // Set mode to 'new'
-                    setShowEmailModal(true);              // Open composer
+                    setSelectedEmailEmails(null);                // Use Emails suffix
+                    setEmailModalModeEmails("new");             // Use Emails suffix
+                    setShowEmailModalEmails(true);              // Use Emails suffix
                     setTimeout(() => {
                       composerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }, 100);                              // Wait for modal to render
+                    }, 100);
                   }}
                   className={`px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 ml-auto ${theme === 'dark' ? 'bg-purplebg text-white hover:bg-purple-700' : 'bg-purplebg text-white hover:bg-purple-700'}`}
                 >
                   <HiOutlinePlus className="w-4 h-4" />
-                  <span >
-                    New Email</span>
+                  <span>New Email</span>
                 </button>
               </div>
 
@@ -3493,15 +3503,17 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                   <p className={textSecondaryColor}>No emails Communications</p>
                   <span
                     onClick={() => {
-                      setSelectedEmail(null);                // Clear selected email
-                      setEmailModalMode("new");             // Set mode to 'new'
-                      setShowEmailModal(true);              // Open composer
+                      setSelectedEmailEmails(null);                // Use Emails suffix
+                      setEmailModalModeEmails("new");             // Use Emails suffix
+                      setShowEmailModalEmails(true);              // Use Emails suffix
                       setTimeout(() => {
                         composerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                      }, 100);                              // Wait for modal to render
+                      }, 100);
                     }}
                     className="text-white cursor-pointer bg-gray-400 rounded-md inline-block text-center px-6 py-2"
-                  >New Email</span>
+                  >
+                    New Email
+                  </span>
                 </div>
               ) : (
                 <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
@@ -3526,9 +3538,9 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                             </span>
                             <button
                               onClick={() => {
-                                setSelectedEmail(email);
-                                setEmailModalMode("reply");
-                                setShowEmailModal(true);
+                                setSelectedEmailEmails(email);
+                                setEmailModalModeEmails("reply");
+                                setShowEmailModalEmails(true);
                               }}
                               className="text-white"
                               title="Reply"
@@ -3537,9 +3549,9 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                             </button>
                             <button
                               onClick={() => {
-                                setSelectedEmail(email);
-                                setEmailModalMode("reply-all");
-                                setShowEmailModal(true);
+                                setSelectedEmailEmails(email);
+                                setEmailModalModeEmails("reply-all");
+                                setShowEmailModalEmails(true);
                               }}
                               className="text-white"
                               title="Reply All"
@@ -3622,46 +3634,42 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
 
             <div
               ref={composerRef}
-              className={`${cardBgColor} border-t ${borderColor} w-[-webkit-fill-available] pt-4 pb-4 absolute bottom-0  overflow-hidden`}>
-              {/* Show Reply/Comment buttons when modal is closed */}
-              {!showEmailModal && (
-                <div className="flex gap-4 mt-4">
+              className={`${cardBgColor} border-t ${borderColor} w-[-webkit-fill-available] pt-4 pb-4 absolute bottom-0 overflow-hidden`}
+            >
+              {!showEmailModalEmails ? (
+                <div className="flex gap-4">
                   <button
                     className={`flex items-center gap-1 ${theme === "dark" ? "text-white" : "text-gray-600"}`}
                     onClick={() => {
-                      setEmailModalMode("reply");
-                      setShowEmailModal(true);
-                      setSelectedEmail(null);                // Clear selected email
-                      setEmailModalMode("new");             // Set mode to 'new'
-
+                      setEmailModalModeEmails("new");
+                      setShowEmailModalEmails(true);
+                      setSelectedEmailEmails(null);
                     }}
                   >
                     <Mail size={14} /> Reply
                   </button>
-
                   <button
                     className={`flex items-center gap-1 ${theme === "dark" ? "text-white" : "text-gray-400"}`}
                     onClick={() => {
-                      setEmailModalMode("comment");
-                      setShowEmailModal(true);
+                      setEmailModalModeEmails("comment");
+                      setShowEmailModalEmails(true);
                     }}
                   >
                     <FaRegComment size={14} /> Comment
                   </button>
                 </div>
-              )}
-              {showEmailModal && activeTab === 'emails' && (
+              ) : (
                 <EmailComposer
-                  mode={emailModalMode}
+                  mode={emailModalModeEmails}
                   dealName={deal.name}
                   fetchEmails={fetchEmails}
-                  selectedEmail={selectedEmail}
-                  clearSelectedEmail={() => setSelectedEmail(null)} // Add this line
-                  deal={deal} // Add this line
+                  selectedEmail={selectedEmailEmails}
+                  clearSelectedEmail={() => setSelectedEmailEmails(null)}
+                  deal={deal}
                   onClose={() => {
-                    setShowEmailModal(false);
-                    setEmailModalTab(null);
-                  }} />
+                    setShowEmailModalEmails(false);
+                  }}
+                />
               )}
             </div>
           </div>
@@ -3983,9 +3991,9 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                                   </span>
                                   <button
                                     onClick={() => {
-                                      setSelectedEmail(emailData);
-                                      setEmailModalMode("reply");
-                                      setShowEmailModal(true);
+                                      setSelectedEmailActivity(emailData);
+                                      setEmailModalModeActivity("reply");
+                                      setShowEmailModalActivity(true);
                                     }}
                                     className={`${textColor}`}
                                     title="Reply"
@@ -3994,9 +4002,9 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                                   </button>
                                   <button
                                     onClick={() => {
-                                      setSelectedEmail(emailData);
-                                      setEmailModalMode("reply-all");
-                                      setShowEmailModal(true);
+                                      setSelectedEmailActivity(emailData);
+                                      setEmailModalModeActivity("reply-all");
+                                      setShowEmailModalActivity(true);
                                     }}
                                     className={`${textColor}`}
                                     title="Reply All"
@@ -4252,18 +4260,16 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
             {/* Sticky Action Footer */}
             <div
               ref={composerRef}
-              className={`${cardBgColor} border-t ${borderColor} w-[-webkit-fill-available] pt-4 pb-4 absolute bottom-0  overflow-hidden`}
+              className={`${cardBgColor} border-t ${borderColor} w-[-webkit-fill-available] pt-4 pb-4 absolute bottom-0 overflow-hidden`}
             >
-              {!showEmailModal ? (
+              {!showEmailModalActivity ? (
                 <div className="flex gap-4">
                   <button
                     className={`flex items-center gap-2 px-3 py-1 rounded-md text-sm ${theme === "dark" ? "text-gray-300 hover:bg-gray-700" : "text-gray-600 hover:bg-gray-200"}`}
                     onClick={() => {
-                      setEmailModalMode("reply");
-                      setEmailModalTab('activity');
-                      setShowEmailModal(true);
-                      setSelectedEmail(null);                // Clear selected email
-                      setEmailModalMode("new");
+                      setEmailModalModeActivity("reply");
+                      setShowEmailModalActivity(true);
+                      setSelectedEmailActivity(null);
                     }}
                   >
                     <Mail size={16} /> Reply
@@ -4271,9 +4277,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                   <button
                     className={`flex items-center gap-2 px-3 py-1 rounded-md text-sm ${theme === "dark" ? "text-gray-300 hover:bg-gray-700" : "text-gray-400 hover:bg-gray-200"}`}
                     onClick={() => {
-                      setEmailModalMode("comment");
-                      setEmailModalTab('activity');
-                      setShowEmailModal(true);
+                      setEmailModalModeActivity("comment");
+                      setShowEmailModalActivity(true);
                     }}
                   >
                     <FaRegComment size={14} /> Comment
@@ -4281,16 +4286,15 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                 </div>
               ) : (
                 <EmailComposer
-                  mode={emailModalMode}
+                  mode={emailModalModeActivity}
                   dealName={deal.name}
                   fetchEmails={fetchAllActivities}
                   fetchComments={fetchAllActivities}
-                  selectedEmail={selectedEmail}
-                  clearSelectedEmail={() => setSelectedEmail(null)}
+                  selectedEmail={selectedEmailActivity}
+                  clearSelectedEmail={() => setSelectedEmailActivity(null)}
                   deal={deal}
                   onClose={() => {
-                    setShowEmailModal(false);
-                    setEmailModalTab(null);
+                    setShowEmailModalActivity(false);
                   }}
                 />
               )}
@@ -4424,7 +4428,9 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
             receiver: (editingCall || editingCallFromActivity)?._receiver?.label || "Unknown",
             date: formatDateRelative((editingCall || editingCallFromActivity)?.creation),
             duration: (editingCall || editingCallFromActivity)?.duration,
-            status: (editingCall || editingCallFromActivity)?.status
+            status: (editingCall || editingCallFromActivity)?.status,
+            name: (editingCall || editingCallFromActivity)?.name, // ADDED: Passes the unique call name/ID
+            _notes: (editingCall || editingCallFromActivity)?._notes || [] // ADDED: Passes the notes for this call
           }}
           onClose={() => {
             setShowCallDetailsPopup(false);
@@ -4449,6 +4455,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
             setEditingCallFromActivity(null);
           }}
           theme={theme}
+          fetchCallLogs={fetchCallLogs} // ADDED: Passes the function to refresh call logs
         />
       )}
     </div>

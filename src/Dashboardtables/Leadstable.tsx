@@ -21,9 +21,9 @@ export function LeadTable({ title, data }: LeadTableProps) {
             <div className={`p-4 sm:p-6 border-b ${theme === 'dark' ? 'border-purple-500/30' : 'border-gray-100'}`}>
                 <div className="flex items-center justify-between">
                     <h3 className={`text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{title}</h3>
-                    <button className={`p-1 rounded-lg transition-colors ${theme === 'dark' ? 'hover:bg-purple-800/50' : 'hover:bg-gray-100'}`}>
+                    {/* <button className={`p-1 rounded-lg transition-colors ${theme === 'dark' ? 'hover:bg-purple-800/50' : 'hover:bg-gray-100'}`}>
                         <MoreHorizontal className={`w-5 h-5 ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`} />
-                    </button>
+                    </button> */}
                 </div>
             </div>
             <div className="overflow-y-auto overflow-x-auto table-scroll h-full">

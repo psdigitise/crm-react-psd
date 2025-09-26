@@ -10,7 +10,7 @@ interface Task {
   title: string;
   assigned_to: string;
   priority: 'Low' | 'Medium' | 'High';
-  status: 'Backlog' | 'Todo' | 'In Progress' | 'Done' | 'Canceled';
+  status: 'Backlog' | 'Todo' | 'In Progress' | 'Done' | 'Canceled' | 'Open';
   start_date: string;
   due_date: string;
   description: string;
@@ -23,9 +23,11 @@ interface Task {
 interface TasksPageProps {
   onCreateTask: () => void;
   leadName?: string;
+  refreshTrigger?: number;
 }
 
 const statusColors = {
+  'Open': '!bg-white !text-black-800 dark:bg-white dark:text-black',
   'Backlog': '!bg-gray-100 !text-gray-800 dark:bg-gray-900/30 dark:text-white',
   'Todo': '!bg-blue-100 !text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
   'In Progress': '!bg-yellow-100 !text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
@@ -42,7 +44,7 @@ const priorityColors = {
 const API_BASE_URL = 'http://103.214.132.20:8002';
 const AUTH_TOKEN = 'token 1b670b800ace83b:f32066fea74d0fe';
 
-export function TasksPage({ onCreateTask, leadName }: TasksPageProps) {
+export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0 }: TasksPageProps) {
   const { theme } = useTheme();
   const [searchTerm, setSearchTerm] = useState('');
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -56,10 +58,13 @@ export function TasksPage({ onCreateTask, leadName }: TasksPageProps) {
   const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
   const [contactOptions, setContactOptions] = useState<string[]>([]);
   const [isLoadingContacts, setIsLoadingContacts] = useState(false);
+  const [internalRefreshTrigger, setInternalRefreshTrigger] = useState(0);
 
+  // Combine external and internal refresh triggers
   useEffect(() => {
+    console.log('Fetching tasks...', { refreshTrigger, internalRefreshTrigger });
     fetchTasks();
-  }, [leadName]);
+  }, [leadName, refreshTrigger, internalRefreshTrigger]);
 
   const fetchTasks = async () => {
     try {
@@ -74,10 +79,8 @@ export function TasksPage({ onCreateTask, leadName }: TasksPageProps) {
         return;
       }
 
-      // Prepare filters
       let filters = {};
 
-      // Add leadName filter if provided
       if (leadName) {
         filters = {
           "reference_docname": leadName
@@ -137,9 +140,8 @@ export function TasksPage({ onCreateTask, leadName }: TasksPageProps) {
       }
 
       const result = await response.json();
-
-      // Extract tasks from the new API response structure
       const tasksData = result.message?.data || [];
+      console.log('Tasks fetched:', tasksData.length);
       setTasks(tasksData);
 
     } catch (error) {
@@ -148,6 +150,12 @@ export function TasksPage({ onCreateTask, leadName }: TasksPageProps) {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Add this function to manually refresh tasks
+  const refreshTasks = () => {
+    console.log('Manual refresh triggered');
+    setInternalRefreshTrigger(prev => prev + 1);
   };
 
   const fetchContactOptions = async () => {
@@ -162,7 +170,6 @@ export function TasksPage({ onCreateTask, leadName }: TasksPageProps) {
         return;
       }
 
-      // Build the URL with query parameters
       const params = new URLSearchParams({
         fields: JSON.stringify(["name", "email"]),
         filters: JSON.stringify([["company", "=", sessionCompany]])
@@ -179,12 +186,9 @@ export function TasksPage({ onCreateTask, leadName }: TasksPageProps) {
       if (response.ok) {
         const result = await response.json();
         const users = result.data || [];
-
-        // Extract user names from the response
         const names = users
           .map((user: any) => user.name)
           .filter((name: string | undefined) => !!name && name.trim() !== "");
-
         setContactOptions(Array.from(new Set(names)));
       }
     } catch (error) {
@@ -198,21 +202,20 @@ export function TasksPage({ onCreateTask, leadName }: TasksPageProps) {
   const handleEdit = (task: Task) => {
     setEditingTask(task);
     setShowEditModal(true);
-    fetchContactOptions(); // Fetch contacts when modal opens
+    fetchContactOptions();
   };
 
   const handleUpdate = async (updatedTask: Task) => {
     try {
       const apiUrl = `${API_BASE_URL}/api/method/frappe.client.set_value`;
 
-      // Prepare the fieldname object with all the updated fields
       const fieldname = {
         title: updatedTask.title,
         assigned_to: updatedTask.assigned_to,
         priority: updatedTask.priority,
         status: updatedTask.status,
-        start_date: updatedTask.start_date,
-        due_date: updatedTask.due_date,
+        start_date: updatedTask.start_date || null,
+        due_date: updatedTask.due_date || null,
         description: updatedTask.description
       };
 
@@ -232,13 +235,14 @@ export function TasksPage({ onCreateTask, leadName }: TasksPageProps) {
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
       showToast('Task updated successfully', { type: 'success' });
       setShowEditModal(false);
       setEditingTask(null);
-      fetchTasks();
+      refreshTasks(); // Use the refresh function
     } catch (error) {
       console.error('Error updating task:', error);
       showToast('Failed to update task', { type: 'error' });
@@ -263,7 +267,7 @@ export function TasksPage({ onCreateTask, leadName }: TasksPageProps) {
       showToast('Task deleted successfully', { type: 'success' });
       setShowDeleteModal(false);
       setTaskToDelete(null);
-      fetchTasks();
+      refreshTasks(); // Use the refresh function
     } catch (error) {
       console.error('Error deleting task:', error);
       showToast('Failed to delete task', { type: 'error' });
@@ -292,19 +296,14 @@ export function TasksPage({ onCreateTask, leadName }: TasksPageProps) {
 
   const handleBulkDelete = () => {
     if (selectedTasks.length === 0) return;
-
-    // For bulk delete, we'll show the delete modal
     setShowDeleteModal(true);
-    // We'll use taskToDelete as null to indicate bulk delete
     setTaskToDelete(null);
   };
 
   const confirmDelete = () => {
     if (taskToDelete) {
-      // Single task deletion
       handleDelete(taskToDelete);
     } else if (selectedTasks.length > 0) {
-      // Bulk deletion
       selectedTasks.forEach(taskName => {
         handleDelete(taskName);
       });
@@ -321,7 +320,6 @@ export function TasksPage({ onCreateTask, leadName }: TasksPageProps) {
   const EditModal = () => {
     const [editForm, setEditForm] = useState<Task | null>(null);
 
-    // Load editingTask into local form state when modal opens
     useEffect(() => {
       if (editingTask && showEditModal) {
         setEditForm({ ...editingTask });
@@ -344,7 +342,6 @@ export function TasksPage({ onCreateTask, leadName }: TasksPageProps) {
               <h3 className={`text-lg font-medium mb-4 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Edit Task</h3>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Title */}
                 <div>
                   <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>Title</label>
                   <input
@@ -358,18 +355,17 @@ export function TasksPage({ onCreateTask, leadName }: TasksPageProps) {
                   />
                 </div>
 
-                {/* Assigned To */}
                 <div>
                   <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>Assigned To</label>
                   <select
-                    value={editForm.assigned_to}
+                    value={editForm.assigned_to || ''}
                     onChange={(e) => handleChange("assigned_to", e.target.value)}
                     className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
                       ? 'bg-white-31 border-white text-white'
                       : 'border-gray-300'
                       }`}
                   >
-                    {/* <option value="">Select a Contact</option> */}
+                    <option value="">Unassigned</option>
                     {isLoadingContacts ? (
                       <option value="" disabled>Loading contacts...</option>
                     ) : (
@@ -382,7 +378,6 @@ export function TasksPage({ onCreateTask, leadName }: TasksPageProps) {
                   </select>
                 </div>
 
-                {/* Priority */}
                 <div>
                   <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>Priority</label>
                   <select
@@ -399,17 +394,17 @@ export function TasksPage({ onCreateTask, leadName }: TasksPageProps) {
                   </select>
                 </div>
 
-                {/* Status */}
                 <div>
                   <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>Status</label>
                   <select
                     value={editForm.status}
                     onChange={(e) => handleChange("status", e.target.value as Task['status'])}
                     className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
-                        ? 'bg-white-31 border-white text-white'
-                        : 'border-gray-300'
+                      ? 'bg-white-31 border-white text-white'
+                      : 'border-gray-300'
                       }`}
                   >
+                    <option value="Open">Open</option>
                     <option value="Backlog">Backlog</option>
                     <option value="Todo">Todo</option>
                     <option value="In Progress">In Progress</option>
@@ -418,7 +413,6 @@ export function TasksPage({ onCreateTask, leadName }: TasksPageProps) {
                   </select>
                 </div>
 
-                {/* Dates */}
                 <div>
                   <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>Start Date</label>
                   <input
@@ -444,7 +438,6 @@ export function TasksPage({ onCreateTask, leadName }: TasksPageProps) {
                   />
                 </div>
 
-                {/* Description */}
                 <div className="md:col-span-2">
                   <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>Description</label>
                   <textarea
@@ -483,13 +476,12 @@ export function TasksPage({ onCreateTask, leadName }: TasksPageProps) {
     );
   };
 
-
   const DeleteModal = () => {
     if (!showDeleteModal) return null;
 
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="flex items-center justify-center  min-h-screen px-4 pt-4 pb-20 text-center  sm:p-0">
+        <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
           <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" onClick={() => setShowDeleteModal(false)} />
 
           <div className={`inline-block align-bottom rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full ${theme === 'dark' ? 'bg-dark-secondary' : 'bg-white'}`}>
@@ -534,7 +526,7 @@ export function TasksPage({ onCreateTask, leadName }: TasksPageProps) {
         <Header
           title="Tasks"
           subtitle={leadName ? `For Lead: ${leadName}` : undefined}
-          onRefresh={fetchTasks}
+          onRefresh={refreshTasks} // Use the refresh function
           onFilter={() => { }}
           onSort={() => { }}
           onColumns={() => { }}
@@ -561,7 +553,7 @@ export function TasksPage({ onCreateTask, leadName }: TasksPageProps) {
       <Header
         title="Tasks"
         subtitle={leadName ? `For Lead: ${leadName}` : undefined}
-        onRefresh={fetchTasks}
+        onRefresh={refreshTasks} // Use the refresh function
         onFilter={() => { }}
         onSort={() => { }}
         onColumns={() => { }}
@@ -573,7 +565,6 @@ export function TasksPage({ onCreateTask, leadName }: TasksPageProps) {
       />
 
       <div className="p-4 sm:p-6">
-        {/* Tasks Table */}
         <div className={`rounded-lg shadow-sm border overflow-hidden ${theme === 'dark'
           ? 'bg-custom-gradient border-transparent !rounded-none'
           : 'bg-white border-gray-200'
@@ -641,7 +632,7 @@ export function TasksPage({ onCreateTask, leadName }: TasksPageProps) {
                       )}
                     </td>
                     <td className={`px-6 py-4 whitespace-nowrap text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                      {task.assigned_to}
+                      {task.assigned_to || 'Unassigned'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${priorityColors[task.priority]}`}>
@@ -673,7 +664,6 @@ export function TasksPage({ onCreateTask, leadName }: TasksPageProps) {
         )}
       </div>
 
-      {/* Selection Popup - Appears at bottom when tasks are selected */}
       {selectedTasks.length > 0 && (
         <div className="fixed bottom-20 left-1/2 -translate-x-1/2
          bg-white dark:bg-gray-800 shadow-2xl rounded-lg
@@ -686,7 +676,6 @@ export function TasksPage({ onCreateTask, leadName }: TasksPageProps) {
           </span>
 
           <div className="flex items-center space-x-4">
-            {/* More actions */}
             <div className="relative">
               <button
                 className="text-gray-500 hover:text-gray-800 dark:hover:text-white"
@@ -695,18 +684,8 @@ export function TasksPage({ onCreateTask, leadName }: TasksPageProps) {
                 <BsThreeDots className="w-5 h-5" />
               </button>
 
-              {/* Dropdown menu */}
               {showMenu && (
                 <div className="absolute right-0 bottom-10 bg-white dark:bg-gray-700 dark:text-white shadow-lg rounded-md border dark:border-gray-600 py-1 w-40 z-50">
-                  {/* <button
-                    className="block w-full text-left px-4 py-2 hover:bg-gray-300"
-                    onClick={() => {
-                      // Add your edit functionality here
-                      setShowMenu(false);
-                    }}
-                  >
-                    Edit
-                  </button> */}
                   <button
                     className="block w-full text-left px-4 py-2 hover:bg-gray-300"
                     onClick={() => {
@@ -720,7 +699,6 @@ export function TasksPage({ onCreateTask, leadName }: TasksPageProps) {
               )}
             </div>
 
-            {/* Select all */}
             <button
               onClick={handleSelectAll}
               className="text-sm font-medium text-gray-800 dark:text-white hover:underline"
@@ -728,7 +706,6 @@ export function TasksPage({ onCreateTask, leadName }: TasksPageProps) {
               Select all
             </button>
 
-            {/* Close */}
             <button
               onClick={() => setSelectedTasks([])}
               className="text-gray-400 hover:text-gray-800 dark:hover:text-white"

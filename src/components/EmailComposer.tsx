@@ -15,6 +15,7 @@ import { getUserSession } from "../utils/session"; // Update with correct path
 import axios from "axios";
 import { Deal } from "./DealDetailView";
 import { apiAxios } from "../api/apiUrl";
+import { showToast } from "../utils/toast";
 
 interface EmailComposerProps {
   mode: string;
@@ -29,9 +30,6 @@ interface EmailComposerProps {
   fetchComments: () => void;
   deal?: Deal; // Add this line
 }
-
-// Dummy showToast for demo. Replace with your own.
-const showToast = (msg, opts) => alert(msg);
 
 const API_BASE_URL = "http://103.214.132.20:8002/api/method/frappe.core.doctype.communication.email.make";
 const AUTH_TOKEN = "token 1b670b800ace83b:f32066fea74d0fe"; // Replace with your actual token
@@ -87,7 +85,7 @@ export default function EmailOrCommentComposer({ deal, onClose, mode, dealName, 
       ) {
         setShowEmojiPicker(false);
       }
-      
+
       // Close suggestions when clicking outside
       if (
         suggestionsRef.current &&
@@ -160,7 +158,7 @@ export default function EmailOrCommentComposer({ deal, onClose, mode, dealName, 
   const handleRecipientChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setEmailForm(f => ({ ...f, recipient: value }));
-    
+
     // Show suggestions only if there's text
     if (value.trim()) {
       setShowSuggestions(true);
@@ -186,6 +184,13 @@ export default function EmailOrCommentComposer({ deal, onClose, mode, dealName, 
       }
     }
   };
+
+  const isValidEmail = (email: string) => {
+    // Simple regex for email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
 
   const UPLOAD_API_URL = "http://103.214.132.20:8002/api/method/upload_file";
 
@@ -221,6 +226,38 @@ export default function EmailOrCommentComposer({ deal, onClose, mode, dealName, 
   }
 
   const sendEmail = async () => {
+
+    // Validate the main recipient's email
+    if (emailForm.recipient.trim() && !isValidEmail(emailForm.recipient)) {
+      showToast("Invalid email address in 'To' field.", { type: "error" });
+      return;
+    }
+
+    // Validate the CC emails (if any)
+    if (emailForm.cc.trim()) {
+      const ccEmails = emailForm.cc.split(',').map(email => email.trim());
+      for (const email of ccEmails) {
+        if (!isValidEmail(email)) {
+          // showToast(`Invalid email address in 'Cc' field: ${email}`, { type: "error" });
+          showToast(`Invalid email address in 'Cc' field.`, { type: "error" });
+          return;
+        }
+      }
+    }
+
+    // Validate the BCC emails (if any)
+    if (emailForm.bcc.trim()) {
+      const bccEmails = emailForm.bcc.split(',').map(email => email.trim());
+      for (const email of bccEmails) {
+        if (!isValidEmail(email)) {
+          // showToast(`Invalid email address in 'Bcc' field: ${email}`, { type: "error" });
+          showToast(`Invalid email address in 'Bcc' field,`, { type: "error" });
+          return;
+        }
+      }
+    }
+
+
     if (!emailForm.recipient.trim() || !emailForm.message.trim() || !emailForm.subject.trim()) {
       showToast("Please fill all required fields", { type: "error" });
       return;
@@ -461,16 +498,15 @@ export default function EmailOrCommentComposer({ deal, onClose, mode, dealName, 
                     }`}
                   placeholder="Recipient email"
                 />
-                
+
                 {/* Suggestions Dropdown */}
                 {showSuggestions && (
                   <div
                     ref={suggestionsRef}
-                    className={`absolute left-0 right-0 top-full mt-1 z-50 max-h-60 overflow-y-auto rounded-md shadow-lg ${
-                      theme === "dark" 
-                        ? "bg-gray-800 border border-gray-700" 
-                        : "bg-white border border-gray-300"
-                    }`}
+                    className={`absolute left-0 right-0 top-full mt-1 z-50 max-h-60 overflow-y-auto rounded-md shadow-lg ${theme === "dark"
+                      ? "bg-gray-800 border border-gray-700"
+                      : "bg-white border border-gray-300"
+                      }`}
                   >
                     {searchLoading ? (
                       <div className={`px-3 py-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`}>
@@ -481,11 +517,10 @@ export default function EmailOrCommentComposer({ deal, onClose, mode, dealName, 
                         <div
                           key={index}
                           id={`suggestion-${index}`}
-                          className={`px-3 py-2 cursor-pointer hover:bg-opacity-50 text-sm border-b ${
-                            theme === "dark" 
-                              ? "hover:bg-gray-700 border-gray-700 text-white" 
-                              : "hover:bg-gray-100 border-gray-200 text-gray-800"
-                          }`}
+                          className={`px-3 py-2 cursor-pointer hover:bg-opacity-50 text-sm border-b ${theme === "dark"
+                            ? "hover:bg-gray-700 border-gray-700 text-white"
+                            : "hover:bg-gray-100 border-gray-200 text-gray-800"
+                            }`}
                           onClick={() => handleSuggestionClick(user)}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter') {

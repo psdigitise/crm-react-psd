@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTheme } from './ThemeProvider';
 import { getUserSession } from '../utils/session';
@@ -6,7 +5,6 @@ import { showToast } from '../utils/toast';
 import { Listbox } from '@headlessui/react';
 import EmailComposerleads from '../components/Leads/EmailComposerleads';
 import { getAuthToken } from '../api/apiUrl';
-// import { apiAxios, AUTH_TOKEN } from '../api/apiUrl';
 
 
 // Icons
@@ -44,6 +42,7 @@ import { DeleteAttachmentPopup } from './DealsAttachmentPopups/DeleteAttachmentP
 import LeadPrivatePopup from './LeadsPopup/LeadPrivatePopup';
 import { FiChevronDown } from 'react-icons/fi';
 import { RxLightningBolt } from 'react-icons/rx';
+import { apiAxios, AUTH_TOKEN } from '../api/apiUrl';
 
 export interface Lead {
   id: string;
@@ -236,7 +235,7 @@ interface SalutationOption {
 }
 
 const API_BASE_URL = 'http://103.214.132.20:8002/api';
-const AUTH_TOKEN = 'token 1b670b800ace83b:f32066fea74d0fe';
+//const AUTH_TOKEN = 'token 1b670b800ace83b:f32066fea74d0fe';
 
 
 const statusColors: Record<Lead['status'], string> = {
@@ -508,12 +507,27 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
     return date.toLocaleDateString('en-US', options);
   }
 
-  const handleCommentNavigate = () => {
-    setShowCommentModal(true);
+  // const handleCommentNavigate = () => {
+  //   setShowCommentModal(true);
+  //   setTimeout(() => {
+  //     commentRef.current?.scrollIntoView({ behavior: "smooth" })
+  //   }, 100)
+  // }
+
+  const handleNewCommentClick = () => {
+    // 1. Switch to the 'comments' tab first
+    setActiveTab('comments');
+
+    // 2. Set the composer to 'comment' mode and clear any old data
+    setReplyData(undefined);
+    setEmailModalMode("comment");
+    setShowEmailModal(true);
+
+    // 3. Scroll the composer into view after a brief delay to allow the tab to switch
     setTimeout(() => {
-      commentRef.current?.scrollIntoView({ behavior: "smooth" })
-    }, 100)
-  }
+      composerRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, 100);
+  };
 
   const refreshEmails = async () => {
     await fetchActivitiesNew();
@@ -832,7 +846,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
       const timelineActivities = rawTimeline
         .filter((item: any) => item.activity_type === 'added' || item.activity_type === 'changed' || item.activity_type === 'creation')
         .map((item: any) => {
-         const creatorName = user_info[item.owner]?.fullname || item.owner;
+          const creatorName = user_info[item.owner]?.fullname || item.owner;
           switch (item.activity_type) {
             case 'creation':
               return {
@@ -1596,6 +1610,108 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
     fetchContactOptions();
   }, []);
 
+  // const handleConvert = async (params: {
+  //   lead: string;
+  //   deal?: any;
+  //   existing_contact?: string;
+  //   existing_organization?: string;
+  // }) => {
+  //   try {
+  //     setLoading(true);
+  //     const session = getUserSession();
+  //     const sessionCompany = session?.company || '';
+  //     const {
+  //       lead: leadName,
+  //       deal: dealData = {},
+  //       existing_contact,
+  //       existing_organization
+  //     } = params;
+
+  //     // First, fetch the lead details using the lead name
+  //     const leadResponse = await fetch(`${API_BASE_URL}/method/crm.fcrm.doctype.crm_lead.crm_lead.convert_to_deal`, {
+  //       method: 'POST',
+  //       headers: {
+  //         'Authorization': AUTH_TOKEN,
+  //         'Content-Type': 'application/json'
+  //       },
+  //       body: JSON.stringify({
+  //         // doctype: 'CRM Lead',
+  //         // name: leadName
+  //         lead: leadName,
+  //         deal: {},
+  //         company: sessionCompany,
+  //         // filters: {
+  //         //     company: sessionCompany   // ✅ Add filters here
+  //         //   },
+  //         existing_contact,
+  //         existing_organization
+  //       })
+  //     });
+
+  //     if (!leadResponse.ok) {
+  //       throw new Error('Failed to fetch lead details');
+  //     }
+
+  //     // --- NEW LOGIC STARTS HERE ---
+  //     // Second API call: Fetch organization details if an existing one was provided.
+  //     if (existing_organization) {
+  //       console.log(`Fetching details for organization: ${existing_organization}`);
+  //       const userSession = getUserSession();
+  //       const Company = userSession?.company;
+  //       const orgDetailsResponse = await fetch(`${API_BASE_URL}/method/frappe.client.get`, {
+  //         method: 'POST', // Using POST as per Frappe's client API patterns
+  //         headers: {
+  //           'Authorization': AUTH_TOKEN,
+  //           'Content-Type': 'application/json'
+  //         },
+  //         body: JSON.stringify({
+  //           doctype: "CRM Organization",
+  //           name: existing_organization, // Use the selected organization here
+  //           // filters: {
+  //           //   company: Company   // ✅ Add filters here
+  //           // },
+  //           company: Company,
+  //         })
+  //       });
+
+  //       if (!orgDetailsResponse.ok) {
+  //         throw new Error('Failed to fetch organization details after conversion');
+  //       }
+
+  //       const orgData = await orgDetailsResponse.json();
+  //       // You can now use the fetched organization data. For now, we'll just log it.
+  //       console.log('Successfully fetched organization details:', orgData.message);
+  //     }
+  //     // Update lead as converted
+  //     const updateLeadResponse = await fetch(`${API_BASE_URL}/method/frappe.client.set_value`, {
+  //       method: 'POST',
+  //       headers: {
+  //         'Authorization': AUTH_TOKEN,
+  //         'Content-Type': 'application/json'
+  //       },
+  //       body: JSON.stringify({
+  //         doctype: 'CRM Lead',
+  //         name: leadName,
+  //         fieldname: 'converted',
+  //         value: "1"
+  //       })
+  //     });
+
+  //     if (!updateLeadResponse.ok) {
+  //       throw new Error('Deal created, but failed to update lead');
+  //     }
+
+  //     showToast('Deal converted successfully!', { type: 'success' });
+  //     setShowPopup(false);
+  //   } catch (error) {
+  //     console.error('Conversion failed:', error);
+  //     showToast('Failed to convert deal.', { type: 'error' });
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
+
   const handleConvert = async (params: {
     lead: string;
     deal?: any;
@@ -1605,7 +1721,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
     try {
       setLoading(true);
       const session = getUserSession();
-      const sessionCompany = session?.company || '';
+      const sessionCompany = session?.company || 'PSD-branch2';
       const {
         lead: leadName,
         deal: dealData = {},
@@ -1613,7 +1729,8 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
         existing_organization
       } = params;
 
-      // First, fetch the lead details using the lead name
+      // --- 1. First API Call: Convert the Lead to a Deal ---
+      // This part remains the same. It sends the conversion request.
       const leadResponse = await fetch(`${API_BASE_URL}/method/crm.fcrm.doctype.crm_lead.crm_lead.convert_to_deal`, {
         method: 'POST',
         headers: {
@@ -1621,11 +1738,12 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          // doctype: 'CRM Lead',
-          // name: leadName
           lead: leadName,
           deal: {},
           company: sessionCompany,
+          // filters: {
+          //   company: sessionCompany   // ✅ Add filters here
+          // },
           existing_contact,
           existing_organization
         })
@@ -1635,20 +1753,26 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
         throw new Error('Failed to fetch lead details');
       }
 
-      // --- NEW LOGIC STARTS HERE ---
-      // Second API call: Fetch organization details if an existing one was provided.
-      if (existing_organization) {
-        console.log(`Fetching details for organization: ${existing_organization}`);
+      // --- 2. Second API Call: Fetch Organization Details ---
 
+      const organizationToFetch = existing_organization || editedLead.organization;
+
+      // Now, we check if we have an organization name from either source.
+      if (organizationToFetch) {
+        console.log(`Fetching details for organization: ${organizationToFetch}`);
         const orgDetailsResponse = await fetch(`${API_BASE_URL}/method/frappe.client.get`, {
-          method: 'POST', // Using POST as per Frappe's client API patterns
+          method: 'POST',
           headers: {
             'Authorization': AUTH_TOKEN,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
             doctype: "CRM Organization",
-            name: existing_organization // Use the selected organization here
+            name: organizationToFetch, // ✅ Use the determined organization name here
+            company: sessionCompany,
+            // filters: {
+            //   company: sessionCompany   // ✅ Add filters here
+            // },
           })
         });
 
@@ -1657,10 +1781,12 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
         }
 
         const orgData = await orgDetailsResponse.json();
-        // You can now use the fetched organization data. For now, we'll just log it.
         console.log('Successfully fetched organization details:', orgData.message);
       }
-      // Update lead as converted
+      // ✅ MODIFICATION END
+
+      // --- 3. Final Step: Update the Lead's 'converted' status ---
+      // This part also remains the same.
       const updateLeadResponse = await fetch(`${API_BASE_URL}/method/frappe.client.set_value`, {
         method: 'POST',
         headers: {
@@ -1688,7 +1814,6 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
       setLoading(false);
     }
   };
-
   // Usage example:
   // handleConvert({
   //   lead: "CRM-LEAD-2025-00001", 
@@ -2244,10 +2369,27 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
     fetchSalutations();
   }, []);
 
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
+
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    let newErrors: { [key: string]: string } = {};
+
+    // ✅ Validation
+    if (!editedLead.firstName || editedLead.firstName.trim() === "") {
+      newErrors.firstName = "First Name is required";
+    }
+
+    // If there are errors, stop and show them
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    setErrors({}); // clear errors
     setLoading(true);
+
     try {
       // First API Call: Update the lead data on the server (this part is correct)
       const setValueResponse = await fetch(`${API_BASE_URL}/method/frappe.client.set_value`, {
@@ -3271,13 +3413,16 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                       </select>
                     </div>
                     <div>
-                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>First Name</label>
+                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>First Name <span className="text-red-500">*</span></label>
                       <input
                         type="text"
                         value={editedLead.firstName || ''}
                         onChange={(e) => handleInputChange('firstName', e.target.value)}
                         className={`p-[2px] pl-2 mt-1 block w-full border rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
                       />
+                      {errors.firstName && (
+                        <p className="text-red-500 text-xs mt-1">{errors.firstName}</p>
+                      )}
                     </div>
                     <div>
                       <label className={`block text-sm font-medium ${textSecondaryColor}`}>Last Name</label>
@@ -4320,7 +4465,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
               <div className="flex justify-between items-center gap-4">
                 <h3 className={`text-2xl font-semibold mb-0 ${textColor} mb-4`}>Comments</h3>
                 <button
-                  onClick={handleCommentNavigate}
+                  onClick={handleNewCommentClick}
                   className={`px-4 py-2 ${buttonBgColor} text-white rounded-lg transition-colors flex items-center space-x-2`}
                 >
                   <HiOutlinePlus className="w-4 h-4" />
@@ -4504,7 +4649,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                   lead={lead}
                   deal={undefined}
                   setListSuccess={setListSuccess}
-                  refreshEmails={refreshEmails}
+                  refreshEmails={refreshComments}
                   replyData={replyData}
                 />
               )}

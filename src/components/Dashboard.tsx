@@ -153,10 +153,6 @@ function TaskTable({ title, data, compact = false }: TaskTableProps) {
       <div className={`p-4 sm:p-6 border-b ${theme === 'dark' ? 'border-purple-500/30' : 'border-gray-100'}`}>
         <div className="flex items-center justify-between">
           <h3 className={`text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{title}</h3>
-          <button className={`p-1 rounded-lg transition-colors ${theme === 'dark' ? 'hover:bg-purple-800/50' : 'hover:bg-gray-100'
-            }`}>
-            <MoreHorizontal className={`w-5 h-5 ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`} />
-          </button>
         </div>
       </div>
       <div className="overflow-y-auto overflow-x-auto h-[350px] table-scroll">
@@ -255,178 +251,347 @@ export function Dashboard() {
   const [leadTableData, setLeadTableData] = useState<Lead[]>([]);
   const [DealsTableData, setDealsTableData] = useState<Deals[]>([]);
   const [TodayLeadsData, setTodayLeadsTableData] = useState<TodayLeads[]>([]);
-
-  // New state variables for dynamic metric data
   const [contactCount, setContactCount] = useState(0);
   const [organizationCount, setOrganizationCount] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    const userSession = getUserSession();
-    const Company = userSession?.company;
-    axios.get(
-      'http://103.214.132.20:8002/api/v2/document/CRM Deal',
-      {
+  // Function to fetch deals data
+  const fetchDealsData = async () => {
+    try {
+      const userSession = getUserSession();
+      const Company = userSession?.company;
+      const response = await axios.get(
+        'http://103.214.132.20:8002/api/v2/document/CRM Deal',
+        {
+          headers: {
+            Authorization: AUTH_TOKEN,
+          },
+          params: {
+            fields: JSON.stringify(["name", "status"]),
+            filters: JSON.stringify({ company: Company }),
+          },
+        }
+      );
+
+      const data = response.data.data;
+      let counts = {
+        Qualification: 0,
+        Lost: 0,
+        Won: 0,
+        'Demo/Making': 0,
+        'Ready to Close': 0,
+        'Negotiation': 0,
+        'Proposal/Quotation': 0
+      };
+
+      data.forEach((deal: Deal) => {
+        if (counts.hasOwnProperty(deal.status)) {
+          counts[deal.status as keyof typeof counts]++;
+        }
+      });
+
+      setStatusCounts({
+        total: data.length,
+        ...counts,
+      });
+    } catch (error) {
+      console.error('Error fetching deals data:', error);
+    }
+  };
+
+  // Function to fetch contact count
+  const fetchContactCount = async () => {
+    try {
+      const userSession = getUserSession();
+      const Company = userSession?.company;
+      const response = await axios.get(
+        'http://103.214.132.20:8002/api/v2/document/Contact',
+        {
+          headers: {
+            Authorization: AUTH_TOKEN,
+          },
+          params: {
+            fields: JSON.stringify(["name"]),
+            filters: JSON.stringify({ company: Company }),
+          }
+        }
+      );
+
+      if (response.data && response.data.data) {
+        setContactCount(response.data.data.length || 0);
+      }
+    } catch (error) {
+      console.error('Error fetching contact count:', error);
+      setContactCount(0);
+    }
+  };
+
+  // Function to fetch organization count
+  const fetchOrganizationCount = async () => {
+    try {
+      const userSession = getUserSession();
+      const Company = userSession?.company;
+      const response = await axios.get(
+        'http://103.214.132.20:8002/api/v2/document/CRM Organization',
+        {
+          headers: {
+            Authorization: AUTH_TOKEN,
+          },
+          params: {
+            fields: JSON.stringify(["name"]),
+            filters: JSON.stringify({ company: Company }),
+          }
+        }
+      );
+
+      if (response.data && response.data.data) {
+        setOrganizationCount(response.data.data.length || 0);
+      }
+    } catch (error) {
+      console.error('Error fetching organization count:', error);
+      setOrganizationCount(0);
+    }
+  };
+
+  // Function to fetch lead count
+  const fetchLeadCount = async () => {
+    try {
+      const userSession = getUserSession();
+      const Company = userSession?.company;
+      const response = await axios.get('http://103.214.132.20:8002/api/v2/document/CRM Lead/', {
         headers: {
           Authorization: AUTH_TOKEN,
         },
         params: {
-          fields: JSON.stringify(["name", "status"]),
+          filters: JSON.stringify({ company: Company, converted: 0 }),
+        },
+      });
+
+      const data = response.data.data;
+      setLeadCount(data.length);
+    } catch (error) {
+      console.error('Error fetching lead data:', error);
+    }
+  };
+
+  // Function to fetch tasks data
+  const fetchTasksData = async () => {
+    try {
+      const userSession = getUserSession();
+      const Company = userSession?.company;
+      const response = await apiAxios.get(
+        '/api/v2/document/CRM Task',
+        {
+          headers: {
+            Authorization: AUTH_TOKEN,
+          },
+          params: {
+            fields: JSON.stringify(["description", "start_date", "due_date", "priority"]),
+            filters: JSON.stringify({ company: Company }),
+          },
+        }
+      );
+
+      const data = response.data.data;
+      const mappedTasks = data.map((task: any, index: number) => ({
+        id: `${index}`,
+        subject: task.description?.replace(/<[^>]+>/g, '') || 'No Description',
+        StartDate: task.start_date ? new Date(task.start_date).toLocaleDateString() : 'N/A',
+        dueDate: task.due_date ? new Date(task.due_date).toLocaleDateString() : 'N/A',
+        priority: task.priority === 'High' ? 'Good' :
+          task.priority === 'Medium' ? 'Normal' : 'Low',
+      }));
+
+      setTaskData(mappedTasks);
+    } catch (error) {
+      console.error('Error fetching tasks:', error);
+    }
+  };
+
+  // Function to fetch lead table data
+  const fetchLeadTableData = async () => {
+    try {
+      const userSession = getUserSession();
+      const Company = userSession?.company;
+      const response = await apiAxios.get('/api/v2/document/CRM Lead', {
+        headers: {
+          Authorization: AUTH_TOKEN,
+        },
+        params: {
+          fields: JSON.stringify(["lead_name", "status"]),
+          filters: JSON.stringify({ company: Company, converted: 0 }),
+
+        },
+      });
+
+      const data = response.data.data;
+      const formattedLeads = data.map((item: any, index: number) => ({
+        id: `${index}`,
+        lead_name: item.lead_name,
+        status: item.status
+      }));
+      setLeadTableData(formattedLeads);
+    } catch (error) {
+      console.error('Error fetching lead table data:', error);
+    }
+  };
+
+
+  const fetchDealsTableData = async () => {
+    try {
+      const userSession = getUserSession();
+      const Company = userSession?.company;
+
+      const response = await apiAxios.get('/api/v2/document/CRM Deal', {
+        headers: {
+          Authorization: AUTH_TOKEN,
+        },
+        params: {
+          fields: JSON.stringify(["organization", "status", "close_date"]),
           filters: JSON.stringify({ company: Company }),
         },
-      }
-    )
-      .then((response) => {
-        const data = response.data.data;
-
-        let counts = {
-          Qualification: 0,
-          Lost: 0,
-          Won: 0,
-          'Demo/Making': 0,
-          'Ready to Close': 0,
-          'Negotiation': 0,
-          'Proposal/Quotation': 0
-        };
-
-        data.forEach((deal: Deal) => {
-          if (counts.hasOwnProperty(deal.status)) {
-            counts[deal.status]++;
-          } else {
-            counts[deal.status] = 1;
-          }
-        });
-
-        setStatusCounts({
-          total: data.length,
-          ...counts,
-        });
-      })
-      .catch((error) => {
-        console.error('Error fetching data:', error);
       });
-  }, []);
 
-  // useEffect(() => {
-  //   const fetchContactCount = async () => {
-  //     try {
-  //       const userSession = getUserSession();
-  //       const Company = userSession?.company;
-  //       const response = await axios.post(
-  //         'http://103.214.132.20:8002/api/method/crm.fcrm.doctype.crm_fields_layout.crm_fields_layout.get_fields_layout',
-  //         {
-  //           doctype: "Contact",
-  //           type: "Quick Entry"
-  //         },
-  //         {
-  //           headers: {
-  //             Authorization: AUTH_TOKEN,
-  //             filters: JSON.stringify({ company: Company }),
-  //           }
-  //         }
-  //       );
+      const data = response?.data?.data;
 
-  //       if (response.data && response.data.data) {
-  //         setContactCount(response.data.data.length || 0);
-  //       }
-  //     } catch (error) {
-  //       console.error('Error fetching contact count:', error);
-  //       setContactCount(0);
-  //     }
-  //   };
+      // Filter deals closing this month on client side
+      const now = new Date();
+      const currentMonth = now.getMonth();
+      const currentYear = now.getFullYear();
 
-  //   fetchContactCount();
-  // }, []);
-  // API call to get contact count
+      const dealsThisMonth = data.filter((item: any) => {
+        if (!item.close_date) return false;
+
+        const closeDate = new Date(item.close_date);
+        return closeDate.getMonth() === currentMonth &&
+          closeDate.getFullYear() === currentYear;
+      });
+
+      const formattedDeals = dealsThisMonth.map((item: any, index: number) => ({
+        id: `${index}`,
+        organization: item.organization || 'N/A',
+        status: item.status || 'N/A',
+        close_date: item.close_date ? new Date(item.close_date).toLocaleDateString() : 'N/A',
+      }));
+
+      setDealsTableData(formattedDeals);
+    } catch (error) {
+      console.error('Error fetching Deals table data:', error);
+      setDealsTableData([]);
+    }
+  };
+
+  // Function to fetch today's leads data (client-side filtering)
+  // const fetchTodayLeadsData = async () => {
+  //   try {
+  //     const userSession = getUserSession();
+  //     const Company = userSession?.company;
+
+  //     const response = await apiAxios.get('/api/v2/document/CRM Lead', {
+  //       headers: {
+  //         Authorization: AUTH_TOKEN,
+  //       },
+  //       params: {
+  //         fields: JSON.stringify(["lead_name", "status", "creation"]),
+  //         filters: JSON.stringify({ company: Company }),
+  //       },
+  //     });
+
+  //     const data = response?.data?.data || [];
+
+  //     // Get today's date for comparison
+  //     const today = new Date();
+  //     const todayString = today.toISOString().split("T")[0];
+
+  //     // Filter leads created today
+  //     const filteredLeads = data.filter((item: any) => {
+  //       if (!item.creation) return false;
+
+  //       const createdDate = new Date(item.creation);
+  //       const createdDateString = createdDate.toISOString().split("T")[0];
+
+  //       return createdDateString === todayString;
+  //     });
+
+  //     const formattedLeads = filteredLeads.map((item: any, index: number) => ({
+  //       id: `${index}`,
+  //       lead_name: item.lead_name || 'N/A',
+  //       status: item.status || 'N/A',
+  //       creation: item.creation ? new Date(item.creation).toLocaleDateString() : 'N/A',
+  //     }));
+
+  //     setTodayLeadsTableData(formattedLeads);
+  //   } catch (error) {
+  //     console.error('Error fetching Today Leads table data:', error);
+  //     setTodayLeadsTableData([]);
+  //   }
+  // };
+
+  // Function to fetch today's leads data with better error handling
+  const fetchTodayLeadsData = async () => {
+    try {
+      const userSession = getUserSession();
+      const Company = userSession?.company;
+
+      // Get today's date in YYYY-MM-DD format
+      const today = new Date().toISOString().split('T')[0];
+
+      const response = await apiAxios.get('/api/v2/document/CRM Lead', {
+        headers: {
+          Authorization: AUTH_TOKEN,
+        },
+        params: {
+          fields: JSON.stringify(["lead_name", "status", "creation", "name"]),
+          filters: JSON.stringify({
+            company: Company,
+            creation: ['>=', today], // If your API supports this syntax
+            converted: 0
+          }),
+        },
+      });
+
+      const data = response?.data?.data || [];
+
+      const formattedLeads = data.map((item: any, index: number) => ({
+        id: item.name || `${index}`,
+        lead_name: item.lead_name || 'Unnamed Lead',
+        status: item.status || 'N/A',
+        creation: item.creation ? new Date(item.creation).toLocaleDateString() : 'N/A',
+      }));
+
+      setTodayLeadsTableData(formattedLeads);
+
+    } catch (error) {
+      console.error('Error fetching Today Leads table data:', error);
+      setTodayLeadsTableData([]);
+    }
+  };
+
+  // Main refresh function
+  const refreshDashboard = async () => {
+    setRefreshing(true);
+    try {
+      // Execute all API calls in parallel for better performance
+      await Promise.all([
+        fetchDealsData(),
+        fetchContactCount(),
+        fetchOrganizationCount(),
+        fetchLeadCount(),
+        fetchTasksData(),
+        fetchLeadTableData(),
+        fetchDealsTableData(),
+        fetchTodayLeadsData()
+      ]);
+    } catch (error) {
+      console.error('Error refreshing dashboard:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  // Initial data loading
   useEffect(() => {
-    const fetchContactCount = async () => {
-      try {
-        const userSession = getUserSession();
-        const Company = userSession?.company;
-        const response = await axios.get(
-          'http://103.214.132.20:8002/api/v2/document/Contact',
-          {
-            headers: {
-              Authorization: AUTH_TOKEN,
-            },
-            params: {
-              fields: JSON.stringify(["name"]), // Only fetch name field to minimize data
-              filters: JSON.stringify({ company: Company }),
-            }
-          }
-        );
-
-        if (response.data && response.data.data) {
-          setContactCount(response.data.data.length || 0);
-        }
-      } catch (error) {
-        console.error('Error fetching contact count:', error);
-        setContactCount(0);
-      }
-    };
-
-    fetchContactCount();
-  }, []);
-
-  // API call to get organization count
-  // useEffect(() => {
-  //   const fetchOrganizationCount = async () => {
-  //     try {
-  //       const userSession = getUserSession();
-  //       const Company = userSession?.company;
-  //       const response = await axios.post(
-  //         'http://103.214.132.20:8002/api/method/crm.fcrm.doctype.crm_fields_layout.crm_fields_layout.get_fields_layout',
-  //         {
-  //           doctype: "CRM Organization",
-  //           type: "Quick Entry"
-  //         },
-  //         {
-  //           headers: {
-  //             Authorization: AUTH_TOKEN,
-  //             filters: JSON.stringify({ company: Company }),
-  //           }
-  //         }
-  //       );
-
-  //       if (response.data && response.data.data) {
-  //         setOrganizationCount(response.data.data.length || 0);
-  //       }
-  //     } catch (error) {
-  //       console.error('Error fetching organization count:', error);
-  //       setOrganizationCount(0);
-  //     }
-  //   };
-
-  //   fetchOrganizationCount();
-  // }, []);
-
-  useEffect(() => {
-    const fetchOrganizationCount = async () => {
-      try {
-        const userSession = getUserSession();
-        const Company = userSession?.company;
-        const response = await axios.get(
-          'http://103.214.132.20:8002/api/v2/document/CRM Organization',
-          {
-            headers: {
-              Authorization: AUTH_TOKEN,
-            },
-            params: {
-              fields: JSON.stringify(["name"]), // Only fetch name field to minimize data
-              filters: JSON.stringify({ company: Company }),
-            }
-          }
-        );
-
-        if (response.data && response.data.data) {
-          setOrganizationCount(response.data.data.length || 0);
-        }
-      } catch (error) {
-        console.error('Error fetching organization count:', error);
-        setOrganizationCount(0);
-      }
-    };
-
-    fetchOrganizationCount();
+    refreshDashboard();
   }, []);
 
   const conversionData = [
@@ -438,156 +603,6 @@ export function Dashboard() {
     { name: 'Negotiation', value: statusCounts.Negotiation, color: '#350e51' },
     { name: 'Proposal/Quotation', value: statusCounts['Proposal/Quotation'], color: '#613085' },
   ];
-
-  useEffect(() => {
-    const userSession = getUserSession();
-    const Company = userSession?.company;
-    axios.get('http://103.214.132.20:8002/api/v2/document/CRM Lead/', {
-      headers: {
-        Authorization: AUTH_TOKEN,
-      },
-      params: {
-        filters: JSON.stringify({ company: Company, converted: 0  }),
-      },
-    })
-      .then((response) => {
-        const data = response.data.data;
-        setLeadCount(data.length);
-      })
-      .catch((error) => {
-        console.error('Error fetching lead data:', error);
-      });
-  }, []);
-
-  // TodayTasks api
-  useEffect(() => {
-    const userSession = getUserSession();
-    const Company = userSession?.company;
-    apiAxios.get(
-      '/api/v2/document/CRM Task',
-      {
-        headers: {
-          Authorization: AUTH_TOKEN,
-        },
-        params: {
-          fields: JSON.stringify(["description", "start_date", "due_date", "priority"]),
-          filters: JSON.stringify({ company: Company }),
-        },
-      }
-    )
-      .then((response) => {
-        const data = response.data.data;
-
-        const mappedTasks = data.map((task: any, index: number) => ({
-          id: `${index}`,
-          subject: task.description?.replace(/<[^>]+>/g, '') || 'No Description',
-          StartDate: task.start_date ? new Date(task.start_date).toLocaleDateString() : 'N/A',
-          dueDate: task.due_date ? new Date(task.due_date).toLocaleDateString() : 'N/A',
-          priority: task.priority === 'High' ? 'Good' :
-            task.priority === 'Medium' ? 'Normal' : 'Low',
-        }));
-
-        setTaskData(mappedTasks);
-      })
-      .catch((error) => {
-        console.error('Error fetching tasks:', error);
-      });
-  }, []);
-
-  // LeadsTable api
-  useEffect(() => {
-    const userSession = getUserSession();
-    const Company = userSession?.company;
-    apiAxios
-      .get('/api/v2/document/CRM Lead', {
-        headers: {
-          Authorization: AUTH_TOKEN,
-        },
-        params: {
-          fields: JSON.stringify(["lead_name", "status"]),
-          filters: JSON.stringify({ company: Company }),
-        },
-      })
-      .then((response) => {
-        const data = response.data.data;
-
-        const formattedLeads = data.map((item: any, index: number) => ({
-          id: `${index}`,
-          lead_name: item.lead_name,
-          status: item.status
-        }));
-        setLeadTableData(formattedLeads);
-      })
-      .catch((error) => {
-        console.error('Error fetching lead table data:', error);
-      });
-  }, []);
-
-  // DealsTable api
-  useEffect(() => {
-    const userSession = getUserSession();
-    const Company = userSession?.company;
-    apiAxios
-      .get('/api/v2/document/CRM Deal', {
-        headers: {
-          Authorization: AUTH_TOKEN,
-        },
-        params: {
-          fields: JSON.stringify(["organization", "status", "close_date"]),
-          filters: JSON.stringify({ company: Company }),
-        },
-      })
-      .then((response) => {
-        const data = response?.data?.data;
-
-        const formattedDeals = data.map((item: any, index: number) => ({
-          id: `${index}`,
-          organization: item.organization || 'N/A',
-          status: item.status || 'N/A',
-          close_date: item.close_date || 'N/A',
-        }));
-        setDealsTableData(formattedDeals);
-      })
-      .catch((error) => {
-        console.error('Error fetching Deals table data:', error);
-      });
-  }, []);
-
-  useEffect(() => {
-    const userSession = getUserSession();
-    const Company = userSession?.company;
-    apiAxios
-      .get('/api/v2/document/CRM Lead', {
-        headers: {
-          Authorization: AUTH_TOKEN,
-        },
-        params: {
-          fields: JSON.stringify(["status", "creation"]),
-          filters: JSON.stringify({ company: Company }),
-        },
-      })
-      .then((response) => {
-        const data = response?.data?.data;
-
-        const today = new Date().toISOString().split("T")[0];
-        const filteredLeads = (data || [])
-          .filter((item: any) => {
-            if (!item.creation) return false;
-            const createdDate = item.creation.split("T")[0];
-            return createdDate === today;
-          })
-          .map((item: any, index: number) => ({
-            id: `${index}`,
-            status: item.status || 'N/A',
-            creation: item.creation || 'N/A',
-          }));
-
-        setTodayLeadsTableData(filteredLeads);
-      })
-      .catch((error) => {
-        console.error('Error fetching Today Leads table data:', error);
-      });
-  }, []);
 
   return (
     <div className={`p-4 sm:p-6 space-y-6 min-h-screen ${theme === 'dark'
@@ -605,18 +620,16 @@ export function Dashboard() {
           <p className={`mt-1 ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>Here's what's happening with your sales today.</p>
         </div>
         <div className="flex items-center space-x-2">
-          <button className={`p-2 rounded-lg transition-all ${theme === 'dark'
-            ? 'hover:bg-purple-800/50 hover:shadow-sm'
-            : 'hover:bg-white hover:shadow-sm'
-            }`}>
-            <RefreshCw className={`w-5 h-5 ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`} />
-          </button>
-          <button className={`p-2 rounded-lg transition-all ${theme === 'dark'
-            ? 'hover:bg-purple-800/50 hover:shadow-sm'
-            : 'hover:bg-white hover:shadow-sm'
-            }`}>
-            <MoreHorizontal className={`w-5 h-5 ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`} />
-          </button>
+          {/* <button
+            className={`p-2 rounded-lg transition-all ${theme === 'dark'
+              ? 'hover:bg-purple-800/50 hover:shadow-sm'
+              : 'hover:bg-white hover:shadow-sm'
+              } ${refreshing ? 'opacity-50 cursor-not-allowed' : ''}`}
+            onClick={refreshDashboard}
+            disabled={refreshing}
+          >
+            <RefreshCw className={`w-5 h-5 ${theme === 'dark' ? 'text-white' : 'text-gray-500'} ${refreshing ? 'animate-spin' : ''}`} />
+          </button> */}
         </div>
       </div>
 
@@ -635,7 +648,7 @@ export function Dashboard() {
           value={leadCount}
           change={8.2}
           trend="up"
-          icon={<Users className="w-6 h-6 text-purplebg" />}
+          icon={<TrendingUp className="w-6 h-6 text-purplebg" />}
           color="bg-black"
         />
         <MetricCard
@@ -651,7 +664,7 @@ export function Dashboard() {
           value={organizationCount}
           change={5.4}
           trend="up"
-          icon={<TrendingUp className="w-6 h-6 text-purplebg" />}
+          icon={<Users className="w-6 h-6 text-purplebg" />}
           color="bg-black"
         />
       </div>

@@ -958,7 +958,7 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
                                     <span className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>{call.date}</span>
                                 </div>
 
-                                8<div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2">
                                     <LuTimer className={theme === 'dark' ? 'text-white' : 'text-gray-900'} />
                                     <span className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>{call.duration}</span>
                                 </div>

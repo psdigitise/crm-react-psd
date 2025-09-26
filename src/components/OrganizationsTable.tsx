@@ -1004,7 +1004,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
               : 'border-gray-300'
               }`}
           >
-            <option value={10}>10 per page</option>
+            <option value={10}>10 per page </option>
             <option value={25}>25 per page</option>
             <option value={50}>50 per page</option>
             <option value={100}>100 per page</option>

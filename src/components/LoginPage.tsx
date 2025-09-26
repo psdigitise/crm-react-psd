@@ -624,7 +624,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
               </div>
 
               {/* Forgot Password */}
-              <div className="text-right">
+              {/* <div className="text-right">
                 <button
                   type="button"
                   className="text-md font-medium text-black"
@@ -632,7 +632,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                 >
                   Forgot Password?
                 </button>
-              </div>
+              </div> */}
 
               {/* Login Button */}
               <button
