@@ -53,7 +53,7 @@ export function Dealstable({ title, data }: DealsTableProps) {
                         {data.length === 0 && (
                             <tr>
                                 <td
-                                    colSpan={1}
+                                    colSpan={3}
                                     className={`px-4 py-4 text-sm text-center ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`}
                                 >
                                     No Deals Closing This Month Found

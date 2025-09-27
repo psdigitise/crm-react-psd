@@ -4,6 +4,7 @@ import { Header } from './Header';
 import { useTheme } from './ThemeProvider';
 import { getUserSession } from '../utils/session';
 import { BsThreeDots } from 'react-icons/bs';
+import { AUTH_TOKEN } from '../api/apiUrl';
 
 interface Task {
   name: string;
@@ -42,7 +43,7 @@ const priorityColors = {
 };
 
 const API_BASE_URL = 'http://103.214.132.20:8002';
-const AUTH_TOKEN = 'token 1b670b800ace83b:f32066fea74d0fe';
+// const AUTH_TOKEN = 'token 1b670b800ace83b:f32066fea74d0fe';
 
 export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0 }: TasksPageProps) {
   const { theme } = useTheme();
@@ -242,7 +243,7 @@ export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0 }: TasksP
       showToast('Task updated successfully', { type: 'success' });
       setShowEditModal(false);
       setEditingTask(null);
-      refreshTasks(); // Use the refresh function
+      refreshTasks();
     } catch (error) {
       console.error('Error updating task:', error);
       showToast('Failed to update task', { type: 'error' });
@@ -251,26 +252,77 @@ export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0 }: TasksP
 
   const handleDelete = async (taskName: string) => {
     try {
-      const apiUrl = `${API_BASE_URL}/api/v2/document/CRM Task/${taskName}`;
+      const apiUrl = `${API_BASE_URL}/api/method/frappe.desk.reportview.delete_items`;
+
+      const requestBody = {
+        items: JSON.stringify([taskName]),
+        doctype: "CRM Task"
+      };
 
       const response = await fetch(apiUrl, {
-        method: 'DELETE',
+        method: 'POST',
         headers: {
+          'Content-Type': 'application/json',
           'Authorization': AUTH_TOKEN
-        }
+        },
+        body: JSON.stringify(requestBody)
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
       showToast('Task deleted successfully', { type: 'success' });
       setShowDeleteModal(false);
       setTaskToDelete(null);
-      refreshTasks(); // Use the refresh function
+      refreshTasks();
     } catch (error) {
       console.error('Error deleting task:', error);
       showToast('Failed to delete task', { type: 'error' });
+    }
+  };
+
+  const formatDateForInput = (dateString: string) => {
+    if (!dateString) return '';
+
+    try {
+      const date = new Date(dateString);
+
+      if (isNaN(date.getTime())) {
+        return '';
+      }
+
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+
+      return `${year}-${month}-${day}`;
+    } catch (error) {
+      console.error('Error formatting date for input:', error);
+      const match = dateString.match(/^(\d{4}-\d{2}-\d{2})/);
+      return match ? match[1] : '';
+    }
+  };
+
+  const formatDateForDisplay = (dateString: string) => {
+    if (!dateString) return 'N/A';
+
+    try {
+      const datePart = dateString.split('T')[0];
+      const [year, month, day] = datePart.split('-');
+
+      if (!year || !month || !day) return 'Invalid Date';
+
+      const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+
+      if (isNaN(date.getTime())) {
+        return 'Invalid Date';
+      }
+
+      return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
+    } catch (error) {
+      return 'Invalid Date';
     }
   };
 
@@ -332,40 +384,137 @@ export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0 }: TasksP
       setEditForm(prev => prev ? { ...prev, [field]: value } : prev);
     };
 
+    const handleClose = () => {
+      setShowEditModal(false);
+      setEditingTask(null);
+    };
+
     return (
-      <div className="fixed inset-0 z-50 overflow-y-auto">
-        <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-          <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" onClick={() => setShowEditModal(false)} />
+      <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto">
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
+          onClick={handleClose}
+        />
 
-          <div className={`inline-block align-bottom rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full ${theme === 'dark' ? 'bg-dark-secondary' : 'bg-white'}`}>
-            <div className={`px-4 pt-5 pb-4 sm:p-6 sm:pb-4 ${theme === 'dark' ? 'bg-dark-secondary' : 'bg-white'}`}>
-              <h3 className={`text-lg font-medium mb-4 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Edit Task</h3>
+        <div className={`relative transform overflow-hidden rounded-lg text-left shadow-xl transition-all sm:my-8 sm:w-11/12 sm:max-w-[600px] border ${theme === 'dark' ? 'border-gray-600 bg-dark-secondary' : 'border-gray-400 bg-white'}`}>
+          <div className={`px-6 pt-6 pb-4 sm:p-8 sm:pb-6 ${theme === 'dark' ? 'bg-dark-secondary' : 'bg-white'}`}>
+            <div className="absolute top-0 right-0 pt-6 pr-6">
+              <button
+                type="button"
+                className={`rounded-md ${theme === 'dark' ? 'text-white' : 'text-gray-400'} hover:text-gray-500 focus:outline-none`}
+                onClick={handleClose}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <h3 className={`text-xl font-bold mb-6 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+              Edit Task
+            </h3>
+
+            <div className="space-y-6">
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Title <span className='text-red-500'>*</span>
+                </label>
+                <input
+                  type="text"
+                  value={editForm.title}
+                  onChange={(e) => handleChange("title", e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
+                    ? 'bg-gray-800 border-gray-600 text-white'
+                    : 'bg-white border-gray-300 text-gray-900'
+                    }`}
+                  placeholder="Task title"
+                />
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Description
+                </label>
+                <textarea
+                  value={editForm.description}
+                  onChange={(e) => handleChange("description", e.target.value)}
+                  rows={6}
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
+                    ? 'bg-gray-800 border-gray-600 text-white'
+                    : 'bg-white border-gray-300 text-gray-900'
+                    }`}
+                  placeholder="Task description"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
-                  <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>Title</label>
-                  <input
-                    type="text"
-                    value={editForm.title}
-                    onChange={(e) => handleChange("title", e.target.value)}
+                  <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                    Status
+                  </label>
+                  <select
+                    value={editForm.status}
+                    onChange={(e) => handleChange("status", e.target.value as Task['status'])}
                     className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
-                      ? 'bg-white-31 border-white text-white'
-                      : 'border-gray-300'
+                      ? 'bg-gray-800 border-gray-600 text-white'
+                      : 'bg-white border-gray-300 text-gray-900'
+                      }`}
+                  >
+                    <option value="Backlog">Backlog</option>
+                    <option value="Todo">Todo</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="Done">Done</option>
+                    <option value="Canceled">Canceled</option>
+                    <option value="Open">Open</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                    Priority
+                  </label>
+                  <select
+                    value={editForm.priority}
+                    onChange={(e) => handleChange("priority", e.target.value as Task['priority'])}
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
+                      ? 'bg-gray-800 border-gray-600 text-white'
+                      : 'bg-white border-gray-300 text-gray-900'
+                      }`}
+                  >
+                    <option value="Low">Low</option>
+                    <option value="Medium">Medium</option>
+                    <option value="High">High</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                    Due Date
+                  </label>
+                  <input
+                    type="date"
+                    value={editForm.due_date ? formatDateForInput(editForm.due_date) : ''}
+                    onChange={(e) => handleChange("due_date", e.target.value)}
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
+                      ? 'bg-gray-800 border-gray-600 text-white'
+                      : 'bg-white border-gray-300 text-gray-900'
                       }`}
                   />
                 </div>
 
                 <div>
-                  <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>Assigned To</label>
+                  <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                    Assign To
+                  </label>
                   <select
                     value={editForm.assigned_to || ''}
                     onChange={(e) => handleChange("assigned_to", e.target.value)}
                     className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
-                      ? 'bg-white-31 border-white text-white'
-                      : 'border-gray-300'
+                      ? 'bg-gray-800 border-gray-600 text-white'
+                      : 'bg-white border-gray-300 text-gray-900'
                       }`}
                   >
-                    <option value="">Unassigned</option>
+                    <option value="">Select Assign</option>
                     {isLoadingContacts ? (
                       <option value="" disabled>Loading contacts...</option>
                     ) : (
@@ -377,97 +526,26 @@ export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0 }: TasksP
                     )}
                   </select>
                 </div>
-
-                <div>
-                  <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>Priority</label>
-                  <select
-                    value={editForm.priority}
-                    onChange={(e) => handleChange("priority", e.target.value as Task['priority'])}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
-                      ? 'bg-white-31 border-white text-white'
-                      : 'border-gray-300'
-                      }`}
-                  >
-                    <option value="Low">Low</option>
-                    <option value="Medium">Medium</option>
-                    <option value="High">High</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>Status</label>
-                  <select
-                    value={editForm.status}
-                    onChange={(e) => handleChange("status", e.target.value as Task['status'])}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
-                      ? 'bg-white-31 border-white text-white'
-                      : 'border-gray-300'
-                      }`}
-                  >
-                    <option value="Open">Open</option>
-                    <option value="Backlog">Backlog</option>
-                    <option value="Todo">Todo</option>
-                    <option value="In Progress">In Progress</option>
-                    <option value="Done">Done</option>
-                    <option value="Canceled">Canceled</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>Start Date</label>
-                  <input
-                    type="date"
-                    value={editForm.start_date}
-                    onChange={(e) => handleChange("start_date", e.target.value)}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
-                      ? 'bg-white-31 border-white text-white'
-                      : 'border-gray-300'
-                      }`}
-                  />
-                </div>
-                <div>
-                  <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>Due Date</label>
-                  <input
-                    type="date"
-                    value={editForm.due_date}
-                    onChange={(e) => handleChange("due_date", e.target.value)}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
-                      ? 'bg-white-31 border-white text-white'
-                      : 'border-gray-300'
-                      }`}
-                  />
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>Description</label>
-                  <textarea
-                    value={editForm.description}
-                    onChange={(e) => handleChange("description", e.target.value)}
-                    rows={3}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
-                      ? 'bg-white-31 border-white text-white'
-                      : 'border-gray-300'
-                      }`}
-                  />
-                </div>
               </div>
             </div>
+          </div>
 
-            <div className={`px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse ${theme === 'dark' ? 'bg-dark-tertiary' : 'bg-gray-50'}`}>
+          <div className={`px-6 py-4 sm:px-8 ${theme === 'dark' ? 'bg-dark-tertiary' : 'bg-gray-50'}`}>
+            <div className="w-full">
               <button
-                onClick={() => handleUpdate(editForm)}
-                className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 sm:ml-3 sm:w-auto sm:text-sm"
-              >
-                Update
-              </button>
-              <button
-                onClick={() => setShowEditModal(false)}
-                className={`mt-3 w-full inline-flex justify-center rounded-md border shadow-sm px-4 py-2 text-base font-medium sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm ${theme === 'dark'
-                  ? 'border-purple-500/30 bg-dark-accent text-white hover:bg-purple-800/50'
-                  : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                onClick={() => {
+                  if (!editForm.title.trim()) {
+                    showToast('Title is required', { type: 'error' });
+                    return;
+                  }
+                  handleUpdate(editForm);
+                }}
+                className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-3 text-base font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 sm:text-sm ${theme === 'dark'
+                  ? 'bg-purple-600 text-white hover:bg-purple-700 focus:ring-purple-500'
+                  : 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500'
                   }`}
               >
-                Cancel
+                Update Task
               </button>
             </div>
           </div>
@@ -526,7 +604,7 @@ export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0 }: TasksP
         <Header
           title="Tasks"
           subtitle={leadName ? `For Lead: ${leadName}` : undefined}
-          onRefresh={refreshTasks} // Use the refresh function
+          onRefresh={refreshTasks}
           onFilter={() => { }}
           onSort={() => { }}
           onColumns={() => { }}
@@ -553,7 +631,7 @@ export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0 }: TasksP
       <Header
         title="Tasks"
         subtitle={leadName ? `For Lead: ${leadName}` : undefined}
-        onRefresh={refreshTasks} // Use the refresh function
+        onRefresh={refreshTasks}
         onFilter={() => { }}
         onSort={() => { }}
         onColumns={() => { }}
@@ -645,7 +723,7 @@ export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0 }: TasksP
                       </span>
                     </td>
                     <td className={`px-6 py-4 whitespace-nowrap text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                      {task.due_date ? new Date(task.due_date).toLocaleDateString() : 'N/A'}
+                      {task.due_date ? formatDateForDisplay(task.due_date) : 'N/A'}
                     </td>
                   </tr>
                 ))}

@@ -242,7 +242,7 @@ export function NotificationsPageNew() {
     //   : 'bg-gray-50'
     //   }`}>
     <div
-      className={`p-4 sm:p-6 min-h-screen w-full ${
+      className={`p-4 sm:p-6 overflow-auto   h-[100vh] w-full ${
         theme === "dark"
           ? "bg-gradient-to-b from-[#1E1A2B] to-[#191428]"
           : "bg-gray-100"
@@ -295,7 +295,7 @@ export function NotificationsPageNew() {
         <>
           {/* Today Section */}
           {todayNotifications.length > 0 && (
-            <div className="mb-8">
+            <div className="mb-8 overflow-y-auto h-[100vh]">
               <h2
                 className={`text-2xl font-bold mb-6 ${
                   theme === "dark" ? "text-white" : "text-black"
@@ -316,7 +316,7 @@ export function NotificationsPageNew() {
 
           {/* Yesterday Section */}
           {yesterdayNotifications.length > 0 && (
-            <div className="mb-8">
+            <div className="mb-8 overflow-y-auto h-[100vh]">
               <h2
                 className={`text-2xl font-bold mb-6 ${
                   theme === "dark" ? "text-white" : "text-black"

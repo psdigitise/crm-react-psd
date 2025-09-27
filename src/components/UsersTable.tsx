@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { ChevronDown, ChevronUp, User, Mail, Loader2 } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import { showToast } from '../utils/toast';
-
 import { getUserSession } from '../utils/session';
 
 interface User {
@@ -18,46 +17,16 @@ interface User {
 interface UsersTableProps {
   searchTerm: string;
   onUserClick?: (user: User) => void;
+  refreshTrigger?: number;
 }
 
-export function UsersTable({ searchTerm, onUserClick }: UsersTableProps) {
+export function UsersTable({ searchTerm, onUserClick, refreshTrigger }: UsersTableProps) {
   const { theme } = useTheme();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sortField, setSortField] = useState<keyof User | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
-
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
-  // const fetchUsers = async () => {
-  //   try {
-  //     setLoading(true);
-  //     setError(null);
-
-  //     // Get company from session
-  //     const sessionCompany = sessionStorage.getItem('company');
-  //     if (!sessionCompany) {
-  //       setUsers([]);
-  //       setLoading(false);
-  //       return;
-  //     }
-  //     const filters = encodeURIComponent(JSON.stringify([["company", "=", sessionCompany]]));
-  //     // const apiUrl = 'http://103.214.132.20:8002/api/v2/document/User?fields=["name","email","first_name","last_name","full_name","creation","modified"]filters=' + filters;
-  //     const apiUrl = `http://103.214.132.20:8002/api/v2/document/User?fields=["name","email","first_name","last_name","full_name","creation","modified"]&filters=${filters}`;
-  //     console.log('Session Company:', sessionCompany);
-  //     console.log('API URL:', apiUrl);
-
-
-  //     const response = await fetch(apiUrl, {
-  //       method: 'GET',
-  //       headers: {
-  //         'Content-Type': 'application/json',
-  //         'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe'
-  //       }
-  //     });
 
   const fetchUsers = async () => {
     try {
@@ -117,6 +86,10 @@ export function UsersTable({ searchTerm, onUserClick }: UsersTableProps) {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchUsers();
+  }, [refreshTrigger]); 
 
   const formatDate = (dateString: string): string => {
     if (!dateString) return 'N/A';
@@ -225,12 +198,6 @@ export function UsersTable({ searchTerm, onUserClick }: UsersTableProps) {
           <thead className={`border-b ${theme === 'dark' ? 'bg-purplebg border-b-purplebg' : 'bg-gray-50 border-gray-200'
             }`}>
             <tr className="divide-x-[1px]">
-              <th className="px-6 py-3 text-left">
-                <input
-                  type="checkbox"
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-              </th>
               <th className={`px-6 py-3 text-left text-sm font-semibold uppercase tracking-wider ${theme === 'dark' ? 'text-white' : 'text-gray-500'
                 }`}>
                 <SortButton field="full_name">Name</SortButton>
@@ -261,12 +228,6 @@ export function UsersTable({ searchTerm, onUserClick }: UsersTableProps) {
                   }`}
                 onClick={() => onUserClick && onUserClick(user)}
               >
-                <td className="px-6 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                  <input
-                    type="checkbox"
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  />
-                </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 ${theme === 'dark' ? 'bg-purplebg' : 'bg-gray-200'

@@ -220,7 +220,7 @@ function TaskTable({ title, data, compact = false }: TaskTableProps) {
             {data.length === 0 && (
               <tr>
                 <td
-                  colSpan={1}
+                  colSpan={4}
                   className={`px-8 py-4 text-sm text-center ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`}
                 >
                   No Today Tasks Found
@@ -615,9 +615,9 @@ export function Dashboard() {
           <h1 className={`text-2xl sm:text-3xl font-bold flex items-center ${theme === 'dark' ? 'text-white' : 'text-gray-900'
             }`}>
             <span className="mr-3 text-2xl">👋</span>
-            Welcome back, Administrator
+            Hello, Administrator!
           </h1>
-          <p className={`mt-1 ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>Here's what's happening with your sales today.</p>
+          <p className={`mt-1 ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>Here’s your sales performance snapshot for today.</p>
         </div>
         <div className="flex items-center space-x-2">
           {/* <button

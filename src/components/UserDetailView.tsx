@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Edit, Trash2, Mail, User, Building2, Calendar, Shield, FileText, MessageSquare, CheckSquare, Send, Activity } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2, Mail, User, Building2, Calendar, Shield, FileText, MessageSquare, CheckSquare, Send, Activity, X } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import { showToast } from '../utils/toast';
 
@@ -29,6 +29,7 @@ export function UserDetailView({ user, onBack, onSave }: UserDetailViewProps) {
   const [editedUser, setEditedUser] = useState<User>(user);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('overview');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const tabs = [
     { id: 'overview', label: 'Overview', icon: User, count: null },
@@ -74,7 +75,7 @@ export function UserDetailView({ user, onBack, onSave }: UserDetailViewProps) {
     }
   };
 
-  const handleDelete = async () => {
+  const handleDeleteConfirm = async () => {
     try {
       setLoading(true);
 
@@ -87,15 +88,15 @@ export function UserDetailView({ user, onBack, onSave }: UserDetailViewProps) {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
-        body: JSON.stringify({ name: user.email }) // 👈 sometimes needed
+        body: JSON.stringify({ name: user.email })
       });
-
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
       showToast('User deleted successfully', { type: 'success' });
+      setShowDeleteModal(false);
       onBack();
     } catch (error) {
       console.error('Error deleting user:', error);
@@ -105,7 +106,13 @@ export function UserDetailView({ user, onBack, onSave }: UserDetailViewProps) {
     }
   };
 
+  const handleDeleteClick = () => {
+    setShowDeleteModal(true);
+  };
 
+  const handleDeleteCancel = () => {
+    setShowDeleteModal(false);
+  };
 
   const handleInputChange = (field: keyof User, value: string) => {
     setEditedUser(prev => ({
@@ -253,6 +260,98 @@ export function UserDetailView({ user, onBack, onSave }: UserDetailViewProps) {
     }
   };
 
+  // Delete Confirmation Modal Component
+  const DeleteConfirmationModal = () => (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className={`rounded-lg shadow-lg max-w-md w-full ${theme === 'dark' 
+        ? 'bg-gradient-to-br from-dark-secondary to-dark-tertiary border border-purple-500/30' 
+        : 'bg-white border border-gray-200'
+      }`}>
+        {/* Modal Header */}
+        <div className={`flex items-center justify-between p-4 border-b ${theme === 'dark' 
+          ? 'border-purple-500/30' 
+          : 'border-gray-200'
+        }`}>
+          <h3 className={`text-lg font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+            Delete User
+          </h3>
+          <button
+            onClick={handleDeleteCancel}
+            className={`p-1 rounded-full hover:bg-opacity-20 ${theme === 'dark' 
+              ? 'hover:bg-white text-white' 
+              : 'hover:bg-gray-200 text-gray-600'
+            }`}
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Modal Content */}
+        <div className="p-4">
+          <p className={`text-sm mb-4 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>
+            Are you sure you want to delete this user?
+          </p>
+          
+          {/* User Info Card */}
+          <div className={`p-3 rounded-lg mb-4 ${theme === 'dark' 
+            ? 'bg-dark-primary/50 border border-purple-500/20' 
+            : 'bg-gray-100 border border-gray-200'
+          }`}>
+            <div className="flex items-center space-x-3">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${theme === 'dark' 
+                ? 'bg-purple-800' 
+                : 'bg-gray-300'
+              }`}>
+                <User className={`w-5 h-5 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`} />
+              </div>
+              <div>
+                <p className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                  {user.full_name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'N/A'}
+                </p>
+                <p className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
+                  {user.email}
+                </p>
+                <p className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
+                  {user.company || 'No company'}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* <p className={`text-xs mb-4 ${theme === 'dark' ? 'text-red-400' : 'text-red-600'}`}>
+            ⚠️ This action cannot be undone. All user data will be permanently removed.
+          </p> */}
+        </div>
+
+        {/* Modal Footer */}
+        <div className={`flex justify-end space-x-3 p-4 border-t ${theme === 'dark' 
+          ? 'border-purple-500/30' 
+          : 'border-gray-200'
+        }`}>
+          <button
+            onClick={handleDeleteCancel}
+            disabled={loading}
+            className={`px-4 py-2 rounded-lg transition-colors disabled:opacity-50 ${
+              theme === 'dark'
+                ? 'border border-purple-500/30 text-white hover:bg-purple-800/50'
+                : 'border border-gray-300 text-gray-700 hover:bg-gray-100'
+            }`}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleDeleteConfirm}
+            disabled={loading}
+            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center space-x-2 disabled:opacity-50"
+          >
+            <Trash2 className="w-4 h-4" />
+            <span>{loading ? 'Deleting...' : 'Delete'}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className={`min-h-screen ${theme === 'dark'
       ? 'bg-gradient-to-br from-dark-primary via-dark-secondary to-dark-tertiary'
@@ -296,7 +395,7 @@ export function UserDetailView({ user, onBack, onSave }: UserDetailViewProps) {
                   <span>Edit</span>
                 </button>
                 <button
-                  onClick={handleDelete}
+                  onClick={handleDeleteClick}
                   disabled={loading}
                   className="px-4 py-2 bg-red-600/80 text-white rounded-lg hover:bg-red-700/80 transition-colors flex items-center space-x-2 disabled:opacity-50 backdrop-blur-sm"
                 >
@@ -379,14 +478,11 @@ export function UserDetailView({ user, onBack, onSave }: UserDetailViewProps) {
       {/* Content */}
       <div className="p-4 sm:p-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Content */}
-
-
           {/* Sidebar */}
           <div className="space-y-6 h-full">
             {/* User Information */}
             <div className={`rounded-lg shadow-sm border p-6 backdrop-blur-md h-full ${theme === 'dark'
-              ? 'bg-white border-white'
+              ? 'bg-custom-gradient border-white'
               : 'bg-white/80 border-gray-200'
               }`}>
               <div className='flex items-center gap-3 flex-wrap mb-4'>
@@ -399,10 +495,10 @@ export function UserDetailView({ user, onBack, onSave }: UserDetailViewProps) {
                 </div>
 
                 <div className="text-start mb-6">
-                  <h3 className={`text-2xl font-semibold mb-1 ${theme === 'dark' ? 'text-black' : 'text-gray-900'}`}>
+                  <h3 className={`text-2xl font-semibold mb-1 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
                     {user.full_name || user.first_name || user.email}
                   </h3>
-                  <p className={`text-sm font-semibold ${theme === 'dark' ? 'text-black' : 'text-gray-500'}`}>
+                  <p className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`}>
                     {user.role_profile_name || 'User'}
                   </p>
                 </div>
@@ -410,39 +506,41 @@ export function UserDetailView({ user, onBack, onSave }: UserDetailViewProps) {
 
               <div className="space-y-4">
                 <div className="flex items-center space-x-3">
-                  <Mail className={`w-5 h-5 ${theme === 'dark' ? 'text-black' : 'text-gray-500'}`} />
+                  <Mail className={`w-5 h-5 ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`} />
                   <div>
-                    <p className={`text-sm font-medium ${theme === 'dark' ? 'text-black' : 'text-gray-700'}`}>Email</p>
-                    <p className={`text-sm font-semibold ${theme === 'dark' ? 'text-black' : 'text-gray-600'}`}>{user.email}</p>
+                    <p className={`text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>Email</p>
+                    <p className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>{user.email}</p>
                   </div>
                 </div>
 
                 <div className="flex items-center space-x-3">
-                  <Building2 className={`w-5 h-5 ${theme === 'dark' ? 'text-black' : 'text-gray-500'}`} />
+                  <Building2 className={`w-5 h-5 ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`} />
                   <div>
-                    <p className={`text-sm font-medium ${theme === 'dark' ? 'text-black' : 'text-gray-700'}`}>Company</p>
-                    <p className={`text-sm font-semibold ${theme === 'dark' ? 'text-black' : 'text-gray-600'}`}>{user.company || 'N/A'}</p>
+                    <p className={`text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>Company</p>
+                    <p className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>{user.company || 'N/A'}</p>
                   </div>
                 </div>
 
                 <div className="flex items-center space-x-3">
-                  <Shield className={`w-5 h-5 ${theme === 'dark' ? 'text-black' : 'text-gray-500'}`} />
+                  <Shield className={`w-5 h-5 ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`} />
                   <div>
-                    <p className={`text-sm font-medium ${theme === 'dark' ? 'text-black' : 'text-gray-700'}`}>Role</p>
-                    <p className={`text-sm font-semibold ${theme === 'dark' ? 'text-black' : 'text-gray-600'}`}>{user.role_profile_name || 'N/A'}</p>
+                    <p className={`text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>Role</p>
+                    <p className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>{user.role_profile_name || 'N/A'}</p>
                   </div>
                 </div>
 
                 <div className="flex items-center space-x-3">
-                  <Calendar className={`w-5 h-5 ${theme === 'dark' ? 'text-black' : 'text-gray-500'}`} />
+                  <Calendar className={`w-5 h-5 ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`} />
                   <div>
-                    <p className={`text-sm font-medium ${theme === 'dark' ? 'text-black' : 'text-gray-700'}`}>Created</p>
-                    <p className={`text-sm font-semibold ${theme === 'dark' ? 'text-black' : 'text-gray-600'}`}>{formatDate(user.creation)}</p>
+                    <p className={`text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>Created</p>
+                    <p className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>{formatDate(user.creation)}</p>
                   </div>
                 </div>
               </div>
             </div>
           </div>
+          
+          {/* Main Content */}
           <div className="lg:col-span-2 h-full">
             <div className={`rounded-lg shadow-sm border p-6 backdrop-blur-md h-full ${theme === 'dark'
               ? 'bg-custom-gradient border-white'
@@ -457,6 +555,9 @@ export function UserDetailView({ user, onBack, onSave }: UserDetailViewProps) {
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && <DeleteConfirmationModal />}
     </div>
   );
 }

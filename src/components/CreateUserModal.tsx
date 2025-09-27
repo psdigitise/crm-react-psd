@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { X, ExternalLink } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import { showToast } from '../utils/toast';
-
 import { getUserSession } from '../utils/session';
 
 interface CreateUserModalProps {
@@ -24,54 +23,18 @@ export function CreateUserModal({ isOpen, onClose, onSubmit }: CreateUserModalPr
 
   if (!isOpen) return null;
 
-  // const handleSubmit = async (e: React.FormEvent) => {
-  //   e.preventDefault();
-  //   setLoading(true);
-
-  //   try {
-  //     const apiUrl = 'http://103.214.132.20:8002/api/v2/document/User/';
-
-  //     const response = await fetch(apiUrl, {
-  //       method: 'POST',
-  //       headers: {
-  //         'Content-Type': 'application/json',
-  //         'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe'
-  //       },
-  //       body: JSON.stringify(formData)
-  //     });
-
-  //     if (!response.ok) {
-  //       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-  //     }
-
-  //     const result = await response.json();
-  //     showToast('User created successfully', { type: 'success' });
-  //     onSubmit(result);
-  //     onClose();
-
-  //     // Reset form
-  //     setFormData({
-  //       email: '',
-  //       first_name: '',
-  //       company: sessionStorage.getItem('company') || 'PSDigitise',
-  //       role_profile_name: 'Only If Create',
-  //       new_password: 'admin@123'
-  //     });
-  //   } catch (error) {
-  //     console.error('Error creating user:', error);
-  //     showToast('Failed to create user', { type: 'error' });
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
       const session = getUserSession();
-      const sessionCompany = session?.company || 'PSDigitise'; // fallback if needed
+      if (!session?.api_key || !session?.api_secret) {
+        showToast('Authentication required', { type: 'error' });
+        return;
+      }
+
+      const sessionCompany = session?.company || 'PSDigitise';
 
       const apiUrl = 'http://103.214.132.20:8002/api/v2/document/User/';
 
@@ -84,18 +47,19 @@ export function CreateUserModal({ isOpen, onClose, onSubmit }: CreateUserModalPr
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token ${session?.api_key}:${session?.api_secret}` // secure auth from session
+          'Authorization': `token ${session.api_key}:${session.api_secret}`
         },
         body: JSON.stringify(payload)
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
       }
 
       const result = await response.json();
       showToast('User created successfully', { type: 'success' });
-      onSubmit(result);
+      onSubmit(result); // This will trigger the refresh in parent
       onClose();
 
       // Reset form
@@ -106,6 +70,8 @@ export function CreateUserModal({ isOpen, onClose, onSubmit }: CreateUserModalPr
         role_profile_name: 'Only If Create',
         new_password: 'admin@123'
       });
+
+      
 
     } catch (error) {
       console.error('Error creating user:', error);
@@ -137,10 +103,6 @@ export function CreateUserModal({ isOpen, onClose, onSubmit }: CreateUserModalPr
               Create User
             </h3>
             <div className="flex items-center space-x-2">
-              <button className={`p-1 rounded transition-colors ${theme === 'dark' ? 'hover:bg-purple-800/50' : 'hover:bg-gray-100'
-                }`}>
-                <ExternalLink className={`w-4 h-4 ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`} />
-              </button>
               <button
                 onClick={onClose}
                 className={`p-1 rounded transition-colors ${theme === 'dark' ? 'hover:bg-purple-800/50' : 'hover:bg-gray-100'
@@ -193,27 +155,6 @@ export function CreateUserModal({ isOpen, onClose, onSubmit }: CreateUserModalPr
                 />
               </div>
 
-              {/* <div>
-                <label className={`block text-sm font-medium mb-2 ${
-                  theme === 'dark' ? 'text-white' : 'text-gray-700'
-                }`}>
-                  Company
-                </label>
-                <input
-                  type="text"
-                  name="company"
-                  value={formData.company}
-                  onChange={handleChange}
-                  placeholder="Company Name"
-                  disabled={loading}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${
-                    theme === 'dark' 
-                      ? 'bg-white-31 border-white text-white placeholder-gray-400' 
-                      : 'bg-white/80 border-gray-300 placeholder-gray-500'
-                  }`}
-                />
-              </div> */}
-
               <div>
                 <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
                   }`}>
@@ -230,10 +171,6 @@ export function CreateUserModal({ isOpen, onClose, onSubmit }: CreateUserModalPr
                     }`}
                 >
                   <option value="Only If Create">Only If Create</option>
-                  <option value="Administrator">Administrator</option>
-                  <option value="Manager">Manager</option>
-                  <option value="Sales Rep">Sales Rep</option>
-                  <option value="User">User</option>
                 </select>
               </div>
 
@@ -259,6 +196,17 @@ export function CreateUserModal({ isOpen, onClose, onSubmit }: CreateUserModalPr
             </div>
 
             <div className="flex justify-end mt-8">
+              <button
+                type="button"
+                onClick={onClose}
+                disabled={loading}
+                className={`px-6 py-2 rounded-lg transition-colors mr-4 disabled:opacity-50 disabled:cursor-not-allowed ${theme === 'dark'
+                    ? 'bg-gray-600 hover:bg-gray-700 text-white'
+                    : 'bg-gray-300 hover:bg-gray-400 text-gray-700'
+                  }`}
+              >
+                Cancel
+              </button>
               <button
                 type="submit"
                 disabled={loading}

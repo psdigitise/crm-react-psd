@@ -21,6 +21,7 @@ export function UsersPage() {
   const { theme } = useTheme();
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
 
@@ -94,6 +95,7 @@ export function UsersPage() {
       <div className="p-4 sm:p-6">
         <UsersTable 
           searchTerm={searchTerm} 
+          refreshTrigger={refreshTrigger}
           onUserClick={handleUserClick}
         />
       </div>
