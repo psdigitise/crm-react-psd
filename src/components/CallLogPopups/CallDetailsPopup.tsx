@@ -9,6 +9,7 @@ import { GoArrowUpRight } from 'react-icons/go';
 import { PiDotsThreeOutlineFill } from 'react-icons/pi';
 import { SquarePen } from 'lucide-react';
 import { showToast } from '../../utils/toast';
+import { SiTicktick } from 'react-icons/si';
 
 interface CallDetailsPopupProps {
     onClose: () => void;
@@ -25,18 +26,14 @@ interface CallDetailsPopupProps {
         id?: string;
         name: string;
         _notes?: Note[];
+        _tasks?: Task[];
+
     };
     onEdit?: () => void;
     onTaskCreated?: () => void;
     fetchCallLogs: () => Promise<void>;
 }
 
-// interface Note {
-//     name: string;
-//     title: string;
-//     content: string;
-//     creation: string;
-// }
 interface Note {
     name: string;
     title: string;
@@ -70,7 +67,7 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
     // Inside the CallDetailsPopup component
     const [note, setNote] = useState(call._notes || []);// Changed to handle an array of notes
     console.log("note", note)
-    const [task, setTask] = useState<Task | null>(null);
+    const [tasks, setTasks] = useState<Task[]>(call._tasks || []);
     const [isLoading, setIsLoading] = useState(false);
     const [taskForm, setTaskForm] = useState({
         title: '',
@@ -86,123 +83,13 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
         content: ''
     });
 
-    // Fetch existing notes and tasks when the component mounts
-    // useEffect(() => {
-    //     fetchNotes();
-    //     fetchTasks();
-    // }, [call.id]);
-
     // Fetches tasks and sets notes from props when the component mounts
     useEffect(() => {
-        // --- Note Handling (Updated for multiple notes) ---
-        // Use the entire _notes array from the call prop, or an empty array if it doesn't exist.
         console.log("Call prop received:", call);
         console.log("Notes from call:", call._notes);
-
         setNote(call._notes || []);
-
-        // --- Task Handling (No Change) ---
-        fetchTasks();
+        setTasks(call._tasks || []);
     }, [call]);
-
-
-    const fetchTasks = async () => {
-        if (!call.id) return;
-
-        try {
-            const response = await fetch(`http://103.214.132.20:8002/api/resource/CRM Task?filters=[["reference_docname","=","${call.id}"]]`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': AUTH_TOKEN,
-                }
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                if (data.data && data.data.length > 0) {
-                    const taskData = data.data[0];
-                    setTask({
-                        name: taskData.name,
-                        title: taskData.title || "Untitled Task",
-                        description: taskData.description || "",
-                        status: taskData.status || "Open",
-                        priority: taskData.priority || "Medium",
-                        due_date: taskData.due_date || "",
-                        assigned_to: taskData.assigned_to || "",
-                        creation: taskData.creation || new Date().toISOString()
-                    });
-                } else {
-                    setTask(null);
-                }
-            } else {
-                console.error("Failed to fetch tasks:", response.status);
-                setTask(null);
-            }
-        } catch (error) {
-            console.error("Error fetching tasks:", error);
-            setTask(null);
-        }
-    };
-
-    // const handleAddNote = async () => {
-    //     if (!noteForm.title) return;
-
-    //     setIsLoading(true);
-    //     try {
-    //         const payload = {
-    //             // call_sid: call.id || "",
-    //             doc: {
-    //                 doctype: "FCRM Note",
-    //                 title: noteForm.title,
-    //                 content: noteForm.content,
-    //                 reference_doctype: call.reference_doctype || "CRM Lead",
-    //                 reference_docname: call.id || ""
-    //             }
-    //         };
-
-    //         const response = await fetch('http://103.214.132.20:8002/api/method/frappe.client.insert', {
-    //             method: 'POST',
-    //             headers: {
-    //                 'Content-Type': 'application/json',
-    //                 'Authorization': AUTH_TOKEN,
-    //             },
-    //             body: JSON.stringify(payload)
-    //         });
-
-    //         if (!response.ok) {
-    //             const errorData = await response.json();
-    //             console.error("API Error:", errorData);
-    //             throw new Error(errorData.message || 'Failed to create note');
-    //         }
-
-    //         const data = await response.json();
-    //         const newNote: Note = {
-    //             name: data.message.name,
-    //             title: data.message.title || noteForm.title,
-    //             content: data.message.content || noteForm.content,
-    //             creation: data.message.creation || new Date().toISOString()
-    //         };
-
-    //         setNote(newNote);
-    //         setNoteForm({ name: '', title: '', content: '' });
-    //         setIsAddingNote(false);
-
-    //     } catch (error) {
-    //         console.error("Error creating note:", error);
-    //         const mockNote = {
-    //             name: `NOTE-${Math.floor(Math.random() * 1000)}`,
-    //             title: noteForm.title,
-    //             content: noteForm.content,
-    //             creation: new Date().toISOString()
-    //         };
-    //         setNote(mockNote);
-    //         setNoteForm({ name: '', title: '', content: '' });
-    //         setIsAddingNote(false);
-    //     } finally {
-    //         setIsLoading(false);
-    //     }
-    // };
 
     const handleAddNote = async () => {
         if (!noteForm.title) return;
@@ -349,13 +236,15 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
     // ... rest of the component
 
     const handleEditTask = async () => {
-        if (!taskForm.title || !task) return;
+        if (!taskForm.title || !tasks || tasks.length === 0) return;
 
+        const taskToEdit = tasks[0];
         setIsLoading(true);
+
         try {
             const payload = {
                 doctype: "CRM Task",
-                name: task.name,
+                name: taskToEdit.name,
                 fieldname: {
                     title: taskForm.title,
                     description: taskForm.description,
@@ -368,10 +257,7 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
 
             const response = await fetch('http://103.214.132.20:8002/api/method/frappe.client.set_value', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': AUTH_TOKEN,
-                },
+                headers: { 'Content-Type': 'application/json', 'Authorization': AUTH_TOKEN, },
                 body: JSON.stringify(payload)
             });
 
@@ -380,53 +266,27 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
             }
 
             const updatedTask: Task = {
-                name: task.name,
-                title: taskForm.title,
-                description: taskForm.description,
-                status: taskForm.status,
-                priority: taskForm.priority,
-                due_date: taskForm.due_date,
-                assigned_to: taskForm.assigned_to,
-                creation: task.creation
+                ...taskToEdit,
+                ...taskForm
             };
 
-            setTask(updatedTask);
-            setTaskForm({
-                title: '',
-                description: '',
-                status: 'Open',
-                priority: 'Medium',
-                due_date: '',
-                assigned_to: ''
-            });
+            setTasks(prevTasks => prevTasks.map(t => t.name === updatedTask.name ? updatedTask : t));
+            setTaskForm({ title: '', description: '', status: 'Open', priority: 'Medium', due_date: '', assigned_to: '' });
             setIsEditingTask(false);
+            setShowAddTask(false);
+            onClose();
+            if (fetchCallLogs) {
+                await fetchCallLogs();
+            }
 
         } catch (error) {
             console.error("Error updating task:", error);
-            const updatedTask = {
-                name: task.name,
-                title: taskForm.title,
-                description: taskForm.description,
-                status: taskForm.status,
-                priority: taskForm.priority,
-                due_date: taskForm.due_date,
-                assigned_to: taskForm.assigned_to,
-                creation: task.creation
-            };
-            setTask(updatedTask);
-            setTaskForm({
-                title: '',
-                description: '',
-                status: 'Open',
-                priority: 'Medium',
-                due_date: '',
-                assigned_to: ''
-            });
-            setIsEditingTask(false);
+            showToast('Failed to update task', { type: 'error' });
         } finally {
             setIsLoading(false);
         }
     };
+
 
     const toggleMenu = () => setOpenMenu((prev) => !prev);
 
@@ -453,14 +313,15 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
         setIsAddingNote(false);
         setIsEditingNote(false);
 
-        if (task) {
+        if (tasks.length > 0) { // Check if there are any tasks
+            const firstTask = tasks[0]; // Get the first task
             setTaskForm({
-                title: task.title,
-                description: task.description,
-                status: task.status,
-                priority: task.priority,
-                due_date: task.due_date,
-                assigned_to: task.assigned_to
+                title: firstTask.title,
+                description: firstTask.description,
+                status: firstTask.status,
+                priority: firstTask.priority,
+                due_date: firstTask.due_date,
+                assigned_to: firstTask.assigned_to
             });
         }
     };
@@ -490,19 +351,22 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
         setShowAddTask(false);
         setIsEditingTask(false);
     };
+
     const handleTaskSubmit = async () => {
         if (!taskForm.title?.trim()) {
+            return;
+        }
+        if (isEditingTask) {
+            await handleEditTask();
             return;
         }
 
         setIsLoading(true);
 
         try {
-            if (isEditingTask && task) {
-                await handleEditTask();
-                return;
-            }
 
+
+            // First API Call: Create the task
             const payload = {
                 doc: {
                     doctype: "CRM Task",
@@ -535,35 +399,45 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
             const data = await response.json();
             console.log("Task created successfully:", data.message);
 
-            // Update local state with the Create Task
-            const newTask: Task = {
-                name: data.message.name,
-                title: data.message.title || taskForm.title,
-                description: data.message.description || taskForm.description,
-                status: data.message.status || taskForm.status,
-                priority: data.message.priority || taskForm.priority,
-                due_date: data.message.due_date || taskForm.due_date,
-                assigned_to: data.message.assigned_to || taskForm.assigned_to,
-                creation: data.message.creation || new Date().toISOString()
-            };
+            // Second API Call: Add task to call log
+            try {
+                const addToCallLogPayload = {
+                    call_sid: call.name || "", // Use call.name as call_sid
+                    task: data.message // Pass the entire task object from the first API response
+                };
 
-            setTask(newTask);
-            setTaskForm({
-                title: '',
-                description: '',
-                status: 'Open',
-                priority: 'Medium',
-                due_date: '',
-                assigned_to: ''
-            });
-            setShowAddTask(false);
+                const addToCallLogResponse = await fetch('http://103.214.132.20:8002/api/method/crm.integrations.api.add_task_to_call_log', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': AUTH_TOKEN,
+                    },
+                    body: JSON.stringify(addToCallLogPayload)
+                });
 
-            if (onTaskCreated) {
-                onTaskCreated();
+                if (!addToCallLogResponse.ok) {
+                    const errorData = await addToCallLogResponse.json();
+                    console.error("API Error (add task to call log):", errorData);
+                    throw new Error(errorData.message || 'Failed to link task to call log');
+                }
+
+                const newTask: Task = data.message;
+                setTasks(prevTasks => [...prevTasks, newTask]);
+                setTaskForm({ title: '', description: '', status: 'Open', priority: 'Medium', due_date: '', assigned_to: '' });
+                setShowAddTask(false);
+                if (onTaskCreated) onTaskCreated();
+                if (fetchCallLogs) await fetchCallLogs();
+
+
+                console.log("Successfully linked task to call log.");
+            } catch (linkError: any) {
+                console.warn("Warning: Task created but failed to link to call log:", linkError);
+                showToast(linkError.message || 'Failed to create task', { type: 'error' });
             }
 
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error in task submission:", error);
+            showToast(error.message || 'Failed to create task', { type: 'error' });
         } finally {
             setIsLoading(false);
         }
@@ -577,30 +451,7 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
         }
     };
 
-    const formatDate = (dateString: string) => {
-        const date = new Date(dateString);
-        return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    };
 
-    const getStatusColor = (status: string) => {
-        switch (status) {
-            case 'Open': return 'bg-blue-100 text-blue-800';
-            case 'Todo': return 'bg-yellow-100 text-yellow-800';
-            case 'In Progress': return 'bg-purple-100 text-purple-800';
-            case 'Done': return 'bg-green-100 text-green-800';
-            case 'Canceled': return 'bg-red-100 text-red-800';
-            default: return 'bg-gray-100 text-gray-800';
-        }
-    };
-
-    const getPriorityColor = (priority: string) => {
-        switch (priority) {
-            case 'High': return 'bg-red-100 text-red-800';
-            case 'Medium': return 'bg-yellow-100 text-yellow-800';
-            case 'Low': return 'bg-blue-100 text-blue-800';
-            default: return 'bg-gray-100 text-gray-800';
-        }
-    };
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto">
@@ -640,13 +491,12 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
                 </div>
 
                 {/* Dropdown menu */}
-                {/* Dropdown menu */}
                 {openMenu && (
                     <div
                         className="absolute top-12 right-4 w-32 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-10"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        {task ? (
+                        {tasks && tasks.length > 0 ? (
                             <button
                                 onClick={handleEditTaskClick}
                                 className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 w-full text-left">
@@ -971,6 +821,9 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
 
                             {note.length > 0 && (
                                 <div className="border-t pt-4 border-gray-200 dark:border-gray-700 space-y-3">
+                                    <h3 className={`text-sm font-bold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
+                                        Notes
+                                    </h3>
                                     {note.map((noteItem) => (
                                         <div
                                             key={noteItem.name}
@@ -995,44 +848,27 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
 
                             {/* Tasks Section */}
 
-                            {task && (
-                                <div className="border-t pt-4 border-gray-200 dark:border-gray-700">
-                                    <h4 className={`font-medium mb-3 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                            {tasks.length > 0 && (
+                                <div className="border-t pt-4 border-gray-200 dark:border-gray-700 space-y-3">
+                                    <h3 className={`text-sm font-bold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
                                         Tasks
-                                    </h4>
-                                    <div className="space-y-3">
-                                        <div className={`p-3 rounded-lg ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-50'}`}>
-                                            <div className="flex justify-between items-start mb-2">
-                                                <h5 className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                                                    {task.title}
-                                                </h5>
-                                                <span className={`text-xs px-2 py-1 rounded-full ${getStatusColor(task.status)}`}>
-                                                    {task.status}
-                                                </span>
-                                            </div>
-                                            <p className={`text-sm mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-                                                {task.description}
-                                            </p>
-                                            <div className="flex justify-between items-center mb-2">
-                                                <span className={`text-xs px-2 py-1 rounded-full ${getPriorityColor(task.priority)}`}>
-                                                    {task.priority} Priority
-                                                </span>
-                                                {task.due_date && (
-                                                    <span className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
-                                                        Due: {new Date(task.due_date).toLocaleDateString()}
-                                                    </span>
-                                                )}
-                                            </div>
-                                            {task.assigned_to && (
-                                                <p className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
-                                                    Assigned to: {task.assigned_to}
+                                    </h3>
+                                    {tasks.map((taskItem) => (
+                                        <div
+                                            key={taskItem.name}
+                                            className={`flex items-start gap-3 p-3 rounded-lg ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-50'}`}
+                                        >
+                                            <SiTicktick className={`w-5 h-5 mt-1 flex-shrink-0 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`} />
+                                            <div className="flex-1">
+                                                <h4 className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
+                                                    {taskItem.title}
+                                                </h4>
+                                                <p className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
+                                                    {taskItem.description.replace(/<p>|<\/p>/g, '')}
                                                 </p>
-                                            )}
-                                            <p className={`text-xs mt-2 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
-                                                Created: {formatDate(task.creation)}
-                                            </p>
+                                            </div>
                                         </div>
-                                    </div>
+                                    ))}
                                 </div>
                             )}
 

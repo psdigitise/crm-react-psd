@@ -19,6 +19,7 @@ interface CreateOrganizationPopupProps {
     textColor?: string;
     textSecondaryColor?: string;
     inputBgColor?: string;
+    onOrganizationCreated?: () => void;
 }
 
 export const CreateOrganizationPopup: React.FC<CreateOrganizationPopupProps> = ({
@@ -30,6 +31,7 @@ export const CreateOrganizationPopup: React.FC<CreateOrganizationPopupProps> = (
     textColor = "text-white",
     textSecondaryColor = "text-gray-700 dark:text-white",
     inputBgColor = "bg-white-31 text-white",
+    onOrganizationCreated,
 }) => {
     const [formData, setFormData] = React.useState({
         name: "",
@@ -68,10 +70,10 @@ export const CreateOrganizationPopup: React.FC<CreateOrganizationPopupProps> = (
                 {
                     txt: searchTerm,
                     doctype: "Address",
-                    //    filters: {
-                    //         company: sessionCompany,
-                    //     }
-                    company: sessionCompany,
+                    filters: {
+                        company: sessionCompany,
+                    }
+                    // company: sessionCompany,
                 },
                 {
                     headers: {
@@ -247,11 +249,60 @@ export const CreateOrganizationPopup: React.FC<CreateOrganizationPopupProps> = (
                 type: "success",
                 duration: 3000
             });
-
+            if (onOrganizationCreated) {
+                onOrganizationCreated();
+            }
             // Close popup after success
             onClose();
         } catch (error: any) {
             console.error("❌ Error creating organization:", error);
+
+            // Extract error message from _server_messages
+            let errorMessage = "Failed to create organization";
+
+            try {
+                // Check if the error response has _server_messages
+                if (error.response?.data?._server_messages) {
+                    // Parse the _server_messages array (it's a stringified JSON array)
+                    const serverMessages = JSON.parse(error.response.data._server_messages);
+
+                    if (serverMessages.length > 0) {
+                        // Parse the first message (which is also a stringified JSON object)
+                        const firstMessage = JSON.parse(serverMessages[0]);
+
+                        // Remove HTML tags from the message
+                        errorMessage = firstMessage.message
+                            ? firstMessage.message.replace(/<[^>]*>/g, '')
+                            : errorMessage;
+
+                        // You can also use the title if you want
+                        const errorTitle = firstMessage.title || "Error";
+
+                        showToast({
+                            title: errorTitle,
+                            message: errorMessage,
+                            type: "error",
+                            duration: 5000
+                        });
+                        return; // Return early since we've shown the error
+                    }
+                }
+
+                // Fallback to regular error message extraction
+                if (error.response?.data?.message) {
+                    errorMessage = error.response.data.message;
+                } else if (error.message) {
+                    errorMessage = error.message;
+                }
+
+            } catch (parseError) {
+                console.error("Error parsing server messages:", parseError);
+                // If parsing fails, use the original error message
+                if (error.response?.data?.message) {
+                    errorMessage = error.response.data.message;
+                }
+            }
+
 
             // Show error toast message
             showToast({

@@ -333,9 +333,9 @@ export function CreateLeadModal({ isOpen, onClose, onSubmit }: CreateLeadModalPr
 
       const result = await response.json();
       console.log(response);
-      
-       
-      
+
+
+
 
       if (result.message) {
         setSuccess('Lead created successfully!');
@@ -363,7 +363,7 @@ export function CreateLeadModal({ isOpen, onClose, onSubmit }: CreateLeadModalPr
             leadOwner: 'Administrator'
           });
 
-         navigate(`/leads/${result.message.name}`);
+          navigate(`/leads/${result.message.name}`);
 
           setSuccess('');
           onClose();
@@ -553,18 +553,18 @@ export function CreateLeadModal({ isOpen, onClose, onSubmit }: CreateLeadModalPr
                   name="gender"
                   value={formData.gender}
                   onChange={handleChange}
-                  className={`w-full  text-sm px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
+                  className={`w-full text-sm px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
                     ? 'bg-white-31 border-white text-white'
                     : 'bg-gray-50/80 border-gray-300'
                     }`}
-                  disabled={isLoading || isLoadingGenders}
+                  disabled={isLoading}
                 >
                   <option value="">Select Gender</option>
-                  {genders.map((gender) => (
-                    <option key={gender.value} value={gender.value}>
-                      {gender.description || gender.value}
-                    </option>
-                  ))}
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Transgender">Transgender</option>
+                  <option value="Other">Other</option>
+                  <option value="Prefer Not to say">Prefer Not to say</option>
                 </select>
                 {isLoadingGenders && (
                   <div className="mt-1 text-sm text-gray-500">Loading genders...</div>
@@ -631,7 +631,7 @@ export function CreateLeadModal({ isOpen, onClose, onSubmit }: CreateLeadModalPr
                   <option value="11-50">11-50</option>
                   <option value="51-200">51-200</option>
                   <option value="201-500">201-500</option>
-                  <option value="500+">500+</option>
+                  {/* <option value="500+">500+</option> */}
                 </select>
               </div>
 

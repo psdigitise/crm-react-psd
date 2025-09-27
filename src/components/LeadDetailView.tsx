@@ -105,6 +105,7 @@ interface CallLog {
   from: string;
   to: string;
   status: string;
+  _caller:string;
   type: string;
   duration: string;
   reference_doctype: string;
@@ -195,6 +196,7 @@ interface ActivityItem {
   icon: React.ReactNode;
   color: string;
   _notes?: Note[];
+  _tasks?: Task[];
 }
 
 interface Email {
@@ -662,321 +664,585 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
   const [territoryLoading, setTerritoryLoading] = useState(false);
 
 
+// Add this new function to fetch detailed call logs for activity tab
+const fetchDetailedCallLogsForActivity = async (callNames: string[]) => {
+  if (!callNames.length) return [];
+  
+  try {
+    // Create an array of promises for each call log detail fetch
+    const detailPromises = callNames.map(name =>
+      fetch(`http://103.214.132.20:8002/api/method/crm.fcrm.doctype.crm_call_log.crm_call_log.get_call_log`, {
+        method: 'POST',
+        headers: {
+          'Authorization': AUTH_TOKEN,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ name })
+      }).then(res => res.json())
+    );
 
-  const fetchActivities = useCallback(async () => {
-    setActivityLoading(true);
-    setActivities([]);
-    try {
-      const response = await fetch(
-        "http://103.214.132.20:8002/api/method/crm.api.activities.get_activities",
-        {
-          method: "POST",
-          headers: {
-            "Authorization": AUTH_TOKEN,
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            name: lead.name
-          })
-        }
-      );
+    // Wait for all detail-fetching API calls to complete
+    const detailResponses = await Promise.all(detailPromises);
+    
+    // Extract and combine all call logs with their notes and tasks
+    const detailedCallLogs = detailResponses.flatMap(response => response.message || []);
+    
+    return detailedCallLogs;
+  } catch (error) {
+    console.error('Error fetching detailed call logs for activity:', error);
+    return [];
+  }
+};
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-
-
-      const result = await response.json();
-      const message = result.message || [];
-      const docinfo = result.docinfo || {};
-      const user_info = docinfo.user_info || {}; // Extract user info here
-
-      // Ensure we have valid data structure
-      if (!Array.isArray(message) || message.length === 0) {
-        setActivities([]);
-        setActivityLoading(false);
-        return;
-      }
-
-      const rawTimeline = Array.isArray(message[0]) ? message[0] : [];
-      const rawCalls = Array.isArray(message[1]) ? message[1] : [];
-      const rawNotes = Array.isArray(message[2]) ? message[2] : [];
-      const rawTasks = Array.isArray(message[3]) ? message[3] : [];
-
-      setCallLogs(rawCalls);
-      setNotes(rawNotes);
-      setTasks(rawTasks);
-
-      const rawEmails = rawTimeline
-        .filter((item: any) => item.activity_type === 'communication')
-        .map((item: any) => ({
-          ...item.data,
-          id: item.name || `comm-${item.creation}`,
-          creation: item.creation,
-          // Add recipient information if available in item.data
-          recipients: item.data.recipients || item.data.to || '',
-        }));
-      setEmails(rawEmails);
-
-      const rawComments = rawTimeline.filter((item: any) => item.activity_type === 'comment');
-      setComments(rawComments);
-
-
-      const rawFiles = docinfo.files || [];
-      setFiles(rawFiles);
-
-      // Extract file activities from edit activities that have file data
-      const fileActivities = rawTimeline
-        .filter((item: any) => item.activity_type === "attachment_log")
-        .map((item: any) => {
-          const fileData = item.data || {};
-          const creatorName = user_info[item.owner]?.fullname || item.owner;
-          return {
-            id: item.name || `file-${Date.now()}`,
-            type: "file",
-            title: `File ${fileData.type === "added" ? "Uploaded" : "Removed"}: ${fileData.file_name || "Unnamed file"}`,
-            description: fileData.file_url || "",
-            timestamp: item.creation || new Date().toISOString(),
-            user: creatorName || "Unknown",
-            icon: <IoDocument className="w-4 h-4" />,
-            data: fileData,
-            action: fileData.type || "unknown",
-            files: false // Add this missing property
-          };
-        });
-
-
-
-
-      // const callActivities = rawCalls.map((call: any) => {
-      //   const caller = call._caller?.label || call.caller || call.from || "Unknown";
-      //   const receiver = call._receiver?.label || call.receiver || call.to || "Unknown";
-
-      //   return {
-      //     id: call.name,
-      //     type: "call",
-      //     title: `${call.type || "Call"} Call`,
-      //     description: `${caller} → ${receiver}`,
-      //     timestamp: call.creation,
-      //     user: caller,
-      //     icon:
-      //       call.type === "Incoming" || call.type === "Inbound"
-      //         ? <SlCallIn className="w-4 h-4" />
-      //         : <SlCallOut className="w-4 h-4" />,
-      //     data: { ...call, caller, receiver }, // 👈 preserve normalized fields
-      //   };
-      // });
-      // console.log(callActivities, "call activities");
-
-      const callActivities = rawCalls.map((call: any) => {
-        const caller = call._caller?.label || call.caller || call.from || "Unknown";
-        const receiver = call._receiver?.label || call.receiver || call.to || "Unknown";
-
-        return {
-          id: call.name,
-          type: "call",
-          title: `${call.type || "Call"} Call`,
-          description: `${caller} → ${receiver}`,
-          timestamp: call.creation,
-          user: caller,
-          icon:
-            call.type === "Incoming" || call.type === "Inbound"
-              ? <SlCallIn className="w-4 h-4" />
-              : <SlCallOut className="w-4 h-4" />,
-          data: {
-            ...call,
-            caller,
-            receiver,
-            // Ensure _notes are preserved
-            _notes: call._notes || []
-          },
-        };
-      });
-
-      console.log("Call activities with notes:", callActivities);
-
-      const noteActivities = rawNotes.map((note: any) => ({
-        id: note.name,
-        type: "note",
-        title: `Note Added: ${note.title}`,
-        description: note.content,
-        timestamp: note.creation,
-        user: note.owner,
-        icon: <FileText className="w-4 h-4" />,
-        data: note, // 👈 keep raw note
-      }));
-
-
-      const taskActivities = rawTasks.map((task: any) => ({
-        id: task.name, type: 'task', title: `Task Created: ${task.title}`,
-        description: task.description || '', timestamp: task.creation, user: task.assigned_to || 'Unassigned',
-        icon: <SiTicktick className="w-4 h-4 text-gray-600" />,
-      }));
-
-      const emailActivities = rawEmails.map((email: any) => ({
-        id: email.name || email.id, type: 'email', title: `Email: ${email.subject || 'No Subject'}`,
-        description: email.content, timestamp: email.creation, user: email.sender_full_name || email.sender || 'Unknown',
-        recipients: email.recipients,
-        icon: <Mail className="w-4 h-4" />,
-      }));
-
-      // const commentActivities = rawComments.map((comment: any) => ({
-      //   id: comment.name, type: 'comment', title: 'New Comment', description: comment.content.replace(/<[^>]+>/g, ''), timestamp: comment.creation, user: comment.owner,
-      //   icon: <FaRegComment className="w-4 h-4" />,
-      // }));
-
-      const commentActivities = rawComments.map((comment: any) => {
-        // Look up the full name using the owner's email as the key
-        const creatorName = user_info[comment.owner]?.fullname || comment.owner;
-
-        return {
-          id: comment.name,
-          type: 'comment',
-          title: 'New Comment',
-          description: comment.content, // Pass the raw content
-          timestamp: comment.creation,
-          user: creatorName, // This will be the fullname
-          attachments: comment.attachments || [], // Pass attachments
-          icon: <FaRegComment className="w-4 h-4" />,
-        };
-      });
-
-      // Extract timeline items from rawTimeline for edit activities
-      const timelineActivities = rawTimeline
-        .filter((item: any) => item.activity_type === 'added' || item.activity_type === 'changed' || item.activity_type === 'creation')
-        .map((item: any) => {
-          const creatorName = user_info[item.owner]?.fullname || item.owner;
-          switch (item.activity_type) {
-            case 'creation':
-              return {
-                id: `creation-${item.creation}`,
-                type: 'edit',
-                title: ` created this Lead`,
-                description: '',
-                timestamp: item.creation,
-                user: creatorName,
-                icon: <UserPlus className="w-4 h-4 text-gray-500" />
-              };
-
-            case 'added':
-            case 'changed':
-              // Handle grouped changes
-              if (item.other_versions?.length > 0) {
-                return {
-                  id: `group-${item.creation}`,
-                  type: 'grouped_change',
-                  timestamp: item.creation,
-                  user: creatorName,
-                  icon: <Layers className="w-4 h-4 text-white" />,
-                  data: {
-                    changes: [item, ...item.other_versions],
-                    field_label: item.data?.field_label,
-                    value: item.data?.value,
-                    old_value: item.data?.old_value,
-                    other_versions: item.other_versions
-                  }
-                };
-              }
-
-              // Single change
-              const actionText = item.activity_type === 'added'
-                ? `added value for ${item.data?.field_label}: '${item.data?.value}'`
-                : `changed ${item.data?.field_label} from '${item.data?.old_value || "nothing"}' to '${item.data?.value}'`;
-
-              return {
-                id: `change-${item.creation}`,
-                type: 'edit',
-                title: ` ${actionText}`,
-                description: '',
-                timestamp: item.creation,
-                user: creatorName,
-                icon: <RxLightningBolt className="w-4 h-4 text-yellow-500" />
-              };
-
-            default:
-              return null;
-          }
+// Modified fetchActivities function
+const fetchActivities = useCallback(async () => {
+  setActivityLoading(true);
+  setActivities([]);
+  try {
+    const response = await fetch(
+      "http://103.214.132.20:8002/api/method/crm.api.activities.get_activities",
+      {
+        method: "POST",
+        headers: {
+          "Authorization": AUTH_TOKEN,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          name: lead.name
         })
-        .filter(Boolean);
+      }
+    );
 
-      // const otherActivities = rawTimeline
-      //   .filter((item: { activity_type: string; }) =>
-      //     item.activity_type !== 'communication' &&
-      //     item.activity_type !== 'comment'
-      //   )
-      //   .map((item: any) => {
-      //     let type = 'edit';
-      //     let title = `${item.owner} ${item.description || ''}`;
-      //     let icon = <Disc className="w-4 h-4" />;
-
-      //     if (item.data?.action === 'creation') {
-      //       type = 'creation';
-      //       title = `created this Lead`;
-      //       icon = <UserPlus className="w-4 h-4 text-gray-500" />;
-      //     }
-      //     else if (typeof item.data === "string") {
-      //       // handle string safely
-      //       title = `${item.owner} ${item.data}`;
-      //     }
-
-      //     return {
-      //       id: item.name || `other-${item.creation}`,
-      //       type,
-      //       title,
-      //       description: '',
-      //       timestamp: item.creation,
-      //       user: item.owner,
-      //       icon,
-      //       data: item.data,
-      //     };
-      //   });
-
-      // const fileActivities = rawFiles.map((file: any) => ({
-      //   id: file.name || `file-${file.file_url}`,
-      //   type: "file",
-      //   title: `File Uploaded: ${file.file_name || "Unnamed file"}`,
-      //   description: file.file_url || "",
-      //   timestamp: file.creation,
-      //   user: file.owner || "Unknown",
-      //   icon: <IoDocument className="w-4 h-4" />,
-      //   data: file, // keep full file object
-      // }));
-
-
-
-      const allActivities = [
-        ...callActivities,
-        // ...noteActivities,
-        // ...taskActivities,
-        ...emailActivities,
-        ...commentActivities,
-        ...timelineActivities,
-        ...fileActivities,
-        // ...otherActivities
-      ];
-
-      allActivities.sort((a, b) => {
-        const getValidDate = (activity: { timestamp: string | number | Date; creation: string | number | Date; data: { creation: string | number | Date; }; }) => {
-          if (activity.timestamp) return new Date(activity.timestamp);
-          if (activity.creation) return new Date(activity.creation);
-          if (activity.data?.creation) return new Date(activity.data.creation);
-          return new Date(0);
-        };
-
-        const dateA = getValidDate(a);
-        const dateB = getValidDate(b);
-        return dateA.getTime() - dateB.getTime();
-      });
-      setActivities(allActivities);
-
-    } catch (err) {
-      console.error("Error fetching activities:", err);
-      showToast("Failed to fetch activities", { type: 'error' });
-    } finally {
-      setActivityLoading(false);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
-  }, [lead.name]);
+
+    const result = await response.json();
+    const message = result.message || [];
+    const docinfo = result.docinfo || {};
+    const user_info = docinfo.user_info || {};
+
+    if (!Array.isArray(message) || message.length === 0) {
+      setActivities([]);
+      setActivityLoading(false);
+      return;
+    }
+
+    const rawTimeline = Array.isArray(message[0]) ? message[0] : [];
+    const rawCalls = Array.isArray(message[1]) ? message[1] : [];
+    const rawNotes = Array.isArray(message[2]) ? message[2] : [];
+    const rawTasks = Array.isArray(message[3]) ? message[3] : [];
+
+    // ✨ NEW: Fetch detailed call logs with notes and tasks
+    const callNames = rawCalls.map(call => call.name).filter(Boolean);
+    const detailedCallLogs = await fetchDetailedCallLogsForActivity(callNames);
+    
+    // Create a map for easy lookup of detailed call data
+    const detailedCallMap = new Map();
+    detailedCallLogs.forEach(detailedCall => {
+      if (detailedCall.name) {
+        detailedCallMap.set(detailedCall.name, detailedCall);
+      }
+    });
+
+    setCallLogs(detailedCallLogs); // Update call logs with detailed data
+    setNotes(rawNotes);
+    setTasks(rawTasks);
+
+    const rawEmails = rawTimeline
+      .filter((item: any) => item.activity_type === 'communication')
+      .map((item: any) => ({
+        ...item.data,
+        id: item.name || `comm-${item.creation}`,
+        creation: item.creation,
+        recipients: item.data.recipients || item.data.to || '',
+      }));
+    setEmails(rawEmails);
+
+    const rawComments = rawTimeline.filter((item: any) => item.activity_type === 'comment');
+    setComments(rawComments);
+
+    const rawFiles = docinfo.files || [];
+    setFiles(rawFiles);
+
+    // File activities (unchanged)
+    const fileActivities = rawTimeline
+      .filter((item: any) => item.activity_type === "attachment_log")
+      .map((item: any) => {
+        const fileData = item.data || {};
+        const creatorName = user_info[item.owner]?.fullname || item.owner;
+        return {
+          id: item.name || `file-${Date.now()}`,
+          type: "file",
+          title: `File ${fileData.type === "added" ? "Uploaded" : "Removed"}: ${fileData.file_name || "Unnamed file"}`,
+          description: fileData.file_url || "",
+          timestamp: item.creation || new Date().toISOString(),
+          user: creatorName || "Unknown",
+          icon: <IoDocument className="w-4 h-4" />,
+          data: fileData,
+          action: fileData.type || "unknown",
+          files: false
+        };
+      });
+
+    // ✨ ENHANCED: Call activities with detailed data including notes and tasks
+    const callActivities = rawCalls.map((call: any) => {
+      const caller = call._caller?.label || call.caller || call.from || "Unknown";
+      const receiver = call._receiver?.label || call.receiver || call.to || "Unknown";
+      
+      // Get detailed call data from our map
+      const detailedCall = detailedCallMap.get(call.name) || call;
+
+      return {
+        id: call.name,
+        type: "call",
+        title: `${call.type || "Call"} Call`,
+        description: `${caller} → ${receiver}`,
+        timestamp: call.creation,
+        user: caller,
+        icon:
+          call.type === "Incoming" || call.type === "Inbound"
+            ? <SlCallIn className="w-4 h-4" />
+            : <SlCallOut className="w-4 h-4" />,
+        data: {
+          ...call,
+          ...detailedCall, // Merge with detailed data
+          caller,
+          receiver,
+          // Ensure _notes and _tasks are preserved from detailed call
+          _notes: detailedCall._notes || [],
+          _tasks: detailedCall._tasks || []
+        },
+      };
+    });
+
+    console.log("Enhanced call activities with detailed data:", callActivities);
+
+    // Rest of the activities (unchanged)
+    const noteActivities = rawNotes.map((note: any) => ({
+      id: note.name,
+      type: "note",
+      title: `Note Added: ${note.title}`,
+      description: note.content,
+      timestamp: note.creation,
+      user: note.owner,
+      icon: <FileText className="w-4 h-4" />,
+      data: note,
+    }));
+
+    const taskActivities = rawTasks.map((task: any) => ({
+      id: task.name, 
+      type: 'task', 
+      title: `Task Created: ${task.title}`,
+      description: task.description || '', 
+      timestamp: task.creation, 
+      user: task.assigned_to || 'Unassigned',
+      icon: <SiTicktick className="w-4 h-4 text-gray-600" />,
+    }));
+
+    const emailActivities = rawEmails.map((email: any) => ({
+      id: email.name || email.id, 
+      type: 'email', 
+      title: `Email: ${email.subject || 'No Subject'}`,
+      description: email.content, 
+      timestamp: email.creation, 
+      user: email.sender_full_name || email.sender || 'Unknown',
+      recipients: email.recipients,
+      icon: <Mail className="w-4 h-4" />,
+    }));
+
+    const commentActivities = rawComments.map((comment: any) => {
+      const creatorName = user_info[comment.owner]?.fullname || comment.owner;
+      return {
+        id: comment.name,
+        type: 'comment',
+        title: 'New Comment',
+        description: comment.content,
+        timestamp: comment.creation,
+        user: creatorName,
+        attachments: comment.attachments || [],
+        icon: <FaRegComment className="w-4 h-4" />,
+      };
+    });
+
+    // Timeline activities (unchanged)
+    const timelineActivities = rawTimeline
+      .filter((item: any) => item.activity_type === 'added' || item.activity_type === 'changed' || item.activity_type === 'creation')
+      .map((item: any) => {
+        const creatorName = user_info[item.owner]?.fullname || item.owner;
+        switch (item.activity_type) {
+          case 'creation':
+            return {
+              id: `creation-${item.creation}`,
+              type: 'edit',
+              title: ` created this Lead`,
+              description: '',
+              timestamp: item.creation,
+              user: creatorName,
+              icon: <UserPlus className="w-4 h-4 text-gray-500" />
+            };
+
+          case 'added':
+          case 'changed':
+            if (item.other_versions?.length > 0) {
+              return {
+                id: `group-${item.creation}`,
+                type: 'grouped_change',
+                timestamp: item.creation,
+                user: creatorName,
+                icon: <Layers className="w-4 h-4 text-white" />,
+                data: {
+                  changes: [item, ...item.other_versions],
+                  field_label: item.data?.field_label,
+                  value: item.data?.value,
+                  old_value: item.data?.old_value,
+                  other_versions: item.other_versions
+                }
+              };
+            }
+
+            const actionText = item.activity_type === 'added'
+              ? `added value for ${item.data?.field_label}: '${item.data?.value}'`
+              : `changed ${item.data?.field_label} from '${item.data?.old_value || "nothing"}' to '${item.data?.value}'`;
+
+            return {
+              id: `change-${item.creation}`,
+              type: 'edit',
+              title: ` ${actionText}`,
+              description: '',
+              timestamp: item.creation,
+              user: creatorName,
+              icon: <RxLightningBolt className="w-4 h-4 text-yellow-500" />
+            };
+
+          default:
+            return null;
+        }
+      })
+      .filter(Boolean);
+
+    const allActivities = [
+      ...callActivities,
+      ...emailActivities,
+      ...commentActivities,
+      ...timelineActivities,
+      ...fileActivities,
+    ];
+
+    allActivities.sort((a, b) => {
+      const getValidDate = (activity: { timestamp: string | number | Date; creation: string | number | Date; data: { creation: string | number | Date; }; }) => {
+        if (activity.timestamp) return new Date(activity.timestamp);
+        if (activity.creation) return new Date(activity.creation);
+        if (activity.data?.creation) return new Date(activity.data.creation);
+        return new Date(0);
+      };
+
+      const dateA = getValidDate(a);
+      const dateB = getValidDate(b);
+      return dateA.getTime() - dateB.getTime();
+    });
+    
+    setActivities(allActivities);
+
+  } catch (err) {
+    console.error("Error fetching activities:", err);
+    showToast("Failed to fetch activities", { type: 'error' });
+  } finally {
+    setActivityLoading(false);
+  }
+}, [lead.name]);
+  // const fetchActivities = useCallback(async () => {
+  //   setActivityLoading(true);
+  //   setActivities([]);
+  //   try {
+  //     const response = await fetch(
+  //       "http://103.214.132.20:8002/api/method/crm.api.activities.get_activities",
+  //       {
+  //         method: "POST",
+  //         headers: {
+  //           "Authorization": AUTH_TOKEN,
+  //           "Content-Type": "application/json"
+  //         },
+  //         body: JSON.stringify({
+  //           name: lead.name
+  //         })
+  //       }
+  //     );
+
+  //     if (!response.ok) {
+  //       throw new Error(`HTTP error! status: ${response.status}`);
+  //     }
+
+
+
+  //     const result = await response.json();
+  //     const message = result.message || [];
+  //     const docinfo = result.docinfo || {};
+  //     const user_info = docinfo.user_info || {}; // Extract user info here
+
+  //     // Ensure we have valid data structure
+  //     if (!Array.isArray(message) || message.length === 0) {
+  //       setActivities([]);
+  //       setActivityLoading(false);
+  //       return;
+  //     }
+
+  //     const rawTimeline = Array.isArray(message[0]) ? message[0] : [];
+  //     const rawCalls = Array.isArray(message[1]) ? message[1] : [];
+  //     const rawNotes = Array.isArray(message[2]) ? message[2] : [];
+  //     const rawTasks = Array.isArray(message[3]) ? message[3] : [];
+
+  //     setCallLogs(rawCalls);
+  //     setNotes(rawNotes);
+  //     setTasks(rawTasks);
+
+  //     const rawEmails = rawTimeline
+  //       .filter((item: any) => item.activity_type === 'communication')
+  //       .map((item: any) => ({
+  //         ...item.data,
+  //         id: item.name || `comm-${item.creation}`,
+  //         creation: item.creation,
+  //         // Add recipient information if available in item.data
+  //         recipients: item.data.recipients || item.data.to || '',
+  //       }));
+  //     setEmails(rawEmails);
+
+  //     const rawComments = rawTimeline.filter((item: any) => item.activity_type === 'comment');
+  //     setComments(rawComments);
+
+
+  //     const rawFiles = docinfo.files || [];
+  //     setFiles(rawFiles);
+
+  //     // Extract file activities from edit activities that have file data
+  //     const fileActivities = rawTimeline
+  //       .filter((item: any) => item.activity_type === "attachment_log")
+  //       .map((item: any) => {
+  //         const fileData = item.data || {};
+  //         const creatorName = user_info[item.owner]?.fullname || item.owner;
+  //         return {
+  //           id: item.name || `file-${Date.now()}`,
+  //           type: "file",
+  //           title: `File ${fileData.type === "added" ? "Uploaded" : "Removed"}: ${fileData.file_name || "Unnamed file"}`,
+  //           description: fileData.file_url || "",
+  //           timestamp: item.creation || new Date().toISOString(),
+  //           user: creatorName || "Unknown",
+  //           icon: <IoDocument className="w-4 h-4" />,
+  //           data: fileData,
+  //           action: fileData.type || "unknown",
+  //           files: false // Add this missing property
+  //         };
+  //       });
+
+  //     const callActivities = rawCalls.map((call: any) => {
+  //       const caller = call._caller?.label || call.caller || call.from || "Unknown";
+  //       const receiver = call._receiver?.label || call.receiver || call.to || "Unknown";
+
+  //       return {
+  //         id: call.name,
+  //         type: "call",
+  //         title: `${call.type || "Call"} Call`,
+  //         description: `${caller} → ${receiver}`,
+  //         timestamp: call.creation,
+  //         user: caller,
+  //         icon:
+  //           call.type === "Incoming" || call.type === "Inbound"
+  //             ? <SlCallIn className="w-4 h-4" />
+  //             : <SlCallOut className="w-4 h-4" />,
+  //         data: {
+  //           ...call,
+  //           caller,
+  //           receiver,
+  //           // Ensure _notes are preserved
+  //           _notes: call._notes || [],
+  //           _tasks: call._tasks || []
+  //         },
+  //       };
+  //     });
+
+  //     console.log("Call activities with notes:", callActivities);
+
+  //     const noteActivities = rawNotes.map((note: any) => ({
+  //       id: note.name,
+  //       type: "note",
+  //       title: `Note Added: ${note.title}`,
+  //       description: note.content,
+  //       timestamp: note.creation,
+  //       user: note.owner,
+  //       icon: <FileText className="w-4 h-4" />,
+  //       data: note, // 👈 keep raw note
+  //     }));
+
+
+  //     const taskActivities = rawTasks.map((task: any) => ({
+  //       id: task.name, type: 'task', title: `Task Created: ${task.title}`,
+  //       description: task.description || '', timestamp: task.creation, user: task.assigned_to || 'Unassigned',
+  //       icon: <SiTicktick className="w-4 h-4 text-gray-600" />,
+  //     }));
+
+  //     const emailActivities = rawEmails.map((email: any) => ({
+  //       id: email.name || email.id, type: 'email', title: `Email: ${email.subject || 'No Subject'}`,
+  //       description: email.content, timestamp: email.creation, user: email.sender_full_name || email.sender || 'Unknown',
+  //       recipients: email.recipients,
+  //       icon: <Mail className="w-4 h-4" />,
+  //     }));
+
+  //     // const commentActivities = rawComments.map((comment: any) => ({
+  //     //   id: comment.name, type: 'comment', title: 'New Comment', description: comment.content.replace(/<[^>]+>/g, ''), timestamp: comment.creation, user: comment.owner,
+  //     //   icon: <FaRegComment className="w-4 h-4" />,
+  //     // }));
+
+  //     const commentActivities = rawComments.map((comment: any) => {
+  //       // Look up the full name using the owner's email as the key
+  //       const creatorName = user_info[comment.owner]?.fullname || comment.owner;
+
+  //       return {
+  //         id: comment.name,
+  //         type: 'comment',
+  //         title: 'New Comment',
+  //         description: comment.content, // Pass the raw content
+  //         timestamp: comment.creation,
+  //         user: creatorName, // This will be the fullname
+  //         attachments: comment.attachments || [], // Pass attachments
+  //         icon: <FaRegComment className="w-4 h-4" />,
+  //       };
+  //     });
+
+  //     // Extract timeline items from rawTimeline for edit activities
+  //     const timelineActivities = rawTimeline
+  //       .filter((item: any) => item.activity_type === 'added' || item.activity_type === 'changed' || item.activity_type === 'creation')
+  //       .map((item: any) => {
+  //         const creatorName = user_info[item.owner]?.fullname || item.owner;
+  //         switch (item.activity_type) {
+  //           case 'creation':
+  //             return {
+  //               id: `creation-${item.creation}`,
+  //               type: 'edit',
+  //               title: ` created this Lead`,
+  //               description: '',
+  //               timestamp: item.creation,
+  //               user: creatorName,
+  //               icon: <UserPlus className="w-4 h-4 text-gray-500" />
+  //             };
+
+  //           case 'added':
+  //           case 'changed':
+  //             // Handle grouped changes
+  //             if (item.other_versions?.length > 0) {
+  //               return {
+  //                 id: `group-${item.creation}`,
+  //                 type: 'grouped_change',
+  //                 timestamp: item.creation,
+  //                 user: creatorName,
+  //                 icon: <Layers className="w-4 h-4 text-white" />,
+  //                 data: {
+  //                   changes: [item, ...item.other_versions],
+  //                   field_label: item.data?.field_label,
+  //                   value: item.data?.value,
+  //                   old_value: item.data?.old_value,
+  //                   other_versions: item.other_versions
+  //                 }
+  //               };
+  //             }
+
+  //             // Single change
+  //             const actionText = item.activity_type === 'added'
+  //               ? `added value for ${item.data?.field_label}: '${item.data?.value}'`
+  //               : `changed ${item.data?.field_label} from '${item.data?.old_value || "nothing"}' to '${item.data?.value}'`;
+
+  //             return {
+  //               id: `change-${item.creation}`,
+  //               type: 'edit',
+  //               title: ` ${actionText}`,
+  //               description: '',
+  //               timestamp: item.creation,
+  //               user: creatorName,
+  //               icon: <RxLightningBolt className="w-4 h-4 text-yellow-500" />
+  //             };
+
+  //           default:
+  //             return null;
+  //         }
+  //       })
+  //       .filter(Boolean);
+
+  //     // const otherActivities = rawTimeline
+  //     //   .filter((item: { activity_type: string; }) =>
+  //     //     item.activity_type !== 'communication' &&
+  //     //     item.activity_type !== 'comment'
+  //     //   )
+  //     //   .map((item: any) => {
+  //     //     let type = 'edit';
+  //     //     let title = `${item.owner} ${item.description || ''}`;
+  //     //     let icon = <Disc className="w-4 h-4" />;
+
+  //     //     if (item.data?.action === 'creation') {
+  //     //       type = 'creation';
+  //     //       title = `created this Lead`;
+  //     //       icon = <UserPlus className="w-4 h-4 text-gray-500" />;
+  //     //     }
+  //     //     else if (typeof item.data === "string") {
+  //     //       // handle string safely
+  //     //       title = `${item.owner} ${item.data}`;
+  //     //     }
+
+  //     //     return {
+  //     //       id: item.name || `other-${item.creation}`,
+  //     //       type,
+  //     //       title,
+  //     //       description: '',
+  //     //       timestamp: item.creation,
+  //     //       user: item.owner,
+  //     //       icon,
+  //     //       data: item.data,
+  //     //     };
+  //     //   });
+
+  //     // const fileActivities = rawFiles.map((file: any) => ({
+  //     //   id: file.name || `file-${file.file_url}`,
+  //     //   type: "file",
+  //     //   title: `File Uploaded: ${file.file_name || "Unnamed file"}`,
+  //     //   description: file.file_url || "",
+  //     //   timestamp: file.creation,
+  //     //   user: file.owner || "Unknown",
+  //     //   icon: <IoDocument className="w-4 h-4" />,
+  //     //   data: file, // keep full file object
+  //     // }));
+
+
+
+  //     const allActivities = [
+  //       ...callActivities,
+  //       // ...noteActivities,
+  //       // ...taskActivities,
+  //       ...emailActivities,
+  //       ...commentActivities,
+  //       ...timelineActivities,
+  //       ...fileActivities,
+  //       // ...otherActivities
+  //     ];
+
+  //     allActivities.sort((a, b) => {
+  //       const getValidDate = (activity: { timestamp: string | number | Date; creation: string | number | Date; data: { creation: string | number | Date; }; }) => {
+  //         if (activity.timestamp) return new Date(activity.timestamp);
+  //         if (activity.creation) return new Date(activity.creation);
+  //         if (activity.data?.creation) return new Date(activity.data.creation);
+  //         return new Date(0);
+  //       };
+
+  //       const dateA = getValidDate(a);
+  //       const dateB = getValidDate(b);
+  //       return dateA.getTime() - dateB.getTime();
+  //     });
+  //     setActivities(allActivities);
+
+  //   } catch (err) {
+  //     console.error("Error fetching activities:", err);
+  //     showToast("Failed to fetch activities", { type: 'error' });
+  //   } finally {
+  //     setActivityLoading(false);
+  //   }
+  // }, [lead.name]);
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
@@ -1032,89 +1298,6 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
       [field]: value
     }));
   };
-
-  // const fetchCallLogs = async () => {
-  //   setCallsLoading(true);
-  //   try {
-  //     const response = await fetch(`${API_BASE_URL}/method/frappe.client.get_list`, {
-  //       method: 'POST',
-  //       headers: {
-  //         'Authorization': AUTH_TOKEN,
-  //         'Content-Type': 'application/json'
-  //       },
-  //       body: JSON.stringify({
-  //         doctype: 'CRM Call Log',
-  //         filters: JSON.stringify([
-  //           ['reference_doctype', '=', 'CRM Lead'],
-  //           ['reference_docname', '=', lead.name]
-  //         ]),
-  //         fields: JSON.stringify(['name', 'from', 'to', 'status', 'type', 'duration', 'creation', 'owner'])
-  //       })
-  //     });
-
-  //     if (response.ok) {
-  //       const result = await response.json();
-  //       setCallLogs(result.message || []);
-  //     }
-  //   } catch (error) {
-  //     console.error('Error fetching call logs:', error);
-  //     showToast('Failed to fetch call logs', { type: 'error' });
-  //   } finally {
-  //     setCallsLoading(false);
-  //   }
-  // };
-
-  // const fetchCallLogs = async () => {
-  //   setCallsLoading(true);
-  //   try {
-  //     // --- 1. First API Call (frappe.client.get_list) ---
-  //     // This call runs first, as requested. We wait for it to complete
-  //     // but we will not use its response to update the UI.
-  //     await fetch(`${API_BASE_URL}/method/frappe.client.get_list`, {
-  //       method: 'POST',
-  //       headers: {
-  //         'Authorization': AUTH_TOKEN,
-  //         'Content-Type': 'application/json'
-  //       },
-  //       body: JSON.stringify({
-  //         doctype: 'CRM Call Log',
-  //         filters: JSON.stringify([
-  //           ['reference_doctype', '=', 'CRM Lead'],
-  //           ['reference_docname', '=', lead.name]
-  //         ]),
-  //         fields: JSON.stringify(['name', 'from', 'to', 'status', 'type', 'duration', 'creation', 'owner'])
-  //       })
-  //     });
-
-  //     // --- 2. Second API Call (get_call_log) ---
-  //     // This call runs after the first one is finished.
-  //     // The data from this response will be shown in the call logs table.
-  //     const response = await fetch(`${API_BASE_URL}/method/crm.fcrm.doctype.crm_call_log.crm_call_log.get_call_log`, {
-  //       method: 'POST',
-  //       headers: {
-  //         'Authorization': AUTH_TOKEN, // Token is included
-  //         'Content-Type': 'application/json'
-  //       },
-  //       body: JSON.stringify({
-  //         name: lead.name // Passing the dynamic lead name
-  //       })
-  //     });
-
-  //     if (response.ok) {
-  //       const result = await response.json();
-  //       // Update the state with the data from the SECOND API call
-  //       setCallLogs(result.message || []);
-  //     } else {
-  //       throw new Error(`API Error: ${response.statusText}`);
-  //     }
-
-  //   } catch (error) {
-  //     console.error('Error fetching call logs:', error);
-  //     showToast('Failed to fetch call logs', { type: 'error' });
-  //   } finally {
-  //     setCallsLoading(false);
-  //   }
-  // };
 
   const fetchCallLogs = async () => {
     setCallsLoading(true);
@@ -1450,7 +1633,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
         body: JSON.stringify({
           txt: "",
           doctype: "CRM Territory",
-         // filters: sessionCompany ? { company: sessionCompany } : null
+          // filters: sessionCompany ? { company: sessionCompany } : null
 
         })
       });
@@ -1595,7 +1778,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
         case 'files':
           await fetchFiles();
           break;
-          
+
         default:
           break;
       }
@@ -1610,108 +1793,6 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
     fetchOrganizationOptions();
     fetchContactOptions();
   }, []);
-
-  // const handleConvert = async (params: {
-  //   lead: string;
-  //   deal?: any;
-  //   existing_contact?: string;
-  //   existing_organization?: string;
-  // }) => {
-  //   try {
-  //     setLoading(true);
-  //     const session = getUserSession();
-  //     const sessionCompany = session?.company || '';
-  //     const {
-  //       lead: leadName,
-  //       deal: dealData = {},
-  //       existing_contact,
-  //       existing_organization
-  //     } = params;
-
-  //     // First, fetch the lead details using the lead name
-  //     const leadResponse = await fetch(`${API_BASE_URL}/method/crm.fcrm.doctype.crm_lead.crm_lead.convert_to_deal`, {
-  //       method: 'POST',
-  //       headers: {
-  //         'Authorization': AUTH_TOKEN,
-  //         'Content-Type': 'application/json'
-  //       },
-  //       body: JSON.stringify({
-  //         // doctype: 'CRM Lead',
-  //         // name: leadName
-  //         lead: leadName,
-  //         deal: {},
-  //         company: sessionCompany,
-  //         // filters: {
-  //         //     company: sessionCompany   // ✅ Add filters here
-  //         //   },
-  //         existing_contact,
-  //         existing_organization
-  //       })
-  //     });
-
-  //     if (!leadResponse.ok) {
-  //       throw new Error('Failed to fetch lead details');
-  //     }
-
-  //     // --- NEW LOGIC STARTS HERE ---
-  //     // Second API call: Fetch organization details if an existing one was provided.
-  //     if (existing_organization) {
-  //       console.log(`Fetching details for organization: ${existing_organization}`);
-  //       const userSession = getUserSession();
-  //       const Company = userSession?.company;
-  //       const orgDetailsResponse = await fetch(`${API_BASE_URL}/method/frappe.client.get`, {
-  //         method: 'POST', // Using POST as per Frappe's client API patterns
-  //         headers: {
-  //           'Authorization': AUTH_TOKEN,
-  //           'Content-Type': 'application/json'
-  //         },
-  //         body: JSON.stringify({
-  //           doctype: "CRM Organization",
-  //           name: existing_organization, // Use the selected organization here
-  //           // filters: {
-  //           //   company: Company   // ✅ Add filters here
-  //           // },
-  //           company: Company,
-  //         })
-  //       });
-
-  //       if (!orgDetailsResponse.ok) {
-  //         throw new Error('Failed to fetch organization details after conversion');
-  //       }
-
-  //       const orgData = await orgDetailsResponse.json();
-  //       // You can now use the fetched organization data. For now, we'll just log it.
-  //       console.log('Successfully fetched organization details:', orgData.message);
-  //     }
-  //     // Update lead as converted
-  //     const updateLeadResponse = await fetch(`${API_BASE_URL}/method/frappe.client.set_value`, {
-  //       method: 'POST',
-  //       headers: {
-  //         'Authorization': AUTH_TOKEN,
-  //         'Content-Type': 'application/json'
-  //       },
-  //       body: JSON.stringify({
-  //         doctype: 'CRM Lead',
-  //         name: leadName,
-  //         fieldname: 'converted',
-  //         value: "1"
-  //       })
-  //     });
-
-  //     if (!updateLeadResponse.ok) {
-  //       throw new Error('Deal created, but failed to update lead');
-  //     }
-
-  //     showToast('Deal converted successfully!', { type: 'success' });
-  //     setShowPopup(false);
-  //   } catch (error) {
-  //     console.error('Conversion failed:', error);
-  //     showToast('Failed to convert deal.', { type: 'error' });
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
-
 
   const handleConvert = async (params: {
     lead: string;
@@ -1745,6 +1826,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
           // filters: {
           //   company: sessionCompany   // ✅ Add filters here
           // },
+          //value: "New",
           existing_contact,
           existing_organization
         })
@@ -4286,7 +4368,8 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                         duration: editingCall.duration,
                         status: editingCall.status,
                         name: editingCall.name,
-                        _notes: editingCall._notes || []
+                        _notes: editingCall._notes || [],
+                        _tasks: editingCall._tasks || []
                       }}
                       onClose={() => setShowPopup(false)}
                       onTaskCreated={fetchTasks}
@@ -5415,7 +5498,8 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
               duration: editingCall.duration,
               status: editingCall.status,
               name: editingCall.name,
-              _notes: editingCall._notes || []
+              _notes: editingCall._notes || [],
+              _tasks: editingCall._tasks || []
             }}
             onClose={() => setCallShowPopup(false)}
             onAddTask={handleAddTaskFromCall}

@@ -89,6 +89,8 @@ interface CallLog {
     label: string | null;
     image: string | null;
   };
+  _notes?: Note[];
+  _tasks?: Task[];
 }
 interface Comment {
   name: string;
@@ -401,7 +403,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
   const fetchCallLogs = useCallback(async () => {
     setCallsLoading(true);
     try {
-      const response = await fetch(
+      // First API call: Get activities
+      const activitiesResponse = await fetch(
         `${API_BASE_URL}/method/crm.api.activities.get_activities`,
         {
           method: 'POST',
@@ -415,31 +418,103 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         }
       );
 
-      if (response.ok) {
-        const result = await response.json();
-        // Call logs are in the second array of the message array
-        const callLogsData = result.message[1] || [];
-
-        // Transform the call logs data to match your CallLog interface
-        const formattedCallLogs = callLogsData.map((call: any) => ({
-          name: call.name,
-          from: call.from,
-          to: call.to,
-          status: call.status,
-          type: call.type === 'Incoming' ? 'Inbound' : 'Outbound',
-          duration: call._duration || '0s',
-          reference_doctype: 'CRM Deal',
-          reference_name: deal.name,
-          creation: call.creation,
-          owner: call.caller || call.receiver || 'Unknown',
-          _caller: call._caller,  // Add this
-          _receiver: call._receiver  // Add this
-        }));
-
-        setCallLogs(formattedCallLogs);
-      } else {
-        throw new Error('Failed to fetch call logs');
+      if (!activitiesResponse.ok) {
+        throw new Error('Failed to fetch activities');
       }
+
+      const activitiesResult = await activitiesResponse.json();
+      const callLogsData = activitiesResult.message[1] || [];
+      const allFormattedCallLogs = [];
+
+      // Process each call log to get detailed information
+      for (const call of callLogsData) {
+        if (call.name) {
+          try {
+            // Second API call: Get detailed call log information
+            const callDetailResponse = await fetch(
+              'http://103.214.132.20:8002/api/method/crm.fcrm.doctype.crm_call_log.crm_call_log.get_call_log',
+              {
+                method: 'POST',
+                headers: {
+                  'Authorization': AUTH_TOKEN,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  name: call.name // Use the name from activities response
+                })
+              }
+            );
+
+            if (callDetailResponse.ok) {
+              const callDetailResult = await callDetailResponse.json();
+              const detailedCall = callDetailResult.message || {};
+
+              const formattedCallLog = {
+                name: call.name,
+                from: detailedCall.from || call.from || '',
+                to: detailedCall.to || call.to || '',
+                status: detailedCall.status || call.status || 'Unknown',
+                type: detailedCall.type === 'Incoming' ? 'Inbound' : 'Outbound',
+                duration: detailedCall.duration || call._duration || '0s',
+                reference_doctype: 'CRM Deal',
+                reference_name: deal.name,
+                creation: detailedCall.creation || call.creation,
+                owner: detailedCall.owner || call.caller || call.receiver || 'Unknown',
+                _caller: detailedCall._caller || call._caller,
+                _receiver: detailedCall._receiver || call._receiver,
+                start_time: detailedCall.start_time,
+                end_time: detailedCall.end_time,
+                recording_url: detailedCall.recording_url,
+                // THE FIX IS HERE:
+                // _notes: detailedCall.note || [], // Renamed 'note' to '_notes' to match the popup's prop
+                _notes: detailedCall._notes || [],
+                _tasks: detailedCall._tasks || [],
+                show_recording: detailedCall.show_recording || false
+              };
+              allFormattedCallLogs.push(formattedCallLog);
+            } else {
+              console.warn(`Failed to fetch details for call ${call.name}, using basic info`);
+              // Fallback to basic call info if detailed API fails
+              const formattedCallLog = {
+                name: call.name,
+                from: call.from || '',
+                to: call.to || '',
+                status: call.status || 'Unknown',
+                type: call.type === 'Incoming' ? 'Inbound' : 'Outbound',
+                duration: call._duration || '0s',
+                reference_doctype: 'CRM Deal',
+                reference_name: deal.name,
+                creation: call.creation,
+                owner: call.caller || call.receiver || 'Unknown',
+                _caller: call._caller,
+                _receiver: call._receiver,
+                _notes: call._notes || [] // Added fallback here too
+              };
+              allFormattedCallLogs.push(formattedCallLog);
+            }
+          } catch (error) {
+            console.warn(`Error fetching details for call ${call.name}:`, error);
+            // Fallback to basic call info if API call fails
+            const formattedCallLog = {
+              name: call.name,
+              from: call.from || '',
+              to: call.to || '',
+              status: call.status || 'Unknown',
+              type: call.type === 'Incoming' ? 'Inbound' : 'Outbound',
+              duration: call._duration || '0s',
+              reference_doctype: 'CRM Deal',
+              reference_name: deal.name,
+              creation: call.creation,
+              owner: call.caller || call.receiver || 'Unknown',
+              _caller: call._caller,
+              _receiver: call._receiver,
+              _notes: call._notes || [] // And here
+            };
+            allFormattedCallLogs.push(formattedCallLog);
+          }
+        }
+      }
+      setCallLogs(allFormattedCallLogs);
     } catch (error) {
       console.error("Error fetching call logs:", error);
       showToast("Failed to fetch call logs", { type: 'error' });
@@ -1177,6 +1252,40 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
 
   // Replace your entire fetchAllActivities function with this one
+  // Add this new function to fetch detailed call logs for activity tab
+  const fetchDetailedCallLogsForActivity = async (callNames: string[]) => {
+    if (!callNames.length) return [];
+
+    try {
+      console.log("Fetching detailed call logs for:", callNames);
+
+      // Create an array of promises for each call log detail fetch
+      const detailPromises = callNames.map(name =>
+        fetch(`http://103.214.132.20:8002/api/method/crm.fcrm.doctype.crm_call_log.crm_call_log.get_call_log`, {
+          method: 'POST',
+          headers: {
+            'Authorization': AUTH_TOKEN,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ name })
+        }).then(res => res.json())
+      );
+
+      // Wait for all detail-fetching API calls to complete
+      const detailResponses = await Promise.all(detailPromises);
+
+      // Extract and combine all call logs with their notes and tasks
+      const detailedCallLogs = detailResponses.flatMap(response => response.message || []);
+
+      console.log("Detailed call logs fetched:", detailedCallLogs);
+      return detailedCallLogs;
+    } catch (error) {
+      console.error('Error fetching detailed call logs for activity:', error);
+      return [];
+    }
+  };
+
+  // Enhanced fetchAllActivities function
   const fetchAllActivities = useCallback(async () => {
     setActivityLoading(true);
     try {
@@ -1184,7 +1293,6 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         `${API_BASE_URL}/method/crm.api.activities.get_activities`,
         {
           method: 'POST',
-          // headers: { 'Authorization': AUTH_TOKEN, 'Content-Type': 'application/json' },
           headers: {
             'Authorization': AUTH_TOKEN,
             'Content-Type': 'application/json'
@@ -1194,8 +1302,6 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
           })
         }
       );
-      //  'Authorization': AUTH_TOKEN,
-      //       'Content-Type': 'application/json'
 
       if (!response.ok) throw new Error('Failed to fetch activities');
 
@@ -1208,7 +1314,30 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
       const rawNotes = message[2] || [];
       const rawTasks = message[3] || [];
 
-      setCallLogs(rawCallLogs);
+      // ✨ NEW: Fetch detailed call logs with notes and tasks
+      const callNames = rawCallLogs.map(call => call.name).filter(Boolean);
+      const detailedCallLogs = await fetchDetailedCallLogsForActivity(callNames);
+
+      // Create a map for easy lookup of detailed call data
+      const detailedCallMap = new Map();
+      detailedCallLogs.forEach(detailedCall => {
+        if (detailedCall.name) {
+          detailedCallMap.set(detailedCall.name, detailedCall);
+        }
+      });
+
+      // Update call logs with detailed data for both activity and calls tab
+      const enhancedCallLogs = rawCallLogs.map(call => {
+        const detailedCall = detailedCallMap.get(call.name);
+        return {
+          ...call,
+          ...(detailedCall || {}), // Merge detailed data if available
+          _notes: detailedCall?._notes || call._notes || [],
+          _tasks: detailedCall?._tasks || call._tasks || []
+        };
+      });
+
+      setCallLogs(enhancedCallLogs); // Set enhanced call logs
       setNotes(rawNotes);
       setTasks(rawTasks);
 
@@ -1216,31 +1345,42 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
       const rawEmails = timelineItems
         .filter((item: any) => item.activity_type === 'communication')
         .map((item: any) => ({
-          id: item.name || `comm-${item.creation}`, fromName: item.data.sender_full_name || item.data.sender,
-          from: item.data.sender, to: item.data.recipients, creation: item.creation,
-          subject: item.data.subject, content: item.data.content || '', attachments: item.data.attachments || [],
+          id: item.name || `comm-${item.creation}`,
+          fromName: item.data.sender_full_name || item.data.sender,
+          from: item.data.sender,
+          to: item.data.recipients,
+          creation: item.creation,
+          subject: item.data.subject,
+          content: item.data.content || '',
+          attachments: item.data.attachments || [],
         }));
       setEmails(rawEmails);
 
       const rawComments = timelineItems.filter((item: any) => item.activity_type === 'comment');
       setComments(rawComments);
 
-      // 2. Map all data into a single, unified 'activities' list for the timeline view
-      const callActivities = rawCallLogs.map((call: any) => ({
-        id: call.name,
-        type: 'call',
-        title: `${call.type} Call`,
-        description: ``,
-        timestamp: call.creation,
-        user: getFullname(call.caller || call.receiver || 'Unknown'), // Use fullname here
-        icon: <Phone className="w-4 h-4 text-green-500" />,
-      }));
+      // 2. ✨ ENHANCED: Map call activities with detailed data including notes and tasks
+      const callActivities = enhancedCallLogs.map((call: any) => {
+        console.log("Creating call activity with enhanced data:", call);
 
-      // const noteActivities = rawNotes.map((note: any) => ({
-      //   id: note.name, type: 'note', title: `Note Added: ${note.title}`,
-      //   description: note.content, timestamp: note.modified, user: note.owner,
-      //   icon: <FileText className="w-4 h-4 text-white" />,
-      // }));
+        return {
+          id: call.name,
+          type: 'call',
+          title: `${call.type} Call`,
+          description: ``,
+          timestamp: call.creation,
+          user: getFullname(call.caller || call.receiver || 'Unknown'),
+          icon: <Phone className="w-4 h-4 text-green-500" />,
+          // ✨ Include detailed call data with notes and tasks
+          callData: {
+            ...call,
+            _notes: call._notes || [],
+            _tasks: call._tasks || []
+          }
+        };
+      });
+
+      console.log("Enhanced call activities:", callActivities);
 
       const taskActivities = rawTasks.map((task: any) => ({
         id: task.name,
@@ -1248,7 +1388,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         title: `Task Created: ${task.title}`,
         description: ``,
         timestamp: task.modified,
-        user: getFullname(task.assigned_to || 'Unassigned'), // Use fullname here
+        user: getFullname(task.assigned_to || 'Unassigned'),
         icon: <SiTicktick className="w-4 h-4 text-gray-600" />,
       }));
 
@@ -1261,22 +1401,22 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         title: 'Attachment Added',
         description: attachment.file_name,
         timestamp: attachment.creation,
-        user: getFullname(attachment.owner), // Use fullname here
+        user: getFullname(attachment.owner),
         icon: <Paperclip className="w-4 h-4 text-gray-500" />,
         attachmentData: attachment
       }));
 
       const timelineActivities = timelineItems.map((item: any) => {
-        // Mapping logic for timeline items (creation, comment, communication, changed, added)
+        // Your existing timeline mapping logic here
         switch (item.activity_type) {
           case 'creation':
             return {
               id: `creation-${item.creation}`,
               type: 'edit',
-              title: `${getFullname(item.owner)} ${item.data}`, // Use fullname here
+              title: `${getFullname(item.owner)} ${item.data}`,
               description: '',
               timestamp: item.creation,
-              user: getFullname(item.owner), // Use fullname here
+              user: getFullname(item.owner),
               icon: <UserPlus className="w-4 h-4 text-gray-500" />
             };
           case 'comment':
@@ -1284,10 +1424,10 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
               return {
                 id: item.name,
                 type: 'edit',
-                title: `${getFullname(item.owner)} converted the lead to this deal.`, // Use fullname here
+                title: `${getFullname(item.owner)} converted the lead to this deal.`,
                 description: '',
                 timestamp: item.creation,
-                user: getFullname(item.owner), // Use fullname here
+                user: getFullname(item.owner),
                 icon: <RxLightningBolt className="w-4 h-4 text-blue-500" />
               };
             }
@@ -1297,7 +1437,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
               title: 'New Comment',
               description: item.content.replace(/<[^>]+>/g, ''),
               timestamp: item.creation,
-              user: getFullname(item.owner), // Use fullname here
+              user: getFullname(item.owner),
               icon: <MessageSquare className="w-4 h-4 text-purple-500" />
             };
           case 'communication':
@@ -1307,7 +1447,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
               title: `Email: ${item.data.subject}`,
               description: ``,
               timestamp: item.creation,
-              user: getFullname(item.data.sender_full_name || item.data.sender), // Use fullname here
+              user: getFullname(item.data.sender_full_name || item.data.sender),
               icon: <Mail className="w-4 h-4 text-red-500" />
             };
           case 'added':
@@ -1318,7 +1458,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                 id: `group-${item.creation}`,
                 type: 'grouped_change',
                 timestamp: item.creation,
-                user: getFullname(item.owner), // Use fullname here
+                user: getFullname(item.owner),
                 icon: <Layers className="w-4 h-4 text-white" />,
                 changes: allChanges
               };
@@ -1329,13 +1469,14 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
             return {
               id: `change-${item.creation}`,
               type: 'edit',
-              title: `${getFullname(item.owner)} ${actionText}`, // Use fullname here
+              title: `${getFullname(item.owner)} ${actionText}`,
               description: '',
               timestamp: item.creation,
-              user: getFullname(item.owner), // Use fullname here
+              user: getFullname(item.owner),
               icon: <RxLightningBolt className="w-4 h-4 text-yellow-500" />
             };
-          default: return null;
+          default:
+            return null;
         }
       }).filter(Boolean);
 
@@ -1350,7 +1491,51 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
     } finally {
       setActivityLoading(false);
     }
-  }, [deal.name, docinfo.user_info]); // Add dependencies
+  }, [deal.name, docinfo.user_info]);
+
+
+  const [organizationOptions, setOrganizationOptions] = useState([]);
+  const [OwnersOptions, setOwnersOptions] = useState([]);
+  const [TerritoryOptions, setTerritoryOptions] = useState([]);
+
+
+  const fetchOrganizations = async () => {
+    try {
+      const session = getUserSession();
+      const sessionCompany = session?.company;
+      const response = await apiAxios.post(
+        '/api/method/frappe.desk.search.search_link',
+        {
+          txt: "",
+          doctype: "CRM Organization",
+          filters: sessionCompany ? { company: sessionCompany } : null
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': AUTH_TOKEN
+          }
+        }
+      );
+
+      // Axios automatically parses the JSON response, so we can access it directly
+      const data = response.data;
+
+      // Transform the API response to match the format expected by Select
+      const options = data.message.map((item: { value: any; description: any; }) => ({
+        value: item.value,
+        label: item.value,
+        description: item.description
+      }));
+      setOrganizationOptions(options);
+    } catch (err) {
+      // You might want to handle the error here, e.g., show a toast notification
+      console.error('Error fetching organizations:', err);
+    }
+  };
+  useEffect(() => {
+    fetchOrganizations();
+  }, []);
 
   // Add to useEffect
   // Replace your existing useEffect with this one
@@ -1360,6 +1545,9 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
 
     if (activityTabs.includes(activeTab)) {
       fetchAllActivities();
+    }
+    if (activeTab === 'overview') {
+      fetchOrganizations();
     }
 
     // You can keep separate fetches for things not in the main activity feed, like attachments
@@ -1532,46 +1720,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
     }
   };
 
-  const [organizationOptions, setOrganizationOptions] = useState([]);
-  const [OwnersOptions, setOwnersOptions] = useState([]);
-  const [TerritoryOptions, setTerritoryOptions] = useState([]);
-  useEffect(() => {
-    const fetchOrganizations = async () => {
-      try {
-        const session = getUserSession();
-        const sessionCompany = session?.company;
-        const response = await apiAxios.post(
-          '/api/method/frappe.desk.search.search_link',
-          {
-            txt: "",
-            doctype: "CRM Organization",
-            filters: sessionCompany ? { company: sessionCompany } : null
-          },
-          {
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': AUTH_TOKEN
-            }
-          }
-        );
 
-        // Axios automatically parses the JSON response, so we can access it directly
-        const data = response.data;
-
-        // Transform the API response to match the format expected by Select
-        const options = data.message.map((item: { value: any; description: any; }) => ({
-          value: item.value,
-          label: item.value,
-          description: item.description
-        }));
-        setOrganizationOptions(options);
-      } catch (err) {
-        // You might want to handle the error here, e.g., show a toast notification
-        console.error('Error fetching organizations:', err);
-      }
-    };
-    fetchOrganizations();
-  }, []);
 
   useEffect(() => {
     const fetchOwners = async () => {
@@ -1726,12 +1875,36 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
   const [showCallDetailsPopup, setShowCallDetailsPopup] = React.useState(false);
   const [editingCallFromActivity, setEditingCallFromActivity] = React.useState<any | null>(null);
 
-  const handleLabelClick = (call: any, fromActivityTab: boolean = false) => {
-    if (fromActivityTab) {
-      setEditingCallFromActivity(call);
-    } else {
-      setEditingCall(call);
-    }
+  // const handleLabelClick = (call: any, fromActivityTab: boolean = false) => {
+  //   if (fromActivityTab) {
+  //     setEditingCallFromActivity(call);
+  //   } else {
+  //     setEditingCall(call);
+  //   }
+  //   setShowCallDetailsPopup(true);
+  // };
+
+
+  const handleLabelClick = (call: any) => {
+    console.log("=== DEBUGGING CALL DATA ===");
+    console.log("1. Clicked call:", call);
+    console.log("2. Call._notes:", call._notes);
+    console.log("3. All callLogs:", callLogs);
+
+    // Find the original call from callLogs array
+    const originalCall = callLogs.find(callLog => callLog.name === call.name);
+    console.log("4. Original call from callLogs:", originalCall);
+    console.log("5. Original call._notes:", originalCall?._notes);
+
+    // Check if notes exist in the call object at any level
+    console.log("6. Call object keys:", Object.keys(call));
+    console.log("7. Call data structure:", JSON.stringify(call, null, 2));
+
+    const callWithNotes = originalCall || call;
+    console.log("8. Final call data being passed:", callWithNotes);
+    console.log("9. Final call._notes:", callWithNotes._notes);
+
+    setEditingCall(callWithNotes);
     setShowCallDetailsPopup(true);
   };
 
@@ -2108,6 +2281,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                         isOpen={showCreateOrganizationModal}
                         onClose={() => setShowCreateOrganizationModal(false)}
                         theme="dark"
+                        onOrganizationCreated={fetchOrganizations}
                       />
                     </div>
 
@@ -2730,7 +2904,9 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                         receiver: editingCall._receiver?.label || "Unknown",
                         date: formatDateRelative(editingCall.creation),
                         duration: editingCall.duration,
-                        status: editingCall.status
+                        status: editingCall.status,
+                        _notes: editingCall._notes || [],
+                        _tasks: editingCall._tasks || []
                       }}
                       onClose={() => setShowPopup(false)}
                       onAddTask={handleAddTaskFromCall}
@@ -2752,12 +2928,9 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                       theme={theme}
                     />
                   )}
-
                 </div>
               )}
             </div>
-
-
           </div>
         )}
         {showCallModal && (
@@ -4454,7 +4627,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
             duration: (editingCall || editingCallFromActivity)?.duration,
             status: (editingCall || editingCallFromActivity)?.status,
             name: (editingCall || editingCallFromActivity)?.name, // ADDED: Passes the unique call name/ID
-            _notes: (editingCall || editingCallFromActivity)?._notes || [] // ADDED: Passes the notes for this call
+            _notes: (editingCall || editingCallFromActivity)?._notes || [], // ADDED: Passes the notes for this call
+            _tasks: (editingCall || editingCallFromActivity)?._tasks || [] // ADDED: Passes the notes for this call
           }}
           onClose={() => {
             setShowCallDetailsPopup(false);
@@ -4470,6 +4644,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
               status: callToEdit.status || 'Ringing',
               type: callToEdit.type || 'Outgoing',
               duration: callToEdit.duration || '',
+              receiver: callToEdit.to || callToEdit._receiver?.label || '',
               name: callToEdit.name || '',
             });
             setIsEditMode(true);
