@@ -1521,6 +1521,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         }
       );
 
+      showToast('Deal updated successfully!', { type: 'success' });
       console.log("Save successful:", response.data.message);
       // Optionally show success message or reload
     } catch (error) {
@@ -1752,9 +1753,15 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
           {
             txt: "",
             doctype: "User",
-            // filters: sessionCompany ? { company: sessionCompany } : null
-            company: sessionCompany
+            filters: sessionCompany ? { company: sessionCompany } : null
+            //company: sessionCompany
           },
+          {
+            headers: {
+              'Authorization': AUTH_TOKEN,
+              'Content-Type': 'application/json'
+            }
+          }
           // ... headers
         );
 
