@@ -62,11 +62,10 @@ const Toast: React.FC<ToastProps> = ({ message, type, isVisible, onClose }) => {
 
   return (
     <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top-2">
-      <div className={`flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg border ${
-        type === 'success' 
-          ? 'bg-green-50 border-green-200 text-green-800' 
+      <div className={`flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg border ${type === 'success'
+          ? 'bg-green-50 border-green-200 text-green-800'
           : 'bg-red-50 border-red-200 text-red-800'
-      }`}>
+        }`}>
         {type === 'success' ? (
           <CheckCircle className="w-5 h-5 text-green-600" />
         ) : (
@@ -75,9 +74,8 @@ const Toast: React.FC<ToastProps> = ({ message, type, isVisible, onClose }) => {
         <p className="text-sm font-medium max-w-sm">{message}</p>
         <button
           onClick={onClose}
-          className={`ml-2 ${
-            type === 'success' ? 'text-green-600 hover:text-green-800' : 'text-red-600 hover:text-red-800'
-          }`}
+          className={`ml-2 ${type === 'success' ? 'text-green-600 hover:text-green-800' : 'text-red-600 hover:text-red-800'
+            }`}
         >
           <X className="w-4 h-4" />
         </button>
@@ -99,9 +97,15 @@ export function LoginPage({ onLogin }: LoginPageProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [passwordError, setPasswordError] = useState("");
+  
+  // Login form validation states
+  const [emailError, setEmailError] = useState('');
+  const [loginPasswordError, setLoginPasswordError] = useState('');
+  
   // Add state for the phone number
   const [phoneNumber, setPhoneNumber] = useState('');
-  
+  const [phoneError, setPhoneError] = useState('');
+
   // Toast state
   const [toast, setToast] = useState({
     isVisible: false,
@@ -117,6 +121,12 @@ export function LoginPage({ onLogin }: LoginPageProps) {
     role_profile_name: 'Only If Create',
     new_password: ''
   });
+
+  // Register form validation states
+  const [registerEmailError, setRegisterEmailError] = useState('');
+  const [firstNameError, setFirstNameError] = useState('');
+  const [companyNameError, setCompanyNameError] = useState('');
+  const [employeesError, setEmployeesError] = useState('');
 
   // Company form state
   const [companyData, setCompanyData] = useState<CompanyData>({
@@ -138,7 +148,72 @@ export function LoginPage({ onLogin }: LoginPageProps) {
     setToast(prev => ({ ...prev, isVisible: false }));
   };
 
+  // Login form validation functions
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email) {
+      return "Email is required";
+    }
+    if (!emailRegex.test(email)) {
+      return "Please enter a valid email address";
+    }
+    return "";
+  };
+
+  const validateLoginPassword = (password: string) => {
+    if (!password) {
+      return "Password is required";
+    }
+    return "";
+  };
+
+  const validatePhone = (phone: string) => {
+    if (!phone) {
+      return "Phone number is required";
+    }
+    const phoneRegex = /^[0-9+\-\s()]{10,}$/;
+    if (!phoneRegex.test(phone)) {
+      return "Please enter a valid phone number";
+    }
+    return "";
+  };
+
+  // Register form validation functions
+  const validateFirstName = (firstName: string) => {
+    if (!firstName) {
+      return "Full name is required";
+    }
+    if (firstName.length < 2) {
+      return "Full name must be at least 2 characters long";
+    }
+    return "";
+  };
+
+  const validateCompanyName = (companyName: string) => {
+    if (!companyName) {
+      return "Company name is required";
+    }
+    if (companyName.length < 2) {
+      return "Company name must be at least 2 characters long";
+    }
+    return "";
+  };
+
+  const validateEmployees = (employees: string) => {
+    if (!employees) {
+      return "Number of employees is required";
+    }
+    const num = parseInt(employees);
+    if (isNaN(num) || num < 1) {
+      return "Please enter a valid number of employees";
+    }
+    return "";
+  };
+
   const validatePassword = (password: string) => {
+    if (!password) {
+      return "Password is required";
+    }
     const capitalRegex = /[A-Z]/;
     const numberRegex = /[0-9]/;
     const specialCharRegex = /[!@#$%^&*(),.?":{}|<>]/;
@@ -158,8 +233,57 @@ export function LoginPage({ onLogin }: LoginPageProps) {
     return "";
   };
 
+  // Login input change handlers with validation
+  const handleEmailChange = (value: string) => {
+    setEmail(value);
+    setEmailError(validateEmail(value));
+  };
+
+  const handlePasswordChange = (value: string) => {
+    setPassword(value);
+    setLoginPasswordError(validateLoginPassword(value));
+  };
+
+  const handlePhoneChange = (value: string) => {
+    setPhoneNumber(value);
+    setPhoneError(validatePhone(value));
+  };
+
+  // Register input change handlers with validation
+  const handleFirstNameChange = (value: string) => {
+    setRegisterData(prev => ({ ...prev, first_name: value }));
+    setFirstNameError(validateFirstName(value));
+  };
+
+  const handleRegisterEmailChange = (value: string) => {
+    setRegisterData(prev => ({ ...prev, email: value }));
+    setRegisterEmailError(validateEmail(value));
+  };
+
+  const handleCompanyNameChange = (value: string) => {
+    setCompanyData(prev => ({ ...prev, company_name: value }));
+    setCompanyNameError(validateCompanyName(value));
+  };
+
+  const handleEmployeesChange = (value: string) => {
+    setCompanyData(prev => ({ ...prev, no_employees: value }));
+    setEmployeesError(validateEmployees(value));
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate form before submission
+    const emailValidation = validateEmail(email);
+    const passwordValidation = validateLoginPassword(password);
+    
+    setEmailError(emailValidation);
+    setLoginPasswordError(passwordValidation);
+    
+    if (emailValidation || passwordValidation) {
+      return; // Don't submit if validation fails
+    }
+    
     setLoading(true);
     setError('');
 
@@ -212,17 +336,30 @@ export function LoginPage({ onLogin }: LoginPageProps) {
       setLoading(false);
     }
   };
-  
+
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setError("");
-
-    if (!registerData.email || !registerData.first_name || !companyData.company_name || !companyData.no_employees) {
-      setError("Please fill in all required fields");
-      setLoading(false);
+    
+    // Validate all fields before submission
+    const firstNameValidation = validateFirstName(registerData.first_name);
+    const emailValidation = validateEmail(registerData.email);
+    const phoneValidation = validatePhone(phoneNumber);
+    const companyNameValidation = validateCompanyName(companyData.company_name);
+    const employeesValidation = validateEmployees(companyData.no_employees);
+    
+    setFirstNameError(firstNameValidation);
+    setRegisterEmailError(emailValidation);
+    setPhoneError(phoneValidation);
+    setCompanyNameError(companyNameValidation);
+    setEmployeesError(employeesValidation);
+    
+    if (firstNameValidation || emailValidation || phoneValidation || companyNameValidation || employeesValidation) {
+      // setError("Please fix the validation errors Below");
       return;
     }
+    
+    setLoading(true);
+    setError("");
 
     try {
       // 1️⃣ First validate that company name is unique
@@ -347,7 +484,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
       // Reset forms
       const userEmail = registerData.email;
       const userName = registerData.first_name;
-      
+
       setRegisterData({
         email: "",
         first_name: "",
@@ -399,7 +536,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4" style={{ backgroundImage: "url(../../public/assets/images/bg-circle.png)", backgroundRepeat: "no-repeat", backgroundSize: "cover" }}>
+    <div className="min-h-screen bg-gradient-to-br from-black via-[#2A2352] to-black flex items-center justify-center px-4">
       {/* Toast Component */}
       <Toast
         message={toast.message}
@@ -410,22 +547,20 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 
       <div className="max-w-md w-full">
         {/* Logo */}
-        <div className="text-center">
-          <div className="inline-flex items-center space-x-2 ">
-            <img src="../../public/assets/images/Erpnextlogo.png" alt="" className={`w-[300px] h-100`} />
-            {/* <span className="text-2xl font-bold">
-              <span className="text-blue-600">PS</span>
-              <span className="text-green-500">Digitise</span>
-            </span> */}
+        <div className="text-center mb-8">
+          <div className="text-center">
+            <div className="inline-flex items-center space-x-2 ">
+              <img src="../../public/assets/images/Erpnextlogo.png" alt="" className={`w-[300px] h-100 filter invert brightness-0 saturate-100 sepia hue-rotate-[90deg] contrast-125`} />
+            </div>
           </div>
         </div>
 
         {/* Form Container */}
-        <div className="bg-white/100 rounded-xl shadow-md border border-gray-300 p-8">
+        <div className="bg-white/10 backdrop-blur-md rounded-lg shadow-sm border border-gray-200 p-8">
           {isRegisterMode ? (
             /* Register Form */
             <form onSubmit={handleRegister} className="space-y-6">
-              <h1 className="text-[1.7rem] text-center font-[600] text-gray-900">
+              <h1 className="text-[1.7rem] text-center font-[600] text-white">
                 Create Account
               </h1>
               {/* Error Message */}
@@ -436,108 +571,111 @@ export function LoginPage({ onLogin }: LoginPageProps) {
               )}
 
               <div>
-                <label className="block text-sm font-medium text-black mb-1">
+                <label className="block text-sm font-medium text-white mb-1">
                   Full Name <span className="text-red-500">*</span>
                 </label>
-                <div className="relative border border-gray-400 rounded-lg">
+                <div className="relative border border-white rounded-lg">
                   <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
                     type="text"
                     value={registerData.first_name}
-                    onChange={(e) => handleRegisterInputChange('first_name', e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 border border-white rounded-lg bg-transparent text-black !placeholder-gray-500 focus:outline-none"
+                    onChange={(e) => handleFirstNameChange(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 border border-transparent rounded-lg bg-transparent text-white placeholder-white focus:outline-none"
                     placeholder="John"
-                    required
                     disabled={loading}
                   />
                 </div>
+                {firstNameError && (
+                  <p className="text-red-400 text-sm mt-1">{firstNameError}</p>
+                )}
               </div>
 
               {/* Email Field */}
               <div>
-                <label className="block text-sm font-medium text-black mb-1">
+                <label className="block text-sm font-medium text-white mb-1">
                   Work Email <span className="text-red-500">*</span>
                 </label>
-                <div className="relative border border-gray-400 rounded-lg">
+                <div className="relative border border-white rounded-lg">
                   <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
                     type="email"
                     value={registerData.email}
-                    onChange={(e) => handleRegisterInputChange('email', e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 border border-white rounded-lg bg-transparent text-black !placeholder-gray-500 focus:outline-none"
+                    onChange={(e) => handleRegisterEmailChange(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 border border-transparent rounded-lg bg-transparent text-white placeholder-white focus:outline-none"
                     placeholder="your@email.com"
-                    required
                     disabled={loading}
                   />
                 </div>
+                {registerEmailError && (
+                  <p className="text-red-400 text-sm mt-1">{registerEmailError}</p>
+                )}
               </div>
 
               {/* Phone Number Field */}
               <div>
-                <label className="block text-sm font-medium text-black mb-1">
+                <label className="block text-sm font-medium text-white mb-1">
                   Phone Number <span className="text-red-500">*</span>
                 </label>
-                <div className="relative border border-gray-400 rounded-lg">
+                <div className="relative border border-white rounded-lg">
                   <FiPhone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
                     type="tel"
                     value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 border border-white rounded-lg bg-transparent text-black !placeholder-gray-500 focus:outline-none"
+                    onChange={(e) => handlePhoneChange(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 border border-transparent rounded-lg bg-transparent text-white placeholder-white focus:outline-none"
                     placeholder="Enter phone number"
-                    required
                     disabled={loading}
                   />
                 </div>
+                {phoneError && (
+                  <p className="text-red-400 text-sm mt-1">{phoneError}</p>
+                )}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-black mb-1">
+                <label className="block text-sm font-medium text-white mb-1">
                   Company Name <span className="text-red-500">*</span>
                 </label>
-                <div className="relative border border-gray-400 rounded-lg">
+                <div className="relative border border-white rounded-lg">
                   <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
                     type="text"
                     value={companyData.company_name}
-                    onChange={(e) =>
-                      setCompanyData((prev) => ({ ...prev, company_name: e.target.value }))
-                    }
-                    className="w-full pl-10 pr-4 py-3 border border-white rounded-lg bg-transparent text-black !placeholder-gray-500 focus:outline-none"
+                    onChange={(e) => handleCompanyNameChange(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 border border-transparent rounded-lg bg-transparent text-white placeholder-white focus:outline-none"
                     placeholder="Your Company"
-                    required
                     disabled={loading}
                   />
                 </div>
+                {companyNameError && (
+                  <p className="text-red-400 text-sm mt-1">{companyNameError}</p>
+                )}
               </div>
 
               {/* No. of Employees Field */}
               <div>
-                <label className="block text-sm font-medium text-black mb-1">
+                <label className="block text-sm font-medium text-white mb-1">
                   No. of Employees <span className="text-red-500">*</span>
                 </label>
-                <div className="relative border border-gray-400 rounded-lg">
+                <div className="relative border border-white rounded-lg">
                   <input
                     type="number"
                     value={companyData.no_employees || ""}
-                    onChange={(e) =>
-                      setCompanyData((prev) => ({
-                        ...prev,
-                        no_employees: e.target.value,
-                      }))
-                    }
-                    className="w-full pl-4 pr-4 py-3 border border-white rounded-lg bg-transparent text-black !placeholder-gray-500 focus:outline-none"
+                    onChange={(e) => handleEmployeesChange(e.target.value)}
+                    className="w-full pl-4 pr-4 py-3 border border-transparent rounded-lg bg-transparent text-white placeholder-white focus:outline-none"
                     placeholder="50"
-                    required
                     disabled={loading}
                   />
                 </div>
+                {employeesError && (
+                  <p className="text-red-400 text-sm mt-1">{employeesError}</p>
+                )}
               </div>
 
               <button
                 type="submit"
                 disabled={loading || !!passwordError}
-                className="w-full bg-gradient-to-r from-[#35bce7] to-[#082a87] text-[#ffffff] py-3 rounded-lg font-medium hover:bg-gray-100 transition-colors"
+                className="w-full bg-white text-[#2D243C] py-3 rounded-lg font-medium hover:bg-gray-100 transition-colors"
               >
                 {loading ? (
                   <>
@@ -557,7 +695,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                     setIsRegisterMode(false);
                     setError('');
                   }}
-                  className="text-md font-medium text-black"
+                  className="text-sm text-white"
                   disabled={loading}
                 >
                   Already have an account? Sign in
@@ -567,7 +705,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           ) : (
             /* Login Form */
             <form onSubmit={handleLogin} className="space-y-6">
-              <h1 className="text-[1.7rem] text-center font-[600] text-gray-900">
+              <h1 className="text-[1.7rem] text-center font-[600] text-white">
                 Login to ERPNext.ai
               </h1>
               {/* Error Message */}
@@ -579,37 +717,38 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 
               {/* Email Field */}
               <div>
-                <label className="block text-md font-medium text-black mb-1">
+                <label className="block text-sm font-medium text-white mb-1">
                   Email Address
                 </label>
-                <div className="relative border border-gray-400 rounded-lg">
+                <div className="relative border border-white rounded-lg">
                   <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
                     type="email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 border border-white !placeholder-shown:font-[20px] rounded-lg bg-transparent text-black !placeholder-gray-500 focus:outline-none"
+                    onChange={(e) => handleEmailChange(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 border border-transparent rounded-lg bg-transparent text-white placeholder-white focus:outline-none"
                     placeholder="Enter Email Address"
-                    required
                     disabled={loading}
                   />
                 </div>
+                {emailError && (
+                  <p className="text-red-400 text-sm mt-1">{emailError}</p>
+                )}
               </div>
 
               {/* Password Field */}
               <div>
-                <label className="block text-md font-medium text-black mb-1">
+                <label className="block text-sm font-medium text-white mb-1">
                   Password
                 </label>
-                <div className="relative border border-gray-400 rounded-lg">
+                <div className="relative border border-white rounded-lg">
                   <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
                     type={showPassword ? 'text' : 'password'}
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 border border-white rounded-lg bg-transparent text-black !placeholder-gray-500 focus:outline-none"
+                    onChange={(e) => handlePasswordChange(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 border border-transparent rounded-lg bg-transparent text-white placeholder-white focus:outline-none"
                     placeholder="••••••"
-                    required
                     disabled={loading}
                   />
                   <button
@@ -621,24 +760,16 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
                 </div>
+                {loginPasswordError && (
+                  <p className="text-red-400 text-sm mt-1">{loginPasswordError}</p>
+                )}
               </div>
-
-              {/* Forgot Password */}
-              {/* <div className="text-right">
-                <button
-                  type="button"
-                  className="text-md font-medium text-black"
-                  disabled={loading}
-                >
-                  Forgot Password?
-                </button>
-              </div> */}
 
               {/* Login Button */}
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full items-center bg-gradient-to-r from-[#35bce7] to-[#082a87] text-[#ffffff] py-3 rounded-lg font-medium hover:bg-gray-100 transition-colors"
+                className="w-full bg-white text-[#2D243C] py-3 rounded-lg font-medium hover:bg-gray-100 transition-colors"
               >
                 {loading ? (
                   <>
@@ -655,7 +786,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                   <div className="w-full border-t border-gray-300" />
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white text-gray-500">or</span>
+                  <span className="px-2 bg-transparent text-white">or</span>
                 </div>
               </div>
 
@@ -666,7 +797,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                   setIsRegisterMode(true);
                   setError('');
                 }}
-                className="w-full bg-white border border-[#35bce7] text-[#35bce7] py-3 rounded-lg font-medium hover:bg-gray-100 transition-colors"
+                className="w-full bg-white border border-white text-[#2D243C] py-3 rounded-lg font-medium hover:bg-gray-100 transition-colors"
                 disabled={loading}
               >
                 Create New Account

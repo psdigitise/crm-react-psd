@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import { getUserSession, clearUserSession } from '../utils/session';
+import { AUTH_TOKEN } from '../api/apiUrl';
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -71,7 +72,7 @@ export function Sidebar({ isCollapsed, onToggle, activeItem, onItemClick }: Side
 
     fetch(`http://103.214.132.20:8002/api/v2/document/Company/${encodeURIComponent(companyName)}`, {
       headers: {
-        'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6',
+        'Authorization': AUTH_TOKEN,
         'Content-Type': 'application/json'
       }
     })
