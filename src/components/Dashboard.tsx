@@ -714,7 +714,7 @@ export function Dashboard() {
                     style={{ backgroundColor: item.color }}
                   />
                   <span className={`text-sm ${theme === 'dark' ? 'text-gray-500' : 'text-gray-600'}`}>{item.name}</span>
-                  <span className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{item.value}</span>
+                  <span className={`text-sm font-semibold  ${theme === 'dark' ? 'text-gray-500' : 'text-gray-600'}`}>{item.value}</span>
                 </div>
               ))}
             </div>

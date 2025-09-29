@@ -837,9 +837,14 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
                         }`}
                     >
                       <option value="">Gender</option>
-                      {genderOptions.map(gender => (
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Transgender">Transgender</option>
+                      <option value="Other">Other</option>
+                      <option value="Prefer Not to say">Prefer Not to say</option>
+                      {/* {genderOptions.map(gender => (
                         <option key={gender} value={gender}>{gender}</option>
-                      ))}
+                      ))} */}
                     </select>
                   </div>
                 </>

@@ -1087,7 +1087,16 @@ export function CreateContactModal({ isOpen, onClose, onSubmit }: CreateContactM
         return;
       }
 
-      const apiUrl = 'http://103.214.132.20:8002/api/v2/document/Address';
+      const sessionCompany = session?.company;
+
+      let apiUrl = 'http://103.214.132.20:8002/api/v2/document/Address';
+
+      if (sessionCompany) {
+        const params = new URLSearchParams({
+          filters: JSON.stringify({ company: sessionCompany })
+        });
+        apiUrl += `?${params.toString()}`;
+      }
 
       const response = await fetch(apiUrl, {
         method: 'GET',
@@ -1125,7 +1134,7 @@ export function CreateContactModal({ isOpen, onClose, onSubmit }: CreateContactM
 
     try {
       const session = getUserSession();
-      const sessionCompany = session?.company || ''; 
+      const sessionCompany = session?.company || '';
       if (!session) {
         showToast('Session not found', { type: 'error' });
         return;
@@ -1136,7 +1145,7 @@ export function CreateContactModal({ isOpen, onClose, onSubmit }: CreateContactM
         first_name: formData.first_name,
         last_name: formData.last_name,
         gender: formData.gender,
-        company:sessionCompany,
+        company: sessionCompany,
         company_name: formData.company_name,
         designation: formData.designation,
         ...(formData.middle_name && { middle_name: formData.middle_name }),
@@ -1218,10 +1227,10 @@ export function CreateContactModal({ isOpen, onClose, onSubmit }: CreateContactM
                 New Contact
               </h3>
               <div className="flex items-center space-x-2">
-                <button className={`p-1 rounded transition-colors ${theme === 'dark' ? 'hover:bg-purple-800/50' : 'hover:bg-gray-100'
+                {/* <button className={`p-1 rounded transition-colors ${theme === 'dark' ? 'hover:bg-purple-800/50' : 'hover:bg-gray-100'
                   }`}>
                   <ExternalLink className={`w-4 h-4 ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`} />
-                </button>
+                </button> */}
                 <button
                   onClick={onClose}
                   className={`p-1 rounded transition-colors ${theme === 'dark' ? 'hover:bg-purple-800/50' : 'hover:bg-gray-100'
@@ -1357,10 +1366,12 @@ export function CreateContactModal({ isOpen, onClose, onSubmit }: CreateContactM
                         : 'bg-gray-50/80 border-gray-300'
                         }`}
                     >
-                      <option value="">Gender</option>
+                      <option value="">Select Gender</option>
                       <option value="Male">Male</option>
                       <option value="Female">Female</option>
+                      <option value="Transgender">Transgender</option>
                       <option value="Other">Other</option>
+                      <option value="Prefer Not to say">Prefer Not to say</option>
                     </select>
                   </div>
                 </div>
@@ -1404,7 +1415,7 @@ export function CreateContactModal({ isOpen, onClose, onSubmit }: CreateContactM
                       }`}
                   />
                 </div>
-                {/* /* Address with custom dropdown - Updated version */ }
+                {/* /* Address with custom dropdown - Updated version */}
                 <div>
                   <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
                     }`}>
@@ -1482,9 +1493,9 @@ export function CreateContactModal({ isOpen, onClose, onSubmit }: CreateContactM
                 <button
                   type="submit"
                   disabled={loading}
-                  className={`w-full px-6 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${theme === 'dark'
-                    ? 'bg-black hover:bg-gray-900 text-white'
-                    : 'bg-black hover:bg-gray-900 text-white'
+                  className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 sm:text-sm ${theme === 'dark'
+                    ? 'bg-purple-600 text-white hover:bg-purple-700 focus:ring-purple-500'
+                    : 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500'
                     }`}
                 >
                   {loading ? 'Creating...' : 'Create'}
