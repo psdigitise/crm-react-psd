@@ -152,15 +152,19 @@ export default function OrganizationDetails({
   // Add state for contact detail view
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [selectedTab, setSelectedTab] = useState<'deals' | 'contacts'>('deals');
+  // Add state for delete confirmation popup
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const API_BASE = 'http://103.214.132.20:8002/api/method';
 
   // Fetch address options from API
   const fetchAddressOptions = async () => {
     try {
+      const session = getUserSession();
+      const sessionCompany = session?.company;
       setLoadingAddresses(true);
       
-      const session = getUserSession();
+      // const session = getUserSession();
       if (!session) {
         showToast('Session not found', { type: 'error' });
         return;
@@ -175,7 +179,7 @@ export default function OrganizationDetails({
         body: JSON.stringify({
           txt: "",
           doctype: "Address",
-          filters: null
+          filters: sessionCompany ? { company: sessionCompany } : null
         })
       });
 
@@ -892,9 +896,8 @@ export default function OrganizationDetails({
     handleSave(field, editValue);
   };
 
+  // Delete organization function
   const handleDelete = async () => {
-    if (!confirm('Are you sure you want to delete this organization?')) return;
-
     if (!organization) return;
 
     try {
@@ -929,7 +932,18 @@ export default function OrganizationDetails({
       showToast('Failed to delete organization', { type: 'error' });
     } finally {
       setLoading(false);
+      setShowDeleteConfirm(false);
     }
+  };
+
+  // Show delete confirmation popup
+  const handleDeleteClick = () => {
+    setShowDeleteConfirm(true);
+  };
+
+  // Cancel delete operation
+  const handleCancelDelete = () => {
+    setShowDeleteConfirm(false);
   };
 
   const getDropdownOptions = (field: string) => {
@@ -1000,7 +1014,10 @@ export default function OrganizationDetails({
                     } focus:outline-none`}
                   disabled={loading}
                 >
-                  <option value="">Select {label.toLowerCase()}...</option>
+                  <option  className={`w-full px-2 py-1 border rounded ${isDark
+                    ? 'bg-dark-secondary text-white border-white/20 focus:border-purple-400'
+                    : 'bg-white text-gray-800 border-gray-300 focus:border-blue-400'
+                    } focus:outline-none`} value="">Select {label.toLowerCase()}...</option>
                   {getDropdownOptions(field as string).map((option) => (
                     <option
                       key={option}
@@ -1104,6 +1121,65 @@ export default function OrganizationDetails({
     setSelectedContact(null);
   };
 
+  // Delete Confirmation Popup Component
+  const DeleteConfirmationPopup = () => {
+    if (!showDeleteConfirm) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className={`p-6 rounded-lg max-w-md w-full mx-4 ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-gray-800'}`}>
+              Delete Organization
+            </h3>
+            <button
+              onClick={handleCancelDelete}
+              className={`p-1 rounded-full ${isDark ? 'hover:bg-gray-700 text-white' : 'hover:bg-gray-200 text-gray-600'}`}
+            >
+              <X size={20} />
+            </button>
+          </div>
+          
+          <div className="mb-6">
+            <p className={`${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
+              Are you sure you want to delete <span className="font-semibold">{organization?.organization_name}</span>? This action cannot be undone and all associated data will be permanently removed.
+            </p>
+          </div>
+          
+          <div className="flex gap-3 justify-end">
+            <button
+              onClick={handleCancelDelete}
+              className={`px-4 py-2 rounded border ${isDark 
+                ? 'border-gray-600 text-white hover:bg-gray-700' 
+                : 'border-gray-300 text-gray-700 hover:bg-gray-100'
+              } transition-colors`}
+              disabled={loading}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleDelete}
+              className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700 transition-colors flex items-center gap-2"
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 size={16} />
+                  Delete
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // If a deal is selected, show DealDetailView
   if (selectedDeal) {
     return (
@@ -1145,221 +1221,226 @@ export default function OrganizationDetails({
   }
 
   return (
-    <div className={`min-h-screen flex ${theme === "dark" ? "bg-transparent text-white" : "bg-white text-gray-800"}`}>
-      {fetchLoading && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 p-4 rounded-lg flex items-center gap-3">
-            <Loader2 className="w-6 h-6 animate-spin text-purple-600" />
-            <span>Loading organization details...</span>
+    <>
+      <div className={`min-h-screen flex ${theme === "dark" ? "bg-transparent text-white" : "bg-white text-gray-800"}`}>
+        {fetchLoading && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-gray-800 p-4 rounded-lg flex items-center gap-3">
+              <Loader2 className="w-6 h-6 animate-spin text-purple-600" />
+              <span>Loading organization details...</span>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Sidebar */}
-      <div className={`w-80 border-r ${isDark ? "border-white bg-transparent" : "border-gray-300 bg-white"}`}>
-        {/* Header */}
-        <div className={`p-4 border-b ${isDark ? "border-white/20" : "border-gray-300"}`}>
-          <div className="flex items-center gap-3 mb-4">
-            <ImageDisplay />
-            <div>
-              <h2 className="text-lg font-semibold">{organization.organization_name || 'No name'}</h2>
-              <span className="text-xs text-gray-400 block">{organization.industry || 'No industry'}</span>
+        {/* Delete Confirmation Popup */}
+        <DeleteConfirmationPopup />
+
+        {/* Sidebar */}
+        <div className={`w-80 border-r ${isDark ? "border-white bg-transparent" : "border-gray-300 bg-white"}`}>
+          {/* Header */}
+          <div className={`p-4 border-b ${isDark ? "border-white/20" : "border-gray-300"}`}>
+            <div className="flex items-center gap-3 mb-4">
+              <ImageDisplay />
+              <div>
+                <h2 className="text-lg font-semibold">{organization.organization_name || 'No name'}</h2>
+                <span className="text-xs text-gray-400 block">{organization.industry || 'No industry'}</span>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex flex-wrap gap-2 mb-4 transition-all duration-300">
+              <button
+                onClick={handleDeleteClick}
+                disabled={loading}
+                className="flex items-center gap-1 text-red-500 border border-red-500 px-2 py-1 rounded text-sm disabled:opacity-50 hover:bg-red-50 dark:hover:bg-red-900/20"
+              >
+                <Trash2 size={14} /> Delete
+              </button>
             </div>
           </div>
 
-          {/* Actions */}
-          <div className="flex flex-wrap gap-2 mb-4 transition-all duration-300">
-            <button
-              onClick={handleDelete}
-              disabled={loading}
-              className="flex items-center gap-1 text-red-500 border border-red-500 px-2 py-1 rounded text-sm disabled:opacity-50 hover:bg-red-50"
-            >
-              <Trash2 size={14} /> Delete
-            </button>
+          {/* Details */}
+          <div className="p-4 space-y-3">
+            <h3 className="text-sm font-semibold mb-1">Details</h3>
+            {renderEditableField("Organization Name", "organization_name")}
+            {renderEditableField("Website", "website")}
+            {renderEditableField("Territory", "territory")}
+            {renderEditableField("Industry", "industry")}
+            {renderEditableField("No. of Employees", "no_of_employees")}
+            {renderEditableField("Currency", "currency")}
+            {renderEditableField("Annual Revenue", "annual_revenue")}
+            {renderEditableField("Address", "address")}
           </div>
         </div>
 
-        {/* Details */}
-        <div className="p-4 space-y-3">
-          <h3 className="text-sm font-semibold mb-1">Details</h3>
-          {renderEditableField("Organization Name", "organization_name")}
-          {renderEditableField("Website", "website")}
-          {renderEditableField("Territory", "territory")}
-          {renderEditableField("Industry", "industry")}
-          {renderEditableField("No. of Employees", "no_of_employees")}
-          {renderEditableField("Currency", "currency")}
-          {renderEditableField("Annual Revenue", "annual_revenue")}
-          {renderEditableField("Address", "address")}
+        {/* Main Content */}
+        <div className="flex-1">
+          {/* Tabs */}
+          <div className={`flex items-center gap-6 border-b p-6 ${isDark ? "border-white/20" : "border-gray-300"}`}>
+            <button
+              onClick={() => setSelectedTab('deals')}
+              className={`flex items-center gap-1 font-medium relative ${selectedTab === 'deals' ? '' : 'text-gray-500'
+                }`}
+            >
+              <Zap size={16} />
+              Deals
+              <span className="bg-black text-white text-xs rounded-full px-1.5 ml-1">
+                {deals.length}
+              </span>
+            </button>
+            <button
+              onClick={() => setSelectedTab('contacts')}
+              className={`flex items-center gap-1 font-medium relative ${selectedTab === 'contacts' ? '' : 'text-gray-500'
+                }`}
+            >
+              <User2 size={16} />
+              Contacts
+              <span className="bg-black text-white text-xs rounded-full px-1.5 ml-1">
+                {contacts.length}
+              </span>
+            </button>
+          </div>
+
+          {/* Table Data */}
+          <div className="p-6 overflow-x-auto">
+            {selectedTab === 'deals' ? (
+              deals.length > 0 ? (
+                <table className="min-w-full text-sm border-collapse">
+                  <thead>
+                    <tr className={`${isDark ? "bg-white/10" : "bg-gray-100"} text-left`}>
+                      {/* <th className="p-3 font-medium">Deal Name</th> */}
+                      <th className="p-3 font-medium">Organization</th>
+                      <th className="p-3 font-medium">Amount</th>
+                      <th className="p-3 font-medium">Status</th>
+                      <th className="p-3 font-medium">Email</th>
+                      <th className="p-3 font-medium">Mobile No</th>
+                      <th className="p-3 font-medium">Deal Owner</th>
+                      <th className="p-3 font-medium">Last Modified</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {deals.map((deal, idx) => (
+                      <tr
+                        key={idx}
+                        className={`border-t ${isDark ? 'border-white/10' : 'border-gray-200'} hover:bg-opacity-50 ${isDark ? 'hover:bg-white/5' : 'hover:bg-gray-50'} cursor-pointer transition-colors`}
+                        onClick={() => handleDealClick(deal)}
+                      >
+                        {/* <td className="p-3">
+                          <div className="flex items-center gap-2">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${isDark ? 'bg-purple-600' : 'bg-gray-300'} text-white`}>
+                              {deal.name?.[0]?.toUpperCase() || 'D'}
+                            </div>
+                            <span className="font-medium">{deal.name}</span>
+                          </div>
+                        </td> */}
+                        <td className="p-3">{deal.organization}</td>
+                        <td className="p-3">
+                          <span className="font-medium">{deal.currency} {deal.annual_revenue?.toLocaleString() || '0.00'}</span>
+                        </td>
+                        <td className="p-3">
+                          <div className="flex items-center gap-2">
+                            <div className={`w-3 h-3 rounded-full ${deal.status === 'Qualification' ? 'bg-blue-500' :
+                              deal.status === 'Demo/Making' ? 'bg-yellow-500' :
+                                deal.status === 'Proposal/Quotation' ? 'bg-orange-500' :
+                                  deal.status === 'Negotiation' ? 'bg-purple-500' :
+                                    deal.status === 'Won' ? 'bg-green-500' :
+                                      deal.status === 'Lost' ? 'bg-red-500' :
+                                        'bg-gray-500'
+                              }`}></div>
+                            <span className="text-sm">{deal.status || 'Qualification'}</span>
+                          </div>
+                        </td>
+                        <td className="p-3">{deal.email || 'N/A'}</td>
+                        <td className="p-3">{deal.mobile_no || 'N/A'}</td>
+                        <td className="p-3">
+                          <div className="flex items-center gap-2">
+                            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${isDark ? 'bg-gray-600' : 'bg-gray-400'} text-white`}>
+                              {deal.deal_owner?.[0]?.toUpperCase() || 'U'}
+                            </div>
+                            <span className="text-sm">{deal.deal_owner || 'Unassigned'}</span>
+                          </div>
+                        </td>
+                        <td className="p-3">
+                          <span className="text-sm text-gray-500">
+                            {formatDate(deal.modified)}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <div className="flex items-center justify-center min-h-[calc(100vh-250px)]">
+                  <div className="flex flex-col items-center gap-2 p-8 text-gray-500">
+                    <Zap className="w-8 h-8 text-gray-400" />
+                    <p>No Deals Found</p>
+                  </div>
+                </div>
+              )
+            ) : (
+              contacts.length > 0 ? (
+                <table className="min-w-full text-sm border-collapse">
+                  <thead>
+                    <tr className={`${isDark ? "bg-white/10" : "bg-gray-100"} text-left`}>
+                      <th className="p-3 font-medium">Name</th>
+                      <th className="p-3 font-medium">Full Name</th>
+                      <th className="p-3 font-medium">Email</th>
+                      <th className="p-3 font-medium">Phone</th>
+                      <th className="p-3 font-medium">Company</th>
+                      <th className="p-3 font-medium">Last Modified</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {contacts.map((contact, idx) => (
+                      <tr
+                        key={idx}
+                        className={`border-t ${isDark ? 'border-white/10' : 'border-gray-200'} hover:bg-opacity-50 ${isDark ? 'hover:bg-white/5' : 'hover:bg-gray-50'} cursor-pointer transition-colors`}
+                        onClick={() => handleContactClick(contact)}
+                      >
+                        <td className="p-3">
+                          <div className="flex items-center gap-2">
+                            {contact.image ? (
+                              <img 
+                                src={getFullImageUrl(contact.image)} 
+                                alt="Contact" 
+                                className="w-8 h-8 rounded-full object-cover"
+                                onError={(e) => {
+                                  e.target.style.display = 'none';
+                                  e.target.nextElementSibling.style.display = 'flex';
+                                }}
+                              />
+                            ) : null}
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${isDark ? 'bg-purple-600' : 'bg-gray-300'} text-white ${contact.image ? 'hidden' : 'flex'}`}>
+                              {contact.name?.[0]?.toUpperCase() || 'C'}
+                            </div>
+                            <span className="font-medium">{contact.name}</span>
+                          </div>
+                        </td>
+                        <td className="p-3">{contact.full_name}</td>
+                        <td className="p-3">{contact.email_id}</td>
+                        <td className="p-3">{contact.mobile_no || 'N/A'}</td>
+                        <td className="p-3">{contact.company_name}</td>
+                        <td className="p-3">
+                          <span className="text-sm text-gray-500">
+                            {formatDate(contact.modified)}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <div className="flex items-center justify-center min-h-[calc(100vh-250px)]">
+                  <div className="flex flex-col items-center gap-2 p-8 text-gray-500">
+                    <User2 className="w-8 h-8 text-gray-400" />
+                    <p>No Contacts Found</p>
+                  </div>
+                </div>
+              )
+            )}
+          </div>
         </div>
       </div>
-
-      {/* Main Content */}
-      <div className="flex-1">
-        {/* Tabs */}
-        <div className={`flex items-center gap-6 border-b p-6 ${isDark ? "border-white/20" : "border-gray-300"}`}>
-          <button
-            onClick={() => setSelectedTab('deals')}
-            className={`flex items-center gap-1 font-medium relative ${selectedTab === 'deals' ? '' : 'text-gray-500'
-              }`}
-          >
-            <Zap size={16} />
-            Deals
-            <span className="bg-black text-white text-xs rounded-full px-1.5 ml-1">
-              {deals.length}
-            </span>
-          </button>
-          <button
-            onClick={() => setSelectedTab('contacts')}
-            className={`flex items-center gap-1 font-medium relative ${selectedTab === 'contacts' ? '' : 'text-gray-500'
-              }`}
-          >
-            <User2 size={16} />
-            Contacts
-            <span className="bg-black text-white text-xs rounded-full px-1.5 ml-1">
-              {contacts.length}
-            </span>
-          </button>
-        </div>
-
-        {/* Table Data */}
-        <div className="p-6 overflow-x-auto">
-          {selectedTab === 'deals' ? (
-            deals.length > 0 ? (
-              <table className="min-w-full text-sm border-collapse">
-                <thead>
-                  <tr className={`${isDark ? "bg-white/10" : "bg-gray-100"} text-left`}>
-                    {/* <th className="p-3 font-medium">Deal Name</th> */}
-                    <th className="p-3 font-medium">Organization</th>
-                    <th className="p-3 font-medium">Amount</th>
-                    <th className="p-3 font-medium">Status</th>
-                    <th className="p-3 font-medium">Email</th>
-                    <th className="p-3 font-medium">Mobile No</th>
-                    <th className="p-3 font-medium">Deal Owner</th>
-                    <th className="p-3 font-medium">Last Modified</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {deals.map((deal, idx) => (
-                    <tr
-                      key={idx}
-                      className={`border-t ${isDark ? 'border-white/10' : 'border-gray-200'} hover:bg-opacity-50 ${isDark ? 'hover:bg-white/5' : 'hover:bg-gray-50'} cursor-pointer transition-colors`}
-                      onClick={() => handleDealClick(deal)}
-                    >
-                      {/* <td className="p-3">
-                        <div className="flex items-center gap-2">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${isDark ? 'bg-purple-600' : 'bg-gray-300'} text-white`}>
-                            {deal.name?.[0]?.toUpperCase() || 'D'}
-                          </div>
-                          <span className="font-medium">{deal.name}</span>
-                        </div>
-                      </td> */}
-                      <td className="p-3">{deal.organization}</td>
-                      <td className="p-3">
-                        <span className="font-medium">{deal.currency} {deal.annual_revenue?.toLocaleString() || '0.00'}</span>
-                      </td>
-                      <td className="p-3">
-                        <div className="flex items-center gap-2">
-                          <div className={`w-3 h-3 rounded-full ${deal.status === 'Qualification' ? 'bg-blue-500' :
-                            deal.status === 'Demo/Making' ? 'bg-yellow-500' :
-                              deal.status === 'Proposal/Quotation' ? 'bg-orange-500' :
-                                deal.status === 'Negotiation' ? 'bg-purple-500' :
-                                  deal.status === 'Won' ? 'bg-green-500' :
-                                    deal.status === 'Lost' ? 'bg-red-500' :
-                                      'bg-gray-500'
-                            }`}></div>
-                          <span className="text-sm">{deal.status || 'Qualification'}</span>
-                        </div>
-                      </td>
-                      <td className="p-3">{deal.email || 'N/A'}</td>
-                      <td className="p-3">{deal.mobile_no || 'N/A'}</td>
-                      <td className="p-3">
-                        <div className="flex items-center gap-2">
-                          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${isDark ? 'bg-gray-600' : 'bg-gray-400'} text-white`}>
-                            {deal.deal_owner?.[0]?.toUpperCase() || 'U'}
-                          </div>
-                          <span className="text-sm">{deal.deal_owner || 'Unassigned'}</span>
-                        </div>
-                      </td>
-                      <td className="p-3">
-                        <span className="text-sm text-gray-500">
-                          {formatDate(deal.modified)}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              <div className="flex items-center justify-center min-h-[calc(100vh-250px)]">
-                <div className="flex flex-col items-center gap-2 p-8 text-gray-500">
-                  <Zap className="w-8 h-8 text-gray-400" />
-                  <p>No Deals Found</p>
-                </div>
-              </div>
-            )
-          ) : (
-            contacts.length > 0 ? (
-              <table className="min-w-full text-sm border-collapse">
-                <thead>
-                  <tr className={`${isDark ? "bg-white/10" : "bg-gray-100"} text-left`}>
-                    <th className="p-3 font-medium">Name</th>
-                    <th className="p-3 font-medium">Full Name</th>
-                    <th className="p-3 font-medium">Email</th>
-                    <th className="p-3 font-medium">Phone</th>
-                    <th className="p-3 font-medium">Company</th>
-                    <th className="p-3 font-medium">Last Modified</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {contacts.map((contact, idx) => (
-                    <tr
-                      key={idx}
-                      className={`border-t ${isDark ? 'border-white/10' : 'border-gray-200'} hover:bg-opacity-50 ${isDark ? 'hover:bg-white/5' : 'hover:bg-gray-50'} cursor-pointer transition-colors`}
-                      onClick={() => handleContactClick(contact)}
-                    >
-                      <td className="p-3">
-                        <div className="flex items-center gap-2">
-                          {contact.image ? (
-                            <img 
-                              src={getFullImageUrl(contact.image)} 
-                              alt="Contact" 
-                              className="w-8 h-8 rounded-full object-cover"
-                              onError={(e) => {
-                                e.target.style.display = 'none';
-                                e.target.nextElementSibling.style.display = 'flex';
-                              }}
-                            />
-                          ) : null}
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${isDark ? 'bg-purple-600' : 'bg-gray-300'} text-white ${contact.image ? 'hidden' : 'flex'}`}>
-                            {contact.name?.[0]?.toUpperCase() || 'C'}
-                          </div>
-                          <span className="font-medium">{contact.name}</span>
-                        </div>
-                      </td>
-                      <td className="p-3">{contact.full_name}</td>
-                      <td className="p-3">{contact.email_id}</td>
-                      <td className="p-3">{contact.mobile_no || 'N/A'}</td>
-                      <td className="p-3">{contact.company_name}</td>
-                      <td className="p-3">
-                        <span className="text-sm text-gray-500">
-                          {formatDate(contact.modified)}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              <div className="flex items-center justify-center min-h-[calc(100vh-250px)]">
-                <div className="flex flex-col items-center gap-2 p-8 text-gray-500">
-                  <User2 className="w-8 h-8 text-gray-400" />
-                  <p>No Contacts Found</p>
-                </div>
-              </div>
-            )
-          )}
-        </div>
-      </div>
-    </div>
+    </>
   );
 }

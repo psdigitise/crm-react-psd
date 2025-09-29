@@ -5,7 +5,7 @@ import { showToast } from '../utils/toast';
 import { getUserSession } from '../utils/session';
 import { AUTH_TOKEN } from '../api/apiUrl';
 
-// Address Modal Component (same as in CreateContactModal)
+// Address Modal Component
 interface CreateAddressModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -25,95 +25,76 @@ function CreateAddressModal({ isOpen, onClose, onSubmit }: CreateAddressModalPro
 
   if (!isOpen) return null;
 
-  // const handleSubmit = async (e: React.FormEvent) => {
-  //   e.preventDefault();
-  //   setLoading(true);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
 
-  //   try {
-  //     const session = getUserSession();
-  //     const sessionCompany = session?.company || '';
-  //     if (!session) {
-  //       showToast('Session not found', { type: 'error' });
-  //       return;
-  //     }
+    try {
+      const session = getUserSession();
+      const sessionCompany = session?.company || '';
+      if (!session) {
+        showToast('Session not found', { type: 'error' });
+        return;
+      }
 
-  //     // Prepare payload according to new API structure
-  //     const payload = {
-  //       doc: {
-  //         doctype: "CRM Organization",
-  //         organization_name: formData.organization_name,
-  //         website: formData.website,
-  //         address: formData.address,
-  //         company: sessionCompany,
-  //         annual_revenue: formData.annual_revenue ? parseFloat(formData.annual_revenue) : undefined,
-  //         industry: formData.industry,
-  //         no_of_employees: formData.no_of_employees,
-  //         territory: formData.territory
-  //       }
-  //     };
+      // Prepare payload for address creation
+      const payload = {
+        doc: {
+          doctype: "Address",
+          address_title: formData.address_title,
+          address_type: formData.address_type,
+          address_line1: formData.address_line1,
+          city: formData.city,
+          country: formData.country,
+          company: sessionCompany,
+          is_primary_address: 0,
+          is_shipping_address: 0
+        }
+      };
 
-  //     // Remove undefined fields from the doc object
-  //     Object.keys(payload.doc).forEach(key => {
-  //       if (payload.doc[key] === undefined || payload.doc[key] === '') {
-  //         delete payload.doc[key];
-  //       }
-  //     });
+      // Remove undefined fields from the doc object
+      Object.keys(payload.doc).forEach(key => {
+        if (payload.doc[key] === undefined || payload.doc[key] === '') {
+          delete payload.doc[key];
+        }
+      });
 
-  //     const apiUrl = 'http://103.214.132.20:8002/api/method/frappe.client.insert';
+      const apiUrl = 'http://103.214.132.20:8002/api/method/frappe.client.insert';
 
-  //     const response = await fetch(apiUrl, {
-  //       method: 'POST',
-  //       headers: {
-  //         'Content-Type': 'application/json',
-  //         'Authorization': `token 1b670b800ace83b:f32066fea74d0fe`
-  //       },
-  //       body: JSON.stringify(payload)
-  //     });
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `token 1b670b800ace83b:f32066fea74d0fe`
+        },
+        body: JSON.stringify(payload)
+      });
 
-  //     if (!response.ok) {
-  //       const errorText = await response.text();
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
+      }
 
-  //       // Check if it's a duplicate entry error (409 Conflict)
-  //       if (response.status === 409) {
-  //         showToast('An organization with this name already exists', { type: 'error' });
-  //         return;
-  //       }
+      const result = await response.json();
+      showToast('Address created successfully', { type: 'success' });
+      onSubmit(result);
+      onClose();
 
-  //       throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
-  //     }
-
-  //     const result = await response.json();
-  //     showToast('Organization created successfully', { type: 'success' });
-  //     onSubmit(result);
-  //     onClose();
-
-  //     // Reset form
-  //     setFormData({
-  //       organization_name: '',
-  //       website: '',
-  //       address: '',
-  //       no_of_employees: '',
-  //       territory: '',
-  //       industry: '',
-  //       annual_revenue: ''
-  //     });
-  //   } catch (error) {
-  //     console.error('Error creating organization:', error);
-
-  //     // Handle specific error types
-  //     if (error instanceof Error) {
-  //       if (error.message.includes('DuplicateEntryError') || error.message.includes('409')) {
-  //         showToast('An organization with this name already exists', { type: 'error' });
-  //       } else {
-  //         showToast('Failed to create organization', { type: 'error' });
-  //       }
-  //     } else {
-  //       showToast('Failed to create organization', { type: 'error' });
-  //     }
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
+      // Reset form
+      setFormData({
+        address_title: '',
+        address_type: 'Billing',
+        address_line1: '',
+        city: '',
+        country: 'India'
+      });
+    } catch (error) {
+      console.error('Error creating address:', error);
+      showToast('Failed to create address', { type: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({
@@ -407,7 +388,18 @@ export function CreateOrganizationModal({ isOpen, onClose, onSubmit }: CreateOrg
         return;
       }
 
-      const apiUrl = 'http://103.214.132.20:8002/api/v2/document/Address';
+      const sessionCompany = session?.company;
+
+      // Build URL with filter parameter
+      let apiUrl = 'http://103.214.132.20:8002/api/v2/document/Address';
+
+      // Add filter if session company exists
+      if (sessionCompany) {
+        const params = new URLSearchParams({
+          filters: JSON.stringify({ company: sessionCompany })
+        });
+        apiUrl += `?${params.toString()}`;
+      }
 
       const response = await fetch(apiUrl, {
         method: 'GET',
@@ -432,8 +424,14 @@ export function CreateOrganizationModal({ isOpen, onClose, onSubmit }: CreateOrg
 
   const handleAddressCreated = (newAddress: any) => {
     // Add the new address to the list and select it
-    setAddresses(prev => [...prev, newAddress]);
-    setFormData(prev => ({ ...prev, address: newAddress.name || newAddress.address_title }));
+    const addressName = newAddress.data?.name || newAddress.name;
+    const addressTitle = newAddress.data?.address_title || newAddress.address_title;
+
+    setAddresses(prev => [...prev, {
+      name: addressName,
+      address_title: addressTitle
+    }]);
+    setFormData(prev => ({ ...prev, address: addressName }));
     setShowAddressModal(false);
   };
 
@@ -536,6 +534,14 @@ export function CreateOrganizationModal({ isOpen, onClose, onSubmit }: CreateOrg
     });
   };
 
+  const handleAddressChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    if (e.target.value === 'create_new') {
+      setShowAddressModal(true);
+    } else {
+      handleChange(e);
+    }
+  };
+
   return (
     <>
       <div className="fixed inset-0 z-50 overflow-y-auto">
@@ -552,10 +558,6 @@ export function CreateOrganizationModal({ isOpen, onClose, onSubmit }: CreateOrg
                 New Organization
               </h3>
               <div className="flex items-center space-x-2">
-                {/* <button className={`p-1 rounded transition-colors ${theme === 'dark' ? 'hover:bg-purple-800/50' : 'hover:bg-gray-100'
-                  }`}>
-                  <ExternalLink className={`w-4 h-4 ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`} />
-                </button> */}
                 <button
                   onClick={onClose}
                   className={`p-1 rounded transition-colors ${theme === 'dark' ? 'hover:bg-purple-800/50' : 'hover:bg-gray-100'
@@ -674,8 +676,8 @@ export function CreateOrganizationModal({ isOpen, onClose, onSubmit }: CreateOrg
                     <option value="11-50">11-50</option>
                     <option value="51-200">51-200</option>
                     <option value="201-500">201-500</option>
-                    <option value="500+">500+</option>
-                    <option value="1000+">1000+</option>
+                    {/* <option value="500+">500+</option>
+                    <option value="1000+">1000+</option> */}
                   </select>
                 </div>
 
@@ -713,15 +715,7 @@ export function CreateOrganizationModal({ isOpen, onClose, onSubmit }: CreateOrg
                     <select
                       name="address"
                       value={formData.address}
-                      onChange={(e) => {
-                        if (e.target.value === 'create_new') {
-                          setShowAddressModal(true);
-                          // Reset the select to the previous value
-                          e.target.value = formData.address;
-                        } else {
-                          handleChange(e);
-                        }
-                      }}
+                      onChange={handleAddressChange}
                       disabled={loading || loadingAddresses}
                       className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm appearance-none ${theme === 'dark'
                         ? 'bg-white-31 border-white text-white'

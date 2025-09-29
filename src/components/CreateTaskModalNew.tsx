@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import { showToast } from '../utils/toast';
@@ -64,6 +64,7 @@ export function CreateTaskModalNew({
   useEffect(() => {
     if (isOpen) {
       fetchUsers();
+      // Reset form when modal opens
       setTaskForm({
         title: '',
         description: '',
@@ -107,42 +108,6 @@ export function CreateTaskModalNew({
     } catch (error) {
       console.error('Error fetching users:', error);
       showToast('Failed to load users', { type: 'error' });
-    }
-  };
-
-  // Function to fetch table data after task creation
-  const fetchTableData = async () => {
-    try {
-      const apiUrl = 'http://103.214.132.20:8002/api/method/crm.api.doc.get_data';
-
-      const requestBody = {
-        doctype: "CRM Task",
-        fields: ["name", "title", "status", "priority", "due_date", "assigned_to", "reference_docname"],
-        filters: {},
-        limit: 20,
-        order_by: "creation desc"
-      };
-
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
-        },
-        body: JSON.stringify(requestBody)
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const result = await response.json();
-      console.log('Table data fetched successfully:', result);
-      return result;
-    } catch (error) {
-      console.error('Error fetching table data:', error);
-      showToast('Failed to refresh task list', { type: 'error' });
-      return null;
     }
   };
 
@@ -191,17 +156,12 @@ export function CreateTaskModalNew({
       const result = await response.json();
       showToast(`Task ${isEditMode ? 'updated' : 'created'} successfully`, { type: 'success' });
       
-      // Call the table API to refresh data
-      const tableData = await fetchTableData();
+      // Call the parent component's onSubmit with the result
+      onSubmit(result);
       
-      // Pass both the created task result and table data to onSubmit
-      onSubmit({
-        taskResult: result,
-        tableData: tableData
-      });
-      
+      // Call onSuccess to trigger refresh in parent component
       if (onSuccess) {
-        onSuccess(); // This will trigger the refresh
+        onSuccess(); // This will trigger the refresh in parent
       }
       
       // Reset form and close modal

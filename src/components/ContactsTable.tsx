@@ -855,17 +855,19 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
         <div className="flex items-center space-x-2">
           <div className="flex items-center space-x-2">
             {/* Export Excel Button */}
-            <div title="Export Excel">
-              <button
-                onClick={() => exportToExcel(getFilteredAndSortedData(), 'Contacts')}
-                className={`px-3 py-2 text-sm border rounded-lg transition-colors ${theme === 'dark'
-                  ? 'border-purple-500/30 text-white hover:bg-purple-800/50'
-                  : 'border-gray-300 hover:bg-gray-50'
-                  }`}
-              >
-                <Download className="w-4 h-4" />
-              </button>
-            </div>
+            {getFilteredAndSortedData().length > 0 && (
+              <div title="Export Excel">
+                <button
+                  onClick={() => exportToExcel(getFilteredAndSortedData(), 'Contacts')}
+                  className={`px-3 py-2 text-sm border rounded-lg transition-colors ${theme === 'dark'
+                    ? 'border-purple-500/30 text-white hover:bg-purple-800/50'
+                    : 'border-gray-300 hover:bg-gray-50'
+                    }`}
+                >
+                  <Download className="w-4 h-4" />
+                </button>
+              </div>
+            )}
           </div>
 
           <span className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>

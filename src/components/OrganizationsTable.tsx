@@ -976,18 +976,20 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
 
         <div className="flex items-center space-x-2">
           <div className="flex items-center space-x-2">
-            {/* Export Excel Button */}
-            <div title="Export Excel">
-              <button
-                onClick={() => exportToExcel(getFilteredAndSortedData(), 'Organizations')}
-                className={`px-3 py-2 text-sm border rounded-lg transition-colors ${theme === 'dark'
-                  ? 'border-purple-500/30 text-white hover:bg-purple-800/50'
-                  : 'border-gray-300 hover:bg-gray-50'
-                  }`}
-              >
-                <Download className="w-4 h-4" />
-              </button>
-            </div>
+
+            {getFilteredAndSortedData().length > 0 && (
+              <div title="Export Excel">
+                <button
+                  onClick={() => exportToExcel(getFilteredAndSortedData(), 'Organizations')}
+                  className={`px-3 py-2 text-sm border rounded-lg transition-colors ${theme === 'dark'
+                    ? 'border-purple-500/30 text-white hover:bg-purple-800/50'
+                    : 'border-gray-300 hover:bg-gray-50'
+                    }`}
+                >
+                  <Download className="w-4 h-4" />
+                </button>
+              </div>
+            )}
           </div>
 
           <span className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>
@@ -1020,7 +1022,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
                flex items-center justify-between
                w-[90%] max-w-md
                z-50 transition-all duration-300 ease-out">
-         <span className="ml-4 font-semibold text-sm text-gray-800 dark:text-white">
+          <span className="ml-4 font-semibold text-sm text-gray-800 dark:text-white">
             {selectedIds.length} {selectedIds.length === 1 ? "Row" : "Rows"} selected
           </span>
 
@@ -1246,7 +1248,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
           <div className="text-center py-12">
             <div className={theme === 'dark' ? 'text-white' : 'text-gray-500'}>No results found</div>
             <div className={`text-sm mt-1 ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}`}>
-             Please adjust your search criteria or filters
+              Please adjust your search criteria or filters
             </div>
           </div>
         )}
