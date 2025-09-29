@@ -4,6 +4,8 @@ import { useTheme } from './ThemeProvider';
 import { showToast } from '../utils/toast';
 import { getUserSession } from '../utils/session';
 import { DealDetailView } from './DealDetailView'; // Import the DealDetailView component
+import { apiAxios, apiUrl } from '../api/apiUrl';
+import axios from 'axios';
 
 interface Contact {
   id: string;
@@ -28,6 +30,7 @@ interface Contact {
   email_id?: string;
   mobile_no?: string;
   owner?: string;
+  address?: string; // Added address field
   image_url?: string; // Added property for image URL
   reference_deals?: Array<{
     name: string;
@@ -124,12 +127,16 @@ export default function ContactDetails({
   const [newPhoneValue, setNewPhoneValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const selectRef = useRef<HTMLSelectElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null); // Added ref for textarea
   const isDark = theme === "dark";
 
   const [uploadingImage, setUploadingImage] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
   const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
   const [showDealDetail, setShowDealDetail] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
 
   useEffect(() => {
     if (onDealViewChange) {
@@ -150,6 +157,10 @@ export default function ContactDetails({
     }
     if ((editingField === 'salutation' || editingField === 'gender') && selectRef.current) {
       selectRef.current.focus();
+    }
+    if (editingField === 'address' && textareaRef.current) {
+      textareaRef.current.focus();
+      textareaRef.current.select();
     }
   }, [editingField]);
 
@@ -207,6 +218,7 @@ export default function ContactDetails({
           email_id: contactData.email_id,
           mobile_no: contactData.mobile_no,
           owner: contactData.owner,
+          address: contactData.address || 'N/A', // Added address mapping
 
           // FIX: Map the 'image' field from API to 'image_url' for display
           image_url: contactData.image ? `http://103.214.132.20:8002${contactData.image}` : null,
@@ -577,14 +589,13 @@ export default function ContactDetails({
   };
 
   const handleDelete = async () => {
-    // if (!confirm('Are you sure you want to delete this contact?')) return;
-
     try {
-      setLoading(true);
+      setDeleteLoading(true);
 
       const session = getUserSession();
       if (!session) {
         showToast('Session not found', { type: 'error' });
+        setShowDeleteConfirm(false);
         return;
       }
 
@@ -602,13 +613,81 @@ export default function ContactDetails({
       }
 
       showToast('Contact deleted successfully', { type: 'success' });
-      onBack();
+      setShowDeleteConfirm(false); // Close the popup
+      onBack(); // Navigate back
     } catch (error) {
       console.error('Error deleting contact:', error);
       showToast('Failed to delete contact', { type: 'error' });
+      setShowDeleteConfirm(false); // Close the popup even on error
     } finally {
-      setLoading(false);
+      setDeleteLoading(false);
     }
+  };
+
+  const handleCancelDelete = () => {
+    setShowDeleteConfirm(false);
+    setDeleteLoading(false);
+  };
+
+  // Delete Confirmation Popup Component
+  const DeleteConfirmationPopup = () => {
+    if (!showDeleteConfirm) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className={`p-6 rounded-lg max-w-md w-full mx-4 ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-gray-800'}`}>
+              Delete Contact
+            </h3>
+            <button
+              onClick={handleCancelDelete}
+              className={`p-1 rounded-full ${isDark ? 'hover:bg-gray-700 text-white' : 'hover:bg-gray-200 text-gray-600'}`}
+              disabled={deleteLoading}
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          <div className="mb-6">
+            <p className={`${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
+              Are you sure you want to delete <span className="font-semibold">{contact.full_name || contact.name}</span>? This action cannot be undone and all associated data will be permanently removed.
+            </p>
+          </div>
+
+          <div className="flex gap-3 justify-end">
+            <button
+              onClick={handleCancelDelete}
+              className={`px-4 py-2 rounded border ${isDark
+                ? 'border-gray-600 text-white hover:bg-gray-700'
+                : 'border-gray-300 text-gray-700 hover:bg-gray-100'
+                } transition-colors`}
+              disabled={deleteLoading}
+            >
+              Cancel
+            </button>
+            <button
+            onClick={handleDelete}
+              
+              className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700 transition-colors flex items-center gap-2"
+              disabled={deleteLoading}
+            >
+              {deleteLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 size={16} />
+                  Delete
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   // Add email functionality
@@ -753,7 +832,14 @@ export default function ContactDetails({
 
   const renderEmailDropdownField = () => {
     const emails = contact.email_ids || [];
+    const hasEmailId = contact.email_id && contact.email_id !== 'N/A';
 
+    // If there's a primary email_id, show it as editable text field
+    if (hasEmailId && emails.length === 0) {
+      return renderEditableField("Email Address", "email_id");
+    }
+
+    // If there are multiple emails in email_ids array, show dropdown
     const handleEmailSelectChange = (e) => {
       const selectedValue = e.target.value;
       if (selectedValue === 'create_new') {
@@ -818,7 +904,7 @@ export default function ContactDetails({
           )}
         </div>
 
-        {/* Add email input modal - keep existing modal code */}
+        {/* Add email input modal */}
         {addingEmail && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className={`p-4 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-white'} w-96`}>
@@ -870,9 +956,16 @@ export default function ContactDetails({
     );
   };
 
+
   // Render phone dropdown field
   const renderPhoneDropdownField = () => {
     const phones = contact.phone_nos || [];
+    const hasMobileNo = contact.mobile_no && contact.mobile_no !== 'N/A';
+
+    // If there's a primary mobile_no, show it as editable text field
+    if (hasMobileNo && phones.length === 0) {
+      return renderEditableField("Mobile No", "mobile_no");
+    }
 
     return (
       <div className="text-sm flex gap-1 group">
@@ -889,7 +982,6 @@ export default function ContactDetails({
                 const selectedValue = e.target.value;
                 if (selectedValue === 'create_new') {
                   setAddingPhone(true);
-                  // Reset the select to show the first phone or empty
                   e.target.value = phones.find(p => p.is_primary_phone || p.is_primary_mobile_no)?.phone || phones[0]?.phone || '';
                 }
               }}
@@ -943,7 +1035,7 @@ export default function ContactDetails({
           )}
         </div>
 
-        {/* Add phone input */}
+        {/* Add phone input modal */}
         {addingPhone && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className={`p-4 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-white'} w-96`}>
@@ -990,6 +1082,88 @@ export default function ContactDetails({
               </div>
             </div>
           </div>
+        )}
+      </div>
+    );
+  };
+
+
+  // Render address field with textarea for multi-line input
+  const renderAddressField = () => {
+    const isEditing = editingField === "address";
+    const value = contact.address as string;
+
+    const [addressOptions, setAddressOptions] = useState<{ name: string }[]>([]);
+    const [loadingAddresses, setLoadingAddresses] = useState(false);
+
+    // 🔹 Fetch address options from API on mount
+    useEffect(() => {
+      const fetchAddresses = async () => {
+        try {
+          setLoadingAddresses(true);
+          const res = await axios.get("http://103.214.132.20:8002/api/v2/document/Address", {
+            headers: {
+              Authorization: `token 1b670b800ace83b:f32066fea74d0fe`, // 🔹 attach token
+            },
+          });
+          setAddressOptions(res.data.data || []);
+        } catch (err) {
+          console.error("Error fetching addresses:", err);
+        } finally {
+          setLoadingAddresses(false);
+        }
+      };
+
+      if (isEditing) fetchAddresses();
+    }, [isEditing]);
+
+    return (
+      <div className="text-sm flex gap-1 group">
+        <p className={`w-32 ${isDark ? "text-white/80" : "text-gray-600"}`}>Address:</p>
+
+        {isEditing ? (
+          <div className="flex-1">
+            {loadingAddresses ? (
+              <p className="text-xs text-gray-500">Loading addresses...</p>
+            ) : (
+              <select
+                value={editValue}
+                onChange={(e) => setEditValue(e.target.value)}
+                onBlur={() => handleBlur("address")}
+                className={`w-full px-2 py-1 border rounded ${isDark
+                  ? "bg-white text-black border-white/20 focus:border-purple-400"
+                  : "bg-white text-gray-800 border-gray-300 focus:border-blue-400"
+                  } focus:outline-none`}
+                disabled={loading}
+              >
+                <option value="">Select Address</option>
+                {addressOptions.map((addr) => (
+                  <option key={addr.name} value={addr.name}>
+                    {addr.name}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+        ) : (
+          <div
+            className={`flex-1 cursor-pointer px-2 py-1 rounded transition-colors hover:bg-opacity-50 ${isDark
+              ? "text-white hover:bg-white/10"
+              : "text-gray-800 hover:bg-gray-100"
+              } min-h-[40px]`}
+            onClick={() => handleSingleClick("address")}
+            title="Click to edit address"
+          >
+            {value && value !== "N/A" ? (
+              <div className="whitespace-pre-wrap">{value}</div>
+            ) : (
+              <span className="italic opacity-60">Select Address</span>
+            )}
+          </div>
+        )}
+
+        {loading && editingField === "address" && (
+          <Loader2 className="w-4 h-4 animate-spin text-purple-600 ml-1" />
         )}
       </div>
     );
@@ -1148,7 +1322,8 @@ export default function ContactDetails({
             {/* Buttons */}
             <div className="flex flex-wrap gap-2 mb-4 transition-all duration-300">
               <button
-                onClick={handleDelete}
+                // onClick={handleDelete}
+                onClick={() => setShowDeleteConfirm(true)}
                 disabled={loading}
                 className="flex items-center gap-1 text-red-500 border border-red-500 px-2 py-1 rounded text-sm disabled:opacity-50 hover:bg-red-50"
               >
@@ -1168,6 +1343,7 @@ export default function ContactDetails({
             {renderEditableField("Gender", "gender")}
             {renderEditableField("Company Name", "company_name")}
             {renderEditableField("Designation", "designation")}
+            {renderAddressField()} {/* Added address field */}
           </div>
         </div>
       )}
@@ -1277,6 +1453,7 @@ export default function ContactDetails({
           </div>
         </div>
       )}
+       <DeleteConfirmationPopup />
     </div>
   );
 }
