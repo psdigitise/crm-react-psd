@@ -120,6 +120,7 @@ export default function ContactDetails({
   const [editingField, setEditingField] = useState<string | null>(null);
   const [editValue, setEditValue] = useState<string>('');
   const [loading, setLoading] = useState(false);
+  const [emailloading, setemailLoading] = useState(false);
   const [fetchLoading, setFetchLoading] = useState(false);
   const [addingEmail, setAddingEmail] = useState(false);
   const [addingPhone, setAddingPhone] = useState(false);
@@ -136,6 +137,24 @@ export default function ContactDetails({
   const [showDealDetail, setShowDealDetail] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [selectedEmail, setSelectedEmail] = useState('');
+  const [selectedPhone, setSelectedPhone] = useState('');
+
+  useEffect(() => {
+    // Find and set the primary or first email
+    const primaryEmail =
+      contact.email_ids?.find(e => e.is_primary)?.email_id ||
+      contact.email_ids?.[0]?.email_id ||
+      (contact.email_id !== 'N/A' ? contact.email_id : '');
+    setSelectedEmail(primaryEmail);
+
+    // Find and set the primary or first phone
+    const primaryPhone =
+      contact.phone_nos?.find(p => p.is_primary_phone || p.is_primary_mobile_no)?.phone ||
+      contact.phone_nos?.[0]?.phone ||
+      (contact.mobile_no !== 'N/A' ? contact.mobile_no : '');
+    setSelectedPhone(primaryPhone);
+  }, [contact.email_ids, contact.phone_nos, contact.email_id, contact.mobile_no]);
 
 
   useEffect(() => {
@@ -667,8 +686,8 @@ export default function ContactDetails({
               Cancel
             </button>
             <button
-            onClick={handleDelete}
-              
+              onClick={handleDelete}
+
               className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700 transition-colors flex items-center gap-2"
               disabled={deleteLoading}
             >
@@ -683,6 +702,106 @@ export default function ContactDetails({
                   Delete
                 </>
               )}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const AddEmailPopup = () => {
+    if (!addingEmail) return null;
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className={`p-4 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-white'} w-96`}>
+          <h3 className="text-lg font-semibold mb-3">Add Email Address</h3>
+          <div className="flex gap-2 mb-3">
+            <input
+              type="email"
+              value={newEmailValue}
+              onChange={(e) => setNewEmailValue(e.target.value)}
+              placeholder="Enter email address..."
+              className={`flex-1 px-3 py-2 border rounded ${isDark
+                ? 'bg-gray-700 text-white border-white/20 focus:border-green-400'
+                : 'bg-white text-gray-800 border-gray-300 focus:border-green-400'
+                } focus:outline-none`}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleAddEmail();
+                else if (e.key === 'Escape') {
+                  setAddingEmail(false);
+                  setNewEmailValue('');
+                }
+              }}
+              autoFocus
+            />
+          </div>
+          <div className="flex gap-2 justify-end">
+            <button
+              onClick={() => {
+                setAddingEmail(false);
+                setNewEmailValue('');
+              }}
+              className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleAddEmail}
+              disabled={loading || !newEmailValue.trim()}
+              className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              {loading ? <Loader2 size={16} className="animate-spin" /> : null}
+              Add Email
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const AddPhonePopup = () => {
+    if (!addingPhone) return null;
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className={`p-4 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-white'} w-96`}>
+          <h3 className="text-lg font-semibold mb-3">Add Phone Number</h3>
+          <div className="flex gap-2 mb-3">
+            <input
+              type="tel"
+              value={newPhoneValue}
+              onChange={(e) => setNewPhoneValue(e.target.value)}
+              placeholder="Enter phone number..."
+              className={`flex-1 px-3 py-2 border rounded ${isDark
+                ? 'bg-gray-700 text-white border-white/20 focus:border-green-400'
+                : 'bg-white text-gray-800 border-gray-300 focus:border-green-400'
+                } focus:outline-none`}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleAddPhone();
+                else if (e.key === 'Escape') {
+                  setAddingPhone(false);
+                  setNewPhoneValue('');
+                }
+              }}
+              autoFocus
+            />
+          </div>
+          <div className="flex gap-2 justify-end">
+            <button
+              onClick={() => {
+                setAddingPhone(false);
+                setNewPhoneValue('');
+              }}
+              className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleAddPhone}
+              disabled={loading || !newPhoneValue.trim()}
+              className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              {loading ? <Loader2 size={16} className="animate-spin" /> : null}
+              Add Phone
             </button>
           </div>
         </div>
@@ -839,14 +958,92 @@ export default function ContactDetails({
       return renderEditableField("Email Address", "email_id");
     }
 
-    // If there are multiple emails in email_ids array, show dropdown
-    const handleEmailSelectChange = (e) => {
+    if (!hasEmailId && emails.length === 0) {
+      return (
+        <div className="text-sm flex gap-1 group">
+          <p className={`w-32 ${isDark ? "text-white/80" : "text-gray-600"}`}>Email Address:</p>
+          <div className="flex-1">
+            <button
+              onClick={() => setAddingEmail(true)}
+              className={`text-sm px-2 py-1 rounded border ${isDark ? 'border-gray-600 text-white hover:bg-gray-700' : 'border-gray-300 text-gray-700 hover:bg-gray-100'}`}
+            >
+              + Add Email
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // Handle email selection change
+    const handleEmailSelectChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
       const selectedValue = e.target.value;
+
       if (selectedValue === 'create_new') {
         setAddingEmail(true);
-        e.target.value = emails.find(e => e.is_primary)?.email_id || emails[0]?.email_id || '';
+        e.target.value = selectedEmail; // Reset to previous value
+        return;
       }
-    }
+
+      // Update the selected email in state
+      setSelectedEmail(selectedValue);
+
+      // Call API to update primary email using set_value
+      try {
+        setemailLoading(true);
+
+        const session = getUserSession();
+        if (!session) {
+          showToast('Session not found', { type: 'error' });
+          return;
+        }
+
+        const apiUrl = 'http://103.214.132.20:8002/api/method/frappe.client.set_value';
+
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `token 1b670b800ace83b:f32066fea74d0fe`
+          },
+          body: JSON.stringify({
+            doctype: "Contact",
+            name: contact.id,
+            fieldname: "email_id",
+            value: selectedValue
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const result = await response.json();
+        const updatedContactData = result.message;
+
+        if (updatedContactData) {
+          // Update the contact with the response data
+          const updatedContact = {
+            ...contact,
+            email_id: selectedValue,
+            // Update other fields from the response if available
+            full_name: updatedContactData.full_name || contact.full_name,
+            modified: updatedContactData.modified || contact.modified,
+          };
+
+          setContact(updatedContact);
+          onSave(updatedContact);
+          showToast('Email updated successfully', { type: 'success' });
+        }
+
+      } catch (error) {
+        console.error('Error updating primary email:', error);
+        showToast('Failed to update primary email', { type: 'error' });
+        // Revert selection on error
+        setSelectedEmail(contact.email_id || emails.find(e => e.is_primary)?.email_id || emails[0]?.email_id || '');
+      } finally {
+        setemailLoading(false);
+      }
+    };
 
     return (
       <div className="text-sm flex gap-1 group">
@@ -854,12 +1051,13 @@ export default function ContactDetails({
         <div className="flex-1 flex items-center gap-2">
           {emails.length > 0 ? (
             <select
+              //value={selectedEmail}
+              onChange={handleEmailSelectChange}
               className={`flex-1 px-2 py-1 border rounded w-full ${isDark
                 ? 'bg-dark-secondary text-white border-white/20 focus:border-purple-400'
                 : 'bg-white w-full text-gray-800 border-gray-300 focus:border-blue-400'
                 } focus:outline-none`}
-              defaultValue={emails.find(e => e.is_primary)?.email_id || emails[0]?.email_id || ''}
-              onChange={handleEmailSelectChange}
+              disabled={loading}
             >
               {emails.map((emailItem, index) => (
                 <option className="bg-white w-full text-gray-800" key={index} value={emailItem.email_id}>
@@ -902,62 +1100,17 @@ export default function ContactDetails({
               </option>
             </select>
           )}
+          {emailloading && (
+            <Loader2 className="w-4 h-4 animate-spin text-purple-600" />
+          )}
         </div>
-
-        {/* Add email input modal */}
-        {addingEmail && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className={`p-4 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-white'} w-96`}>
-              <h3 className="text-lg font-semibold mb-3">Add Email Address</h3>
-              <div className="flex gap-2 mb-3">
-                <input
-                  type="email"
-                  value={newEmailValue}
-                  onChange={(e) => setNewEmailValue(e.target.value)}
-                  placeholder="Enter email address..."
-                  className={`flex-1 px-3 py-2 border rounded ${isDark
-                    ? 'bg-gray-700 text-white border-white/20 focus:border-green-400'
-                    : 'bg-white text-gray-800 border-gray-300 focus:border-green-400'
-                    } focus:outline-none`}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      handleAddEmail();
-                    } else if (e.key === 'Escape') {
-                      setAddingEmail(false);
-                      setNewEmailValue('');
-                    }
-                  }}
-                  autoFocus
-                />
-              </div>
-              <div className="flex gap-2 justify-end">
-                <button
-                  onClick={() => {
-                    setAddingEmail(false);
-                    setNewEmailValue('');
-                  }}
-                  className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleAddEmail}
-                  disabled={loading || !newEmailValue.trim()}
-                  className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                >
-                  {loading ? <Loader2 size={16} className="animate-spin" /> : null}
-                  Add Email
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     );
   };
 
 
   // Render phone dropdown field
+  // Replace your current renderPhoneDropdownField function with this updated version
   const renderPhoneDropdownField = () => {
     const phones = contact.phone_nos || [];
     const hasMobileNo = contact.mobile_no && contact.mobile_no !== 'N/A';
@@ -967,32 +1120,114 @@ export default function ContactDetails({
       return renderEditableField("Mobile No", "mobile_no");
     }
 
+    if (!hasMobileNo && phones.length === 0) {
+      return (
+        <div className="text-sm flex gap-1 group">
+          <p className={`w-32 ${isDark ? "text-white/80" : "text-gray-600"}`}>Mobile No:</p>
+          <div className="flex-1">
+            <button
+              onClick={() => setAddingPhone(true)}
+              className={`text-sm px-2 py-1 rounded border ${isDark ? 'border-gray-600 text-white hover:bg-gray-700' : 'border-gray-300 text-gray-700 hover:bg-gray-100'}`}
+            >
+              + Add Mobile no
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // Handle phone selection change
+    const handlePhoneSelectChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+      const selectedValue = e.target.value;
+
+      if (selectedValue === 'create_new') {
+        setAddingPhone(true);
+        e.target.value = selectedPhone; // Reset to previous value
+        return;
+      }
+
+      // Update the selected phone in state
+      setSelectedPhone(selectedValue);
+
+      // Call API to update primary mobile number using set_value
+      try {
+        setLoading(true);
+
+        const session = getUserSession();
+        if (!session) {
+          showToast('Session not found', { type: 'error' });
+          return;
+        }
+
+        const apiUrl = 'http://103.214.132.20:8002/api/method/frappe.client.set_value';
+
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `token 1b670b800ace83b:f32066fea74d0fe`
+          },
+          body: JSON.stringify({
+            doctype: "Contact",
+            name: contact.id,
+            fieldname: "mobile_no",
+            value: selectedValue
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const result = await response.json();
+        const updatedContactData = result.message;
+
+        if (updatedContactData) {
+          // Update the contact with the response data
+          const updatedContact = {
+            ...contact,
+            mobile_no: selectedValue,
+            // Update other fields from the response if available
+            full_name: updatedContactData.full_name || contact.full_name,
+            modified: updatedContactData.modified || contact.modified,
+          };
+
+          setContact(updatedContact);
+          onSave(updatedContact);
+          showToast('Mobile number updated successfully', { type: 'success' });
+        }
+
+      } catch (error) {
+        console.error('Error updating primary mobile number:', error);
+        showToast('Failed to update primary mobile number', { type: 'error' });
+        // Revert selection on error
+        setSelectedPhone(contact.mobile_no || phones.find(p => p.is_primary_phone || p.is_primary_mobile_no)?.phone || phones[0]?.phone || '');
+      } finally {
+        setLoading(false);
+      }
+    };
+
     return (
       <div className="text-sm flex gap-1 group">
         <p className={`w-32 ${isDark ? "text-white/80" : "text-gray-600"}`}>Mobile No:</p>
         <div className="flex-1 flex items-center gap-2">
           {phones.length > 0 ? (
             <select
-              className={`flex-1 px-2 py-1 border rounded ${isDark
+              //value={selectedPhone}
+              onChange={handlePhoneSelectChange}
+              className={`flex-1 px-2 py-1 border rounded w-full ${isDark
                 ? 'bg-dark-secondary text-white border-white/20 focus:border-purple-400'
-                : 'bg-white text-gray-800 border-gray-300 focus:border-blue-400'
+                : 'bg-white w-full text-gray-800 border-gray-300 focus:border-blue-400'
                 } focus:outline-none`}
-              defaultValue={phones.find(p => p.is_primary_phone || p.is_primary_mobile_no)?.phone || phones[0]?.phone || ''}
-              onChange={(e) => {
-                const selectedValue = e.target.value;
-                if (selectedValue === 'create_new') {
-                  setAddingPhone(true);
-                  e.target.value = phones.find(p => p.is_primary_phone || p.is_primary_mobile_no)?.phone || phones[0]?.phone || '';
-                }
-              }}
+              disabled={loading}
             >
               {phones.map((phoneItem, index) => (
-                <option className="bg-white text-gray-800" key={index} value={phoneItem.phone}>
+                <option className="bg-white w-full text-gray-800" key={index} value={phoneItem.phone}>
                   {phoneItem.phone} {(phoneItem.is_primary_phone || phoneItem.is_primary_mobile_no) ? '(Primary)' : ''}
                 </option>
               ))}
               <option
-                className="bg-white text-gray-800"
+                className="bg-white w-full text-gray-800 border-t border-gray-200"
                 value="create_new"
                 style={{
                   borderTop: '1px solid #e5e7eb',
@@ -1009,19 +1244,13 @@ export default function ContactDetails({
                 ? 'bg-dark-secondary text-white border-white/20 focus:border-purple-400'
                 : 'bg-white text-gray-800 border-gray-300 focus:border-blue-400'
                 } focus:outline-none`}
-              onChange={(e) => {
-                const selectedValue = e.target.value;
-                if (selectedValue === 'create_new') {
-                  setAddingPhone(true);
-                  e.target.value = '';
-                }
-              }}
+              onChange={handlePhoneSelectChange}
             >
               <option className="bg-white text-gray-800" value="">
                 No phone numbers
               </option>
               <option
-                className="bg-white text-gray-800"
+                className="bg-white w-full text-gray-800 border-t border-gray-200"
                 value="create_new"
                 style={{
                   borderTop: '1px solid #e5e7eb',
@@ -1033,60 +1262,13 @@ export default function ContactDetails({
               </option>
             </select>
           )}
+          {loading && (
+            <Loader2 className="w-4 h-4 animate-spin text-purple-600" />
+          )}
         </div>
-
-        {/* Add phone input modal */}
-        {addingPhone && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className={`p-4 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-white'} w-96`}>
-              <h3 className="text-lg font-semibold mb-3">Add Phone Number</h3>
-              <div className="flex gap-2 mb-3">
-                <input
-                  type="tel"
-                  value={newPhoneValue}
-                  onChange={(e) => setNewPhoneValue(e.target.value)}
-                  placeholder="Enter phone number..."
-                  className={`flex-1 px-3 py-2 border rounded ${isDark
-                    ? 'bg-gray-700 text-white border-white/20 focus:border-green-400'
-                    : 'bg-white text-gray-800 border-gray-300 focus:border-green-400'
-                    } focus:outline-none`}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      handleAddPhone();
-                    } else if (e.key === 'Escape') {
-                      setAddingPhone(false);
-                      setNewPhoneValue('');
-                    }
-                  }}
-                  autoFocus
-                />
-              </div>
-              <div className="flex gap-2 justify-end">
-                <button
-                  onClick={() => {
-                    setAddingPhone(false);
-                    setNewPhoneValue('');
-                  }}
-                  className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleAddPhone}
-                  disabled={loading || !newPhoneValue.trim()}
-                  className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                >
-                  {loading ? <Loader2 size={16} className="animate-spin" /> : null}
-                  Add Phone
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     );
   };
-
 
   // Render address field with textarea for multi-line input
   const renderAddressField = () => {
@@ -1095,6 +1277,8 @@ export default function ContactDetails({
 
     const [addressOptions, setAddressOptions] = useState<{ name: string }[]>([]);
     const [loadingAddresses, setLoadingAddresses] = useState(false);
+    const userSession = getUserSession();
+    const Company = userSession?.company;
 
     // 🔹 Fetch address options from API on mount
     useEffect(() => {
@@ -1104,6 +1288,11 @@ export default function ContactDetails({
           const res = await axios.get("http://103.214.132.20:8002/api/v2/document/Address", {
             headers: {
               Authorization: `token 1b670b800ace83b:f32066fea74d0fe`, // 🔹 attach token
+            },
+            params: {
+              filters: JSON.stringify({
+                company: Company,
+              }),
             },
           });
           setAddressOptions(res.data.data || []);
@@ -1453,7 +1642,9 @@ export default function ContactDetails({
           </div>
         </div>
       )}
-       <DeleteConfirmationPopup />
+      <AddEmailPopup />
+      <AddPhonePopup />
+      <DeleteConfirmationPopup />
     </div>
   );
 }

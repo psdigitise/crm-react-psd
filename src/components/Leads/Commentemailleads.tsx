@@ -9,13 +9,14 @@ import {
 import { useTheme } from '../ThemeProvider';
 import EmailComposerleads from "./EmailComposerleads";
 import EmojiPicker from "emoji-picker-react";
+import { getAuthToken } from "../../api/apiUrl";
 
 // Dummy showToast for demo. Replace with your own toast/snackbar.
 const showToast = (msg, opts) => alert(msg);
 
 // const API_BASE_URL = "http://103.214.132.20:8002/api/v2/document";
 const API_BASE_URL = "http://103.214.132.20:8002/api/method";
-const AUTH_TOKEN = "token 1b670b800ace83b:f32066fea74d0fe";
+const AUTH_TOKEN =  getAuthToken();
 
 // export default function CommentCreate({
 //   reference_doctype = "",

@@ -8,6 +8,7 @@ interface CreateCallLogModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: any) => void;
+  onSuccess?: () => void;
   leadName?: string;
   isEditMode?: boolean;
   OwnersOptions?: any[];
@@ -17,6 +18,7 @@ export function CreateCallLogModal({
   isOpen,
   onClose,
   onSubmit,
+  onSuccess,
   leadName,
   isEditMode = false,
   OwnersOptions = []
@@ -100,6 +102,7 @@ export function CreateCallLogModal({
     try {
       const session = getUserSession();
       const sessionCompany = session?.company || '';
+      const randomId = Math.random().toString(36).substring(2, 8).toUpperCase();
 
       // Prepare the document data according to the new API structure
       const doc = {
@@ -110,7 +113,7 @@ export function CreateCallLogModal({
         type: formData.type,
         duration: formData.duration,
         reference_doctype: formData.reference_doctype,
-        id: leadName || '',
+        id: randomId,
         receiver: formData.receiver,
         caller: formData.caller,
         telephony_medium: "Manual",
@@ -138,7 +141,11 @@ export function CreateCallLogModal({
       const result = await response.json();
       showToast(`Call log ${isEditMode ? 'updated' : 'created'} successfully`, { type: 'success' });
       onSubmit(result);
+      if (onSuccess) {
+        await onSuccess();
+      }
       onClose();
+
 
       // Reset form
       setFormData({
@@ -254,8 +261,8 @@ export function CreateCallLogModal({
                 onChange={handleChange}
                 disabled={loading}
                 className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
-                    ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400'
-                    : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                  ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400'
+                  : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
                   }`}
                 placeholder="To"
                 required
@@ -274,8 +281,8 @@ export function CreateCallLogModal({
                 onChange={handleChange}
                 disabled={loading}
                 className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
-                    ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400'
-                    : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                  ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400'
+                  : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
                   }`}
                 placeholder="From"
                 required
@@ -318,8 +325,8 @@ export function CreateCallLogModal({
                 onChange={handleChange}
                 disabled={loading}
                 className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
-                    ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400'
-                    : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                  ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400'
+                  : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
                   }`}
                 placeholder="Call duration in seconds"
                 min="0"
@@ -338,8 +345,8 @@ export function CreateCallLogModal({
                   onChange={handleChange}
                   disabled={loading || usersLoading}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
-                      ? 'bg-gray-800 border-gray-600 text-white'
-                      : 'bg-white border-gray-300 text-gray-900'
+                    ? 'bg-gray-800 border-gray-600 text-white'
+                    : 'bg-white border-gray-300 text-gray-900'
                     } ${usersLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                   <option className={`w-full px-3 py-2  placeholder:!text-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
@@ -373,8 +380,8 @@ export function CreateCallLogModal({
                   onChange={handleChange}
                   disabled={loading || usersLoading}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
-                      ? 'bg-gray-800 border-gray-600 text-white'
-                      : 'bg-white border-gray-300 text-gray-900'
+                    ? 'bg-gray-800 border-gray-600 text-white'
+                    : 'bg-white border-gray-300 text-gray-900'
                     } ${usersLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                   <option className={`w-full px-3 py-2  placeholder:!text-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
@@ -403,8 +410,8 @@ export function CreateCallLogModal({
               onClick={handleClose}
               disabled={loading}
               className={`px-4 py-2 rounded-lg border transition-colors ${theme === 'dark'
-                  ? 'border-gray-600 text-white hover:bg-gray-800'
-                  : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                ? 'border-gray-600 text-white hover:bg-gray-800'
+                : 'border-gray-300 text-gray-700 hover:bg-gray-50'
                 } disabled:opacity-50`}
             >
               Cancel
@@ -413,8 +420,8 @@ export function CreateCallLogModal({
               type="submit"
               disabled={loading}
               className={`px-4 py-2 rounded-lg text-white flex items-center space-x-2 transition-colors ${theme === 'dark'
-                  ? 'bg-purple-600 hover:bg-purple-700'
-                  : 'bg-green-600 hover:bg-green-700'
+                ? 'bg-purple-600 hover:bg-purple-700'
+                : 'bg-green-600 hover:bg-green-700'
                 } disabled:opacity-50`}
             >
               <span>

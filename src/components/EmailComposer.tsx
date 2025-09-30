@@ -14,7 +14,7 @@ import { IoDocument } from "react-icons/io5";
 import { getUserSession } from "../utils/session"; // Update with correct path
 import axios from "axios";
 import { Deal } from "./DealDetailView";
-import { apiAxios } from "../api/apiUrl";
+import { apiAxios, getAuthToken } from "../api/apiUrl";
 import { showToast } from "../utils/toast";
 
 interface EmailComposerProps {
@@ -32,7 +32,7 @@ interface EmailComposerProps {
 }
 
 const API_BASE_URL = "http://103.214.132.20:8002/api/method/frappe.core.doctype.communication.email.make";
-const AUTH_TOKEN = "token 1b670b800ace83b:f32066fea74d0fe"; // Replace with your actual token
+const AUTH_TOKEN =  getAuthToken(); // Replace with your actual token
 const SEARCH_API_URL = "http://103.214.132.20:8002/api/method/frappe.desk.search.search_link";
 
 interface User {

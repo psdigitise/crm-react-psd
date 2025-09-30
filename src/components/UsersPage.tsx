@@ -35,6 +35,7 @@ export function UsersPage() {
 
   const handleUserSave = (updatedUser: User) => {
     setSelectedUser(updatedUser);
+    setRefreshTrigger(prev => prev + 1);
   };
 
   const handleCreate = () => {
@@ -44,6 +45,7 @@ export function UsersPage() {
   const handleCreateSubmit = (data: any) => {
     console.log('User created successfully:', data);
     setShowCreateModal(false);
+    setRefreshTrigger(prev => prev + 1);
   };
 
   const handleRefresh = () => {
@@ -73,11 +75,10 @@ export function UsersPage() {
   }
 
   return (
-    <div className={`min-h-screen ${
-      theme === 'dark' 
-        ? 'bg-gradient-to-br from-dark-primary via-dark-secondary to-dark-tertiary' 
-        : 'bg-gray-50'
-    }`}>
+    <div className={`min-h-screen ${theme === 'dark'
+      ? 'bg-gradient-to-br from-dark-primary via-dark-secondary to-dark-tertiary'
+      : 'bg-gray-50'
+      }`}>
       <Header
         title="Users"
         subtitle="List"
@@ -93,8 +94,8 @@ export function UsersPage() {
       />
 
       <div className="p-4 sm:p-6">
-        <UsersTable 
-          searchTerm={searchTerm} 
+        <UsersTable
+          searchTerm={searchTerm}
           refreshTrigger={refreshTrigger}
           onUserClick={handleUserClick}
         />

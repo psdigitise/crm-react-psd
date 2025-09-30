@@ -11,6 +11,7 @@ import Picker from '@emoji-mart/react';
 import data from '@emoji-mart/data';
 import axios from "axios";
 import { IoDocument } from "react-icons/io5";
+import { getAuthToken } from "../api/apiUrl";
 
 interface CommentEmailProps {
   fetchComments: () => void;
@@ -22,7 +23,7 @@ interface CommentEmailProps {
 // Dummy showToast for demo. Replace with your own toast/snackbar.
 const showToast = (msg, opts) => alert(msg);
 
-const AUTH_TOKEN = "token 1b670b800ace83b:f32066fea74d0fe";
+const AUTH_TOKEN =  getAuthToken();
 const UPLOAD_API_URL = "http://103.214.132.20:8002/api/method/upload_file";
 
 export default function Commentemail({

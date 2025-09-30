@@ -10,6 +10,7 @@ import { PiDotsThreeOutlineFill } from 'react-icons/pi';
 import { SquarePen } from 'lucide-react';
 import { showToast } from '../../utils/toast';
 import { SiTicktick } from 'react-icons/si';
+import { getAuthToken } from '../../api/apiUrl';
 
 interface CallDetailsPopupProps {
     onClose: () => void;
@@ -27,11 +28,12 @@ interface CallDetailsPopupProps {
         name: string;
         _notes?: Note[];
         _tasks?: Task[];
-
     };
     onEdit?: () => void;
     onTaskCreated?: () => void;
     fetchCallLogs: () => Promise<void>;
+    callLog?: any;
+    onAddTask?: () => void;
 }
 
 interface Note {
@@ -55,7 +57,7 @@ interface Task {
     creation: string;
 }
 
-const AUTH_TOKEN = "token 1b670b800ace83b:f32066fea74d0fe";
+const AUTH_TOKEN =  getAuthToken();
 
 export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTaskCreated, fetchCallLogs }: CallDetailsPopupProps) => {
     const [openMenu, setOpenMenu] = useState(false);
@@ -85,11 +87,15 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
 
     // Fetches tasks and sets notes from props when the component mounts
     useEffect(() => {
-        console.log("Call prop received:", call);
-        console.log("Notes from call:", call._notes);
+        console.log("=== CallDetailsPopup Mount ===");
+        console.log("Call prop:", call);
+        console.log("Call._notes:", call._notes);
+        console.log("Call._tasks:", call._tasks);
+
+        // Initialize with the data from props
         setNote(call._notes || []);
         setTasks(call._tasks || []);
-    }, [call]);
+    }, [call._notes, call._tasks]);
 
     const handleAddNote = async () => {
         if (!noteForm.title) return;
@@ -425,6 +431,7 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
                 setTasks(prevTasks => [...prevTasks, newTask]);
                 setTaskForm({ title: '', description: '', status: 'Open', priority: 'Medium', due_date: '', assigned_to: '' });
                 setShowAddTask(false);
+                onClose();
                 if (onTaskCreated) onTaskCreated();
                 if (fetchCallLogs) await fetchCallLogs();
 

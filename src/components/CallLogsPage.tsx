@@ -13,6 +13,33 @@ import { FaUserFriends } from 'react-icons/fa';
 import { HiOutlineArrowRight } from 'react-icons/hi';
 import { Lead, LeadDetailView } from './LeadDetailView';
 import { Deal, DealDetailView } from './DealDetailView';
+import { CallDetailsPopup } from './CallLogPopups/CallDetailsPopup';
+
+interface Note {
+  name: string;
+  title: string;
+  content: string;
+  reference_doctype: string;
+  reference_docname: string;
+  creation: string;
+  owner: string;
+}
+
+interface Task {
+  due_date: any;
+  assigned_to: string;
+  name: string;
+  title: string;
+  description: string;
+  status: string;
+  priority: string;
+  exp_start_date: string;
+  exp_end_date: string;
+  reference_type: string;
+  reference_docname: string;
+  creation: string;
+  owner: string;
+}
 
 interface CallLog {
   name: string;
@@ -27,12 +54,14 @@ interface CallLog {
   modified?: string;
   caller?: string;
   _receiver?: { label: string };
-  note?: string;
+  _notes?: Note[];
+  _tasks?: Task[];
 }
 
 interface CallLogsPageProps {
   onCreateCallLog: () => void;
   leadName?: string;
+  refreshTrigger?: number;
 }
 
 interface CallForm {
@@ -70,137 +99,6 @@ const typeColors = {
   'Outgoing': 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
   'Missed': 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
 };
-
-// Call Details Popup Component
-interface CallDetailsPopupProps {
-  call: {
-    type: string;
-    caller: string;
-    receiver: string;
-    date: string;
-    duration: string;
-    status: string;
-    name: string;
-    note?: string;
-    reference_doctype?: string;
-  };
-  onClose: () => void;
-  onAddTask: () => void;
-  onEdit: () => void;
-  theme: string;
-  callLog: CallLog; // Add this line
-  onOpenReference: (callLog: CallLog) => void; // Add this too
-}
-
-const CallDetailsPopup: React.FC<CallDetailsPopupProps> = ({ call, onClose, onAddTask, onEdit, theme, callLog, onOpenReference }) => {
-
-
-  const formatDuration = (seconds: string) => {
-    if (!seconds) return "N/A";
-    const total = parseInt(seconds, 10);
-    if (isNaN(total)) return "N/A";
-    const mins = Math.floor(total / 60);
-    const secs = total % 60;
-    return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
-  };
-
-  const formatDateRelative = (dateString: string) => {
-    if (!dateString) return "Monday, Aug 25";
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      weekday: "long",
-      month: "short",
-      day: "numeric",
-    });
-  };
-
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div className={`w-full max-w-md mx-4 rounded-lg shadow-xl ${theme === 'dark' ? 'bg-gray-900' : 'bg-white'}`}>
-        {/* Header */}
-        <div className="flex justify-between items-center p-6 pb-4">
-          <h3 className={`text-xl font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Call Details</h3>
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={onEdit}
-              className={`p-1 ${theme === 'dark' ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-700'}`}
-            >
-              <Edit className="w-5 h-5" />
-            </button>
-            <button
-              onClick={onClose}
-              className={`p-1 ${theme === 'dark' ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-700'}`}
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-
-        <div className="p-6 space-y-6">
-          <div className="space-y-4">
-            {/* Call Type */}
-            <div className="flex items-center gap-2">
-              {call.type === 'Incoming' ? (
-                <SlCallIn className="text-blue-500" />
-              ) : (
-                <SlCallOut className="text-green-500" />
-              )}
-              <span className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>
-                {call.type === 'Incoming' ? 'Incoming Call' : 'Outgoing Call'}
-              </span>
-            </div>
-
-            {/* Participants */}
-            <div className="flex items-center gap-2">
-              <LuSquareUserRound className={theme === 'dark' ? 'text-white' : 'text-gray-900'} />
-              <div className={`flex items-center justify-center w-6 h-6 rounded-full ${theme === 'dark' ? 'bg-gray-600 text-white' : 'bg-gray-200 text-gray-600'} text-sm`}>
-                {call.caller?.charAt(0).toUpperCase() || "?"}
-              </div>
-              <span className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>{call.caller || "Unknown"}</span>
-              <HiOutlineArrowRight className={theme === 'dark' ? 'text-white' : 'text-gray-900'} />
-              <div className={`flex items-center justify-center w-6 h-6 rounded-full ${theme === 'dark' ? 'bg-gray-600 text-white' : 'bg-gray-200 text-gray-600'} text-sm`}>
-                {call.receiver?.charAt(0).toUpperCase() || "?"}
-              </div>
-              <span className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>{call.receiver || "Unknown"}</span>
-            </div>
-
-            {/* Lead Info */}
-            <div
-              onClick={(e) => {
-                e.stopPropagation();
-                onOpenReference(callLog);
-              }}
-              className={`flex items-center gap-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-              <FaUserFriends className={theme === 'dark' ? 'text-white' : 'text-gray-900'} />
-              {call.reference_doctype || "Lead"}
-              <GoArrowUpRight />
-            </div>
-
-            {/* Date */}
-            <div className="flex items-center gap-2">
-              <FaRegClock className={theme === 'dark' ? 'text-white' : 'text-gray-900'} />
-              <span className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>{formatDateRelative(call.date)}</span>
-            </div>
-
-            {/* Duration */}
-            <div className="flex items-center gap-2">
-              <LuTimer className={theme === 'dark' ? 'text-white' : 'text-gray-900'} />
-              <span className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>{formatDuration(call.duration)}</span>
-            </div>
-
-            {/* Status */}
-            <div className="flex items-center gap-2">
-              <BsCheckCircle className={theme === 'dark' ? 'text-white' : 'text-gray-900'} />
-              <span className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>{call.status}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 
 // Edit Call Modal Component
 interface EditCallModalProps {
@@ -492,7 +390,7 @@ const fetchUsers = async (): Promise<User[]> => {
   }
 };
 
-export function CallLogsPage({ onCreateCallLog, leadName }: CallLogsPageProps) {
+export function CallLogsPage({ onCreateCallLog, leadName, refreshTrigger=0 }: CallLogsPageProps) {
   const { theme } = useTheme();
   const [searchTerm, setSearchTerm] = useState('');
   const [callLogs, setCallLogs] = useState<CallLog[]>([]);
@@ -546,7 +444,7 @@ export function CallLogsPage({ onCreateCallLog, leadName }: CallLogsPageProps) {
   useEffect(() => {
     fetchCallLogs();
     loadUsers();
-  }, [leadName]);
+  }, [leadName, refreshTrigger]);
 
   const loadUsers = async () => {
     setLoadingUsers(true);
@@ -607,21 +505,78 @@ export function CallLogsPage({ onCreateCallLog, leadName }: CallLogsPageProps) {
       const result = await response.json();
       let callLogsData = result.message?.data || [];
 
-      const mappedCallLogs = callLogsData.map((item: any) => ({
-        name: item.name,
-        from: item.from,
-        to: item.to,
-        status: item.status,
-        type: item.type,
-        duration: item.duration,
-        reference_doctype: item.reference_doctype,
-        id: item.reference_docname,
-        creation: item.creation,
-        modified: item.modified,
-        note: item.note,
-        _caller: { label: item.caller || item.from || 'Unknown' },
-        _receiver: { label: item.receiver || item.to || 'Unknown' }
-      }));
+      // If no call logs found, set empty array and return
+      if (callLogsData.length === 0) {
+        setCallLogs([]);
+        return;
+      }
+
+      // Step 2: Fetch detailed information for each call log using the second API
+      const detailedCallLogsPromises = callLogsData.map(async (item: any) => {
+        try {
+          const detailApiUrl = 'http://103.214.132.20:8002/api/method/crm.fcrm.doctype.crm_call_log.crm_call_log.get_call_log';
+
+          const detailResponse = await fetch(detailApiUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `token 1b670b800ace83b:f32066fea74d0fe`
+            },
+            body: JSON.stringify({
+              name: item.name // Use the name from the first API call
+            })
+          });
+
+          if (!detailResponse.ok) {
+            console.warn(`Failed to fetch details for call log ${item.name}`);
+            return null;
+          }
+
+          const detailResult = await detailResponse.json();
+          const detailedCallLog = detailResult.message;
+
+          // Return the detailed call log data, fallback to original data if detailed fetch fails
+          return detailedCallLog || item;
+        } catch (error) {
+          console.error(`Error fetching details for call log ${item.name}:`, error);
+          return item; // Return original data as fallback
+        }
+      });
+
+      // Wait for all detailed API calls to complete
+      const detailedCallLogsResults = await Promise.all(detailedCallLogsPromises);
+
+      // Filter out any null results and transform the data
+      const mappedCallLogs = detailedCallLogsResults
+        .filter(result => result !== null)
+        .map((detailedItem: any) => {
+          // Use detailed data if available, otherwise use original data
+          const item = detailedItem || {};
+
+          return {
+            name: item.name,
+            from: item.from,
+            to: item.to,
+            status: item.status,
+            type: item.type,
+            duration: item.duration,
+            reference_doctype: item.reference_doctype,
+            id: item.reference_docname,
+            creation: item.creation,
+            modified: item.modified,
+            note: item.note,
+            _caller: item._caller || { label: item.caller || item.from || 'Unknown' },
+            _receiver: item._receiver || { label: item.receiver || item.to || 'Unknown' },
+            // Include additional fields from detailed API if needed
+            recording_url: item.recording_url,
+            activity_type: item.activity_type,
+            owner: item.owner,
+            show_recording: item.show_recording,
+            _duration: item._duration,
+            _notes: item._notes || [],
+            _tasks: item._tasks || [],
+          };
+        });
 
       let filteredCallLogs = mappedCallLogs;
       if (leadName) {
@@ -633,6 +588,7 @@ export function CallLogsPage({ onCreateCallLog, leadName }: CallLogsPageProps) {
       setCallLogs(filteredCallLogs);
     } catch (error) {
       console.error('Error fetching call logs:', error);
+      showToast('Failed to fetch call logs', { type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -655,6 +611,9 @@ export function CallLogsPage({ onCreateCallLog, leadName }: CallLogsPageProps) {
   };
 
   const handleRowClick = (callLog: CallLog) => {
+    console.log("Row clicked with call log:", callLog);
+    console.log("Call log _notes:", callLog._notes);
+    console.log("Call log _tasks:", callLog._tasks);
     setSelectedCall(callLog);
     setShowPopup(true);
   };
@@ -670,66 +629,6 @@ export function CallLogsPage({ onCreateCallLog, leadName }: CallLogsPageProps) {
       hour12: true,
     });
   };
-
-  // const editCall = async (): Promise<boolean> => {
-  //   try {
-  //     setCallsLoading(true);
-  //     const session = getUserSession();
-
-  //     if (!session) {
-  //       showToast('Session expired. Please login again.', { type: 'error' });
-  //       return false;
-  //     }
-
-  //     const apiUrl = `http://103.214.132.20:8002/api/method/frappe.client.set_value`;
-
-  //     // Create the payload in the required format
-  //     const payload = {
-  //       doctype: "CRM Call Log",
-  //       name: callForm.name, // Make sure you have the document ID in your form
-  //       fieldname: {
-  //         from: callForm.from,
-  //         to: callForm.to,
-  //         status: callForm.status,
-  //         type: callForm.type,
-  //         duration: callForm.duration
-  //         // caller: callForm.caller
-  //       }
-  //     };
-
-
-  //     // Add caller/receiver based on call type
-  //     if (callForm.type === 'Outgoing') {
-  //       payload.fieldname.caller = callForm.caller;
-  //     } else if (callForm.type === 'Incoming') {
-  //       payload.fieldname.receiver = callForm.receiver;
-  //     }
-
-  //     const response = await fetch(apiUrl, {
-  //       method: 'POST', // Frappe APIs typically use POST
-  //       headers: {
-  //         'Content-Type': 'application/json',
-  //         'Authorization': `token 1b670b800ace83b:f32066fea74d0fe`
-  //       },
-  //       body: JSON.stringify(payload)
-  //     });
-
-  //     if (!response.ok) {
-  //       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-  //     }
-
-  //     showToast('Call log updated successfully', { type: 'success' });
-  //     fetchCallLogs();
-  //     return true;
-  //   } catch (error) {
-  //     console.error('Error updating call log:', error);
-  //     showToast('Failed to update call log', { type: 'error' });
-  //     return false;
-  //   } finally {
-  //     setCallsLoading(false);
-  //   }
-  // };
-
 
   const editCall = async (): Promise<boolean> => {
     try {
@@ -1248,7 +1147,7 @@ export function CallLogsPage({ onCreateCallLog, leadName }: CallLogsPageProps) {
                         <div className="flex items-center space-x-1">
                           N/A
                         </div>
-                        
+
                       )}
                     </td>
                     <td
@@ -1373,7 +1272,9 @@ export function CallLogsPage({ onCreateCallLog, leadName }: CallLogsPageProps) {
             duration: selectedCall.duration || '0',
             status: selectedCall.status,
             name: selectedCall.name,
-            reference_doctype: selectedCall.reference_doctype
+            _notes: selectedCall._notes || [],
+            _tasks: selectedCall._tasks || []
+            //reference_doctype: selectedCall.reference_doctype
           }}
           onClose={() => setShowPopup(false)}
           onAddTask={() => {
@@ -1383,8 +1284,9 @@ export function CallLogsPage({ onCreateCallLog, leadName }: CallLogsPageProps) {
           }}
           onEdit={() => handleEdit(selectedCall)}
           theme={theme}
-          callLog={selectedCall} // Add this
-          onOpenReference={handleOpenReference} // Add this
+          callLog={selectedCall}
+          onOpenReference={handleOpenReference}
+          fetchCallLogs={fetchCallLogs}
         />
       )}
 

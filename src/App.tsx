@@ -73,6 +73,15 @@ function AppContent() {
   const [selectedOrganization, setSelectedOrganization] = useState<any>(null);
   const [leads, setLeads] = useState(sampleLeads);
   const [deals, setDeals] = useState(sampleDeals);
+  const [taskRefreshTrigger, setTaskRefreshTrigger] = useState(0);
+  const handleTaskCreated = () => {
+    setTaskRefreshTrigger(prev => prev + 1);
+  };
+
+  const [callsRefreshTrigger, setcallsRefreshTrigger] = useState(0);
+  const handleCallsCreated = () => {
+    setcallsRefreshTrigger(prev => prev + 1);
+  };
 
   // Add state to track if we're in a nested view (like deal detail from contact)
   const [isInNestedView, setIsInNestedView] = useState(false);
@@ -748,9 +757,9 @@ function AppContent() {
       case 'notes':
         return <NotesPage onCreateNote={handleCreateNote} leadName={selectedLead?.name} />;
       case 'tasks':
-        return <TasksPage onCreateTask={handleCreateTask} leadName={selectedLead?.name} />;
+        return <TasksPage onCreateTask={handleCreateTask} leadName={selectedLead?.name} refreshTrigger={taskRefreshTrigger} />;
       case 'call-logs':
-        return <CallLogsPage onCreateCallLog={handleCreateCallLog} leadName={selectedLead?.name} />;
+        return <CallLogsPage onCreateCallLog={handleCreateCallLog} leadName={selectedLead?.name} refreshTrigger={callsRefreshTrigger}/>;
       case 'email-templates':
         return <EmailPage onCreateEmail={handleCreateEmail} />;
       default:
@@ -835,6 +844,7 @@ function AppContent() {
             onClose={() => setShowCreateModal(false)}
             onSubmit={handleCreateSubmit}
             leadName={selectedLead?.name}
+            onSuccess={handleTaskCreated}
           />
         );
       case 'calllog':
@@ -844,6 +854,7 @@ function AppContent() {
             onClose={() => setShowCreateModal(false)}
             onSubmit={handleCreateSubmit}
             leadName={selectedLead?.name}
+            onSuccess={handleCallsCreated}
           />
         );
       case 'email':

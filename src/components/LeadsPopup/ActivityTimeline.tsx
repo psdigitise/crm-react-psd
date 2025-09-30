@@ -13,6 +13,7 @@ import { SiTicktick } from "react-icons/si";
 import { FiChevronDown } from "react-icons/fi";
 import { Loader2, Mail } from "lucide-react";
 import { RiShining2Line } from "react-icons/ri";
+import { getAuthToken } from "../../api/apiUrl";
 
 type Activity = {
   id: string;
@@ -26,7 +27,7 @@ type Lead = {
 };
 
 const API_BASE_URL = "http://103.214.132.20:8002/api";
-const AUTH_TOKEN = "token 1b670b800ace83b:f32066fea74d0fe";
+const AUTH_TOKEN =  getAuthToken();
 
 const ActivityTimeline: React.FC<{ deal: Lead; theme?: "light" | "dark" }> = ({
   deal,

@@ -10,7 +10,7 @@ import Commentemailleads from "./Commentemailleads";
 import EmojiPicker from "emoji-picker-react";
 import { getUserSession } from "../../utils/session";
 import { FaRegComment } from "react-icons/fa6";
-import { apiAxios } from "../../api/apiUrl";
+import { apiAxios, getAuthToken } from "../../api/apiUrl";
 import { showToast } from "../../utils/toast";
 import axios from "axios";
 // const showToast = (msg, opts) => alert(msg);
@@ -39,7 +39,7 @@ interface User {
 }
 
 const API_BASE_URL = "http://103.214.132.20:8002/api/method/frappe.core.doctype.communication.email.make";
-const AUTH_TOKEN = "token 1b670b800ace83b:f32066fea74d0fe";
+const AUTH_TOKEN =  getAuthToken();
 const SEARCH_API_URL = "http://103.214.132.20:8002/api/method/frappe.desk.search.search_link";
 
 export default function EmailComposerleads({
