@@ -237,7 +237,7 @@ interface SalutationOption {
 }
 
 const API_BASE_URL = 'http://103.214.132.20:8002/api';
-//const AUTH_TOKEN = 'token 1b670b800ace83b:f32066fea74d0fe';
+//const AUTH_TOKEN = AUTH_TOKEN;
 
 
 const statusColors: Record<Lead['status'], string> = {
@@ -603,7 +603,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
         {
           method: "POST",
           headers: {
-            "Authorization": "token 1b670b800ace83b:f32066fea74d0fe",
+            "Authorization": AUTH_TOKEN,
             "Content-Type": "application/json"
           },
           body: JSON.stringify({
@@ -1508,7 +1508,7 @@ const fetchActivities = useCallback(async () => {
         {
           method: 'POST',
           headers: {
-            'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe',
+            'Authorization': AUTH_TOKEN,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
@@ -2186,7 +2186,7 @@ const fetchActivities = useCallback(async () => {
       const response = await fetch('http://103.214.132.20:8002/api/method/frappe.client.insert', {
         method: 'POST',
         headers: {
-          'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe',
+          'Authorization': AUTH_TOKEN,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -2230,7 +2230,7 @@ const fetchActivities = useCallback(async () => {
       const response = await fetch('http://103.214.132.20:8002/api/method/frappe.client.set_value', {
         method: 'POST',
         headers: {
-          'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe',
+          'Authorization': AUTH_TOKEN,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({

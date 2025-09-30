@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useTheme } from "./ThemeProvider";
 import { showToast } from "../utils/toast";
 import { Loader2, Bell } from "lucide-react";
+import { AUTH_TOKEN } from "../api/apiUrl";
 
 interface Notification {
   name: string;
@@ -32,7 +33,7 @@ export function NotificationsPageNew() {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          Authorization: "token 1b670b800ace83b:f32066fea74d0fe",
+          Authorization:AUTH_TOKEN,
         },
       });
 

@@ -3,6 +3,7 @@ import { ArrowLeft, Edit, Trash2, Globe, Building2, Users, DollarSign, MapPin, C
 import { useTheme } from './ThemeProvider';
 import { showToast } from '../utils/toast';
 import OrganizationDetails from './OrganizationDetails';
+import { AUTH_TOKEN } from '../api/apiUrl';
 
 interface Organization {
   id: string;
@@ -58,7 +59,7 @@ export function OrganizationDetailView({ organization, onBack, onSave }: Organiz
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe'
+          'Authorization': AUTH_TOKEN
         },
         body: JSON.stringify({
           organization_name: editedOrganization.organization_name,
@@ -96,7 +97,7 @@ export function OrganizationDetailView({ organization, onBack, onSave }: Organiz
         const response = await fetch(apiUrl, {
           method: 'DELETE',
           headers: {
-            'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe'
+            'Authorization': AUTH_TOKEN
           }
         });
 

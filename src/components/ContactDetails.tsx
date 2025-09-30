@@ -4,7 +4,7 @@ import { useTheme } from './ThemeProvider';
 import { showToast } from '../utils/toast';
 import { getUserSession } from '../utils/session';
 import { DealDetailView } from './DealDetailView'; // Import the DealDetailView component
-import { apiAxios, apiUrl } from '../api/apiUrl';
+import { apiAxios, apiUrl, AUTH_TOKEN } from '../api/apiUrl';
 import axios from 'axios';
 
 interface Contact {
@@ -199,7 +199,7 @@ export default function ContactDetails({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token 1b670b800ace83b:f32066fea74d0fe`
+          'Authorization': AUTH_TOKEN
         },
         body: JSON.stringify({
           name: initialContact.id
@@ -308,7 +308,7 @@ export default function ContactDetails({
       const uploadResponse = await fetch('http://103.214.132.20:8002/api/method/upload_file', {
         method: 'POST',
         headers: {
-          'Authorization': `token 1b670b800ace83b:f32066fea74d0fe`
+          'Authorization': AUTH_TOKEN
         },
         body: formData
       });
@@ -329,7 +329,7 @@ export default function ContactDetails({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token 1b670b800ace83b:f32066fea74d0fe`
+          'Authorization': AUTH_TOKEN
         },
         body: JSON.stringify({
           doctype: "Contact",
@@ -396,7 +396,7 @@ export default function ContactDetails({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token 1b670b800ace83b:f32066fea74d0fe`
+          'Authorization': AUTH_TOKEN
         },
         body: JSON.stringify({
           contact: contactName
@@ -452,7 +452,7 @@ export default function ContactDetails({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token 1b670b800ace83b:f32066fea74d0fe`
+          'Authorization': AUTH_TOKEN
         },
         body: JSON.stringify({
           doctype: "CRM Deal",
@@ -553,7 +553,7 @@ export default function ContactDetails({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token 1b670b800ace83b:f32066fea74d0fe`
+          'Authorization': AUTH_TOKEN
         },
         body: JSON.stringify({
           doctype: "Contact",
@@ -623,7 +623,7 @@ export default function ContactDetails({
       const response = await fetch(apiUrl, {
         method: 'DELETE',
         headers: {
-          'Authorization': `token 1b670b800ace83b:f32066fea74d0fe`
+          'Authorization': AUTH_TOKEN
         }
       });
 
@@ -838,7 +838,7 @@ export default function ContactDetails({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token 1b670b800ace83b:f32066fea74d0fe`
+          'Authorization': AUTH_TOKEN
         },
         body: JSON.stringify({
           contact: contact.id,
@@ -890,7 +890,7 @@ export default function ContactDetails({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token 1b670b800ace83b:f32066fea74d0fe`
+          'Authorization': AUTH_TOKEN
         },
         body: JSON.stringify({
           contact: contact.id,
@@ -1003,7 +1003,7 @@ export default function ContactDetails({
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `token 1b670b800ace83b:f32066fea74d0fe`
+            'Authorization': AUTH_TOKEN
           },
           body: JSON.stringify({
             doctype: "Contact",
@@ -1165,7 +1165,7 @@ export default function ContactDetails({
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `token 1b670b800ace83b:f32066fea74d0fe`
+            'Authorization': AUTH_TOKEN
           },
           body: JSON.stringify({
             doctype: "Contact",
@@ -1287,7 +1287,7 @@ export default function ContactDetails({
           setLoadingAddresses(true);
           const res = await axios.get("http://103.214.132.20:8002/api/v2/document/Address", {
             headers: {
-              Authorization: `token 1b670b800ace83b:f32066fea74d0fe`, // 🔹 attach token
+              Authorization: AUTH_TOKEN, // 🔹 attach token
             },
             params: {
               filters: JSON.stringify({

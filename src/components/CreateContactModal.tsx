@@ -41,7 +41,7 @@
 //         method: 'POST',
 //         headers: {
 //           'Content-Type': 'application/json',
-//           'Authorization': `token 1b670b800ace83b:f32066fea74d0fe`
+//           'Authorization': AUTH_TOKEN
 //         },
 //         body: JSON.stringify(formData)
 //       });
@@ -294,7 +294,7 @@
 //       const response = await fetch(apiUrl, {
 //         method: 'GET',
 //         headers: {
-//           'Authorization': `token 1b670b800ace83b:f32066fea74d0fe`
+//           'Authorization': AUTH_TOKEN
 //         }
 //       });
 
@@ -380,7 +380,7 @@
 //         method: 'POST',
 //         headers: {
 //           'Content-Type': 'application/json',
-//           'Authorization': `token 1b670b800ace83b:f32066fea74d0fe`
+//           'Authorization': AUTH_TOKEN
 //         },
 //         body: JSON.stringify(payload)
 //       });
@@ -803,6 +803,7 @@ import { X, ExternalLink, Plus } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import { showToast } from '../utils/toast';
 import { getUserSession } from '../utils/session';
+import { AUTH_TOKEN } from '../api/apiUrl';
 
 // New Address Modal Component
 interface CreateAddressModalProps {
@@ -841,7 +842,7 @@ function CreateAddressModal({ isOpen, onClose, onSubmit }: CreateAddressModalPro
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token 1b670b800ace83b:f32066fea74d0fe`
+          'Authorization': AUTH_TOKEN
         },
         body: JSON.stringify(formData)
       });
@@ -1101,7 +1102,7 @@ export function CreateContactModal({ isOpen, onClose, onSubmit }: CreateContactM
       const response = await fetch(apiUrl, {
         method: 'GET',
         headers: {
-          'Authorization': `token 1b670b800ace83b:f32066fea74d0fe`
+          'Authorization': AUTH_TOKEN
         }
       });
 
@@ -1168,7 +1169,7 @@ export function CreateContactModal({ isOpen, onClose, onSubmit }: CreateContactM
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token 1b670b800ace83b:f32066fea74d0fe`
+          'Authorization': AUTH_TOKEN
         },
         body: JSON.stringify(payload)
       });

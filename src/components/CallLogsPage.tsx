@@ -14,6 +14,7 @@ import { HiOutlineArrowRight } from 'react-icons/hi';
 import { Lead, LeadDetailView } from './LeadDetailView';
 import { Deal, DealDetailView } from './DealDetailView';
 import { CallDetailsPopup } from './CallLogPopups/CallDetailsPopup';
+import { AUTH_TOKEN } from '../api/apiUrl';
 
 interface Note {
   name: string;
@@ -365,7 +366,7 @@ const fetchUsers = async (): Promise<User[]> => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `token 1b670b800ace83b:f32066fea74d0fe`
+        'Authorization': AUTH_TOKEN
       },
       body: JSON.stringify(requestBody)
     });
@@ -493,7 +494,7 @@ export function CallLogsPage({ onCreateCallLog, leadName, refreshTrigger=0 }: Ca
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token 1b670b800ace83b:f32066fea74d0fe`
+          'Authorization': AUTH_TOKEN
         },
         body: JSON.stringify(requestBody)
       });
@@ -520,7 +521,7 @@ export function CallLogsPage({ onCreateCallLog, leadName, refreshTrigger=0 }: Ca
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `token 1b670b800ace83b:f32066fea74d0fe`
+              'Authorization': AUTH_TOKEN
             },
             body: JSON.stringify({
               name: item.name // Use the name from the first API call
@@ -666,7 +667,7 @@ export function CallLogsPage({ onCreateCallLog, leadName, refreshTrigger=0 }: Ca
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token 1b670b800ace83b:f32066fea74d0fe`
+          'Authorization': AUTH_TOKEN
         },
         body: JSON.stringify(payload)
       });
@@ -701,7 +702,7 @@ export function CallLogsPage({ onCreateCallLog, leadName, refreshTrigger=0 }: Ca
       const response = await fetch(apiUrl, {
         method: 'DELETE',
         headers: {
-          'Authorization': `token 1b670b800ace83b:f32066fea74d0fe`
+          'Authorization': AUTH_TOKEN
         }
       });
 
@@ -802,7 +803,7 @@ export function CallLogsPage({ onCreateCallLog, leadName, refreshTrigger=0 }: Ca
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token 1b670b800ace83b:f32066fea74d0fe`
+          'Authorization': AUTH_TOKEN
         },
         body: JSON.stringify({
           doctype: "CRM Deal",
@@ -874,7 +875,7 @@ export function CallLogsPage({ onCreateCallLog, leadName, refreshTrigger=0 }: Ca
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token 1b670b800ace83b:f32066fea74d0fe`
+          'Authorization': AUTH_TOKEN
         },
         body: JSON.stringify({
           doctype: "CRM Lead",

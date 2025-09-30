@@ -1,6 +1,6 @@
 import React from 'react';
 import { IoCloseOutline } from 'react-icons/io5';
-import { apiAxios } from '../../api/apiUrl';
+import { apiAxios, AUTH_TOKEN } from '../../api/apiUrl';
 
 interface AttachmentPrivatePopupProps {
     closePopup: () => void;
@@ -36,7 +36,7 @@ export const LeadPrivatePopup: React.FC<AttachmentPrivatePopupProps> = ({
     //             {
     //                 headers: {
     //                     'Content-Type': 'application/json',
-    //                     'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe'
+    //                     'Authorization': AUTH_TOKEN
     //                 }
     //             }
     //         );
@@ -69,7 +69,7 @@ export const LeadPrivatePopup: React.FC<AttachmentPrivatePopupProps> = ({
 //       {
 //         headers: {
 //           'Content-Type': 'application/json',
-//           'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe'
+//           'Authorization': AUTH_TOKEN
 //         }
 //       }
 //     );
@@ -102,7 +102,7 @@ const handleTogglePrivacy = async () => {
       {
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe'
+          'Authorization': AUTH_TOKEN
         }
       }
     );

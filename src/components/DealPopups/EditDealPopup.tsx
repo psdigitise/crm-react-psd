@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { IoCloseOutline } from "react-icons/io5";
 import { Loader2 } from 'lucide-react';
+import { AUTH_TOKEN } from '../../api/apiUrl';
 
 interface EditDealPopupProps {
   isOpen: boolean;
@@ -52,7 +53,7 @@ export const EditDealPopup: React.FC<EditDealPopupProps> = ({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe'
+          'Authorization': AUTH_TOKEN
         },
         body: JSON.stringify(payload)
       });
@@ -112,7 +113,7 @@ export const EditDealPopup: React.FC<EditDealPopupProps> = ({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe'
+          'Authorization': AUTH_TOKEN
         },
         body: JSON.stringify(payload)
       });

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Loader2, X } from 'lucide-react';
+import { AUTH_TOKEN } from '../../api/apiUrl';
 
 interface ClearAssignmentPopupProps {
   isOpen: boolean;
@@ -42,7 +43,7 @@ export function ClearAssignmentPopup({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token 1b670b800ace83b:f32066fea74d0fe`
+          'Authorization': AUTH_TOKEN
         },
         body: JSON.stringify(payload)
       });

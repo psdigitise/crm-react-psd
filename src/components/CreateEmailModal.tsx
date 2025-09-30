@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, ExternalLink, Plus, Trash2 } from 'lucide-react';
 import { showToast } from '../utils/toast';
+import { AUTH_TOKEN } from '../api/apiUrl';
 
 interface CreateEmailModalProps {
   isOpen: boolean;
@@ -29,7 +30,7 @@ export function CreateEmailModal({ isOpen, onClose, onSubmit }: CreateEmailModal
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe'
+          'Authorization': AUTH_TOKEN
         },
         body: JSON.stringify(formData)
       });

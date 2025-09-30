@@ -5,6 +5,7 @@ import { showToast } from '../utils/toast';
 import { exportToExcel } from '../utils/exportUtils';
 import { getUserSession } from '../utils/session';
 import { BsThreeDots } from 'react-icons/bs';
+import { AUTH_TOKEN } from '../api/apiUrl';
 
 interface Contact {
   id: string;
@@ -195,7 +196,7 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token 1b670b800ace83b:f32066fea74d0fe`
+          'Authorization': AUTH_TOKEN
         },
         body: JSON.stringify(requestBody)
       });
@@ -266,7 +267,7 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
       const response = await fetch(apiUrl, {
         method: 'GET',
         headers: {
-          'Authorization': `token 1b670b800ace83b:f32066fea74d0fe`
+          'Authorization': AUTH_TOKEN
         }
       });
 
@@ -294,7 +295,7 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token 1b670b800ace83b:f32066fea74d0fe`
+          'Authorization': AUTH_TOKEN
         },
         body: JSON.stringify({
           doctype: "Contact"
@@ -367,7 +368,7 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token 1b670b800ace83b:f32066fea74d0fe`
+          'Authorization': AUTH_TOKEN
         },
         body: JSON.stringify(requestBody)
       });
@@ -499,7 +500,7 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token 1b670b800ace83b:f32066fea74d0fe`
+          'Authorization': AUTH_TOKEN
         },
         body: JSON.stringify(payload)
       });
@@ -558,7 +559,7 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token 1b670b800ace83b:f32066fea74d0fe`
+          'Authorization': AUTH_TOKEN
         },
         body: JSON.stringify(payload)
       });

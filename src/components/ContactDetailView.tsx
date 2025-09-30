@@ -3,6 +3,7 @@ import { ArrowLeft } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import { showToast } from '../utils/toast';
 import ContactDetails from './ContactDetails';
+import { AUTH_TOKEN } from '../api/apiUrl';
 
 interface Contact {
     id: string;
@@ -51,7 +52,7 @@ export function ContactDetailView({ contact, onBack, onSave }: ContactDetailView
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe'
+                    'Authorization': AUTH_TOKEN
                 },
                 body: JSON.stringify({
                     first_name: editedContact.first_name,
@@ -91,7 +92,7 @@ export function ContactDetailView({ contact, onBack, onSave }: ContactDetailView
             const response = await fetch(apiUrl, {
                 method: 'DELETE',
                 headers: {
-                    'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe'
+                    'Authorization': AUTH_TOKEN
                 }
             });
 

@@ -7,6 +7,7 @@ import { getUserSession } from '../utils/session';
 import { DealDetailView } from './DealDetailView';
 import { LeadDetailView } from './LeadDetailView';
 import { formatDistanceToNow } from 'date-fns';
+import { AUTH_TOKEN } from '../api/apiUrl';
 
 interface Note {
   name: string;
@@ -271,7 +272,7 @@ export function NotesPage({ onCreateNote, leadName }: NotesPageProps) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token 1b670b800ace83b:f32066fea74d0fe`
+          'Authorization': AUTH_TOKEN
         },
         body: JSON.stringify(payload)
       });
@@ -341,7 +342,7 @@ export function NotesPage({ onCreateNote, leadName }: NotesPageProps) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token 1b670b800ace83b:f32066fea74d0fe`
+          'Authorization': AUTH_TOKEN
         },
         body: JSON.stringify({
           doctype: "CRM Deal",
@@ -415,7 +416,7 @@ export function NotesPage({ onCreateNote, leadName }: NotesPageProps) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token 1b670b800ace83b:f32066fea74d0fe`
+          'Authorization': AUTH_TOKEN
         },
         body: JSON.stringify({
           doctype: "CRM Lead",
@@ -559,7 +560,7 @@ export function NotesPage({ onCreateNote, leadName }: NotesPageProps) {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token 1b670b800ace83b:f32066fea74d0fe`
+          'Authorization': AUTH_TOKEN
         },
         body: JSON.stringify({
           title: editForm.title,
@@ -597,7 +598,7 @@ export function NotesPage({ onCreateNote, leadName }: NotesPageProps) {
       const response = await fetch(apiUrl, {
         method: 'DELETE',
         headers: {
-          'Authorization': `token 1b670b800ace83b:f32066fea74d0fe`
+          'Authorization': AUTH_TOKEN
         }
       });
 

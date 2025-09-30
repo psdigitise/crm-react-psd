@@ -297,7 +297,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
         body: formData,
         headers: {
           'Accept': 'application/json',
-          Authorization: 'token 1b670b800ace83b:f32066fea74d0fe',
+          Authorization: AUTH_TOKEN,
         }
       });
 

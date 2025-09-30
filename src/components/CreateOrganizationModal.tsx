@@ -65,7 +65,7 @@ function CreateAddressModal({ isOpen, onClose, onSubmit }: CreateAddressModalPro
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token 1b670b800ace83b:f32066fea74d0fe`
+          'Authorization':AUTH_TOKEN
         },
         body: JSON.stringify(payload)
       });
@@ -320,7 +320,7 @@ export function CreateOrganizationModal({ isOpen, onClose, onSubmit }: CreateOrg
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token 1b670b800ace83b:f32066fea74d0fe`
+          'Authorization':AUTH_TOKEN
         },
         body: JSON.stringify({
           txt: "",
@@ -357,7 +357,7 @@ export function CreateOrganizationModal({ isOpen, onClose, onSubmit }: CreateOrg
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token 1b670b800ace83b:f32066fea74d0fe`
+          'Authorization':AUTH_TOKEN
         },
         body: JSON.stringify({
           txt: "",
@@ -477,7 +477,7 @@ export function CreateOrganizationModal({ isOpen, onClose, onSubmit }: CreateOrg
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token 1b670b800ace83b:f32066fea74d0fe`
+          'Authorization':AUTH_TOKEN
         },
         body: JSON.stringify(payload)
       });

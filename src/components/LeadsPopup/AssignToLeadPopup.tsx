@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Search, User } from 'lucide-react';
 import { getUserSession } from '../../utils/session';
+import { AUTH_TOKEN } from '../../api/apiUrl';
 
 interface AssignToPopupProps {
     isOpen: boolean;
@@ -78,7 +79,7 @@ export function AssignToPopup({ isOpen, onClose, selectedIds, theme, onSuccess }
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `token 1b670b800ace83b:f32066fea74d0fe`
+                    'Authorization': AUTH_TOKEN
                 },
                 body: JSON.stringify(payload)
             });
@@ -134,7 +135,7 @@ export function AssignToPopup({ isOpen, onClose, selectedIds, theme, onSuccess }
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `token 1b670b800ace83b:f32066fea74d0fe`
+                    'Authorization': AUTH_TOKEN
                 },
                 body: JSON.stringify(payload)
             });

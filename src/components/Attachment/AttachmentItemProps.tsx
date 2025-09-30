@@ -1,5 +1,6 @@
 import { Paperclip } from "lucide-react";
 import { showToast } from "../../utils/toast";
+import { AUTH_TOKEN } from "../../api/apiUrl";
 
 interface AttachmentItemProps {
   file: {
@@ -21,7 +22,7 @@ export const AttachmentItem = ({ file, theme }: AttachmentItemProps) => {
       // If that fails, try fetching and downloading
       const response = await fetch(file.url, {
         headers: {
-          'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe'
+          'Authorization': AUTH_TOKEN
         }
       });
       

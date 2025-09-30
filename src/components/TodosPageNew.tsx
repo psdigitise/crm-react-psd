@@ -7,6 +7,7 @@ import { useTheme } from './ThemeProvider';
 
 
 import { getUserSession } from '../utils/session';
+import { AUTH_TOKEN } from '../api/apiUrl';
 
 interface Todo {
   name: string;
@@ -50,7 +51,7 @@ export function TodosPageNew({ onCreateTodo }: TodosPageNewProps) {
   //       method: 'GET',
   //       headers: {
   //         'Content-Type': 'application/json',
-  //         'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe'
+  //         'Authorization': AUTH_TOKEN
   //       }
   //     });
 
@@ -88,7 +89,7 @@ export function TodosPageNew({ onCreateTodo }: TodosPageNewProps) {
   //       method: 'GET',
   //       headers: {
   //         'Content-Type': 'application/json',
-  //         'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe'
+  //         'Authorization': AUTH_TOKEN
   //       }
   //     });
 
@@ -117,7 +118,7 @@ export function TodosPageNew({ onCreateTodo }: TodosPageNewProps) {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `token 1b670b800ace83b:f32066fea74d0fe`
+          'Authorization': AUTH_TOKEN
         }
       });
       if (!response.ok) {
@@ -148,7 +149,7 @@ export function TodosPageNew({ onCreateTodo }: TodosPageNewProps) {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe'
+          'Authorization': AUTH_TOKEN
         },
         body: JSON.stringify({
           status: updatedTodo.status,
@@ -181,7 +182,7 @@ export function TodosPageNew({ onCreateTodo }: TodosPageNewProps) {
       const response = await fetch(apiUrl, {
         method: 'DELETE',
         headers: {
-          'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe'
+          'Authorization': AUTH_TOKEN
         }
       });
 

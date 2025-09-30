@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ArrowLeft, Edit, Trash2, Mail, User, Building2, Calendar, Shield, FileText, MessageSquare, CheckSquare, Send, Activity, X } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import { showToast } from '../utils/toast';
+import { AUTH_TOKEN } from '../api/apiUrl';
 
 interface User {
   name: string;
@@ -51,7 +52,7 @@ export function UserDetailView({ user, onBack, onSave }: UserDetailViewProps) {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe'
+          'Authorization': AUTH_TOKEN
         },
         body: JSON.stringify({
           first_name: editedUser.first_name,
@@ -84,7 +85,7 @@ export function UserDetailView({ user, onBack, onSave }: UserDetailViewProps) {
       const response = await fetch(apiUrl, {
         method: 'DELETE',
         headers: {
-          'Authorization': 'token 1b670b800ace83b:f32066fea74d0fe',
+          'Authorization': AUTH_TOKEN,
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
