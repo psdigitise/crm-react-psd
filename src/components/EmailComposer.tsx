@@ -5,6 +5,7 @@ import {
   Smile,
   MessageSquare,
   Mail,
+  Sparkles,
 } from "lucide-react";
 import { useTheme } from "./ThemeProvider";
 import Commentemail from "./Commentemail";
@@ -16,6 +17,7 @@ import axios from "axios";
 import { Deal } from "./DealDetailView";
 import { apiAxios, getAuthToken } from "../api/apiUrl";
 import { showToast } from "../utils/toast";
+import { ConfirmationPopup } from "./LeadsPopup/ConfirmationPopup";
 
 interface EmailComposerProps {
   mode: string;
@@ -32,7 +34,7 @@ interface EmailComposerProps {
 }
 
 const API_BASE_URL = "http://103.214.132.20:8002/api/method/frappe.core.doctype.communication.email.make";
-const AUTH_TOKEN =  getAuthToken(); // Replace with your actual token
+const AUTH_TOKEN = getAuthToken(); // Replace with your actual token
 const SEARCH_API_URL = "http://103.214.132.20:8002/api/method/frappe.desk.search.search_link";
 
 interface User {
@@ -64,11 +66,15 @@ export default function EmailOrCommentComposer({ deal, onClose, mode, dealName, 
   const [searchLoading, setSearchLoading] = useState(false);
   const recipientInputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
+  const [isSubjectEdited, setIsSubjectEdited] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [lastGeneratedSubject, setLastGeneratedSubject] = useState<string>("");
+  const [showConfirmationPopup, setShowConfirmationPopup] = useState(false);
+  const [subjectToGenerate, setSubjectToGenerate] = useState("");
 
   const userSession = getUserSession();
   const senderUsername = userSession?.username || "Administrator";
   const [quotedMessage, setQuotedMessage] = useState("");
-  const [generating, setGenerating] = useState(false);
 
   const addEmoji = (emoji: { native: string; }) => {
     setEmailForm((prev) => ({
@@ -276,14 +282,14 @@ export default function EmailOrCommentComposer({ deal, onClose, mode, dealName, 
       const fullMessage = quotedMessage
         ? `${emailForm.message}\n\n---\n\n${quotedMessage}`
         : emailForm.message;
-
+      const htmlMessage = `<div style="white-space: pre-wrap; font-family: sans-serif;">${fullMessage}</div>`;
       // Step 2: Construct and send email
       const payload = {
         recipients: emailForm.recipient,
         cc: emailForm.cc,
         bcc: emailForm.bcc,
         subject: emailForm.subject,
-        content: fullMessage,
+        content: htmlMessage,
         send_email: 1,
         name: dealName,
         now: 1,
@@ -351,17 +357,18 @@ export default function EmailOrCommentComposer({ deal, onClose, mode, dealName, 
     }
   };
 
-  // Debounce generate API call when subject changes
-  useEffect(() => {
+  const handleConfirmGenerate = async () => {
+    await generateEmailFromSubject(subjectToGenerate);
+    setShowConfirmationPopup(false);
+    setIsSubjectEdited(true);
+  };
+
+  const handleGenerateButtonClick = () => {
     if (emailForm.subject.trim()) {
-      const timeoutId = setTimeout(() => {
-        generateEmailFromSubject(emailForm.subject);
-      }, 500); // wait 800ms after typing stops
-
-      return () => clearTimeout(timeoutId);
+      setSubjectToGenerate(emailForm.subject);
+      setShowConfirmationPopup(true);
     }
-  }, [emailForm.subject]);
-
+  };
 
   useEffect(() => {
     if (mode === "new") {
@@ -397,7 +404,7 @@ export default function EmailOrCommentComposer({ deal, onClose, mode, dealName, 
       // Set subject with deal name and ID
       setEmailForm(prev => ({
         ...prev,
-        subject: `${deal.organization} (#${deal.id})`
+        subject: dealName
       }));
     }
   }, [mode, deal]);
@@ -620,6 +627,20 @@ export default function EmailOrCommentComposer({ deal, onClose, mode, dealName, 
                 className={`flex-1 bg-transparent outline-none ${theme === "dark" ? "text-white" : "text-gray-600"}`}
                 placeholder="Subject"
               />
+              {!selectedEmail && (
+                <button
+                  type="button"
+                  onClick={handleGenerateButtonClick}
+                  disabled={!emailForm.subject.trim()}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${theme === 'dark'
+                    ? 'bg-purplebg hover:bg-purple-700 text-white'
+                    : 'bg-purplebg hover:bg-purple-700 text-white'
+                    } disabled:opacity-50 disabled:cursor-not-allowed`}
+                >
+                  <Sparkles size={16} />
+                  Generate
+                </button>
+              )}
             </div>
             {generatingContent && (
               <div className="loading-indicator">Generating content...</div>
@@ -757,6 +778,17 @@ Can you please provider more details on this..."
           </div>
         </div>
       )}
+      <ConfirmationPopup
+        show={showConfirmationPopup}
+        onConfirm={handleConfirmGenerate}
+        onCancel={() => {
+          setShowConfirmationPopup(false);
+          setIsSubjectEdited(true);
+        }}
+        title="Generate Email Content?"
+        message="Do you want to automatically generate an email body based on the subject?"
+        isLoading={generating}
+      />
     </div>
   );
 }

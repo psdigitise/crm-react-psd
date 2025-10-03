@@ -4,6 +4,7 @@ import {
     Paperclip,
     Smile,
     Mail,
+    Sparkles,
 } from "lucide-react";
 import { useTheme } from "../ThemeProvider";
 import Commentemailleads from "./Commentemailleads";
@@ -13,6 +14,7 @@ import { FaRegComment } from "react-icons/fa6";
 import { apiAxios, getAuthToken } from "../../api/apiUrl";
 import { showToast } from "../../utils/toast";
 import axios from "axios";
+import { ConfirmationPopup } from "../LeadsPopup/ConfirmationPopup";
 // const showToast = (msg, opts) => alert(msg);
 
 interface EmailComposerProps {
@@ -31,6 +33,7 @@ interface EmailComposerProps {
         message: string;
         isReplyAll?: boolean;
     };
+    recipientEmail?: string;
 }
 
 interface User {
@@ -39,7 +42,7 @@ interface User {
 }
 
 const API_BASE_URL = "http://103.214.132.20:8002/api/method/frappe.core.doctype.communication.email.make";
-const AUTH_TOKEN =  getAuthToken();
+const AUTH_TOKEN = getAuthToken();
 const SEARCH_API_URL = "http://103.214.132.20:8002/api/method/frappe.desk.search.search_link";
 
 export default function EmailComposerleads({
@@ -50,6 +53,7 @@ export default function EmailComposerleads({
     onClose,
     refreshEmails,
     replyData,
+    recipientEmail,
 }: EmailComposerProps) {
     const { theme } = useTheme();
     const [showComment, setShowComment] = useState(mode === "comment");
@@ -83,6 +87,8 @@ export default function EmailComposerleads({
     const suggestionsRef = useRef<HTMLDivElement>(null);
     const userSession = getUserSession();
     const senderUsername = userSession?.username || "Administrator";
+    const [showConfirmationPopup, setShowConfirmationPopup] = useState(false);
+    const [subjectToGenerate, setSubjectToGenerate] = useState("");
 
     const isValidEmail = (email: string) => {
         // Simple regex for email validation
@@ -108,6 +114,7 @@ export default function EmailComposerleads({
         } else {
             setEmailForm(prev => ({
                 ...prev,
+                recipient: recipientEmail || '', // ✨ Use the prop here
                 subject: isSubjectEdited ? prev.subject : `Re: ${lead.name}`
             }));
         }
@@ -116,6 +123,17 @@ export default function EmailComposerleads({
     useEffect(() => {
         setListSuccess(ok);
     }, [ok, setListSuccess]);
+
+    //  const htmlMessage = `<div style="white-space: pre-wrap; font-family: sans-serif;">${emailForm.message}</div>`;
+    // const htmlMessage = <div className="white-space: pre-wrap; font-family: sans-serif;">`${emailForm.message}`</div>;
+    // const htmlMessage = (
+    //     <div
+    //         style={{ whiteSpace: "pre-wrap", fontFamily: "sans-serif" }}
+    //         dangerouslySetInnerHTML={{ __html: emailForm.message }}
+    //     />
+    // );
+
+
 
     const sendEmail = async () => {
         if (!emailForm.recipient.trim() || !emailForm.message.trim() || !emailForm.subject.trim()) {
@@ -160,13 +178,15 @@ export default function EmailComposerleads({
         }
 
         setLoading(true);
+
         try {
+            const htmlMessage = `<div style="white-space: pre-wrap; font-family: sans-serif;">${emailForm.message}</div>`;
             const payload: any = {
                 recipients: emailForm.recipient,
                 cc: emailForm.cc,
                 bcc: emailForm.bcc,
                 subject: emailForm.subject,
-                content: emailForm.message,
+                content: htmlMessage,
                 send_email: 1,
                 now: 1,
                 sender_full_name: senderUsername,
@@ -279,9 +299,14 @@ export default function EmailComposerleads({
 
     const handleSubjectChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const subject = e.target.value;
-        setEmailForm(f => ({ ...f, subject }));
+        setEmailForm(prev => ({
+            ...prev,
+            subject,
+            // 👇 if subject is cleared, also clear the message
+            message: subject.trim() === "" ? "" : prev.message,
+        }));
 
-        if (!isSubjectEdited) {
+        if (subject.trim() !== "") {
             setIsSubjectEdited(true);
         }
     };
@@ -317,15 +342,20 @@ export default function EmailComposerleads({
         }
     };
 
-    useEffect(() => {
-        if (emailForm.subject.trim() && !isSubjectEdited) {
-            const timeoutId = setTimeout(() => {
-                generateEmailFromSubject(emailForm.subject);
-            }, 500);
+    const handleConfirmGenerate = async () => {
+        await generateEmailFromSubject(subjectToGenerate);
+        setShowConfirmationPopup(false);
+        setIsSubjectEdited(true); // ✨ ADD THIS LINE
+    };
 
-            return () => clearTimeout(timeoutId);
+    // Add this new function to handle the button click
+    const handleGenerateButtonClick = () => {
+        // Only show the popup if there is a subject to generate from
+        if (emailForm.subject.trim()) {
+            setSubjectToGenerate(emailForm.subject);
+            setShowConfirmationPopup(true);
         }
-    }, [emailForm.subject, isSubjectEdited]);
+    };
 
     const handleCommentSubmit = async (commentData: any) => {
         await refreshEmails();
@@ -384,7 +414,6 @@ export default function EmailComposerleads({
         }
     };
 
-    // 👈 6. Add useEffect for debounced search
     useEffect(() => {
         const timeoutId = setTimeout(() => {
             fetchUserSuggestions(emailForm.recipient);
@@ -393,7 +422,6 @@ export default function EmailComposerleads({
         return () => clearTimeout(timeoutId);
     }, [emailForm.recipient]);
 
-    // 👈 7. Update handleClickOutside useEffect
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target as Node)) {
@@ -578,6 +606,20 @@ export default function EmailComposerleads({
                                     }`}
                                 placeholder="Subject"
                             />
+                            {!replyData && (
+                                <button
+                                    type="button"
+                                    onClick={handleGenerateButtonClick}
+                                    disabled={!emailForm.subject.trim()}
+                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${theme === 'dark'
+                                        ? 'bg-purplebg hover:bg-purple-700 text-white'
+                                        : 'bg-purplebg hover:bg-purple-700 text-white'
+                                        } disabled:opacity-50 disabled:cursor-not-allowed`}
+                                >
+                                    <Sparkles size={16} />
+                                    Generate
+                                </button>
+                            )}
                         </div>
                     </div>
 
@@ -684,6 +726,17 @@ export default function EmailComposerleads({
                     </div>
                 </div>
             )}
+            <ConfirmationPopup
+                show={showConfirmationPopup}
+                onConfirm={handleConfirmGenerate}
+                onCancel={() => {
+                    setShowConfirmationPopup(false);
+                    setIsSubjectEdited(true); // ✨ ADD THIS LINE
+                }}
+                title="Generate Email Content?"
+                message="Do you want to automatically generate an email body based on the subject?"
+                isLoading={generatingContent}
+            />
         </div>
     );
 }

@@ -105,7 +105,7 @@ interface CallLog {
   from: string;
   to: string;
   status: string;
-  _caller:string;
+  _caller: string;
   type: string;
   duration: string;
   reference_doctype: string;
@@ -664,293 +664,293 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
   const [territoryLoading, setTerritoryLoading] = useState(false);
 
 
-// Add this new function to fetch detailed call logs for activity tab
-const fetchDetailedCallLogsForActivity = async (callNames: string[]) => {
-  if (!callNames.length) return [];
-  
-  try {
-    // Create an array of promises for each call log detail fetch
-    const detailPromises = callNames.map(name =>
-      fetch(`http://103.214.132.20:8002/api/method/crm.fcrm.doctype.crm_call_log.crm_call_log.get_call_log`, {
-        method: 'POST',
-        headers: {
-          'Authorization': AUTH_TOKEN,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ name })
-      }).then(res => res.json())
-    );
+  // Add this new function to fetch detailed call logs for activity tab
+  const fetchDetailedCallLogsForActivity = async (callNames: string[]) => {
+    if (!callNames.length) return [];
 
-    // Wait for all detail-fetching API calls to complete
-    const detailResponses = await Promise.all(detailPromises);
-    
-    // Extract and combine all call logs with their notes and tasks
-    const detailedCallLogs = detailResponses.flatMap(response => response.message || []);
-    
-    return detailedCallLogs;
-  } catch (error) {
-    console.error('Error fetching detailed call logs for activity:', error);
-    return [];
-  }
-};
+    try {
+      // Create an array of promises for each call log detail fetch
+      const detailPromises = callNames.map(name =>
+        fetch(`http://103.214.132.20:8002/api/method/crm.fcrm.doctype.crm_call_log.crm_call_log.get_call_log`, {
+          method: 'POST',
+          headers: {
+            'Authorization': AUTH_TOKEN,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ name })
+        }).then(res => res.json())
+      );
 
-// Modified fetchActivities function
-const fetchActivities = useCallback(async () => {
-  setActivityLoading(true);
-  setActivities([]);
-  try {
-    const response = await fetch(
-      "http://103.214.132.20:8002/api/method/crm.api.activities.get_activities",
-      {
-        method: "POST",
-        headers: {
-          "Authorization": AUTH_TOKEN,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          name: lead.name
-        })
-      }
-    );
+      // Wait for all detail-fetching API calls to complete
+      const detailResponses = await Promise.all(detailPromises);
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      // Extract and combine all call logs with their notes and tasks
+      const detailedCallLogs = detailResponses.flatMap(response => response.message || []);
+
+      return detailedCallLogs;
+    } catch (error) {
+      console.error('Error fetching detailed call logs for activity:', error);
+      return [];
     }
+  };
 
-    const result = await response.json();
-    const message = result.message || [];
-    const docinfo = result.docinfo || {};
-    const user_info = docinfo.user_info || {};
+  // Modified fetchActivities function
+  const fetchActivities = useCallback(async () => {
+    setActivityLoading(true);
+    setActivities([]);
+    try {
+      const response = await fetch(
+        "http://103.214.132.20:8002/api/method/crm.api.activities.get_activities",
+        {
+          method: "POST",
+          headers: {
+            "Authorization": AUTH_TOKEN,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            name: lead.name
+          })
+        }
+      );
 
-    if (!Array.isArray(message) || message.length === 0) {
-      setActivities([]);
-      setActivityLoading(false);
-      return;
-    }
-
-    const rawTimeline = Array.isArray(message[0]) ? message[0] : [];
-    const rawCalls = Array.isArray(message[1]) ? message[1] : [];
-    const rawNotes = Array.isArray(message[2]) ? message[2] : [];
-    const rawTasks = Array.isArray(message[3]) ? message[3] : [];
-
-    // ✨ NEW: Fetch detailed call logs with notes and tasks
-    const callNames = rawCalls.map(call => call.name).filter(Boolean);
-    const detailedCallLogs = await fetchDetailedCallLogsForActivity(callNames);
-    
-    // Create a map for easy lookup of detailed call data
-    const detailedCallMap = new Map();
-    detailedCallLogs.forEach(detailedCall => {
-      if (detailedCall.name) {
-        detailedCallMap.set(detailedCall.name, detailedCall);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-    });
 
-    setCallLogs(detailedCallLogs); // Update call logs with detailed data
-    setNotes(rawNotes);
-    setTasks(rawTasks);
+      const result = await response.json();
+      const message = result.message || [];
+      const docinfo = result.docinfo || {};
+      const user_info = docinfo.user_info || {};
 
-    const rawEmails = rawTimeline
-      .filter((item: any) => item.activity_type === 'communication')
-      .map((item: any) => ({
-        ...item.data,
-        id: item.name || `comm-${item.creation}`,
-        creation: item.creation,
-        recipients: item.data.recipients || item.data.to || '',
-      }));
-    setEmails(rawEmails);
+      if (!Array.isArray(message) || message.length === 0) {
+        setActivities([]);
+        setActivityLoading(false);
+        return;
+      }
 
-    const rawComments = rawTimeline.filter((item: any) => item.activity_type === 'comment');
-    setComments(rawComments);
+      const rawTimeline = Array.isArray(message[0]) ? message[0] : [];
+      const rawCalls = Array.isArray(message[1]) ? message[1] : [];
+      const rawNotes = Array.isArray(message[2]) ? message[2] : [];
+      const rawTasks = Array.isArray(message[3]) ? message[3] : [];
 
-    const rawFiles = docinfo.files || [];
-    setFiles(rawFiles);
+      // ✨ NEW: Fetch detailed call logs with notes and tasks
+      const callNames = rawCalls.map(call => call.name).filter(Boolean);
+      const detailedCallLogs = await fetchDetailedCallLogsForActivity(callNames);
 
-    // File activities (unchanged)
-    const fileActivities = rawTimeline
-      .filter((item: any) => item.activity_type === "attachment_log")
-      .map((item: any) => {
-        const fileData = item.data || {};
-        const creatorName = user_info[item.owner]?.fullname || item.owner;
+      // Create a map for easy lookup of detailed call data
+      const detailedCallMap = new Map();
+      detailedCallLogs.forEach(detailedCall => {
+        if (detailedCall.name) {
+          detailedCallMap.set(detailedCall.name, detailedCall);
+        }
+      });
+
+      setCallLogs(detailedCallLogs); // Update call logs with detailed data
+      setNotes(rawNotes);
+      setTasks(rawTasks);
+
+      const rawEmails = rawTimeline
+        .filter((item: any) => item.activity_type === 'communication')
+        .map((item: any) => ({
+          ...item.data,
+          id: item.name || `comm-${item.creation}`,
+          creation: item.creation,
+          recipients: item.data.recipients || item.data.to || '',
+        }));
+      setEmails(rawEmails);
+
+      const rawComments = rawTimeline.filter((item: any) => item.activity_type === 'comment');
+      setComments(rawComments);
+
+      const rawFiles = docinfo.files || [];
+      setFiles(rawFiles);
+
+      // File activities (unchanged)
+      const fileActivities = rawTimeline
+        .filter((item: any) => item.activity_type === "attachment_log")
+        .map((item: any) => {
+          const fileData = item.data || {};
+          const creatorName = user_info[item.owner]?.fullname || item.owner;
+          return {
+            id: item.name || `file-${Date.now()}`,
+            type: "file",
+            title: `File ${fileData.type === "added" ? "Uploaded" : "Removed"}: ${fileData.file_name || "Unnamed file"}`,
+            description: fileData.file_url || "",
+            timestamp: item.creation || new Date().toISOString(),
+            user: creatorName || "Unknown",
+            icon: <IoDocument className="w-4 h-4" />,
+            data: fileData,
+            action: fileData.type || "unknown",
+            files: false
+          };
+        });
+
+      // ✨ ENHANCED: Call activities with detailed data including notes and tasks
+      const callActivities = rawCalls.map((call: any) => {
+        const caller = call._caller?.label || call.caller || call.from || "Unknown";
+        const receiver = call._receiver?.label || call.receiver || call.to || "Unknown";
+
+        // Get detailed call data from our map
+        const detailedCall = detailedCallMap.get(call.name) || call;
+
         return {
-          id: item.name || `file-${Date.now()}`,
-          type: "file",
-          title: `File ${fileData.type === "added" ? "Uploaded" : "Removed"}: ${fileData.file_name || "Unnamed file"}`,
-          description: fileData.file_url || "",
-          timestamp: item.creation || new Date().toISOString(),
-          user: creatorName || "Unknown",
-          icon: <IoDocument className="w-4 h-4" />,
-          data: fileData,
-          action: fileData.type || "unknown",
-          files: false
+          id: call.name,
+          type: "call",
+          title: `${call.type || "Call"} Call`,
+          description: `${caller} → ${receiver}`,
+          timestamp: call.creation,
+          user: caller,
+          icon:
+            call.type === "Incoming" || call.type === "Inbound"
+              ? <SlCallIn className="w-4 h-4" />
+              : <SlCallOut className="w-4 h-4" />,
+          data: {
+            ...call,
+            ...detailedCall, // Merge with detailed data
+            caller,
+            receiver,
+            // Ensure _notes and _tasks are preserved from detailed call
+            _notes: detailedCall._notes || [],
+            _tasks: detailedCall._tasks || []
+          },
         };
       });
 
-    // ✨ ENHANCED: Call activities with detailed data including notes and tasks
-    const callActivities = rawCalls.map((call: any) => {
-      const caller = call._caller?.label || call.caller || call.from || "Unknown";
-      const receiver = call._receiver?.label || call.receiver || call.to || "Unknown";
-      
-      // Get detailed call data from our map
-      const detailedCall = detailedCallMap.get(call.name) || call;
+      console.log("Enhanced call activities with detailed data:", callActivities);
 
-      return {
-        id: call.name,
-        type: "call",
-        title: `${call.type || "Call"} Call`,
-        description: `${caller} → ${receiver}`,
-        timestamp: call.creation,
-        user: caller,
-        icon:
-          call.type === "Incoming" || call.type === "Inbound"
-            ? <SlCallIn className="w-4 h-4" />
-            : <SlCallOut className="w-4 h-4" />,
-        data: {
-          ...call,
-          ...detailedCall, // Merge with detailed data
-          caller,
-          receiver,
-          // Ensure _notes and _tasks are preserved from detailed call
-          _notes: detailedCall._notes || [],
-          _tasks: detailedCall._tasks || []
-        },
-      };
-    });
+      // Rest of the activities (unchanged)
+      const noteActivities = rawNotes.map((note: any) => ({
+        id: note.name,
+        type: "note",
+        title: `Note Added: ${note.title}`,
+        description: note.content,
+        timestamp: note.creation,
+        user: note.owner,
+        icon: <FileText className="w-4 h-4" />,
+        data: note,
+      }));
 
-    console.log("Enhanced call activities with detailed data:", callActivities);
+      const taskActivities = rawTasks.map((task: any) => ({
+        id: task.name,
+        type: 'task',
+        title: `Task Created: ${task.title}`,
+        description: task.description || '',
+        timestamp: task.creation,
+        user: task.assigned_to || 'Unassigned',
+        icon: <SiTicktick className="w-4 h-4 text-gray-600" />,
+      }));
 
-    // Rest of the activities (unchanged)
-    const noteActivities = rawNotes.map((note: any) => ({
-      id: note.name,
-      type: "note",
-      title: `Note Added: ${note.title}`,
-      description: note.content,
-      timestamp: note.creation,
-      user: note.owner,
-      icon: <FileText className="w-4 h-4" />,
-      data: note,
-    }));
+      const emailActivities = rawEmails.map((email: any) => ({
+        id: email.name || email.id,
+        type: 'email',
+        title: `Email: ${email.subject || 'No Subject'}`,
+        description: email.content,
+        timestamp: email.creation,
+        user: email.sender_full_name || email.sender || 'Unknown',
+        recipients: email.recipients,
+        icon: <Mail className="w-4 h-4" />,
+      }));
 
-    const taskActivities = rawTasks.map((task: any) => ({
-      id: task.name, 
-      type: 'task', 
-      title: `Task Created: ${task.title}`,
-      description: task.description || '', 
-      timestamp: task.creation, 
-      user: task.assigned_to || 'Unassigned',
-      icon: <SiTicktick className="w-4 h-4 text-gray-600" />,
-    }));
+      const commentActivities = rawComments.map((comment: any) => {
+        const creatorName = user_info[comment.owner]?.fullname || comment.owner;
+        return {
+          id: comment.name,
+          type: 'comment',
+          title: 'New Comment',
+          description: comment.content,
+          timestamp: comment.creation,
+          user: creatorName,
+          attachments: comment.attachments || [],
+          icon: <FaRegComment className="w-4 h-4" />,
+        };
+      });
 
-    const emailActivities = rawEmails.map((email: any) => ({
-      id: email.name || email.id, 
-      type: 'email', 
-      title: `Email: ${email.subject || 'No Subject'}`,
-      description: email.content, 
-      timestamp: email.creation, 
-      user: email.sender_full_name || email.sender || 'Unknown',
-      recipients: email.recipients,
-      icon: <Mail className="w-4 h-4" />,
-    }));
-
-    const commentActivities = rawComments.map((comment: any) => {
-      const creatorName = user_info[comment.owner]?.fullname || comment.owner;
-      return {
-        id: comment.name,
-        type: 'comment',
-        title: 'New Comment',
-        description: comment.content,
-        timestamp: comment.creation,
-        user: creatorName,
-        attachments: comment.attachments || [],
-        icon: <FaRegComment className="w-4 h-4" />,
-      };
-    });
-
-    // Timeline activities (unchanged)
-    const timelineActivities = rawTimeline
-      .filter((item: any) => item.activity_type === 'added' || item.activity_type === 'changed' || item.activity_type === 'creation')
-      .map((item: any) => {
-        const creatorName = user_info[item.owner]?.fullname || item.owner;
-        switch (item.activity_type) {
-          case 'creation':
-            return {
-              id: `creation-${item.creation}`,
-              type: 'edit',
-              title: ` created this Lead`,
-              description: '',
-              timestamp: item.creation,
-              user: creatorName,
-              icon: <UserPlus className="w-4 h-4 text-gray-500" />
-            };
-
-          case 'added':
-          case 'changed':
-            if (item.other_versions?.length > 0) {
+      // Timeline activities (unchanged)
+      const timelineActivities = rawTimeline
+        .filter((item: any) => item.activity_type === 'added' || item.activity_type === 'changed' || item.activity_type === 'creation')
+        .map((item: any) => {
+          const creatorName = user_info[item.owner]?.fullname || item.owner;
+          switch (item.activity_type) {
+            case 'creation':
               return {
-                id: `group-${item.creation}`,
-                type: 'grouped_change',
+                id: `creation-${item.creation}`,
+                type: 'edit',
+                title: ` created this Lead`,
+                description: '',
                 timestamp: item.creation,
                 user: creatorName,
-                icon: <Layers className="w-4 h-4 text-white" />,
-                data: {
-                  changes: [item, ...item.other_versions],
-                  field_label: item.data?.field_label,
-                  value: item.data?.value,
-                  old_value: item.data?.old_value,
-                  other_versions: item.other_versions
-                }
+                icon: <UserPlus className="w-4 h-4 text-gray-500" />
               };
-            }
 
-            const actionText = item.activity_type === 'added'
-              ? `added value for ${item.data?.field_label}: '${item.data?.value}'`
-              : `changed ${item.data?.field_label} from '${item.data?.old_value || "nothing"}' to '${item.data?.value}'`;
+            case 'added':
+            case 'changed':
+              if (item.other_versions?.length > 0) {
+                return {
+                  id: `group-${item.creation}`,
+                  type: 'grouped_change',
+                  timestamp: item.creation,
+                  user: creatorName,
+                  icon: <Layers className="w-4 h-4 text-white" />,
+                  data: {
+                    changes: [item, ...item.other_versions],
+                    field_label: item.data?.field_label,
+                    value: item.data?.value,
+                    old_value: item.data?.old_value,
+                    other_versions: item.other_versions
+                  }
+                };
+              }
 
-            return {
-              id: `change-${item.creation}`,
-              type: 'edit',
-              title: ` ${actionText}`,
-              description: '',
-              timestamp: item.creation,
-              user: creatorName,
-              icon: <RxLightningBolt className="w-4 h-4 text-yellow-500" />
-            };
+              const actionText = item.activity_type === 'added'
+                ? `added value for ${item.data?.field_label}: '${item.data?.value}'`
+                : `changed ${item.data?.field_label} from '${item.data?.old_value || "nothing"}' to '${item.data?.value}'`;
 
-          default:
-            return null;
-        }
-      })
-      .filter(Boolean);
+              return {
+                id: `change-${item.creation}`,
+                type: 'edit',
+                title: ` ${actionText}`,
+                description: '',
+                timestamp: item.creation,
+                user: creatorName,
+                icon: <RxLightningBolt className="w-4 h-4 text-yellow-500" />
+              };
 
-    const allActivities = [
-      ...callActivities,
-      ...emailActivities,
-      ...commentActivities,
-      ...timelineActivities,
-      ...fileActivities,
-    ];
+            default:
+              return null;
+          }
+        })
+        .filter(Boolean);
 
-    allActivities.sort((a, b) => {
-      const getValidDate = (activity: { timestamp: string | number | Date; creation: string | number | Date; data: { creation: string | number | Date; }; }) => {
-        if (activity.timestamp) return new Date(activity.timestamp);
-        if (activity.creation) return new Date(activity.creation);
-        if (activity.data?.creation) return new Date(activity.data.creation);
-        return new Date(0);
-      };
+      const allActivities = [
+        ...callActivities,
+        ...emailActivities,
+        ...commentActivities,
+        ...timelineActivities,
+        ...fileActivities,
+      ];
 
-      const dateA = getValidDate(a);
-      const dateB = getValidDate(b);
-      return dateA.getTime() - dateB.getTime();
-    });
-    
-    setActivities(allActivities);
+      allActivities.sort((a, b) => {
+        const getValidDate = (activity: { timestamp: string | number | Date; creation: string | number | Date; data: { creation: string | number | Date; }; }) => {
+          if (activity.timestamp) return new Date(activity.timestamp);
+          if (activity.creation) return new Date(activity.creation);
+          if (activity.data?.creation) return new Date(activity.data.creation);
+          return new Date(0);
+        };
 
-  } catch (err) {
-    console.error("Error fetching activities:", err);
-    showToast("Failed to fetch activities", { type: 'error' });
-  } finally {
-    setActivityLoading(false);
-  }
-}, [lead.name]);
+        const dateA = getValidDate(a);
+        const dateB = getValidDate(b);
+        return dateA.getTime() - dateB.getTime();
+      });
+
+      setActivities(allActivities);
+
+    } catch (err) {
+      console.error("Error fetching activities:", err);
+      showToast("Failed to fetch activities", { type: 'error' });
+    } finally {
+      setActivityLoading(false);
+    }
+  }, [lead.name]);
   // const fetchActivities = useCallback(async () => {
   //   setActivityLoading(true);
   //   setActivities([]);
@@ -3793,9 +3793,10 @@ const fetchActivities = useCallback(async () => {
                                 </div>
                               )}
                               <div className={`mt-4 pt-2 border-t ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'} flex flex-col items-start`}>
-                                <div className={`${textColor} mb-2 whitespace-pre-wrap mt-4 w-full`}>
-                                  {emailData.description || 'No content'}
-                                </div>
+                                <div
+                                  className={`${textColor} mb-2 whitespace-pre-wrap mt-4 w-full`}
+                                  dangerouslySetInnerHTML={{ __html: emailData.description || 'No content' }}
+                                />
                                 {/* ADD THIS SECTION TO SHOW RECIPIENTS */}
 
 
@@ -3995,6 +3996,7 @@ const fetchActivities = useCallback(async () => {
                   }}
 
                   replyData={replyData}
+                  recipientEmail={editedLead.email}
                 />
               )}
 
@@ -4735,6 +4737,7 @@ const fetchActivities = useCallback(async () => {
                   setListSuccess={setListSuccess}
                   refreshEmails={refreshComments}
                   replyData={replyData}
+                  recipientEmail={editedLead.email}
                 />
               )}
 
@@ -5384,12 +5387,18 @@ const fetchActivities = useCallback(async () => {
                                 )}
                               </div>
 
-                              {comm.content && (
+                              {/* {comm.content && (
                                 <div className={`mt-3 p-3 rounded ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-50'}`}>
                                   <p className={`text-sm ${textColor} whitespace-pre-wrap`}>
                                     {comm.content}
                                   </p>
                                 </div>
+                              )} */}
+                              {comm.content && (
+                                <div
+                                  className={`htmlmessage mt-3 p-3 rounded ${textColor} ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-50'}`}
+                                  dangerouslySetInnerHTML={{ __html: comm.content }}
+                                />
                               )}
 
                               {attachments.length > 0 && (
@@ -5469,6 +5478,7 @@ const fetchActivities = useCallback(async () => {
                   setListSuccess={setListSuccess}
                   refreshEmails={refreshEmails}
                   replyData={replyData}
+                  recipientEmail={editedLead.email}
                 />
               )}
 

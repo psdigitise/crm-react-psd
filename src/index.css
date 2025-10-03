@@ -46,3 +46,14 @@ select option{
 body {
   font-family: 'Inter', sans-serif;
 }
+
+/* html-message {
+    white-space: pre-wrap;
+    font-family: sans-serif;
+} */
+
+.htmlmessage {
+    white-space: pre-wrap;
+    font-family: sans-serif;
+}
+

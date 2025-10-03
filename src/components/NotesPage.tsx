@@ -716,6 +716,11 @@ export function NotesPage({ onCreateNote, leadName }: NotesPageProps) {
     );
   }
 
+  const getDisplayName = (ownerEmail: string) => {
+  if (!ownerEmail) return 'Unknown';
+  return ownerEmail.split('@')[0];
+};
+
   return (
     <div className={`min-h-screen ${theme === 'dark'
       ? 'bg-gradient-to-br from-dark-primary via-dark-secondary to-dark-tertiary'
@@ -809,7 +814,7 @@ export function NotesPage({ onCreateNote, leadName }: NotesPageProps) {
                       {note.owner ? note.owner.charAt(0).toUpperCase() : 'U'}
                     </div>
                     <span className={`text-xs ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`}>
-                      {note.owner}
+                      {getDisplayName(note.owner)}
                     </span>
                   </div>
 

@@ -929,53 +929,6 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
     }
   };
 
-  const generateEmailContent = async (subject: string) => {
-    console.log('generateEmailContent called with subject:', subject);
-
-    if (!subject.trim()) {
-      console.log('Subject is empty, returning');
-      setGeneratedEmailContent('');
-      return;
-    }
-
-    setGeneratingContent(true);
-    try {
-      console.log('Making API call to email generator');
-
-      const response = await fetch(
-        `${API_BASE_URL}/method/customcrm.api.email_generator.generate_email`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': AUTH_TOKEN,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            subject: subject
-          })
-        }
-      );
-
-      console.log('API response status:', response.status);
-
-      if (response.ok) {
-        const result = await response.json();
-        console.log('API response data:', result);
-        setGeneratedEmailContent(result.message || '');
-      } else {
-        const errorText = await response.text();
-        console.error('API error response:', errorText);
-        throw new Error('Failed to generate email content');
-      }
-    } catch (error) {
-      console.error('Error generating email content:', error);
-      showToast('Failed to generate email content', { type: 'error' });
-      setGeneratedEmailContent('');
-    } finally {
-      setGeneratingContent(false);
-    }
-  };
-
   const deleteCall = async (name) => {
     if (!window.confirm('Are you sure you want to delete this call log?')) return;
     setCallsLoading(true);
@@ -3860,6 +3813,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                   mode={emailModalModeEmails}
                   dealName={deal.name}
                   fetchEmails={fetchEmails}
+                  fetchComments={fetchComments}
                   selectedEmail={selectedEmailEmails}
                   clearSelectedEmail={() => setSelectedEmailEmails(null)}
                   deal={deal}
