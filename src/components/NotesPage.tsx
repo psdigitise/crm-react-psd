@@ -8,6 +8,7 @@ import { DealDetailView } from './DealDetailView';
 import { LeadDetailView } from './LeadDetailView';
 import { formatDistanceToNow } from 'date-fns';
 import { AUTH_TOKEN } from '../api/apiUrl';
+import { api } from '../api/apiService';
 
 interface Note {
   name: string;
@@ -266,22 +267,23 @@ export function NotesPage({ onCreateNote, leadName }: NotesPageProps) {
         }
       };
 
-      const apiUrl = `http://103.214.132.20:8002/api/method/crm.api.doc.get_data`;
+      //const apiUrl = `http://103.214.132.20:8002/api/method/crm.api.doc.get_data`;
 
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
-        },
-        body: JSON.stringify(payload)
-      });
+      // const response = await fetch(apiUrl, {
+      //   method: 'POST',
+      //   headers: {
+      //     'Content-Type': 'application/json',
+      //     'Authorization': AUTH_TOKEN
+      //   },
+      //   body: JSON.stringify(payload)
+      // });
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
+      // if (!response.ok) {
+      //   throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      // }
 
-      const result = await response.json();
+      //const result = await response.json();
+       const result = await api.post('/api/method/crm.api.doc.get_data', payload);
       const notesData = result.message?.data || result.data || [];
 
       setNotes(notesData);

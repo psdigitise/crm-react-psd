@@ -60,10 +60,11 @@ export function Sidebar({ isCollapsed, onToggle, activeItem, onItemClick }: Side
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [lastNotificationCount, setLastNotificationCount] = useState(0);
-  const [userSession, setUserSession] = useState(getUserSession());
-
   const [companyInfo, setCompanyInfo] = useState<{ start_date?: string, end_date?: string } | null>(null);
   const [expiryStatus, setExpiryStatus] = useState<{ expired: boolean, daysLeft: number } | null>(null);
+  const userSession = getUserSession();
+   const CompanyName = userSession?.company || "Administrator";
+    const Username = userSession?.username || "Administrator";
 
   useEffect(() => {
     const session = getUserSession();
@@ -188,14 +189,31 @@ export function Sidebar({ isCollapsed, onToggle, activeItem, onItemClick }: Side
                   src="../../public/assets/images/Erpnextlogo.png"
                   alt="ERPNext Logo"
                   className={`w-[250px] h-auto transition duration-300 ${theme === "dark"
-                      ? "filter invert brightness-0 saturate-100 sepia hue-rotate-[90deg] contrast-125"
-                      : ""
+                    ? "filter invert brightness-0 saturate-100 sepia hue-rotate-[90deg] contrast-125"
+                    : ""
                     }`}
                 />
 
-                <div className="w-full flex items-center justify-center gap-3">
+                <div className="mt-2">
+                  <h2
+                    className={`text-sm font-semibold truncate max-w-[180px] ${theme === "dark"
+                      ? "text-white"
+                      : "text-gray-800"
+                      }`}
+                    title="Companyname"
+                  >
+                   {CompanyName}
+                  </h2>
+                  <p
+                    className={`text-xs truncate max-w-[180px] ${theme === "dark"
+                      ? "text-gray-300"
+                      : "text-gray-500"
+                      }`}
+                    title="username"
+                  >
+                 {Username}
+                  </p>
                 </div>
-
               </div>
             )}
 
@@ -280,9 +298,6 @@ export function Sidebar({ isCollapsed, onToggle, activeItem, onItemClick }: Side
                       </span>
                     )}
                   </button>
-
-
-
 
                   {/* Tooltip for collapsed state */}
                   {isCollapsed && (

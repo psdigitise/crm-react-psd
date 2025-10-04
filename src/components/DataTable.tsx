@@ -12,6 +12,7 @@ import { ClearAssignmentPopup } from './LeadsPopup/ClearAssignmentPopup';
 import { BulkEditPopup } from './LeadsPopup/EditLeadPopup';
 import { ConvertToDealPopup } from './LeadsPopup/ConvertToDealPopup';
 import { AUTH_TOKEN } from '../api/apiUrl';
+import { api } from '../api/apiService';
 
 
 interface Lead {
@@ -167,7 +168,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
       }
 
       // The new API endpoint for the POST request
-      const apiUrl = 'http://103.214.132.20:8002/api/method/crm.api.doc.get_data';
+      //const apiUrl = 'http://103.214.132.20:8002/api/method/crm.api.doc.get_data';
 
       // The payload (body) for the POST request, as you provided
       const payload = {
@@ -194,24 +195,25 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
         "page_length_count": 20
       };
 
-      const response = await fetch(apiUrl, {
-        method: 'POST', // Changed method to POST
-        headers: {
-          'Content-Type': 'application/json',
-          // Authorization token remains the same
-          'Authorization': AUTH_TOKEN
-        },
-        // Added the body with the JSON payload
-        body: JSON.stringify(payload)
-      });
+      // const response = await fetch(apiUrl, {
+      //   method: 'POST', // Changed method to POST
+      //   headers: {
+      //     'Content-Type': 'application/json',
+      //     // Authorization token remains the same
+      //     'Authorization': AUTH_TOKEN
+      //   },
+      //   // Added the body with the JSON payload
+      //   body: JSON.stringify(payload)
+      // });
 
-      if (!response.ok) {
-        // Try to get more specific error info from the response body
-        const errorBody = await response.text();
-        throw new Error(`HTTP ${response.status}: ${response.statusText}. Body: ${errorBody}`);
-      }
+      // if (!response.ok) {
+      //   // Try to get more specific error info from the response body
+      //   const errorBody = await response.text();
+      //   throw new Error(`HTTP ${response.status}: ${response.statusText}. Body: ${errorBody}`);
+      // }
 
-      const result = await response.json();
+      // const result = await response.json();
+      const result = await api.post('/api/method/crm.api.doc.get_data', payload);
       console.log('API Response:', result);
 
       // IMPORTANT: The response structure from the new API might be different.
@@ -360,7 +362,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization':AUTH_TOKEN
+            'Authorization': AUTH_TOKEN
           }
         });
         if (!response.ok) {
@@ -540,7 +542,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization':AUTH_TOKEN
+          'Authorization': AUTH_TOKEN
         },
         body: JSON.stringify(deletePayload)
       });

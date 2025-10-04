@@ -11,6 +11,7 @@ import { DeleteDealPopup } from './DealPopups/DeleteDealPopup';
 import { AssignDealPopup } from './DealPopups/AssignDealPopup';
 import { ClearAssignmentPopup } from './DealPopups/ClearAssignmentPopup';
 import axios from 'axios';
+import { api } from '../api/apiService';
 
 interface Deal {
   id: string;
@@ -178,20 +179,21 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
         "page_length_count": 20
       };
 
-      const response = await fetch("http://103.214.132.20:8002/api/method/crm.api.doc.get_data", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": AUTH_TOKEN
-        },
-        body: JSON.stringify(requestData)
-      });
+      // const response = await fetch("http://103.214.132.20:8002/api/method/crm.api.doc.get_data", {
+      //   method: "POST",
+      //   headers: {
+      //     "Content-Type": "application/json",
+      //     "Authorization": AUTH_TOKEN
+      //   },
+      //   body: JSON.stringify(requestData)
+      // });
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
+      // if (!response.ok) {
+      //   throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      // }
 
-      const result = await response.json();
+      //const result = await response.json();
+       const result = await api.post('/api/method/crm.api.doc.get_data', requestData);
 
       // Transform the API response to match your Deal interface
       const transformedDeals: Deal[] = result.message.data.map((apiDeal: any) => ({
@@ -218,7 +220,24 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
         status: Array.from(new Set(transformedDeals.map(d => d.status).filter(Boolean))),
         territory: Array.from(new Set(transformedDeals.map(d => d.territory).filter(Boolean))),
         industry: Array.from(new Set(transformedDeals.map(d => d.industry).filter(Boolean))),
-        assignedTo: Array.from(new Set(transformedDeals.map(d => d.assignedTo).filter(Boolean)))
+        // assignedTo: Array.from(new Set(transformedDeals.map(d => d.assignedTo).filter(Boolean)))
+        assignedTo: Array.from(new Set(
+          transformedDeals.flatMap(d => {
+            let names: string[] = [];
+            if (Array.isArray(d.assignedTo)) {
+              names = d.assignedTo;
+            } else if (typeof d.assignedTo === "string") {
+              try {
+                const parsed = JSON.parse(d.assignedTo);
+                names = Array.isArray(parsed) ? parsed : d.assignedTo.split(",");
+              } catch {
+                names = d.assignedTo.split(",");
+              }
+            }
+            return names.map(name => name.trim()).filter(name => name !== "");
+          })
+        ))
+
       });
 
     } catch (error) {
@@ -1055,8 +1074,8 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
                     setShowDropdown(false);
                   }}
                   className={`block w-full text-left px-4 py-2 text-sm ${selectedDeals.length === 0
-                      ? 'text-gray-400 cursor-not-allowed'
-                      : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600'
+                    ? 'text-gray-400 cursor-not-allowed'
+                    : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600'
                     }`}
                   disabled={selectedDeals.length === 0}
                 >

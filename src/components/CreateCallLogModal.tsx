@@ -31,7 +31,7 @@ export function CreateCallLogModal({
     status: 'Ringing',
     type: 'Outgoing',
     duration: '',
-    reference_doctype: 'CRM Lead',
+    reference_doctype: '',
     id: leadName || '',
     caller: '',
     receiver: ''
@@ -106,13 +106,13 @@ export function CreateCallLogModal({
       const randomId = Math.random().toString(36).substring(2, 8).toUpperCase();
 
       // Prepare the document data according to the new API structure
-      const doc = {
+      const doc: any = {
         doctype: "CRM Call Log",
         from: formData.from,
         to: formData.to,
         status: formData.status,
         type: formData.type,
-        duration: formData.duration,
+        //duration: formData.duration,
         reference_doctype: formData.reference_doctype,
         id: randomId,
         receiver: formData.receiver,
@@ -121,6 +121,10 @@ export function CreateCallLogModal({
         reference_docname: leadName || '', // Assuming leadName is the reference document name
         company: sessionCompany
       };
+
+      if (formData.duration) {
+        doc.duration = formData.duration;
+      }
 
       const apiUrl = 'http://103.214.132.20:8002/api/method/frappe.client.insert';
 
@@ -155,7 +159,7 @@ export function CreateCallLogModal({
         status: 'Ringing',
         type: 'Outgoing',
         duration: '',
-        reference_doctype: 'CRM Lead',
+        reference_doctype: '',
         id: leadName || '',
         caller: '',
         receiver: ''
@@ -196,7 +200,7 @@ export function CreateCallLogModal({
       status: 'Ringing',
       type: 'Outgoing',
       duration: '',
-      reference_doctype: 'CRM Lead',
+      reference_doctype: '',
       id: leadName || '',
       caller: '',
       receiver: ''

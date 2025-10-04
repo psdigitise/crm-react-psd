@@ -5,7 +5,8 @@ import { showToast } from '../utils/toast';
 import { exportToExcel } from '../utils/exportUtils';
 import { getUserSession } from '../utils/session';
 import { BsThreeDots } from 'react-icons/bs';
-import { AUTH_TOKEN } from '../api/apiUrl';
+import { apiUrl, AUTH_TOKEN } from '../api/apiUrl';
+import { api } from '../api/apiService';
 
 interface Contact {
   id: string;
@@ -162,7 +163,7 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
         return;
       }
 
-      const apiUrl = 'http://103.214.132.20:8002/api/method/crm.api.doc.get_data';
+     const apiUrl = 'http://103.214.132.20:8002/api/method/crm.api.doc.get_data';
 
       const requestBody = {
         doctype: "Contact",
@@ -334,7 +335,7 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
         return;
       }
 
-      const apiUrl = 'http://103.214.132.20:8002/api/method/crm.api.doc.get_data';
+      //const apiUrl = 'http://103.214.132.20:8002/api/method/crm.api.doc.get_data';
 
       const requestBody = {
         doctype: "Contact",
@@ -364,21 +365,22 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
         }
       };
 
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
-        },
-        body: JSON.stringify(requestBody)
-      });
+      // const response = await fetch(apiUrl, {
+      //   method: 'POST',
+      //   headers: {
+      //     'Content-Type': 'application/json',
+      //     'Authorization': AUTH_TOKEN
+      //   },
+      //   body: JSON.stringify(requestBody)
+      // });
 
-      if (!response.ok) {
-        console.error('Soft refresh failed:', response.status, response.statusText);
-        return;
-      }
+      // if (!response.ok) {
+      //   console.error('Soft refresh failed:', response.status, response.statusText);
+      //   return;
+      // }
 
-      const result = await response.json();
+      // const result = await response.json();
+       const result = await api.post('/api/method/crm.api.doc.get_data', requestBody);
 
       // Transform the API response data
       const transformedContacts: Contact[] = result.message.data.map((apiContact: any) => ({

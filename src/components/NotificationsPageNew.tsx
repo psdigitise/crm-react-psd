@@ -3,6 +3,7 @@ import { useTheme } from "./ThemeProvider";
 import { showToast } from "../utils/toast";
 import { Loader2, Bell } from "lucide-react";
 import { AUTH_TOKEN } from "../api/apiUrl";
+import { api } from "../api/apiService";
 
 interface Notification {
   name: string;
@@ -26,22 +27,25 @@ export function NotificationsPageNew() {
       setLoading(true);
       setError(null);
 
-      const apiUrl =
-        'http://103.214.132.20:8002/api/v2/document/CRM Notification?fields=["name","creation","modified","message"]';
+      // const apiUrl =
+      //   'http://103.214.132.20:8002/api/v2/document/CRM Notification?fields=["name","creation","modified","message"]';
 
-      const response = await fetch(apiUrl, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization:AUTH_TOKEN,
-        },
+      // const response = await fetch(apiUrl, {
+      //   method: "GET",
+      //   headers: {
+      //     "Content-Type": "application/json",
+      //     Authorization:AUTH_TOKEN,
+      //   },
+      // });
+
+      // if (!response.ok) {
+      //   throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      // }
+
+      // const result = await response.json();
+       const result = await api.get('api/v2/document/CRM Notification', {
+        fields: JSON.stringify(["name", "creation", "modified", "message"]),
       });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const result = await response.json();
       setNotifications(result.data || []);
     } catch (error) {
       console.error("Error fetching notifications:", error);
@@ -317,7 +321,7 @@ export function NotificationsPageNew() {
 
           {/* Yesterday Section */}
           {yesterdayNotifications.length > 0 && (
-            <div className="mb-8 overflow-y-auto h-[100vh]">
+            <div className="mb-8">
               <h2
                 className={`text-2xl font-bold mb-6 ${
                   theme === "dark" ? "text-white" : "text-black"

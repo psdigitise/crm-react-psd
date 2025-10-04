@@ -20,8 +20,8 @@ interface CallDetailsPopupProps {
         activity_type: string;
         caller: string;
         receiver: string;
-        reference_doctype: string;
         date: string;
+        reference_doctype?: string;
         duration: string;
         status: string;
         id?: string;
@@ -34,6 +34,7 @@ interface CallDetailsPopupProps {
     fetchCallLogs: () => Promise<void>;
     callLog?: any;
     onAddTask?: () => void;
+    onOpenReference?: (callLog: any) => void;
 }
 
 interface Note {
@@ -57,9 +58,9 @@ interface Task {
     creation: string;
 }
 
-const AUTH_TOKEN =  getAuthToken();
+const AUTH_TOKEN = getAuthToken();
 
-export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTaskCreated, fetchCallLogs }: CallDetailsPopupProps) => {
+export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTaskCreated, fetchCallLogs, onOpenReference }: CallDetailsPopupProps) => {
     const [openMenu, setOpenMenu] = useState(false);
     const [showAddTask, setShowAddTask] = useState(false);
     const [isAddingNote, setIsAddingNote] = useState(false);
@@ -804,7 +805,9 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
                                     <span className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>{call.receiver || "Unknown"}</span>
                                 </div>
 
-                                <div className={`flex items-center gap-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                                <div
+                                    onClick={() => onOpenReference && onOpenReference(call)}
+                                    className={`flex items-center gap-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
                                     <FaUserFriends className={theme === 'dark' ? 'text-white' : 'text-gray-900'} />
                                     {call.reference_doctype || "No reference type"}
                                     <GoArrowUpRight />

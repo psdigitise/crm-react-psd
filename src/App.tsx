@@ -34,13 +34,18 @@ import { CreateEmailModal } from './components/CreateEmailModal';
 import { ThemeProvider } from './components/ThemeProvider';
 import { sampleLeads, sampleDeals, sampleContacts, sampleOrganizations } from './data/sampleData';
 import { isUserLoggedIn, getUserSession, clearUserSession } from './utils/session';
-import { AUTH_TOKEN } from './api/apiUrl';
+import { apiAxios, AUTH_TOKEN } from './api/apiUrl';
+import { AuthErrorModal } from './components/SessionLogout/AuthErrorModal';
+import { registerAuthModalCallback, registerLogoutCallback } from './utils/apiErrorHandler';
+
 
 function AppContent() {
   // Initialize login state from session storage with proper checking
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [showAuthErrorModal, setShowAuthErrorModal] = useState(false);
+  const [authErrorMessage, setAuthErrorMessage] = useState<string>();
 
   // Initialize states based on current URL
   const [activeMenuItem, setActiveMenuItem] = useState(() => {
@@ -59,7 +64,6 @@ function AppContent() {
     if (path === '/tasks') return 'tasks';
     if (path === '/call-logs') return 'call-logs';
     if (path === '/email-templates') return 'email-templates';
-
     return 'dashboard';
   });
 
@@ -338,6 +342,18 @@ function AppContent() {
     }
   };
 
+  useEffect(() => {
+    registerLogoutCallback(handleLogout);
+    registerAuthModalCallback((show, message) => {
+      // ✅ ADD THIS LOG
+      console.log(`[Debug] Callback received. Setting showAuthErrorModal to: ${show}`);
+
+      // setShowAuthErrorModal(show);
+      setShowAuthErrorModal(show);
+      if (message) setAuthErrorMessage(message);
+    });
+  }, []);
+
   const handleLogout = () => {
     clearUserSession();
     setIsLoggedIn(false);
@@ -347,6 +363,7 @@ function AppContent() {
     setSelectedContact(null);
     setSelectedOrganization(null);
     setIsInNestedView(false);
+    setShowAuthErrorModal(false);
     window.history.pushState({}, '', '/');
   };
 
@@ -559,24 +576,28 @@ function AppContent() {
 
       try {
         // 🔥 Fetch full deal details
-        const response = await fetch(
-          "http://103.214.132.20:8002/api/method/frappe.client.get",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": AUTH_TOKEN,
-            },
-            body: JSON.stringify({
-              doctype: "CRM Deal",
-              name: dealId, // <-- pass docname here
-            }),
-          }
-        );
+        // const response = await fetch(
+        //   "http://103.214.132.20:8002/api/method/frappe.client.get",
+        //   {
+        //     method: "POST",
+        //     headers: {
+        //       "Content-Type": "application/json",
+        //       "Authorization": AUTH_TOKEN,
+        //     },
+        //     body: JSON.stringify({
+        //       doctype: "CRM Deal",
+        //       name: dealId, // <-- pass docname here
+        //     }),
+        //   }
+        // );
 
-        const dealData = await response.json();
+        // const dealData = await response.json();
+        const dealData = await apiAxios.post("/api/method/frappe.client.get", {
+          doctype: "CRM Deal",
+          name: dealId,
+        });
+
         let fullDeal = dealData.message || { name: dealId, id: dealId };
-
 
         fullDeal = { ...fullDeal, id: fullDeal.name };
         // Update state
@@ -675,7 +696,6 @@ function AppContent() {
           lead={selectedLead}
           onBack={handleLeadBack}
           onSave={handleLeadSave}
-
         />
       );
     }
@@ -710,6 +730,8 @@ function AppContent() {
         />
       );
     }
+
+
 
     switch (activeMenuItem) {
       case 'dashboard':
@@ -760,7 +782,7 @@ function AppContent() {
       case 'tasks':
         return <TasksPage onCreateTask={handleCreateTask} leadName={selectedLead?.name} refreshTrigger={taskRefreshTrigger} />;
       case 'call-logs':
-        return <CallLogsPage onCreateCallLog={handleCreateCallLog} leadName={selectedLead?.name} refreshTrigger={callsRefreshTrigger}/>;
+        return <CallLogsPage onCreateCallLog={handleCreateCallLog} leadName={selectedLead?.name} refreshTrigger={callsRefreshTrigger} />;
       case 'email-templates':
         return <EmailPage onCreateEmail={handleCreateEmail} />;
       default:
@@ -934,6 +956,13 @@ function AppContent() {
         onClose={() => setShowNotifications(false)}
       />
       {renderCreateModal()}
+
+      <AuthErrorModal
+        isOpen={showAuthErrorModal}
+        onClose={() => setShowAuthErrorModal(false)}
+        onLogout={handleLogout}
+        message={authErrorMessage}
+      />
     </div>
   );
 }

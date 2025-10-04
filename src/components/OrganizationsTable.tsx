@@ -6,6 +6,7 @@ import { exportToCSV, exportToExcel } from '../utils/exportUtils';
 import { getUserSession } from '../utils/session';
 import { BsThreeDots } from 'react-icons/bs';
 import { AUTH_TOKEN } from '../api/apiUrl';
+import { api } from '../api/apiService';
 
 interface Organization {
   id: string;
@@ -293,7 +294,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
         return;
       }
 
-      const apiUrl = `http://103.214.132.20:8002/api/method/crm.api.doc.get_data`;
+      //const apiUrl = `http://103.214.132.20:8002/api/method/crm.api.doc.get_data`;
 
       const requestBody = {
         doctype: "CRM Organization",
@@ -327,20 +328,21 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
         }
       };
 
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
-        },
-        body: JSON.stringify(requestBody)
-      });
+      // const response = await fetch(apiUrl, {
+      //   method: 'POST',
+      //   headers: {
+      //     'Content-Type': 'application/json',
+      //     'Authorization': AUTH_TOKEN
+      //   },
+      //   body: JSON.stringify(requestBody)
+      // });
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
+      // if (!response.ok) {
+      //   throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      // }
 
-      const result = await response.json();
+      // const result = await response.json();
+       const result = await api.post('/api/method/crm.api.doc.get_data', requestBody);
 
       // Transform API data to match our Organization interface
       const transformedOrganizations: Organization[] = result.message.data.map((apiOrg: any) => ({

@@ -25,6 +25,7 @@ import { DealsTable } from './DealsTable';
 import { Deals, Dealstable } from '../Dashboardtables/DealsTable';
 import { TodayLeads, TodayLeadstable } from '../Dashboardtables/TodayLeadsTable';
 import { getUserSession } from '../utils/session';
+import { api } from '../api/apiService';
 
 const priorityColors = {
   Low: 'text-green-600',
@@ -260,18 +261,22 @@ export function Dashboard() {
     try {
       const userSession = getUserSession();
       const Company = userSession?.company;
-      const response = await axios.get(
-        'http://103.214.132.20:8002/api/v2/document/CRM Deal',
-        {
-          headers: {
-            Authorization: AUTH_TOKEN,
-          },
-          params: {
-            fields: JSON.stringify(["name", "status"]),
-            filters: JSON.stringify({ company: Company }),
-          },
-        }
-      );
+      // const response = await axios.get(
+      //   'http://103.214.132.20:8002/api/v2/document/CRM Deal',
+      //   {
+      //     headers: {
+      //       Authorization: AUTH_TOKEN,
+      //     },
+      //     params: {
+      //       fields: JSON.stringify(["name", "status"]),
+      //       filters: JSON.stringify({ company: Company }),
+      //     },
+      //   }
+      // );
+      const response = await api.get('api/v2/document/CRM Deal', {
+        fields: JSON.stringify(["name", "status"]),
+        filters: JSON.stringify({ company: Company }),
+      });
 
       const data = response.data.data;
       let counts = {
@@ -304,18 +309,23 @@ export function Dashboard() {
     try {
       const userSession = getUserSession();
       const Company = userSession?.company;
-      const response = await axios.get(
-        'http://103.214.132.20:8002/api/v2/document/Contact',
-        {
-          headers: {
-            Authorization: AUTH_TOKEN,
-          },
-          params: {
-            fields: JSON.stringify(["name"]),
-            filters: JSON.stringify({ company: Company }),
-          }
-        }
-      );
+      // const response = await axios.get(
+      //   'http://103.214.132.20:8002/api/v2/document/Contact',
+      //   {
+      //     headers: {
+      //       Authorization: AUTH_TOKEN,
+      //     },
+      //     params: {
+      //       fields: JSON.stringify(["name"]),
+      //       filters: JSON.stringify({ company: Company }),
+      //     }
+      //   }
+      // );
+      const response = await api.get('api/v2/document/Contact', {
+        fields: JSON.stringify(["name"]),
+        filters: JSON.stringify({ company: Company }),
+      });
+
 
       if (response.data && response.data.data) {
         setContactCount(response.data.data.length || 0);
@@ -331,19 +341,23 @@ export function Dashboard() {
     try {
       const userSession = getUserSession();
       const Company = userSession?.company;
-      const response = await axios.get(
-        'http://103.214.132.20:8002/api/v2/document/CRM Organization',
-        {
-          headers: {
-            Authorization: AUTH_TOKEN,
-          },
-          params: {
-            fields: JSON.stringify(["name"]),
-            filters: JSON.stringify({ company: Company }),
-          }
-        }
-      );
+      // const response = await axios.get(
+      //   'http://103.214.132.20:8002/api/v2/document/CRM Organization',
+      //   {
+      //     headers: {
+      //       Authorization: AUTH_TOKEN,
+      //     },
+      //     params: {
+      //       fields: JSON.stringify(["name"]),
+      //       filters: JSON.stringify({ company: Company }),
+      //     }
+      //   }
+      // );
 
+      const response = await api.get('api/v2/document/CRM Organization', {
+        fields: JSON.stringify(["name"]),
+        filters: JSON.stringify({ company: Company }),
+      });
       if (response.data && response.data.data) {
         setOrganizationCount(response.data.data.length || 0);
       }
@@ -358,13 +372,16 @@ export function Dashboard() {
     try {
       const userSession = getUserSession();
       const Company = userSession?.company;
-      const response = await axios.get('http://103.214.132.20:8002/api/v2/document/CRM Lead/', {
-        headers: {
-          Authorization: AUTH_TOKEN,
-        },
-        params: {
-          filters: JSON.stringify({ company: Company, converted: 0 }),
-        },
+      // const response = await axios.get('http://103.214.132.20:8002/api/v2/document/CRM Lead/', {
+      //   headers: {
+      //     Authorization: AUTH_TOKEN,
+      //   },
+      //   params: {
+      //     filters: JSON.stringify({ company: Company, converted: 0 }),
+      //   },
+      // });
+      const response = await api.get('api/v2/document/CRM Lead', {
+        filters: JSON.stringify({ company: Company, converted: 0 }),
       });
 
       const data = response.data.data;
@@ -379,18 +396,22 @@ export function Dashboard() {
     try {
       const userSession = getUserSession();
       const Company = userSession?.company;
-      const response = await apiAxios.get(
-        '/api/v2/document/CRM Task',
-        {
-          headers: {
-            Authorization: AUTH_TOKEN,
-          },
-          params: {
-            fields: JSON.stringify(["description", "start_date", "due_date", "priority"]),
-            filters: JSON.stringify({ company: Company }),
-          },
-        }
-      );
+      // const response = await apiAxios.get(
+      //   '/api/v2/document/CRM Task',
+      //   {
+      //     headers: {
+      //       Authorization: AUTH_TOKEN,
+      //     },
+      //     params: {
+      //       fields: JSON.stringify(["description", "start_date", "due_date", "priority"]),
+      //       filters: JSON.stringify({ company: Company }),
+      //     },
+      //   }
+      // );
+      const response = await api.get('/api/v2/document/CRM Task', {
+        fields: JSON.stringify(["description", "start_date", "due_date", "priority"]),
+        filters: JSON.stringify({ company: Company }),
+      });
 
       const data = response.data.data;
       const mappedTasks = data.map((task: any, index: number) => ({
@@ -413,15 +434,20 @@ export function Dashboard() {
     try {
       const userSession = getUserSession();
       const Company = userSession?.company;
-      const response = await apiAxios.get('/api/v2/document/CRM Lead', {
-        headers: {
-          Authorization: AUTH_TOKEN,
-        },
-        params: {
-          fields: JSON.stringify(["lead_name", "status"]),
-          filters: JSON.stringify({ company: Company, converted: 0 }),
+      // const response = await apiAxios.get('/api/v2/document/CRM Lead', {
+      //   headers: {
+      //     Authorization: AUTH_TOKEN,
+      //   },
+      //   params: {
+      //     fields: JSON.stringify(["lead_name", "status"]),
+      //     filters: JSON.stringify({ company: Company, converted: 0 }),
 
-        },
+      //   },
+      // });
+
+      const response = await api.get('/api/v2/document/CRM Lead', {
+        fields: JSON.stringify(["lead_name", "status"]),
+        filters: JSON.stringify({ company: Company, converted: 0 }),
       });
 
       const data = response.data.data;
@@ -442,14 +468,18 @@ export function Dashboard() {
       const userSession = getUserSession();
       const Company = userSession?.company;
 
-      const response = await apiAxios.get('/api/v2/document/CRM Deal', {
-        headers: {
-          Authorization: AUTH_TOKEN,
-        },
-        params: {
-          fields: JSON.stringify(["organization", "status", "close_date"]),
-          filters: JSON.stringify({ company: Company }),
-        },
+      // const response = await apiAxios.get('/api/v2/document/CRM Deal', {
+      //   headers: {
+      //     Authorization: AUTH_TOKEN,
+      //   },
+      //   params: {
+      //     fields: JSON.stringify(["organization", "status", "close_date"]),
+      //     filters: JSON.stringify({ company: Company }),
+      //   },
+      // });
+      const response = await api.get('/api/v2/document/CRM Deal', {
+        fields: JSON.stringify(["organization", "status", "close_date"]),
+        filters: JSON.stringify({ company: Company }),
       });
 
       const data = response?.data?.data;
@@ -536,18 +566,26 @@ export function Dashboard() {
       // Get today's date in YYYY-MM-DD format
       const today = new Date().toISOString().split('T')[0];
 
-      const response = await apiAxios.get('/api/v2/document/CRM Lead', {
-        headers: {
-          Authorization: AUTH_TOKEN,
-        },
-        params: {
-          fields: JSON.stringify(["lead_name", "status", "creation", "name"]),
-          filters: JSON.stringify({
-            company: Company,
-            creation: ['>=', today], // If your API supports this syntax
-            converted: 0
-          }),
-        },
+      // const response = await apiAxios.get('/api/v2/document/CRM Lead', {
+      //   headers: {
+      //     Authorization: AUTH_TOKEN,
+      //   },
+      //   params: {
+      //     fields: JSON.stringify(["lead_name", "status", "creation", "name"]),
+      //     filters: JSON.stringify({
+      //       company: Company,
+      //       creation: ['>=', today], // If your API supports this syntax
+      //       converted: 0
+      //     }),
+      //   },
+      // });
+      const response = await api.get('/api/v2/document/CRM Lead', {
+        fields: JSON.stringify(["lead_name", "status", "creation", "name"]),
+        filters: JSON.stringify({
+          company: Company,
+          creation: ['>=', today],
+          converted: 0
+        }),
       });
 
       const data = response?.data?.data || [];

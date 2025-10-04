@@ -15,6 +15,7 @@ import { Lead, LeadDetailView } from './LeadDetailView';
 import { Deal, DealDetailView } from './DealDetailView';
 import { CallDetailsPopup } from './CallLogPopups/CallDetailsPopup';
 import { AUTH_TOKEN } from '../api/apiUrl';
+import { api } from '../api/apiService';
 
 interface Note {
   name: string;
@@ -391,7 +392,7 @@ const fetchUsers = async (): Promise<User[]> => {
   }
 };
 
-export function CallLogsPage({ onCreateCallLog, leadName, refreshTrigger=0 }: CallLogsPageProps) {
+export function CallLogsPage({ onCreateCallLog, leadName, refreshTrigger = 0 }: CallLogsPageProps) {
   const { theme } = useTheme();
   const [searchTerm, setSearchTerm] = useState('');
   const [callLogs, setCallLogs] = useState<CallLog[]>([]);
@@ -466,7 +467,7 @@ export function CallLogsPage({ onCreateCallLog, leadName, refreshTrigger=0 }: Ca
         return;
       }
 
-      const apiUrl = 'http://103.214.132.20:8002/api/method/crm.api.doc.get_data';
+      //const apiUrl = 'http://103.214.132.20:8002/api/method/crm.api.doc.get_data';
 
       const requestBody = {
         doctype: "CRM Call Log",
@@ -490,20 +491,21 @@ export function CallLogsPage({ onCreateCallLog, leadName, refreshTrigger=0 }: Ca
         }
       };
 
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
-        },
-        body: JSON.stringify(requestBody)
-      });
+      // const response = await fetch(apiUrl, {
+      //   method: 'POST',
+      //   headers: {
+      //     'Content-Type': 'application/json',
+      //     'Authorization': AUTH_TOKEN
+      //   },
+      //   body: JSON.stringify(requestBody)
+      // });
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
+      // if (!response.ok) {
+      //   throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      // }
 
-      const result = await response.json();
+      // const result = await response.json();
+       const result = await api.post('/api/method/crm.api.doc.get_data', requestBody);
       let callLogsData = result.message?.data || [];
 
       // If no call logs found, set empty array and return
@@ -613,6 +615,7 @@ export function CallLogsPage({ onCreateCallLog, leadName, refreshTrigger=0 }: Ca
 
   const handleRowClick = (callLog: CallLog) => {
     console.log("Row clicked with call log:", callLog);
+    console.log("Call log reference_doctype:", callLog.reference_doctype);
     console.log("Call log _notes:", callLog._notes);
     console.log("Call log _tasks:", callLog._tasks);
     setSelectedCall(callLog);
@@ -652,10 +655,13 @@ export function CallLogsPage({ onCreateCallLog, leadName, refreshTrigger=0 }: Ca
           to: callForm.to,
           status: callForm.status,
           type: callForm.type,
-          duration: callForm.duration
+          //duration: callForm.duration
         }
       };
 
+      if (callForm.duration) {
+        payload.duration = callForm.duration;
+      }
       // Add caller/receiver based on call type
       if (callForm.type === 'Outgoing') {
         payload.fieldname.caller = callForm.caller;
@@ -1274,7 +1280,9 @@ export function CallLogsPage({ onCreateCallLog, leadName, refreshTrigger=0 }: Ca
             status: selectedCall.status,
             name: selectedCall.name,
             _notes: selectedCall._notes || [],
-            _tasks: selectedCall._tasks || []
+            _tasks: selectedCall._tasks || [],
+            reference_doctype: selectedCall.reference_doctype, // Add this
+            id: selectedCall.id // Add this for reference_docname
             //reference_doctype: selectedCall.reference_doctype
           }}
           onClose={() => setShowPopup(false)}

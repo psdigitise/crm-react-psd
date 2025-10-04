@@ -20,7 +20,7 @@ export const AuthErrorModal: React.FC<AuthErrorModalProps> = ({
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div 
         className="fixed inset-0 bg-black bg-opacity-50"
-        onClick={onClose}
+       // onClick={onClose}
       />
       
       <div className="flex min-h-full items-center justify-center p-4">
@@ -39,12 +39,12 @@ export const AuthErrorModal: React.FC<AuthErrorModalProps> = ({
           </p>
           
           <div className="flex gap-3 pt-4">
-            <button
+            {/* <button
               onClick={onClose}
               className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
             >
               Cancel
-            </button>
+            </button> */}
             <button
               onClick={onLogout}
               className="flex-1 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 flex items-center justify-center gap-2"

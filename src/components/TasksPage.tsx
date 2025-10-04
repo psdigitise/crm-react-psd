@@ -5,6 +5,7 @@ import { useTheme } from './ThemeProvider';
 import { getUserSession } from '../utils/session';
 import { BsThreeDots } from 'react-icons/bs';
 import { AUTH_TOKEN } from '../api/apiUrl';
+import { api } from '../api/apiService';
 
 interface Task {
   name: string;
@@ -125,22 +126,23 @@ export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0 }: TasksP
         }
       };
 
-      const apiUrl = `${API_BASE_URL}/api/method/crm.api.doc.get_data`;
+      //const apiUrl = `${API_BASE_URL}/api/method/crm.api.doc.get_data`;
 
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
-        },
-        body: JSON.stringify(requestBody)
-      });
+      // const response = await fetch(apiUrl, {
+      //   method: 'POST',
+      //   headers: {
+      //     'Content-Type': 'application/json',
+      //     'Authorization': AUTH_TOKEN
+      //   },
+      //   body: JSON.stringify(requestBody)
+      // });
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
+      // if (!response.ok) {
+      //   throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      // }
 
-      const result = await response.json();
+      // const result = await response.json();
+      const result = await api.post('/api/method/crm.api.doc.get_data', requestBody);
       const tasksData = result.message?.data || [];
       console.log('Tasks fetched:', tasksData.length);
       setTasks(tasksData);

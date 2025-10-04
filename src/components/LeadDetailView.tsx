@@ -1890,6 +1890,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
 
       showToast('Deal converted successfully!', { type: 'success' });
       setShowPopup(false);
+      onBack();
     } catch (error) {
       console.error('Conversion failed:', error);
       showToast('Failed to convert deal.', { type: 'error' });

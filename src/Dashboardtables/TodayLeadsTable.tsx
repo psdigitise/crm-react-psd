@@ -4,6 +4,7 @@ import { useTheme } from "../components/ThemeProvider"
 export interface TodayLeads {
     id: string;
     status: string;
+    lead_name: string;
     creation: string;
 }
 
@@ -30,6 +31,9 @@ export function TodayLeadstable({ title, data }: TodayLeadsTableProps) {
                 <table className="w-full table-fixed min-w-[700px]">
                     <thead className={`${theme === 'dark' ? 'bg-purplebg' : 'bg-gray-50'} sticky top-0 z-10`}>
                         <tr className='divide-x divide-white'>
+                            <th className={`px-4 py-3 text-gray-500 text-center text-xs font-semibold uppercase tracking-wider ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`}>
+                                Full Name
+                            </th>
                             <th className={`px-4 py-3 text-gray-500  text-center text-xs font-semibold uppercase tracking-wider ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`}>
                                 Status
                             </th>
@@ -38,7 +42,12 @@ export function TodayLeadstable({ title, data }: TodayLeadsTableProps) {
                     <tbody className={`divide-y ${theme === 'dark' ? 'divide-white' : 'divide-gray-200'}`}>
                         {data.map((leads) => (
                             <tr key={leads.id} className={`${theme === 'dark' ? 'hover:bg-purple-800/20' : 'hover:bg-gray-50'}`}>
-                                <td className={`px-4 py-4 text-sm text-center font-semibold truncate ${theme === 'dark' ? 'text-white' : 'text-blue-600' }`}>{leads.status}</td>
+                                <td className={`px-4 py-4 text-sm text-center font-semibold truncate ${theme === 'dark' ? 'text-white' : 'text-blue-600'}`}>
+                                    {leads.lead_name}
+                                </td>
+                                <td className={`px-4 py-4 text-sm text-center font-semibold truncate ${theme === 'dark' ? 'text-white' : 'text-blue-600'}`}>
+                                    {leads.status}
+                                </td>
                             </tr>
                         ))}
                         {data.length === 0 && (

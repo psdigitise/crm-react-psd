@@ -57,6 +57,26 @@ export const CreateOrganizationPopup: React.FC<CreateOrganizationPopupProps> = (
         setFormData((prev) => ({ ...prev, [field]: value }));
     };
 
+    const handleClose = () => {
+        // Clear all form fields
+        setFormData({
+            name: "",
+            website: "",
+            revenue: "₹ 0.00",
+            territory: "",
+            employees: "",
+            industry: "",
+            address: "",
+        });
+
+        // Clear search fields
+        setAddressSearch("");
+        setTerritorySearch("");
+        setIndustrySearch("");
+
+        // Call the original onClose
+        onClose();
+    };
 
     // Address dropdown
     const fetchAddresses = async (searchTerm: string) => {
@@ -249,6 +269,23 @@ export const CreateOrganizationPopup: React.FC<CreateOrganizationPopupProps> = (
                 type: "success",
                 duration: 3000
             });
+
+            // 1. Clear all form fields
+            setFormData({
+                name: "",
+                website: "",
+                revenue: "₹ 0.00",
+                territory: "",
+                employees: "",
+                industry: "",
+                address: "",
+            });
+
+            // 2. Clear search fields
+            setAddressSearch("");
+            setTerritorySearch("");
+            setIndustrySearch("");
+
             if (onOrganizationCreated) {
                 onOrganizationCreated();
             }
@@ -328,7 +365,7 @@ export const CreateOrganizationPopup: React.FC<CreateOrganizationPopupProps> = (
             >
                 {/* Close Button */}
                 <button
-                    onClick={onClose}
+                    onClick={handleClose}
                     className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 dark:hover:text-white"
                 >
                     <IoCloseOutline size={24} />

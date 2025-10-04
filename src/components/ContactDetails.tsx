@@ -139,7 +139,38 @@ export default function ContactDetails({
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [selectedEmail, setSelectedEmail] = useState('');
   const [selectedPhone, setSelectedPhone] = useState('');
+  const [addressOptions, setAddressOptions] = useState<{ name: string }[]>([]);
+  const [loadingAddresses, setLoadingAddresses] = useState(false);
+  const userSession = getUserSession();
+  const Company = userSession?.company;
 
+   useEffect(() => {
+    // Only fetch if the user is actively editing the address field
+    if (editingField === 'address') {
+      const fetchAddresses = async () => {
+        try {
+          setLoadingAddresses(true);
+          const res = await axios.get("http://103.214.132.20:8002/api/v2/document/Address", {
+            headers: {
+              Authorization: AUTH_TOKEN,
+            },
+            params: {
+              filters: JSON.stringify({
+                company: Company,
+              }),
+            },
+          });
+          setAddressOptions(res.data.data || []);
+        } catch (err) {
+          console.error("Error fetching addresses:", err);
+        } finally {
+          setLoadingAddresses(false);
+        }
+      };
+      fetchAddresses();
+    }
+  }, [editingField, Company]); // Depend on editingField
+  
   useEffect(() => {
     // Find and set the primary or first email
     const primaryEmail =
@@ -1271,92 +1302,70 @@ export default function ContactDetails({
   };
 
   // Render address field with textarea for multi-line input
-  const renderAddressField = () => {
-    const isEditing = editingField === "address";
-    const value = contact.address as string;
+  // 🔽 UPDATE THIS FUNCTION 🔽
+const renderAddressField = () => {
+  const isEditing = editingField === "address";
+  const value = contact.address as string;
 
-    const [addressOptions, setAddressOptions] = useState<{ name: string }[]>([]);
-    const [loadingAddresses, setLoadingAddresses] = useState(false);
-    const userSession = getUserSession();
-    const Company = userSession?.company;
+  // ❌ REMOVE THE HOOKS FROM HERE ❌
+  // const [addressOptions, setAddressOptions] = useState<{ name: string }[]>([]);
+  // const [loadingAddresses, setLoadingAddresses] = useState(false);
+  // const userSession = getUserSession();
+  // const Company = userSession?.company;
+  // useEffect(() => { ... });
 
-    // 🔹 Fetch address options from API on mount
-    useEffect(() => {
-      const fetchAddresses = async () => {
-        try {
-          setLoadingAddresses(true);
-          const res = await axios.get("http://103.214.132.20:8002/api/v2/document/Address", {
-            headers: {
-              Authorization: AUTH_TOKEN, // 🔹 attach token
-            },
-            params: {
-              filters: JSON.stringify({
-                company: Company,
-              }),
-            },
-          });
-          setAddressOptions(res.data.data || []);
-        } catch (err) {
-          console.error("Error fetching addresses:", err);
-        } finally {
-          setLoadingAddresses(false);
-        }
-      };
+  return (
+    <div className="text-sm flex gap-1 group">
+      <p className={`w-32 ${isDark ? "text-white/80" : "text-gray-600"}`}>Address:</p>
 
-      if (isEditing) fetchAddresses();
-    }, [isEditing]);
-
-    return (
-      <div className="text-sm flex gap-1 group">
-        <p className={`w-32 ${isDark ? "text-white/80" : "text-gray-600"}`}>Address:</p>
-
-        {isEditing ? (
-          <div className="flex-1">
-            {loadingAddresses ? (
-              <p className="text-xs text-gray-500">Loading addresses...</p>
-            ) : (
-              <select
-                value={editValue}
-                onChange={(e) => setEditValue(e.target.value)}
-                onBlur={() => handleBlur("address")}
-                className={`w-full px-2 py-1 border rounded ${isDark
-                  ? "bg-white text-black border-white/20 focus:border-purple-400"
-                  : "bg-white text-gray-800 border-gray-300 focus:border-blue-400"
-                  } focus:outline-none`}
-                disabled={loading}
-              >
-                <option value="">Select Address</option>
-                {addressOptions.map((addr) => (
-                  <option key={addr.name} value={addr.name}>
-                    {addr.name}
-                  </option>
-                ))}
-              </select>
-            )}
-          </div>
-        ) : (
-          <div
+      {isEditing ? (
+        <div className="flex-1">
+          {loadingAddresses ? (
+            <p className="text-xs text-gray-500">Loading addresses...</p>
+          ) : (
+            <select
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              onBlur={() => handleBlur("address")}
+              className={`w-full px-2 py-1 border rounded ${isDark
+                ? "bg-white text-black border-white/20 focus:border-purple-400"
+                 : "bg-white text-gray-800 border-gray-300 focus:border-blue-400"
+                } focus:outline-none`}
+              disabled={loading}
+            >
+              <option value="">Select Address</option>
+              {addressOptions.map((addr) => (
+                <option key={addr.name} value={addr.name}>
+                  {addr.name}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+      ) : (
+        // ... rest of the function remains the same
+        <div
             className={`flex-1 cursor-pointer px-2 py-1 rounded transition-colors hover:bg-opacity-50 ${isDark
-              ? "text-white hover:bg-white/10"
-              : "text-gray-800 hover:bg-gray-100"
-              } min-h-[40px]`}
+            ? "text-white hover:bg-white/10"
+            : "text-gray-800 hover:bg-gray-100"
+            } min-h-[40px]`}
             onClick={() => handleSingleClick("address")}
             title="Click to edit address"
-          >
+        >
             {value && value !== "N/A" ? (
-              <div className="whitespace-pre-wrap">{value}</div>
+            <div className="whitespace-pre-wrap">{value}</div>
             ) : (
-              <span className="italic opacity-60">Select Address</span>
+            <span className="italic opacity-60">Select Address</span>
             )}
-          </div>
-        )}
+        </div>
+      )}
 
-        {loading && editingField === "address" && (
-          <Loader2 className="w-4 h-4 animate-spin text-purple-600 ml-1" />
-        )}
-      </div>
-    );
-  };
+      {loading && editingField === "address" && (
+        <Loader2 className="w-4 h-4 animate-spin text-purple-600 ml-1" />
+      )}
+    </div>
+  );
+};
 
   const renderEditableField = (label: string, field: keyof Contact) => {
     const value = contact[field] as string;
