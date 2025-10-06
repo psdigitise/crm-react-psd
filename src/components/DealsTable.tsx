@@ -12,6 +12,7 @@ import { AssignDealPopup } from './DealPopups/AssignDealPopup';
 import { ClearAssignmentPopup } from './DealPopups/ClearAssignmentPopup';
 import axios from 'axios';
 import { api } from '../api/apiService';
+import { ExportPopup } from './LeadsPopup/ExportPopup';
 
 interface Deal {
   id: string;
@@ -122,7 +123,9 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
   const [isAssigning, setIsAssigning] = useState(false);
   const [isClearAssignmentPopupOpen, setIsClearAssignmentPopupOpen] = useState(false);
   const [isClearingAssignment, setIsClearingAssignment] = useState(false);
-
+  const [isExportPopupOpen, setIsExportPopupOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportFormat, setExportFormat] = useState<'Excel' | 'CSV'>('Excel');
   // Filter state
   const [filters, setFilters] = useState({
     status: [] as string[],
@@ -193,7 +196,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
       // }
 
       //const result = await response.json();
-       const result = await api.post('/api/method/crm.api.doc.get_data', requestData);
+      const result = await api.post('/api/method/crm.api.doc.get_data', requestData);
 
       // Transform the API response to match your Deal interface
       const transformedDeals: Deal[] = result.message.data.map((apiDeal: any) => ({
@@ -214,6 +217,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
       }));
 
       setDeals(transformedDeals);
+      setSelectedDeals([]);
 
       // Update filter options
       setFilterOptions({
@@ -341,19 +345,158 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
   };
 
   // Export to Excel
-  const exportToExcel = () => {
-    const visibleColumns = columns.filter(col => col.visible);
-    const exportData = sortedData.map(deal => {
-      const row: Record<string, any> = {};
-      visibleColumns.forEach(col => {
-        row[col.label] = deal[col.key as keyof Deal] ?? '';
+  const handleExport = async (exportType: string = 'Excel', exportAll: boolean = true) => {
+    setIsExporting(true);
+
+    try {
+      const session = getUserSession();
+      const sessionCompany = session?.company;
+
+      const baseUrl = "http://103.214.132.20:8002/api/method/frappe.desk.reportview.export_query";
+
+      // Build filters object
+      const exportFilters: any = {
+        company: sessionCompany
+      };
+
+      // Add active filters
+      if (filters.status.length > 0) {
+        exportFilters['status'] = ['in', filters.status];
+      }
+      if (filters.territory.length > 0) {
+        exportFilters['territory'] = ['in', filters.territory];
+      }
+      if (filters.industry.length > 0) {
+        exportFilters['industry'] = ['in', filters.industry];
+      }
+      if (filters.assignedTo.length > 0) {
+        exportFilters['deal_owner'] = ['in', filters.assignedTo];
+      }
+
+      // Map visible column keys to actual database field names
+      const columnToFieldMap: Record<string, string> = {
+        'organization': 'organization',
+        'name': 'name',
+        'annualRevenue': 'annual_revenue',
+        'status': 'status',
+        'email': 'email',
+        'mobileNo': 'mobile_no',
+        'assignedTo': 'deal_owner',
+        'lastModified': 'modified',
+        'closeDate': 'close_date',
+        'territory': 'territory',
+        'industry': 'industry',
+        'website': 'website',
+        'first_name': 'first_name'
+      };
+
+      // Get visible columns and map to database fields
+      const visibleFields = columns
+        .filter(col => col.visible)
+        .map(col => columnToFieldMap[col.key] || col.key)
+        .filter((field, index, self) => self.indexOf(field) === index)
+        .map(field => `\`tabCRM Deal\`.\`${field}\``);
+
+      console.log('Export format:', exportType);
+      console.log('Export all records:', exportAll);
+
+      // Prepare request parameters
+      const params: any = {
+        file_format_type: exportType,
+        title: "CRM Deal",
+        doctype: "CRM Deal",
+        fields: JSON.stringify(visibleFields),
+        order_by: sortField
+          ? `\`tabCRM Deal\`.\`${columnToFieldMap[sortField] || sortField}\` ${sortDirection}`
+          : "`tabCRM Deal`.`modified` desc",
+        filters: JSON.stringify(exportFilters),
+        view: "Report",
+        with_comment_count: 1
+      };
+
+      // Handle export scope
+      if (!exportAll && selectedDeals.length > 0) {
+        // Export only selected items
+        params.selected_items = JSON.stringify(selectedDeals);
+        console.log('Exporting selected deals:', selectedDeals);
+      } else {
+        // Export all filtered records
+        params.page_length = 500;
+        params.start = 0;
+        console.log('Exporting all filtered deals');
+      }
+
+      console.log('Export params:', params);
+
+      // Make the GET request
+      const response = await axios.get(baseUrl, {
+        params,
+        headers: {
+          'Authorization': AUTH_TOKEN,
+          'Content-Type': 'application/json'
+        },
+        responseType: "blob"
       });
-      return row;
-    });
-    const worksheet = XLSX.utils.json_to_sheet(exportData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Deals');
-    XLSX.writeFile(workbook, 'deals_export.xlsx');
+
+      // Check if the response is actually an error in JSON format
+      if (response.data.type === 'application/json') {
+        const text = await response.data.text();
+        const errorData = JSON.parse(text);
+        throw new Error(errorData.message || errorData.exception || 'Export failed');
+      }
+
+      // Determine file extension and MIME type based on export format
+      const fileExtension = exportType.toLowerCase() === 'csv' ? 'csv' : 'xlsx';
+      const mimeType = exportType.toLowerCase() === 'csv'
+        ? 'text/csv'
+        : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
+      // Create and download the file
+      const blob = new Blob([response.data], {
+        type: mimeType
+      });
+
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = downloadUrl;
+
+      // Create descriptive filename
+      const scope = exportAll ? 'all' : 'selected';
+      a.download = `deals_${scope}_${new Date().toISOString().split("T")[0]}.${fileExtension}`;
+
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(downloadUrl);
+
+      setIsExportPopupOpen(false);
+      await fetchDeals();
+    } catch (error: any) {
+      console.error("Export failed:", error);
+      console.error("Error response:", error.response?.data);
+
+      // Try to extract error message from blob if it's JSON
+      if (error.response?.data instanceof Blob) {
+        try {
+          const text = await error.response.data.text();
+          const errorData = JSON.parse(text);
+          alert(`Export failed: ${errorData.message || errorData.exception || 'Unknown error'}`);
+        } catch {
+          alert(`Export failed: ${error.message}`);
+        }
+      } else {
+        alert(`Export failed: ${error.response?.data?.message || error.message}`);
+      }
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  // Add format change handler
+  const handleFormatChange = (format: string) => {
+    if (format === 'Excel' || format === 'CSV') {
+      setExportFormat(format);
+    }
   };
 
   // Filter dropdown
@@ -869,7 +1012,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
           {/* Only show download button when there's data */}
           {sortedData.length > 0 && (
             <button
-              onClick={exportToExcel}
+              onClick={() => setIsExportPopupOpen(true)}
               title="Export to Excel"
               className={`p-2 text-sm border rounded-lg transition-colors flex items-center justify-center ${theme === 'dark'
                 ? 'border-purple-500/30 text-white hover:bg-purple-800/50'
@@ -1067,7 +1210,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
             {/* Dropdown menu */}
             {showDropdown && (
               <div className="absolute right-0 bottom-10 bg-white dark:bg-gray-700 shadow-lg rounded-md border dark:border-gray-600 py-1 w-40 z-50">
-                <button
+                {/* <button
                   onClick={() => {
                     // Remove the single selection restriction
                     setIsEditPopupOpen(true);
@@ -1080,7 +1223,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
                   disabled={selectedDeals.length === 0}
                 >
                   Edit
-                </button>
+                </button> */}
                 <button
                   onClick={() => {
                     setIsDeletePopupOpen(true);
@@ -1163,6 +1306,17 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
         onConfirm={handleClearAssignmentConfirmation}
         isLoading={isClearingAssignment}
         theme={theme}
+      />
+      <ExportPopup
+        isOpen={isExportPopupOpen}
+        onClose={() => setIsExportPopupOpen(false)}
+        onConfirm={handleExport}
+        recordCount={sortedData.length}
+        selectedCount={selectedDeals.length}
+        theme={theme}
+        isLoading={isExporting}
+        onFormatChange={handleFormatChange}
+        onRefresh={fetchDeals}
       />
     </div>
   );

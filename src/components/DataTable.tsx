@@ -13,6 +13,8 @@ import { BulkEditPopup } from './LeadsPopup/EditLeadPopup';
 import { ConvertToDealPopup } from './LeadsPopup/ConvertToDealPopup';
 import { AUTH_TOKEN } from '../api/apiUrl';
 import { api } from '../api/apiService';
+import { ExportPopup } from './LeadsPopup/ExportPopup';
+import axios from 'axios';
 
 
 interface Lead {
@@ -108,9 +110,6 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
   const [isAssignPopupOpen, setIsAssignPopupOpen] = useState(false);
   const [isClearAssignmentPopupOpen, setIsClearAssignmentPopupOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-
-
-
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -119,7 +118,6 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
   const [filteredData, setFilteredData] = useState<Lead[]>([]);
   const [isConvertToDealPopupOpen, setIsConvertToDealPopupOpen] = useState(false);
   const [isBulkEditPopupOpen, setIsBulkEditPopupOpen] = useState(false);
-
   // Filter state
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<FilterState>({
@@ -132,7 +130,9 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
   // Column management
   const [columns, setColumns] = useState<ColumnConfig[]>(defaultColumns);
   const [showColumnSettings, setShowColumnSettings] = useState(false);
-
+  const [isExportPopupOpen, setIsExportPopupOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportFormat, setExportFormat] = useState<'Excel' | 'CSV'>('Excel');
   // Available filter options
   const [filterOptions, setFilterOptions] = useState({
     status: ['New', 'Contacted', 'Qualified', 'Lost', 'Unqualified', 'Junk', 'Nurture'],
@@ -251,6 +251,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
 
       setLeads(transformedLeads);
       setTotalItems(transformedLeads.length);
+      setSelectedIds([]);
 
       // Extract unique values for filter options (this logic remains the same)
       const territories = [...new Set(transformedLeads.map(lead => lead.territory).filter(Boolean))];
@@ -516,7 +517,227 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
   const paginatedData = getPaginatedData();
   const totalPages = getTotalPages();
   const visibleColumns = getVisibleColumns();
+  console.log("visibleColumns", visibleColumns)
   const filteredDataLength = getFilteredAndSortedData().length;
+
+  // const handleExport = async () => {
+  //   setIsExporting(true);
+
+  //   try {
+  //     const baseUrl =
+  //       "http://103.214.132.20:8002/api/method/frappe.desk.reportview.export_query";
+
+  //     // ✅ Prepare request parameters
+  //     const params:any = {
+  //       file_format_type: "Excel",
+  //       title: "CRM Lead",
+  //       doctype: "CRM Lead",
+  //       fields: JSON.stringify(visibleColumns.map(col => col.key)),
+  //       order_by: sortField ? `${sortField} ${sortDirection}` : "modified desc",
+  //       view: "Report",
+  //       with_comment_count: 1,
+  //       page_length: itemsPerPage,
+  //       start: (currentPage - 1) * itemsPerPage,
+  //       filters: JSON.stringify({ ...filters, converted: 0 }),
+  //     };
+
+  //     // Add selected items if any
+  //     if (selectedIds.length > 0) {
+  //       params["selected_items"] = JSON.stringify(selectedIds);
+  //     }
+
+  //     // ✅ Make the GET request via Axios
+  //     const response = await axios.get(baseUrl, {
+  //       params,
+  //       headers: {
+  //         Authorization: AUTH_TOKEN,
+  //       },
+  //       responseType: "blob", // Important for downloading files
+  //     });
+
+  //     // ✅ Convert response to Blob and trigger download
+  //     const blob = new Blob([response.data], {
+  //       type:
+  //         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  //     });
+
+  //     const downloadUrl = window.URL.createObjectURL(blob);
+  //     const a = document.createElement("a");
+  //     a.href = downloadUrl;
+  //     a.download = `leads_export_${new Date()
+  //       .toISOString()
+  //       .split("T")[0]}.xlsx`;
+  //     document.body.appendChild(a);
+  //     a.click();
+  //     document.body.removeChild(a);
+  //     window.URL.revokeObjectURL(downloadUrl);
+
+  //   } catch (error: any) {
+  //     console.error("Export failed:", error);
+  //     alert(`Export failed: ${error.message}`);
+  //   } finally {
+  //     setIsExporting(false);
+  //   }
+  // };
+
+  const handleExport = async (exportType: string = 'Excel', exportAll: boolean = true) => {
+    setIsExporting(true);
+
+    try {
+      const session = getUserSession();
+      const sessionCompany = session?.company;
+
+      const baseUrl =
+        "http://103.214.132.20:8002/api/method/frappe.desk.reportview.export_query";
+
+      // Build filters object properly
+      const exportFilters: any = {
+        company: sessionCompany,
+        converted: 0
+      };
+
+      // Add active filters with proper Frappe format
+      if (filters.status.length > 0) {
+        exportFilters['status'] = ['in', filters.status];
+      }
+      if (filters.territory.length > 0) {
+        exportFilters['territory'] = ['in', filters.territory];
+      }
+      if (filters.industry.length > 0) {
+        exportFilters['industry'] = ['in', filters.industry];
+      }
+      if (filters.assignedTo.length > 0) {
+        exportFilters['lead_owner'] = ['in', filters.assignedTo];
+      }
+
+      // Map visible column keys to actual database field names
+      const columnToFieldMap: Record<string, string> = {
+        'name': 'name',
+        'organization': 'organization',
+        'status': 'status',
+        'email': 'email',
+        'mobile': 'mobile_no',
+        'assignedTo': 'lead_owner',
+        'lastModified': 'modified',
+        'territory': 'territory',
+        'industry': 'industry',
+        'website': 'website',
+        'firstName': 'first_name',
+        'lastName': 'last_name',
+        'leadId': 'name'
+      };
+
+      // Get only visible columns and map them to database field names
+      const visibleFields = visibleColumns
+        .map(col => columnToFieldMap[col.key] || col.key)
+        .filter((field, index, self) => self.indexOf(field) === index)
+        .map(field => `\`tabCRM Lead\`.\`${field}\``);
+
+      console.log('Export format:', exportType);
+      console.log('Export all records:', exportAll);
+
+      // Prepare request parameters
+      const params: any = {
+        file_format_type: exportType,
+        title: "CRM Lead",
+        doctype: "CRM Lead",
+        fields: JSON.stringify(visibleFields),
+        order_by: sortField
+          ? `\`tabCRM Lead\`.\`${columnToFieldMap[sortField] || sortField}\` ${sortDirection}`
+          : "`tabCRM Lead`.`modified` desc",
+        filters: JSON.stringify(exportFilters),
+        view: "Report",
+        with_comment_count: 1
+      };
+
+      // Handle export scope
+      if (!exportAll && selectedIds.length > 0) {
+        // Export only selected items
+        params.selected_items = JSON.stringify(selectedIds);
+        console.log('Exporting selected items:', selectedIds);
+      } else {
+        // Export all filtered records
+        params.page_length = 500;
+        params.start = 0;
+        console.log('Exporting all filtered records');
+      }
+
+      console.log('Export params:', params);
+
+      // Make the GET request
+      const response = await axios.get(baseUrl, {
+        params,
+        headers: {
+          'Authorization': AUTH_TOKEN,
+          'Content-Type': 'application/json'
+        },
+        responseType: "blob"
+      });
+
+      // Check if the response is actually an error in JSON format
+      if (response.data.type === 'application/json') {
+        const text = await response.data.text();
+        const errorData = JSON.parse(text);
+        throw new Error(errorData.message || errorData.exception || 'Export failed');
+      }
+
+      // Determine file extension and MIME type based on export format
+      const fileExtension = exportType.toLowerCase() === 'csv' ? 'csv' : 'xlsx';
+      const mimeType = exportType.toLowerCase() === 'csv'
+        ? 'text/csv'
+        : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
+      // Create and download the file
+      const blob = new Blob([response.data], {
+        type: mimeType
+      });
+
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = downloadUrl;
+
+      // Create descriptive filename
+      const scope = exportAll ? 'all' : 'selected';
+      a.download = `leads_${scope}_${new Date().toISOString().split("T")[0]}.${fileExtension}`;
+
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(downloadUrl);
+
+      // ✅ SUCCESS: Refresh the table data after successful export
+      console.log('Export completed successfully, refreshing table data...');
+      // Refresh the leads data
+
+      setIsExportPopupOpen(false);
+      await fetchLeads();
+
+    } catch (error: any) {
+      console.error("Export failed:", error);
+      console.error("Error response:", error.response?.data);
+
+      // Try to extract error message from blob if it's JSON
+      if (error.response?.data instanceof Blob) {
+        try {
+          const text = await error.response.data.text();
+          const errorData = JSON.parse(text);
+          alert(`Export failed: ${errorData.message || errorData.exception || 'Unknown error'}`);
+        } catch {
+          alert(`Export failed: ${error.message}`);
+        }
+      } else {
+        alert(`Export failed: ${error.response?.data?.message || error.message}`);
+      }
+    } finally {
+      setIsExporting(false);
+    }
+  };
+  // Add format change handler
+  const handleFormatChange = (format: string) => {
+    if (format === 'Excel' || format === 'CSV') {
+      setExportFormat(format);
+    }
+  };
 
   const handleDeleteConfirmation = async () => {
     if (selectedIds.length === 0) {
@@ -662,7 +883,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
             {/* Dropdown menu */}
             {showDropdown && (
               <div className="absolute right-0 bottom-10 bg-white dark:bg-gray-700 shadow-lg rounded-md border dark:border-gray-600 py-1 w-40 z-50">
-                <button
+                {/* <button
                   onClick={() => {
                     setIsBulkEditPopupOpen(true);
                     setShowDropdown(false);
@@ -670,7 +891,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
                   className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600"
                 >
                   Edit
-                </button>
+                </button> */}
                 <button
                   onClick={() => {
                     setIsDeletePopupOpen(true);
@@ -877,7 +1098,8 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
             {filteredDataLength > 0 && (
               <div title="Export Excel">
                 <button
-                  onClick={() => exportToExcel(getFilteredAndSortedData(), 'Leads')}
+                  // onClick={() => exportToExcel(getFilteredAndSortedData(), 'Leads')}
+                  onClick={() => setIsExportPopupOpen(true)}
                   className={`px-3 py-2 text-sm border rounded-lg transition-colors ${theme === 'dark'
                     ? 'border-purple-500/30 text-white hover:bg-purple-800/50'
                     : 'border-gray-300 hover:bg-gray-50'
@@ -909,10 +1131,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
             <option value={100}>100 per page</option>
           </select>
         </div>
-
       </div>
-
-
 
       {/* Table */}
       <div className={`rounded-lg shadow-sm border overflow-hidden ${theme === 'dark'
@@ -1107,6 +1326,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
           </div>
         </div>
       )}
+
       <DeleteLeadPopup
         isOpen={isDeletePopupOpen}
         onClose={() => setIsDeletePopupOpen(false)}
@@ -1157,6 +1377,17 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
           fetchLeads();
           setSelectedIds([]);
         }}
+      />
+      <ExportPopup
+        isOpen={isExportPopupOpen}
+        onClose={() => setIsExportPopupOpen(false)}
+        onConfirm={handleExport}
+        recordCount={filteredDataLength}
+        theme={theme}
+        isLoading={isExporting}
+        onFormatChange={handleFormatChange}
+        selectedCount={selectedIds.length}
+        onRefresh={fetchLeads}
       />
     </div>
   );

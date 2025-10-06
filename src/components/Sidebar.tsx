@@ -118,7 +118,7 @@ export function Sidebar({ isCollapsed, onToggle, activeItem, onItemClick }: Side
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'token 1b670b800ace83b:f82627cb56de7f6'
+          'Authorization': AUTH_TOKEN
         }
       });
 

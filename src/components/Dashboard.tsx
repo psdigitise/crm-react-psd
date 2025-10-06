@@ -255,7 +255,8 @@ export function Dashboard() {
   const [contactCount, setContactCount] = useState(0);
   const [organizationCount, setOrganizationCount] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
-
+  const userSession = getUserSession();
+  const sessionUsername = userSession?.username || "Administrator";
   // Function to fetch deals data
   const fetchDealsData = async () => {
     try {
@@ -364,9 +365,9 @@ export function Dashboard() {
       // if (response.data && response.data.data) {
       //   setOrganizationCount(response.data.data.length || 0);
       // }
-       if (response.data) {
-      setOrganizationCount(response.data.length || 0);
-    }
+      if (response.data) {
+        setOrganizationCount(response.data.length || 0);
+      }
     } catch (error) {
       console.error('Error fetching organization count:', error);
       setOrganizationCount(0);
@@ -517,52 +518,6 @@ export function Dashboard() {
     }
   };
 
-  // Function to fetch today's leads data (client-side filtering)
-  // const fetchTodayLeadsData = async () => {
-  //   try {
-  //     const userSession = getUserSession();
-  //     const Company = userSession?.company;
-
-  //     const response = await apiAxios.get('/api/v2/document/CRM Lead', {
-  //       headers: {
-  //         Authorization: AUTH_TOKEN,
-  //       },
-  //       params: {
-  //         fields: JSON.stringify(["lead_name", "status", "creation"]),
-  //         filters: JSON.stringify({ company: Company }),
-  //       },
-  //     });
-
-  //     const data = response?.data?.data || [];
-
-  //     // Get today's date for comparison
-  //     const today = new Date();
-  //     const todayString = today.toISOString().split("T")[0];
-
-  //     // Filter leads created today
-  //     const filteredLeads = data.filter((item: any) => {
-  //       if (!item.creation) return false;
-
-  //       const createdDate = new Date(item.creation);
-  //       const createdDateString = createdDate.toISOString().split("T")[0];
-
-  //       return createdDateString === todayString;
-  //     });
-
-  //     const formattedLeads = filteredLeads.map((item: any, index: number) => ({
-  //       id: `${index}`,
-  //       lead_name: item.lead_name || 'N/A',
-  //       status: item.status || 'N/A',
-  //       creation: item.creation ? new Date(item.creation).toLocaleDateString() : 'N/A',
-  //     }));
-
-  //     setTodayLeadsTableData(formattedLeads);
-  //   } catch (error) {
-  //     console.error('Error fetching Today Leads table data:', error);
-  //     setTodayLeadsTableData([]);
-  //   }
-  // };
-
   // Function to fetch today's leads data with better error handling
   const fetchTodayLeadsData = async () => {
     try {
@@ -659,7 +614,7 @@ export function Dashboard() {
           <h1 className={`text-2xl sm:text-3xl font-bold flex items-center ${theme === 'dark' ? 'text-white' : 'text-gray-900'
             }`}>
             <span className="mr-3 text-2xl">👋</span>
-            Hello, Administrator!
+            Hello, {sessionUsername}!
           </h1>
           <p className={`mt-1 ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>Here’s your sales performance snapshot for today.</p>
         </div>
