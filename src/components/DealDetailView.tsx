@@ -1947,7 +1947,10 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                   <span className="absolute left-3 top-1/2 transform -translate-y-1/2">
                     <FaCircleDot className={statusColors[editedDeal.status]} />
                   </span>
-                  {editedDeal.status}
+                  <span className="block truncate">{editedDeal.status}</span>
+                  <span className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    <FiChevronDown className="w-4 h-4" />
+                  </span>
                 </Listbox.Button>
                 <Listbox.Options className={`absolute mt-1 w-full rounded-md shadow-lg z-[9999] bg-white`}>
                   {dealStatusOptions.map((option) => (
@@ -2496,7 +2499,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                         setNoteForm({ title: '', content: '' }); // Also reset form if needed
                       }}
                       className="text-white cursor-pointer bg-gray-400 rounded-md inline-block text-center px-6 py-2"
-                    >Edit Note </span>
+                    >Create Note </span>
                   </div>
                 ) : (
                   <div className="grid grid-cols-3 gap-5">

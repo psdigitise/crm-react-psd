@@ -2999,7 +2999,11 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                   <span className="absolute left-3 top-1/2 transform -translate-y-1/2">
                     <FaCircleDot className={statusColors[editedLead.status]} />
                   </span>
-                  {editedLead.status}
+                  {/* {editedLead.status} */}
+                  <span className="block truncate">{editedLead.status}</span>
+                  <span className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    <FiChevronDown className="w-4 h-4" />
+                  </span>
                 </Listbox.Button>
                 <Listbox.Options className={`absolute mt-1 w-full rounded-md shadow-lg z-[9999] bg-white`}>
                   {statusOptions.map((option) => (

@@ -278,7 +278,7 @@ export function Dashboard() {
         filters: JSON.stringify({ company: Company }),
       });
 
-      const data = response.data.data;
+      const data = response.data;
       let counts = {
         Qualification: 0,
         Lost: 0,
@@ -327,8 +327,11 @@ export function Dashboard() {
       });
 
 
-      if (response.data && response.data.data) {
-        setContactCount(response.data.data.length || 0);
+      // if (response.data && response.data.data) {
+      //   setContactCount(response.data.data.length || 0);
+      // }
+      if (response.data) {
+        setContactCount(response.data.length || 0);
       }
     } catch (error) {
       console.error('Error fetching contact count:', error);
@@ -358,9 +361,12 @@ export function Dashboard() {
         fields: JSON.stringify(["name"]),
         filters: JSON.stringify({ company: Company }),
       });
-      if (response.data && response.data.data) {
-        setOrganizationCount(response.data.data.length || 0);
-      }
+      // if (response.data && response.data.data) {
+      //   setOrganizationCount(response.data.data.length || 0);
+      // }
+       if (response.data) {
+      setOrganizationCount(response.data.length || 0);
+    }
     } catch (error) {
       console.error('Error fetching organization count:', error);
       setOrganizationCount(0);
@@ -384,7 +390,7 @@ export function Dashboard() {
         filters: JSON.stringify({ company: Company, converted: 0 }),
       });
 
-      const data = response.data.data;
+      const data = response.data;
       setLeadCount(data.length);
     } catch (error) {
       console.error('Error fetching lead data:', error);
@@ -413,7 +419,7 @@ export function Dashboard() {
         filters: JSON.stringify({ company: Company }),
       });
 
-      const data = response.data.data;
+      const data = response.data;
       const mappedTasks = data.map((task: any, index: number) => ({
         id: `${index}`,
         subject: task.description?.replace(/<[^>]+>/g, '') || 'No Description',
@@ -450,7 +456,7 @@ export function Dashboard() {
         filters: JSON.stringify({ company: Company, converted: 0 }),
       });
 
-      const data = response.data.data;
+      const data = response.data;
       const formattedLeads = data.map((item: any, index: number) => ({
         id: `${index}`,
         lead_name: item.lead_name,
@@ -482,7 +488,7 @@ export function Dashboard() {
         filters: JSON.stringify({ company: Company }),
       });
 
-      const data = response?.data?.data;
+      const data = response?.data;
 
       // Filter deals closing this month on client side
       const now = new Date();
@@ -588,7 +594,7 @@ export function Dashboard() {
         }),
       });
 
-      const data = response?.data?.data || [];
+      const data = response?.data || [];
 
       const formattedLeads = data.map((item: any, index: number) => ({
         id: item.name || `${index}`,

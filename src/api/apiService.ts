@@ -7,6 +7,7 @@ const BASE_URL = 'http://103.214.132.20:8002';
 
 // General purpose function for making API calls
 async function apiCall(url: string, options: RequestInit = {}) {
+  console.log("Using Auth Token:", AUTH_TOKEN); 
   const defaultHeaders = {
     'Content-Type': 'application/json',
     'Authorization': AUTH_TOKEN,
