@@ -65,6 +65,8 @@ export function CreateLeadModal({ isOpen, onClose, onSubmit }: CreateLeadModalPr
   const [isLoadingGenders, setIsLoadingGenders] = useState<boolean>(false);
   const [industries, setIndustries] = useState<Industry[]>([]);
   const [isLoadingIndustries, setIsLoadingIndustries] = useState<boolean>(false);
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
+
 
   useEffect(() => {
     if (isOpen) {
@@ -264,11 +266,61 @@ export function CreateLeadModal({ isOpen, onClose, onSubmit }: CreateLeadModalPr
     }
   };
 
+  const isValidUrl = (url: string): boolean => {
+    if (!url.trim()) return true; // Empty is allowed
+
+    // Regular expression for URL validation
+    const urlPattern = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?$/;
+
+    // Test basic pattern
+    if (!urlPattern.test(url)) {
+      return false;
+    }
+
+    // Additional check for valid TLD (optional but recommended)
+    const tldPattern = /\.[a-z]{2,}$/i;
+    if (!tldPattern.test(url)) {
+      return false;
+    }
+
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
     setSuccess('');
+    setErrors({});
+
+    const newErrors: { [key: string]: string } = {};
+
+    if (!formData.firstName.trim()) {
+      newErrors.firstName = 'First Name is required';
+    }
+
+    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = 'Invalid email address';
+    }
+
+    if (formData.mobile) {
+      if (!/^\d+$/.test(formData.mobile)) {
+        newErrors.mobile = 'Invalid mobile number (digits only allowed)';
+      } else if (formData.mobile.length < 10) {
+        newErrors.mobile = 'Please enter at least 10 digits';
+      }
+    }
+
+    if (formData.website && !isValidUrl(formData.website)) {
+      newErrors.website = 'Please enter a valid website URL (e.g., example.com or https://example.com)';
+    }
+
+    // If validation errors found, stop submission
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      setIsLoading(false);
+      return;
+    }
 
     try {
       const session = getUserSession();
@@ -386,10 +438,26 @@ export function CreateLeadModal({ isOpen, onClose, onSubmit }: CreateLeadModalPr
     }
   };
 
+  // const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  //   setFormData({
+  //     ...formData,
+  //     [e.target.name]: e.target.value
+  //   });
+  // };
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+
+    // Clear error for this field when user starts typing
+    if (errors[name]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
+    }
+
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [name]: value
     });
   };
 
@@ -482,9 +550,11 @@ export function CreateLeadModal({ isOpen, onClose, onSubmit }: CreateLeadModalPr
                     ? 'bg-white-31 border-white text-white placeholder-gray-400'
                     : 'bg-white/80 border-gray-300 placeholder-gray-500'
                     }`}
-                  required
                   disabled={isLoading}
                 />
+                {errors.firstName && (
+                  <p className="text-sm text-red-500 mt-1">{errors.firstName}</p>
+                )}
               </div>
 
               <div>
@@ -512,7 +582,7 @@ export function CreateLeadModal({ isOpen, onClose, onSubmit }: CreateLeadModalPr
                   Email
                 </label>
                 <input
-                  type="email"
+                  type="text"
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
@@ -523,6 +593,9 @@ export function CreateLeadModal({ isOpen, onClose, onSubmit }: CreateLeadModalPr
                     }`}
                   disabled={isLoading}
                 />
+                {errors.email && (
+                  <p className="text-sm text-red-500 mt-1">{errors.email}</p>
+                )}
               </div>
 
               <div>
@@ -542,6 +615,9 @@ export function CreateLeadModal({ isOpen, onClose, onSubmit }: CreateLeadModalPr
                     }`}
                   disabled={isLoading}
                 />
+                {errors.mobile && (
+                  <p className="text-sm text-red-500 mt-1">{errors.mobile}</p>
+                )}
               </div>
 
               <div>
@@ -609,6 +685,9 @@ export function CreateLeadModal({ isOpen, onClose, onSubmit }: CreateLeadModalPr
                     }`}
                   disabled={isLoading}
                 />
+                {errors.website && (
+                  <p className="text-sm text-red-500 mt-1">{errors.website}</p>
+                )}
               </div>
 
               <div>

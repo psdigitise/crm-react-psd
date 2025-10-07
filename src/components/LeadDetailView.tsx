@@ -86,6 +86,7 @@ interface LeadDetailViewProps {
   onBack: () => void;
   onSave: (updatedLead: Lead) => void;
   onDelete?: (leadId: string) => void;
+  onConversionSuccess: (dealId: string) => void;
 }
 
 interface Note {
@@ -270,7 +271,7 @@ const formatDate = (dateString: string) => {
 
 
 
-export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailViewProps) {
+export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuccess }: LeadDetailViewProps) {
   const { theme } = useTheme();
   const [isEditing, setIsEditing] = useState(false);
   const [editedLead, setEditedLead] = useState<Lead>(lead);
@@ -399,10 +400,9 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
     details: ''
   });
   const [sourceLoading, setSourceLoading] = useState(false);
-
+  const [userOptions, setUserOptions] = useState<{ value: string; label: string; }[]>([]);
   const composerRef = useRef<HTMLDivElement>(null);
   const commentRef = useRef<HTMLDivElement>(null);
-
 
   // UI Theme Variables
   const bgColor = theme === 'dark'
@@ -444,11 +444,6 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
     { id: 'files', label: 'Attachments', icon: Paperclip },
   ];
 
-
-
-
-
-
   const ToggleSwitch = ({ enabled, onToggle }) => (
     <div
       onClick={onToggle}
@@ -471,11 +466,6 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
 
   const [callShowPopup, setCallShowPopup] = useState(false);
 
-  // const handleLabelClick = (call: any) => {
-  //   console.log("Clicked call:", call); // ✅ debug log
-  //   setEditingCall(call);
-  //   setCallShowPopup(true);
-  // };
   const handleLabelClick = (call: any) => {
     console.log("=== DEBUGGING CALL DATA ===");
     console.log("1. Clicked call:", call);
@@ -508,13 +498,6 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
     };
     return date.toLocaleDateString('en-US', options);
   }
-
-  // const handleCommentNavigate = () => {
-  //   setShowCommentModal(true);
-  //   setTimeout(() => {
-  //     commentRef.current?.scrollIntoView({ behavior: "smooth" })
-  //   }, 100)
-  // }
 
   const handleNewCommentClick = () => {
     // 1. Switch to the 'comments' tab first
@@ -951,298 +934,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
       setActivityLoading(false);
     }
   }, [lead.name]);
-  // const fetchActivities = useCallback(async () => {
-  //   setActivityLoading(true);
-  //   setActivities([]);
-  //   try {
-  //     const response = await fetch(
-  //       "http://103.214.132.20:8002/api/method/crm.api.activities.get_activities",
-  //       {
-  //         method: "POST",
-  //         headers: {
-  //           "Authorization": AUTH_TOKEN,
-  //           "Content-Type": "application/json"
-  //         },
-  //         body: JSON.stringify({
-  //           name: lead.name
-  //         })
-  //       }
-  //     );
 
-  //     if (!response.ok) {
-  //       throw new Error(`HTTP error! status: ${response.status}`);
-  //     }
-
-
-
-  //     const result = await response.json();
-  //     const message = result.message || [];
-  //     const docinfo = result.docinfo || {};
-  //     const user_info = docinfo.user_info || {}; // Extract user info here
-
-  //     // Ensure we have valid data structure
-  //     if (!Array.isArray(message) || message.length === 0) {
-  //       setActivities([]);
-  //       setActivityLoading(false);
-  //       return;
-  //     }
-
-  //     const rawTimeline = Array.isArray(message[0]) ? message[0] : [];
-  //     const rawCalls = Array.isArray(message[1]) ? message[1] : [];
-  //     const rawNotes = Array.isArray(message[2]) ? message[2] : [];
-  //     const rawTasks = Array.isArray(message[3]) ? message[3] : [];
-
-  //     setCallLogs(rawCalls);
-  //     setNotes(rawNotes);
-  //     setTasks(rawTasks);
-
-  //     const rawEmails = rawTimeline
-  //       .filter((item: any) => item.activity_type === 'communication')
-  //       .map((item: any) => ({
-  //         ...item.data,
-  //         id: item.name || `comm-${item.creation}`,
-  //         creation: item.creation,
-  //         // Add recipient information if available in item.data
-  //         recipients: item.data.recipients || item.data.to || '',
-  //       }));
-  //     setEmails(rawEmails);
-
-  //     const rawComments = rawTimeline.filter((item: any) => item.activity_type === 'comment');
-  //     setComments(rawComments);
-
-
-  //     const rawFiles = docinfo.files || [];
-  //     setFiles(rawFiles);
-
-  //     // Extract file activities from edit activities that have file data
-  //     const fileActivities = rawTimeline
-  //       .filter((item: any) => item.activity_type === "attachment_log")
-  //       .map((item: any) => {
-  //         const fileData = item.data || {};
-  //         const creatorName = user_info[item.owner]?.fullname || item.owner;
-  //         return {
-  //           id: item.name || `file-${Date.now()}`,
-  //           type: "file",
-  //           title: `File ${fileData.type === "added" ? "Uploaded" : "Removed"}: ${fileData.file_name || "Unnamed file"}`,
-  //           description: fileData.file_url || "",
-  //           timestamp: item.creation || new Date().toISOString(),
-  //           user: creatorName || "Unknown",
-  //           icon: <IoDocument className="w-4 h-4" />,
-  //           data: fileData,
-  //           action: fileData.type || "unknown",
-  //           files: false // Add this missing property
-  //         };
-  //       });
-
-  //     const callActivities = rawCalls.map((call: any) => {
-  //       const caller = call._caller?.label || call.caller || call.from || "Unknown";
-  //       const receiver = call._receiver?.label || call.receiver || call.to || "Unknown";
-
-  //       return {
-  //         id: call.name,
-  //         type: "call",
-  //         title: `${call.type || "Call"} Call`,
-  //         description: `${caller} → ${receiver}`,
-  //         timestamp: call.creation,
-  //         user: caller,
-  //         icon:
-  //           call.type === "Incoming" || call.type === "Inbound"
-  //             ? <SlCallIn className="w-4 h-4" />
-  //             : <SlCallOut className="w-4 h-4" />,
-  //         data: {
-  //           ...call,
-  //           caller,
-  //           receiver,
-  //           // Ensure _notes are preserved
-  //           _notes: call._notes || [],
-  //           _tasks: call._tasks || []
-  //         },
-  //       };
-  //     });
-
-  //     console.log("Call activities with notes:", callActivities);
-
-  //     const noteActivities = rawNotes.map((note: any) => ({
-  //       id: note.name,
-  //       type: "note",
-  //       title: `Note Added: ${note.title}`,
-  //       description: note.content,
-  //       timestamp: note.creation,
-  //       user: note.owner,
-  //       icon: <FileText className="w-4 h-4" />,
-  //       data: note, // 👈 keep raw note
-  //     }));
-
-
-  //     const taskActivities = rawTasks.map((task: any) => ({
-  //       id: task.name, type: 'task', title: `Task Created: ${task.title}`,
-  //       description: task.description || '', timestamp: task.creation, user: task.assigned_to || 'Unassigned',
-  //       icon: <SiTicktick className="w-4 h-4 text-gray-600" />,
-  //     }));
-
-  //     const emailActivities = rawEmails.map((email: any) => ({
-  //       id: email.name || email.id, type: 'email', title: `Email: ${email.subject || 'No Subject'}`,
-  //       description: email.content, timestamp: email.creation, user: email.sender_full_name || email.sender || 'Unknown',
-  //       recipients: email.recipients,
-  //       icon: <Mail className="w-4 h-4" />,
-  //     }));
-
-  //     // const commentActivities = rawComments.map((comment: any) => ({
-  //     //   id: comment.name, type: 'comment', title: 'New Comment', description: comment.content.replace(/<[^>]+>/g, ''), timestamp: comment.creation, user: comment.owner,
-  //     //   icon: <FaRegComment className="w-4 h-4" />,
-  //     // }));
-
-  //     const commentActivities = rawComments.map((comment: any) => {
-  //       // Look up the full name using the owner's email as the key
-  //       const creatorName = user_info[comment.owner]?.fullname || comment.owner;
-
-  //       return {
-  //         id: comment.name,
-  //         type: 'comment',
-  //         title: 'New Comment',
-  //         description: comment.content, // Pass the raw content
-  //         timestamp: comment.creation,
-  //         user: creatorName, // This will be the fullname
-  //         attachments: comment.attachments || [], // Pass attachments
-  //         icon: <FaRegComment className="w-4 h-4" />,
-  //       };
-  //     });
-
-  //     // Extract timeline items from rawTimeline for edit activities
-  //     const timelineActivities = rawTimeline
-  //       .filter((item: any) => item.activity_type === 'added' || item.activity_type === 'changed' || item.activity_type === 'creation')
-  //       .map((item: any) => {
-  //         const creatorName = user_info[item.owner]?.fullname || item.owner;
-  //         switch (item.activity_type) {
-  //           case 'creation':
-  //             return {
-  //               id: `creation-${item.creation}`,
-  //               type: 'edit',
-  //               title: ` created this Lead`,
-  //               description: '',
-  //               timestamp: item.creation,
-  //               user: creatorName,
-  //               icon: <UserPlus className="w-4 h-4 text-gray-500" />
-  //             };
-
-  //           case 'added':
-  //           case 'changed':
-  //             // Handle grouped changes
-  //             if (item.other_versions?.length > 0) {
-  //               return {
-  //                 id: `group-${item.creation}`,
-  //                 type: 'grouped_change',
-  //                 timestamp: item.creation,
-  //                 user: creatorName,
-  //                 icon: <Layers className="w-4 h-4 text-white" />,
-  //                 data: {
-  //                   changes: [item, ...item.other_versions],
-  //                   field_label: item.data?.field_label,
-  //                   value: item.data?.value,
-  //                   old_value: item.data?.old_value,
-  //                   other_versions: item.other_versions
-  //                 }
-  //               };
-  //             }
-
-  //             // Single change
-  //             const actionText = item.activity_type === 'added'
-  //               ? `added value for ${item.data?.field_label}: '${item.data?.value}'`
-  //               : `changed ${item.data?.field_label} from '${item.data?.old_value || "nothing"}' to '${item.data?.value}'`;
-
-  //             return {
-  //               id: `change-${item.creation}`,
-  //               type: 'edit',
-  //               title: ` ${actionText}`,
-  //               description: '',
-  //               timestamp: item.creation,
-  //               user: creatorName,
-  //               icon: <RxLightningBolt className="w-4 h-4 text-yellow-500" />
-  //             };
-
-  //           default:
-  //             return null;
-  //         }
-  //       })
-  //       .filter(Boolean);
-
-  //     // const otherActivities = rawTimeline
-  //     //   .filter((item: { activity_type: string; }) =>
-  //     //     item.activity_type !== 'communication' &&
-  //     //     item.activity_type !== 'comment'
-  //     //   )
-  //     //   .map((item: any) => {
-  //     //     let type = 'edit';
-  //     //     let title = `${item.owner} ${item.description || ''}`;
-  //     //     let icon = <Disc className="w-4 h-4" />;
-
-  //     //     if (item.data?.action === 'creation') {
-  //     //       type = 'creation';
-  //     //       title = `created this Lead`;
-  //     //       icon = <UserPlus className="w-4 h-4 text-gray-500" />;
-  //     //     }
-  //     //     else if (typeof item.data === "string") {
-  //     //       // handle string safely
-  //     //       title = `${item.owner} ${item.data}`;
-  //     //     }
-
-  //     //     return {
-  //     //       id: item.name || `other-${item.creation}`,
-  //     //       type,
-  //     //       title,
-  //     //       description: '',
-  //     //       timestamp: item.creation,
-  //     //       user: item.owner,
-  //     //       icon,
-  //     //       data: item.data,
-  //     //     };
-  //     //   });
-
-  //     // const fileActivities = rawFiles.map((file: any) => ({
-  //     //   id: file.name || `file-${file.file_url}`,
-  //     //   type: "file",
-  //     //   title: `File Uploaded: ${file.file_name || "Unnamed file"}`,
-  //     //   description: file.file_url || "",
-  //     //   timestamp: file.creation,
-  //     //   user: file.owner || "Unknown",
-  //     //   icon: <IoDocument className="w-4 h-4" />,
-  //     //   data: file, // keep full file object
-  //     // }));
-
-
-
-  //     const allActivities = [
-  //       ...callActivities,
-  //       // ...noteActivities,
-  //       // ...taskActivities,
-  //       ...emailActivities,
-  //       ...commentActivities,
-  //       ...timelineActivities,
-  //       ...fileActivities,
-  //       // ...otherActivities
-  //     ];
-
-  //     allActivities.sort((a, b) => {
-  //       const getValidDate = (activity: { timestamp: string | number | Date; creation: string | number | Date; data: { creation: string | number | Date; }; }) => {
-  //         if (activity.timestamp) return new Date(activity.timestamp);
-  //         if (activity.creation) return new Date(activity.creation);
-  //         if (activity.data?.creation) return new Date(activity.data.creation);
-  //         return new Date(0);
-  //       };
-
-  //       const dateA = getValidDate(a);
-  //       const dateB = getValidDate(b);
-  //       return dateA.getTime() - dateB.getTime();
-  //     });
-  //     setActivities(allActivities);
-
-  //   } catch (err) {
-  //     console.error("Error fetching activities:", err);
-  //     showToast("Failed to fetch activities", { type: 'error' });
-  //   } finally {
-  //     setActivityLoading(false);
-  //   }
-  // }, [lead.name]);
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
@@ -1890,7 +1582,10 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
 
       showToast('Deal converted successfully!', { type: 'success' });
       setShowPopup(false);
-      onBack();
+      const leadResponseData = await leadResponse.json();
+const newDealId = leadResponseData.message;
+      //onBack();
+      onConversionSuccess(newDealId);
     } catch (error) {
       console.error('Conversion failed:', error);
       showToast('Failed to convert deal.', { type: 'error' });
@@ -1919,7 +1614,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
   // });
 
   const addNote = async () => {
-    if (!noteForm.title.trim() || !noteForm.content.trim()) {
+    if (!noteForm.title.trim()) {
       showToast('All required fields must be filled before proceeding.', { type: 'warning' });
       return;
     }
@@ -1961,75 +1656,6 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
       setNotesLoading(false);
     }
   };
-
-  // const editNote = async () => {
-  //   if (!noteForm.title.trim() || !noteForm.content.trim()) {
-  //     showToast('All required fields must be filled before proceeding.', { type: 'warning' });
-  //     return false;
-  //   }
-
-  //   setNotesLoading(true);
-  //   try {
-  //     const response = await fetch(`${API_BASE_URL}/method/frappe.client.set_value`, {
-  //       method: 'POST',
-  //       headers: {
-  //         'Authorization': AUTH_TOKEN,
-  //         'Content-Type': 'application/json'
-  //       },
-  //       body: JSON.stringify({
-  //         doctype: 'FCRM Note',
-  //         name: noteForm.name,
-  //         fieldname: {
-  //           title: noteForm.title,
-  //           content: noteForm.content
-  //         }
-  //       })
-  //     });
-
-  //     if (response.ok) {
-  //       showToast('Note updated successfully', { type: 'success' });
-  //       setNoteForm({ title: '', content: '', name: '' });
-  //       await fetchNotes();
-  //       setShowNoteModal(false);
-  //       return true;
-  //     } else {
-  //       showToast('Failed to update note', { type: 'error' });
-  //       return false;
-  //     }
-  //   } catch (error) {
-  //     showToast('Failed to update note', { type: 'error' });
-  //     return false;
-  //   } finally {
-  //     setNotesLoading(false);
-  //   }
-  // };
-
-  // const deleteNote = async (name: string) => {
-
-  //   try {
-  //     const response = await fetch(`${API_BASE_URL}/method/frappe.client.delete`, {
-  //       method: 'POST',
-  //       headers: {
-  //         'Authorization': AUTH_TOKEN,
-  //         'Content-Type': 'application/json'
-  //       },
-  //       body: JSON.stringify({
-  //         doctype: 'FCRM Note',
-  //         name: name
-  //       })
-  //     });
-  //     if (response.ok) {
-  //       showToast('Note deleted', { type: 'success' });
-  //       await fetchNotes();
-  //     } else {
-  //       showToast('Failed to delete note', { type: 'error' });
-  //     }
-  //   } catch (error) {
-  //     showToast('Failed to delete note', { type: 'error' });
-  //   } finally {
-  //     setNotesLoading(false);
-  //   }
-  // };
 
   const fetchIndustryOptions = async () => {
     try {
@@ -2077,8 +1703,12 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
 
 
   const editNote = async () => {
-    if (!noteForm.title.trim() || !noteForm.content.trim()) {
-      return false;
+    // if (!noteForm.title.trim()) {
+    //   return false;
+    // }
+    if (!noteForm.title.trim()) {
+      showToast('All required fields must be filled before proceeding.', { type: 'warning' });
+      return;
     }
 
     setNotesLoading(true);
@@ -2155,10 +1785,32 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
 
 
   const addCall = async () => {
-    if (!callForm.from.trim() || !callForm.to.trim()) {
-      showToast('All required fields must be filled before proceeding.', { type: 'error' });
+
+    // if (!callForm.from.trim() || !callForm.to.trim()) {
+    //   showToast('All required fields must be filled before proceeding.', { type: 'error' });
+    //   return;
+    // }
+    const newErrors: { [key: string]: string } = {};
+
+    if (!callForm.from.trim()) {
+      newErrors.from = 'From is required';
+    }
+
+    if (!callForm.to.trim()) {
+      newErrors.to = 'To is required';
+    }
+    if (!callForm.type.trim()) {
+      newErrors.type = 'Type is required';
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      showToast('Please fill all required fields', { type: 'error' });
       return;
     }
+
+    // Clear any previous errors
+    setErrors({});
 
     setCallsLoading(true);
     try {
@@ -2209,7 +1861,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to add call log');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding call log:', error);
       showToast(error.message || 'Failed to add call log', { type: 'error' });
       return false; // Return failure status
@@ -2219,11 +1871,33 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
   };
 
   const editCall = async () => {
-    if (!callForm.from.trim() || !callForm.to.trim()) {
-      showToast('All required fields must be filled before proceeding.', { type: 'warning' });
-      return false;
+    // if (!callForm.from.trim() || !callForm.to.trim()) {
+    //   showToast('All required fields must be filled before proceeding.', { type: 'warning' });
+    //   return false;
+    // }
+
+    const newErrors: { [key: string]: string } = {};
+
+    if (!callForm.from.trim()) {
+      newErrors.from = 'From is required';
     }
 
+    if (!callForm.to.trim()) {
+      newErrors.to = 'To is required';
+    }
+
+    if (!callForm.type.trim()) {
+      newErrors.type = 'Type is required';
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      showToast('Please fill all required fields', { type: 'error' });
+      return;
+    }
+
+    // Clear any previous errors
+    setErrors({});
     setCallsLoading(true);
     try {
       const session = getUserSession();
@@ -2275,10 +1949,23 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
 
 
   const addTask = async (formData: TaskForm) => {
-    if (!formData.title.trim()) {
-      showToast('Please enter task title', { type: 'warning' });
-      return false;
+    const newErrors: { [key: string]: string } = {};
+
+    if (!taskForm.title.trim()) {
+      newErrors.title = 'Title is required';
     }
+
+    // Add other validations if needed
+    // if (!taskForm.assigned_to) newErrors.assigned_to = 'Assign To is required';
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      showToast('Please fill all required fields', { type: 'error' });
+      return;
+    }
+
+    // Clear errors before API call
+    setErrors({});
 
     setTasksLoading(true);
     try {
@@ -2345,10 +2032,23 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
   };
 
   const editTask = async (taskName: string, formData: TaskForm) => {
-    if (!formData.title.trim()) {
-      showToast('Please enter task title', { type: 'warning' });
-      return false;
+    const newErrors: { [key: string]: string } = {};
+
+    if (!taskForm.title.trim()) {
+      newErrors.title = 'Title is required';
     }
+
+    // Add other validations if needed
+    // if (!taskForm.assigned_to) newErrors.assigned_to = 'Assign To is required';
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      showToast('Please fill all required fields', { type: 'error' });
+      return;
+    }
+
+    // Clear errors before API call
+    setErrors({});
 
     setTasksLoading(true);
     try {
@@ -2456,6 +2156,27 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
 
+  const isValidUrl = (url: string): boolean => {
+    if (!url.trim()) return true; // Empty is allowed
+
+    // Regular expression for URL validation
+    const urlPattern = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?$/;
+
+    // Test basic pattern
+    if (!urlPattern.test(url)) {
+      return false;
+    }
+
+    // Additional check for valid TLD (optional but recommended)
+    const tldPattern = /\.[a-z]{2,}$/i;
+    if (!tldPattern.test(url)) {
+      return false;
+    }
+
+    return true;
+  };
+
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     let newErrors: { [key: string]: string } = {};
@@ -2465,6 +2186,21 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
       newErrors.firstName = "First Name is required";
     }
 
+    if (editedLead.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editedLead.email)) {
+      newErrors.email = 'Invalid email address';
+    }
+
+    if (editedLead.mobile) {
+      if (!/^\d+$/.test(editedLead.mobile)) {
+        newErrors.mobile = 'Invalid mobile number (digits only allowed)';
+      } else if (editedLead.mobile.length < 10) {
+        newErrors.mobile = 'Please enter at least 10 digits';
+      }
+    }
+
+    if (editedLead.website && !isValidUrl(editedLead.website)) {
+      newErrors.website = 'Please enter a valid website URL (e.g., example.com or https://example.com)';
+    }
     // If there are errors, stop and show them
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -2792,6 +2528,46 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
     }
   }, [activeTab]); // This effect runs only when `activeTab` changes.
 
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const session = getUserSession();
+        const sessionCompany = session?.company;
+        const response = await apiAxios.post(
+          '/api/method/frappe.desk.search.search_link',
+          {
+            txt: "",
+            doctype: "User",
+            filters: sessionCompany ? { company: sessionCompany } : null
+            //company: sessionCompany
+          },
+          {
+            headers: {
+              'Authorization': AUTH_TOKEN,
+              'Content-Type': 'application/json'
+            }
+          }
+          // ... headers
+        );
+
+        const data = response.data;
+
+        // Map the response to the correct { value, label } format
+        const options = data.message.map((item: { value: string; description: string; }) => ({
+          value: item.value,       // The email to send to the backend
+          label: item.description  // The full name to show in the dropdown
+        }));
+
+        setUserOptions(options); // Set the new state
+
+      } catch (err) {
+        console.error('Error fetching users:', err);
+        showToast('Failed to load user list', { type: 'error' });
+      }
+    };
+
+    fetchUsers();
+  }, []);
 
   return (
     <div className={`min-h-screen ${bgColor}`}>
@@ -3109,6 +2885,9 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                         onChange={(e) => handleInputChange('website', e.target.value)}
                         className={`p-[2px] pl-2 mt-1 block w-full border rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
                       />
+                      {errors.website && (
+                        <p className="text-sm text-red-500 mt-1">{errors.website}</p>
+                      )}
                     </div>
                     <div >
                       <label className={`block text-sm font-medium ${textSecondaryColor}`}>Territory</label>
@@ -3529,6 +3308,9 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                         onChange={(e) => handleInputChange('email', e.target.value)}
                         className={`p-[2px] pl-2 mt-1 block w-full border rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
                       />
+                      {errors.email && (
+                        <p className="text-sm text-red-500 mt-1">{errors.email}</p>
+                      )}
                     </div>
                     <div>
                       <label className={`block text-sm font-medium ${textSecondaryColor}`}>Mobile</label>
@@ -3538,6 +3320,9 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                         onChange={(e) => handleInputChange('mobile', e.target.value)}
                         className={`p-[2px] pl-2 mt-1 block w-full border  rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
                       />
+                      {errors.mobile && (
+                        <p className="text-sm text-red-500 mt-1">{errors.mobile}</p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -4170,7 +3955,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                       </div>
                       <div>
                         <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                          Content <span className='text-red-500'>*</span>
+                          Content
                         </label>
                         <textarea
                           value={noteForm.content}
@@ -4430,12 +4215,20 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                   <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>Type <span className='text-red-500'>*</span></label>
                   <select
                     value={callForm.type}
-                    onChange={(e) => setCallForm({ ...callForm, type: e.target.value })}
+                    onChange={(e) => {
+                      setCallForm({ ...callForm, type: e.target.value });
+                      if (errors.type) {
+                        setErrors((prev) => ({ ...prev, type: '' })); // Clear 'type' error
+                      }
+                    }}
                     className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
                   >
                     <option value="Outgoing">Outgoing</option>
                     <option value="Incoming">Incoming</option>
                   </select>
+                  {errors.type && (
+                    <p className="text-sm text-red-500 mt-1">{errors.type}</p>
+                  )}
                 </div>
 
                 <div>
@@ -4443,10 +4236,18 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                   <input
                     type="text"
                     value={callForm.to}
-                    onChange={(e) => setCallForm({ ...callForm, to: e.target.value })}
+                    onChange={(e) => {
+                      setCallForm({ ...callForm, to: e.target.value });
+                      if (errors.to) {
+                        setErrors((prev) => ({ ...prev, to: '' })); // Clear 'to' error when user types
+                      }
+                    }}
                     className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
                     placeholder="To"
                   />
+                  {errors.to && (
+                    <p className="text-sm text-red-500 mt-1">{errors.to}</p>
+                  )}
                 </div>
 
                 <div>
@@ -4454,10 +4255,18 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                   <input
                     type="text"
                     value={callForm.from}
-                    onChange={(e) => setCallForm({ ...callForm, from: e.target.value })}
+                    onChange={(e) => {
+                      setCallForm({ ...callForm, from: e.target.value });
+                      if (errors.from) {
+                        setErrors((prev) => ({ ...prev, from: '' })); // Clear 'from' error
+                      }
+                    }}
                     className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
                     placeholder="From"
                   />
+                  {errors.from && (
+                    <p className="text-sm text-red-500 mt-1">{errors.from}</p>
+                  )}
                 </div>
 
                 <div>
@@ -4948,13 +4757,19 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                         <input
                           type="text"
                           value={taskForm.title}
-                          onChange={(e) => setTaskForm({ ...taskForm, title: e.target.value })}
+                          onChange={(e) => {
+                            setTaskForm({ ...taskForm, title: e.target.value });
+                            if (errors.title) setErrors((prev) => ({ ...prev, title: '' })); // Clear error on typing
+                          }}
                           className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
                             ? 'bg-gray-800 border-gray-600 text-white'
                             : 'bg-white border-gray-300 text-gray-900'
                             }`}
                           placeholder="Task title"
                         />
+                        {errors.title && (
+                          <p className="text-sm text-red-500 mt-1">{errors.title}</p>
+                        )}
                       </div>
 
                       <div>
@@ -5037,17 +4852,18 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                             onChange={(e) => setTaskForm({ ...taskForm, assigned_to: e.target.value })}
                             className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
                               ? 'bg-gray-800 border-gray-600 text-white'
-                              : 'bg-white border-gray-300 text-white'
+                              : 'bg-white border-gray-300 text-gray-900'
                               }`}
                           >
-                            <option className='text-white' value="">Select Assign</option>
-                            <option className='text-white' value="hari@psd123.com">Hari</option>
-                            <option className='text-white' value="arun@psd.com">Arun</option>
-                            <option className='text-white' value="demo@psdigitise.com">DEMO</option>
-                            <option className='text-white' value="fen87joshi@yahoo.com">Feni</option>
-                            <option className='text-white' value="fenila@psd.com">Fenila</option>
-                            <option className='text-white' value="mx.techies@gmail.com">mx techies</option>
-                            <option className='text-white' value="prasad@psd.com">prasad</option>
+                            <option value="" style={{ color: theme === 'dark' ? '#fff' : '#000' }}>
+                              Select Assignee
+                            </option>
+                            {userOptions.map((user) => (
+                              <option key={user.value} value={user.value} style={{ color: theme === 'dark' ? '#fff' : '#000' }}>
+                                {user.label}
+                              </option>
+                            ))}
+
                           </select>
                         </div>
                       </div>
@@ -5058,10 +4874,10 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
                     <div className="w-full">
                       <button
                         onClick={async () => {
-                          if (!taskForm.title.trim()) {
-                            showToast('Title is required', { type: 'error' });
-                            return;
-                          }
+                          // if (!taskForm.title.trim()) {
+                          //   showToast('Title is required', { type: 'error' });
+                          //   return;
+                          // }
 
                           let success = false;
                           try {
@@ -5870,8 +5686,6 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete }: LeadDetailVie
           </div>
         )}
       </div>
-
     </div>
-
   );
 }

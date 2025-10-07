@@ -60,7 +60,6 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
   const [success, setSuccess] = useState('');
   const [users, setUsers] = useState<{ name: string; full_name: string; email: string }[]>([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState<boolean>(false);
-
   // New state variables for toggle buttons
   const [useExistingOrganization, setUseExistingOrganization] = useState(false);
   const [useExistingContact, setUseExistingContact] = useState(false);
@@ -68,7 +67,6 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
   const [contactOptions, setContactOptions] = useState<string[]>([]);
   const [isLoadingOrganizations, setIsLoadingOrganizations] = useState(false);
   const [isLoadingContacts, setIsLoadingContacts] = useState(false);
-
   // New state variables for dynamic dropdowns
   const [industryOptions, setIndustryOptions] = useState<string[]>([]);
   const [territoryOptions, setTerritoryOptions] = useState<string[]>([]);
@@ -78,6 +76,7 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
   const [isLoadingTerritories, setIsLoadingTerritories] = useState(false);
   const [isLoadingGenders, setIsLoadingGenders] = useState(false);
   const [isLoadingSalutations, setIsLoadingSalutations] = useState(false);
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
   useEffect(() => {
     if (isOpen) {
@@ -306,6 +305,71 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
     }
   };
 
+  // Add URL validation function
+  const isValidUrl = (url: string): boolean => {
+    if (!url.trim()) return true; // Empty is allowed
+
+    // Regular expression for URL validation
+    const urlPattern = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?$/;
+
+    // Test basic pattern
+    if (!urlPattern.test(url)) {
+      return false;
+    }
+
+    // Additional check for valid TLD (optional but recommended)
+    const tldPattern = /\.[a-z]{2,}$/i;
+    if (!tldPattern.test(url)) {
+      return false;
+    }
+
+    return true;
+  };
+  // Add validation function
+  const validateForm = (): boolean => {
+    const newErrors: { [key: string]: string } = {};
+
+    // Organization validation
+    if (useExistingOrganization) {
+      if (!formData.organization_id) {
+        newErrors.organization_id = 'Please select an organization';
+      }
+    } else {
+      if (!formData.organization_name?.trim()) {
+        newErrors.organization_name = 'Organization name is required';
+      }
+    }
+
+    // Status validation
+    if (!formData.status) {
+      newErrors.status = 'Status is required';
+    }
+
+    // Deal Owner validation
+    if (!formData.deal_owner) {
+      newErrors.deal_owner = 'Deal owner is required';
+    }
+
+    if (formData.website && !isValidUrl(formData.website)) {
+      newErrors.website = 'Please enter a valid website URL (e.g., example.com or https://example.com)';
+    }
+
+    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = 'Invalid email address';
+    }
+
+    if (formData.mobile_no) {
+      if (!/^\d+$/.test(formData.mobile_no)) {
+        newErrors.mobile_no = 'Invalid mobile number (digits only allowed)';
+      } else if (formData.mobile_no.length < 10) {
+        newErrors.mobile_no = 'Please enter at least 10 digits';
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -313,6 +377,13 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
     setIsLoading(true);
     setError('');
     setSuccess('');
+    setErrors({});
+
+    // Validate form before submission
+    if (!validateForm()) {
+      setIsLoading(false);
+      return;
+    }
 
     try {
       const session = getUserSession();
@@ -375,33 +446,33 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
         const createdDeal = result.message.deal || result.message.data || result.message;
         onSubmit(createdDeal);
 
-      // Reset form after successful submission
-      setTimeout(() => {
-        setFormData({
-          name: '',
-          organization_name: '',
-          website: '',
-          no_of_employees: '',
-          territory: '',
-          annual_revenue: '0.00',
-          industry: '',
-          salutation: '',
-          first_name: '',
-          last_name: '',
-          email: '',
-          mobile_no: '',
-          gender: '',
-          status: 'Qualification',
-          deal_owner: 'Administrator',
-          organization_id: '',
-          contact_id: '',
-        });
-        setUseExistingOrganization(false);
-        setUseExistingContact(false);
-        setSuccess('');
-        onClose();
-      }, 2000);
-    }
+        // Reset form after successful submission
+        setTimeout(() => {
+          setFormData({
+            name: '',
+            organization_name: '',
+            website: '',
+            no_of_employees: '',
+            territory: '',
+            annual_revenue: '0.00',
+            industry: '',
+            salutation: '',
+            first_name: '',
+            last_name: '',
+            email: '',
+            mobile_no: '',
+            gender: '',
+            status: 'Qualification',
+            deal_owner: 'Administrator',
+            organization_id: '',
+            contact_id: '',
+          });
+          setUseExistingOrganization(false);
+          setUseExistingContact(false);
+          setSuccess('');
+          onClose();
+        }, 2000);
+      }
 
     } catch (error) {
       let errorMessage = 'Failed to create deal. Please try again.';
@@ -416,8 +487,24 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
     }
   };
 
+  // const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  //   const { name, value } = e.target;
+  //   setFormData(prev => ({
+  //     ...prev,
+  //     [name]: value
+  //   }));
+  // };
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
+
+    // Clear error for this field when user starts typing
+    if (errors[name]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
+    }
+
     setFormData(prev => ({
       ...prev,
       [name]: value
@@ -428,12 +515,20 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
     const newMode = !useExistingOrganization;
     setUseExistingOrganization(newMode);
 
-    // Clear organization fields when switching modes
+    // Clear organization fields and errors when switching modes
     setFormData(prev => ({
       ...prev,
       organization_name: '',
       organization_id: ''
     }));
+
+    // Clear organization-related errors
+    setErrors(prev => {
+      const newErrors = { ...prev };
+      delete newErrors.organization_name;
+      delete newErrors.organization_id;
+      return newErrors;
+    });
 
     // Fetch organizations if switching to existing mode
     if (newMode) {
@@ -456,6 +551,15 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
       gender: '',
       contact_id: ''
     }));
+
+    // Clear contact-related errors
+    setErrors(prev => {
+      const newErrors = { ...prev };
+      delete newErrors.contact_id;
+      delete newErrors.email;
+      delete newErrors.mobile_no;
+      return newErrors;
+    });
 
     // Fetch contacts if switching to existing mode
     if (newMode) {
@@ -575,7 +679,6 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
                     name="organization_id"
                     value={formData.organization_id}
                     onChange={handleChange}
-                    required
                     disabled={isLoading || isLoadingOrganizations}
                     className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
                       ? 'bg-white-31 border-white text-white'
@@ -587,6 +690,9 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
                       <option key={org} value={org}>{org}</option>
                     ))}
                   </select>
+                  {errors.organization_id && (
+                    <p className="text-sm text-red-500 mt-1">{errors.organization_id}</p>
+                  )}
                 </div>
               ) : (
                 <>
@@ -600,13 +706,16 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
                       value={formData.organization_name}
                       onChange={handleChange}
                       placeholder="Organization Name"
-                      required
+
                       disabled={isLoading}
                       className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
                         ? 'bg-white-31 border-white text-white placeholder-gray-400'
                         : 'bg-white/80 border-gray-300 placeholder-gray-500'
                         }`}
                     />
+                    {errors.organization_name && (
+                      <p className="text-sm text-red-500 mt-1">{errors.organization_name}</p>
+                    )}
                   </div>
                   <div>
                     <label className={`block text-md font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>
@@ -624,6 +733,9 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
                         : 'bg-white/80 border-gray-300 placeholder-gray-500'
                         }`}
                     />
+                    {errors.website && (
+                      <p className="text-sm text-red-500 mt-1">{errors.website}</p>
+                    )}
                   </div>
                   <div>
                     <label className={`block text-md font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>
@@ -793,7 +905,7 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
                       Email
                     </label>
                     <input
-                      type="email"
+                      type="text"
                       name="email"
                       value={formData.email}
                       onChange={handleChange}
@@ -804,6 +916,9 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
                         : 'bg-white/80 border-gray-300 placeholder-gray-500'
                         }`}
                     />
+                    {errors.email && (
+                      <p className="text-sm text-red-500 mt-1">{errors.email}</p>
+                    )}
                   </div>
                   <div>
                     <label className={`block text-md font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>
@@ -821,6 +936,9 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
                         : 'bg-white/80 border-gray-300 placeholder-gray-500'
                         }`}
                     />
+                    {errors.mobile_no && (
+                      <p className="text-sm text-red-500 mt-1">{errors.mobile_no}</p>
+                    )}
                   </div>
                   <div>
                     <label className={`block text-md font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>
@@ -863,7 +981,6 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
                   name="status"
                   value={formData.status}
                   onChange={handleChange}
-                  required
                   disabled={isLoading}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
                     ? 'bg-white-31 border-white text-white'
@@ -878,6 +995,9 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
                   <option value="Won">Won</option>
                   <option value="Lost">Lost</option>
                 </select>
+                {errors.status && (
+                  <p className="text-sm text-red-500 mt-1">{errors.status}</p>
+                )}
               </div>
               <div className="md:col-start-2 lg:col-start-2">
                 <label className={`block text-md font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>

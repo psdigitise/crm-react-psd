@@ -58,6 +58,7 @@ export interface Deal {
   close_date?: string;
   probability?: string;
   next_step?: string;
+  deal_name?: string;
 }
 
 interface Note {
@@ -278,6 +279,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
     type: 'Outgoing',
     duration: '',
     name: '',
+    caller: '',
     receiver: ''
   });
 
@@ -798,11 +800,29 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
   };
 
   const addCall = async () => {
-    if (!callForm.from.trim() || !callForm.to.trim()) {
-      showToast('All required fields must be filled before proceeding.', { type: 'error' });
+    const newErrors: { [key: string]: string } = {};
+
+    if (!callForm.from.trim()) {
+      newErrors.from = 'From is required';
+    }
+
+    if (!callForm.to.trim()) {
+      newErrors.to = 'To is required';
+    }
+    if (!callForm.type.trim()) {
+      newErrors.type = 'Type is required';
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      showToast('Please fill all required fields', { type: 'error' });
       return;
     }
 
+    // Clear any previous errors
+    setErrors({});
+
+    setCallsLoading(true);
     setCallsLoading(true);
     try {
       const session = getUserSession();
@@ -876,10 +896,34 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
 
 
   const editCall = async () => {
-    if (!callForm.from.trim() || !callForm.to.trim()) {
-      showToast('All required fields must be filled before proceeding.', { type: 'warning' });
-      return false;
+    // if (!callForm.from.trim() || !callForm.to.trim()) {
+    //   showToast('All required fields must be filled before proceeding.', { type: 'warning' });
+    //   return false;
+    // }
+
+    const newErrors: { [key: string]: string } = {};
+
+    if (!callForm.from.trim()) {
+      newErrors.from = 'From is required';
     }
+
+    if (!callForm.to.trim()) {
+      newErrors.to = 'To is required';
+    }
+    if (!callForm.type.trim()) {
+      newErrors.type = 'Type is required';
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      showToast('Please fill all required fields', { type: 'error' });
+      return;
+    }
+
+    // Clear any previous errors
+    setErrors({});
+
+    setCallsLoading(true);
 
     setCallsLoading(true);
     try {
@@ -954,10 +998,29 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
   };
 
   const addTask = async () => {
-    if (!taskForm.title.trim() || !taskForm.description.trim()) {
-      showToast('All required fields must be filled before proceeding.', { type: 'error' });
+    // if (!taskForm.title.trim() || !taskForm.description.trim()) {
+    //   showToast('All required fields must be filled before proceeding.', { type: 'error' });
+    //   return;
+    // }
+
+    const newErrors: { [key: string]: string } = {};
+
+    if (!taskForm.title.trim()) {
+      newErrors.title = 'Title is required';
+    }
+
+    // Add other validations if needed
+    // if (!taskForm.assigned_to) newErrors.assigned_to = 'Assign To is required';
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      showToast('Please fill all required fields', { type: 'error' });
       return;
     }
+
+    // Clear errors before API call
+    setErrors({});
+
 
     setTasksLoading(true);
     try {
@@ -1000,7 +1063,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         });
         await fetchTasks();
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding task:', error);
       showToast(
         error.response?.data?.message ||
@@ -1013,11 +1076,25 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
     }
   };
 
-  const editTask = async (taskName) => {
+  const editTask = async () => {
+    const newErrors: { [key: string]: string } = {};
+
     if (!taskForm.title.trim()) {
-      showToast('Title is required', { type: 'error' });
-      return false;
+      newErrors.title = 'Title is required';
     }
+
+    // Add other validations if needed
+    // if (!taskForm.assigned_to) newErrors.assigned_to = 'Assign To is required';
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      showToast('Please fill all required fields', { type: 'error' });
+      return;
+    }
+
+    // Clear errors before API call
+    setErrors({});
+
 
     setTasksLoading(true);
     try {
@@ -1629,8 +1706,52 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
     }
   }, [fetchDealDetails]);
 
+  const isValidUrl = (url: string): boolean => {
+    if (!url.trim()) return true; // Empty is allowed
+
+    try {
+      // Test basic URL pattern
+      const urlPattern = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?$/;
+      if (!urlPattern.test(url)) {
+        return false;
+      }
+
+      // Additional check for valid TLD
+      const tldPattern = /\.[a-z]{2,}$/i;
+      if (!tldPattern.test(url)) {
+        return false;
+      }
+
+      // Test if URL can be properly constructed
+      new URL(url.startsWith('http') ? url : `https://${url}`);
+      return true;
+    } catch {
+      return false;
+    }
+  };
   //Edit Deals
   const handleSave = async () => {
+    // Clear previous errors
+    setErrors({});
+
+    const newErrors: { [key: string]: string } = {};
+
+    // Website validation
+    if (editedDeal.website && !isValidUrl(editedDeal.website)) {
+      newErrors.website = 'Please enter a valid website URL (e.g., example.com or https://example.com)';
+    }
+
+    // Add other validations here if needed
+    // if (!editedDeal.organization_name) {
+    //   newErrors.organization_name = 'Organization name is required';
+    // }
+
+    // If validation errors found, stop submission
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -1827,7 +1948,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
   const [showPopup, setShowPopup] = React.useState(false);
   const [showCallDetailsPopup, setShowCallDetailsPopup] = React.useState(false);
   const [editingCallFromActivity, setEditingCallFromActivity] = React.useState<any | null>(null);
-
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
   // const handleLabelClick = (call: any, fromActivityTab: boolean = false) => {
   //   if (fromActivityTab) {
   //     setEditingCallFromActivity(call);
@@ -2048,25 +2169,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                     </button>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {/* <div>
-                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>Organization</label>
-                      <Select
-                        value={organizationOptions.find(
-                          (option) => option.value === editedDeal.organization_name
-                        )}
-                        onChange={(selectedOption) =>
-                          handleInputChange('organization_name', selectedOption ? selectedOption.value : '')
-                        }
-                        options={organizationOptions}
-                        isClearable
-                        isSearchable
-                        placeholder="Search or select organization..."
-                        className="mt-1 w-full"
-                        classNamePrefix="org-select"
-                        styles={darkSelectStyles}
-                      />
-                      
-                    </div> */}
+
                     <div>
                       <label className={`block text-sm font-medium ${textSecondaryColor}`}>
                         Organization
@@ -2247,9 +2350,18 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                       <input
                         type="text"
                         value={editedDeal.website || ''}
-                        onChange={(e) => handleInputChange('website', e.target.value)}
+                        onChange={(e) => {
+                          handleInputChange('website', e.target.value);
+                          // Clear website error when user starts typing
+                          if (errors.website) {
+                            setErrors(prev => ({ ...prev, website: '' }));
+                          }
+                        }}
                         className={`p-[2px] pl-2  placeholder-gray-200 mt-1 border block w-full rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
                       />
+                      {errors.website && (
+                        <p className="text-sm text-red-500 mt-1">{errors.website}</p>
+                      )}
                     </div>
                     <div>
                       <label className={`block text-sm font-medium ${textSecondaryColor}`}>Territory</label>
@@ -2635,7 +2747,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                       </div>
                       <div>
                         <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                          Content <span className='text-red-500'>*</span>
+                          Content
                         </label>
                         <textarea
                           value={noteForm.content}
@@ -2896,6 +3008,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                 onClick={() => {
                   setShowCallModal(false);
                   setCallForm({ from: '', to: '', status: 'Ringing', type: 'Outgoing', duration: '', receiver: '', name: '' });
+                  setErrors({});
                 }}
                 className="absolute top-2 right-3 text-gray-500 hover:text-gray-700 dark:hover:text-white"
               >
@@ -2920,12 +3033,18 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                         caller: newType === 'Incoming' ? '' : callForm.caller,
                         receiver: newType === 'Outgoing' ? '' : callForm.receiver
                       });
+                      if (errors.type) {
+                        setErrors(prev => ({ ...prev, type: '' }));
+                      }
                     }}
                     className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
                   >
                     <option value="Outgoing">Outgoing</option>
                     <option value="Incoming">Incoming</option>
                   </select>
+                  {errors.type && (
+                    <p className="text-sm text-red-500 mt-1">{errors.type}</p>
+                  )}
                 </div>
 
                 <div>
@@ -2933,10 +3052,19 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                   <input
                     type="text"
                     value={callForm.to}
-                    onChange={(e) => setCallForm({ ...callForm, to: e.target.value })}
+                    onChange={(e) => {
+                      setCallForm({ ...callForm, to: e.target.value });
+                      // Clear to error when user starts typing
+                      if (errors.to) {
+                        setErrors(prev => ({ ...prev, to: '' }));
+                      }
+                    }}
                     className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
                     placeholder="To"
                   />
+                  {errors.to && (
+                    <p className="text-sm text-red-500 mt-1">{errors.to}</p>
+                  )}
                 </div>
 
                 <div>
@@ -2944,17 +3072,32 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                   <input
                     type="text"
                     value={callForm.from}
-                    onChange={(e) => setCallForm({ ...callForm, from: e.target.value })}
+                    onChange={(e) => {
+                      setCallForm({ ...callForm, from: e.target.value });
+                      // Clear from error when user starts typing
+                      if (errors.from) {
+                        setErrors(prev => ({ ...prev, from: '' }));
+                      }
+                    }}
                     className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
                     placeholder="From"
                   />
+                  {errors.from && (
+                    <p className="text-sm text-red-500 mt-1">{errors.from}</p>
+                  )}
                 </div>
 
                 <div>
                   <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>Status</label>
                   <select
                     value={callForm.status}
-                    onChange={(e) => setCallForm({ ...callForm, status: e.target.value })}
+                    onChange={(e) => {
+                      setCallForm({ ...callForm, from: e.target.value });
+                      // Clear from error when user starts typing
+                      if (errors.from) {
+                        setErrors(prev => ({ ...prev, from: '' }));
+                      }
+                    }}
                     className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
                   >
                     {["Initiated", "Ringing", "In Progress", "Completed", "Failed", "Busy", "No Answer", "Queued", "Canceled"].map(status => (
@@ -3440,13 +3583,23 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                         <input
                           type="text"
                           value={taskForm.title}
-                          onChange={(e) => setTaskForm({ ...taskForm, title: e.target.value })}
+                          // onChange={(e) => setTaskForm({ ...taskForm, title: e.target.value })}
+                          onChange={(e) => {
+                            setTaskForm({ ...taskForm, title: e.target.value });
+                            // Clear from error when user starts typing
+                            if (errors.title) {
+                              setErrors(prev => ({ ...prev, title: '' }));
+                            }
+                          }}
                           className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
                             ? 'bg-gray-800 border-gray-600 text-white'
                             : 'bg-white border-gray-300 text-gray-900'
                             }`}
                           placeholder="Task title"
                         />
+                        {errors.title && (
+                          <p className="text-sm text-red-500 mt-1">{errors.title}</p>
+                        )}
                       </div>
 
                       <div>
@@ -3578,10 +3731,10 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                     <div className="w-full">
                       <button
                         onClick={async () => {
-                          if (!taskForm.title.trim()) {
-                            showToast('Title is required', { type: 'error' });
-                            return;
-                          }
+                          // if (!taskForm.title.trim()) {
+                          //   showToast('Title is required', { type: 'error' });
+                          //   return;
+                          // }
 
                           let success = false;
                           if (isEditMode) {

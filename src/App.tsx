@@ -554,70 +554,80 @@ function AppContent() {
 
     }
   };
-  const handleCreateDeal = async (data: any) => {
-    console.log("Deal creation response:", data);
+ 
 
-    if (data) {
-      setShowCreateModal(false);
+const handleCreateDeal = async (data: any) => {
+  console.log("Deal creation response:", data);
 
-      let dealId: string | undefined;
+  if (data && data.message) {
+    setShowCreateModal(false);
 
-      // ✅ Always handle string case first
-      if (typeof data.message === "string") {
-        dealId = data.message; // backend returned docname directly
-      } else if (data.message && data.message.name) {
-        dealId = data.message.name; // handle object case if frappe sends object
-      }
+    // 1. Get the ID of the newly created deal from the response
+    const newDealId = data.message; // This is likely the deal's name, e.g., "CRM-DEAL-2025-00429"
+    
+    if (!newDealId) {
+      console.error("Deal name/ID was not found in the creation response.");
+      return;
+    }
 
-      if (!dealId) {
-        console.error("Deal name missing in response:", data);
-        return;
-      }
+    try {
+      // 2. Fetch the FULL deal data using the new ID
+      const response = await apiAxios.post("/api/method/frappe.client.get", {
+        doctype: "CRM Deal",
+        name: newDealId,
+      });
 
-      try {
-        // 🔥 Fetch full deal details
-        // const response = await fetch(
-        //   "http://103.214.132.20:8002/api/method/frappe.client.get",
-        //   {
-        //     method: "POST",
-        //     headers: {
-        //       "Content-Type": "application/json",
-        //       "Authorization": AUTH_TOKEN,
-        //     },
-        //     body: JSON.stringify({
-        //       doctype: "CRM Deal",
-        //       name: dealId, // <-- pass docname here
-        //     }),
-        //   }
-        // );
+      const fullDealData = response.data.message;
 
-        // const dealData = await response.json();
-        const dealData = await apiAxios.post("/api/method/frappe.client.get", {
-          doctype: "CRM Deal",
-          name: dealId,
-        });
+      if (fullDealData) {
+        // 3. Update the state with the complete data
+        const dealForState = {
+          ...fullDealData,
+          id: fullDealData.name, // Ensure 'id' is mapped from 'name'
+          organization: fullDealData.organization_name || fullDealData.organization // Map organization name
+        };
 
-        let fullDeal = dealData.message || { name: dealId, id: dealId };
-
-        fullDeal = { ...fullDeal, id: fullDeal.name };
-        // Update state
-        setDeals((prevDeals: any) => [
-          ...prevDeals,
-          { ...fullDeal, id: fullDeal.name } // ensure id exists
-        ]);
-        setSelectedDeal({ ...fullDeal, id: fullDeal.name });
+        setSelectedDeal(dealForState);
         setActiveMenuItem("deals");
-
-        // Navigate
-        window.history.pushState({}, "", `/deals/${dealId}`);
-      } catch (err) {
-        console.error("Failed to fetch deal details:", err);
-        // fallback
-        window.history.pushState({}, "", `/deals/${dealId}`);
+        
+        // 4. The useEffect hook will now handle the navigation to the correct URL
+        // window.history.pushState({}, "", `/deals/${newDealId}`); // This is handled by useEffect now
+      } else {
+        throw new Error("Failed to fetch full deal data after creation.");
       }
+    } catch (err) {
+      console.error("Error fetching full deal details:", err);
+      // Fallback: navigate to the deals list if the fetch fails
+      setActiveMenuItem("deals");
+    }
+  }
+};
+
+  const handleConversionSuccess = async (dealId: string) => {
+    try {
+      // Fetch the full details of the newly created deal
+      const response = await apiAxios.post("/api/method/frappe.client.get", {
+        doctype: "CRM Deal",
+        name: dealId,
+      });
+
+      const fullDealData = response.data.message;
+
+      if (fullDealData) {
+        // Set the state to render the DealDetailView
+        setSelectedDeal({ ...fullDealData, id: fullDealData.name });
+        setActiveMenuItem('deals');
+        setSelectedLead(null); // Clear the lead view
+      } else {
+        throw new Error("Could not fetch details for the new deal.");
+      }
+    } catch (error) {
+      console.error("Failed to fetch new deal details:", error);
+      // Fallback: just navigate to the deals list
+      setActiveMenuItem('deals');
+      setSelectedLead(null);
     }
   };
-
 
 
 
@@ -696,6 +706,7 @@ function AppContent() {
           lead={selectedLead}
           onBack={handleLeadBack}
           onSave={handleLeadSave}
+          onConversionSuccess={handleConversionSuccess}
         />
       );
     }
