@@ -36,6 +36,7 @@ export function CreateCallLogModal({
     caller: '',
     receiver: ''
   });
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [userOptions, setUserOptions] = useState<{ value: string; label: string; }[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
@@ -94,10 +95,67 @@ export function CreateCallLogModal({
     }
   };
 
+  const validateField = (name: string, value: string): string => {
+    switch (name) {
+      case 'type':
+        if (!value.trim()) return 'Type is required';
+        return '';
+      
+      case 'to':
+        if (!value.trim()) return 'To field is required';
+        return '';
+      
+      case 'from':
+        if (!value.trim()) return 'From field is required';
+        return '';
+      
+      case 'caller':
+        if (formData.type === 'Outgoing' && !value.trim()) return 'Caller is required for outgoing calls';
+        return '';
+      
+      case 'receiver':
+        if (formData.type === 'Incoming' && !value.trim()) return 'Receiver is required for incoming calls';
+        return '';
+      
+      case 'duration':
+        if (value && (parseInt(value) < 0 || isNaN(parseInt(value)))) {
+          return 'Duration must be a positive number';
+        }
+        return '';
+      
+      default:
+        return '';
+    }
+  };
+
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+    
+    // Validate all fields
+    newErrors.type = validateField('type', formData.type);
+    newErrors.to = validateField('to', formData.to);
+    newErrors.from = validateField('from', formData.from);
+    newErrors.caller = validateField('caller', formData.caller);
+    newErrors.receiver = validateField('receiver', formData.receiver);
+    newErrors.duration = validateField('duration', formData.duration);
+    
+    setErrors(newErrors);
+    
+    // Check if any errors exist
+    return !Object.values(newErrors).some(error => error !== '');
+  };
+
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate form before submission
+    if (!validateForm()) {
+      showToast('Please fix the validation errors', { type: 'error' });
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -151,7 +209,6 @@ export function CreateCallLogModal({
       }
       onClose();
 
-
       // Reset form
       setFormData({
         from: '',
@@ -164,6 +221,7 @@ export function CreateCallLogModal({
         caller: '',
         receiver: ''
       });
+      setErrors({});
     } catch (error) {
       console.error('Error creating call log:', error);
       showToast(`Failed to ${isEditMode ? 'update' : 'create'} call log`, { type: 'error' });
@@ -175,20 +233,25 @@ export function CreateCallLogModal({
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
 
+    const updatedFormData = { ...formData };
+
     if (name === 'type') {
       // Reset caller/receiver when type changes
-      setFormData({
-        ...formData,
-        [name]: value,
-        caller: value === 'Incoming' ? '' : formData.caller,
-        receiver: value === 'Outgoing' ? '' : formData.receiver
-      });
+      updatedFormData.type = value;
+      updatedFormData.caller = value === 'Incoming' ? '' : formData.caller;
+      updatedFormData.receiver = value === 'Outgoing' ? '' : formData.receiver;
     } else {
-      setFormData({
-        ...formData,
-        [name]: value
-      });
+      updatedFormData[name as keyof typeof formData] = value;
     }
+
+    setFormData(updatedFormData);
+
+    // Validate the changed field in real-time
+    const error = validateField(name, value);
+    setErrors(prev => ({
+      ...prev,
+      [name]: error
+    }));
   };
 
   const handleClose = () => {
@@ -205,6 +268,7 @@ export function CreateCallLogModal({
       caller: '',
       receiver: ''
     });
+    setErrors({});
   };
 
   return (
@@ -233,25 +297,19 @@ export function CreateCallLogModal({
                 value={formData.type}
                 onChange={handleChange}
                 disabled={loading}
-                className={`w-full px-3 py-2  placeholder:!text-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
-                  ? 'bg-gray-800 border-gray-600 text-white'
-                  : 'bg-white border-gray-300 text-gray-900'
-                  }`}
-                required
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  theme === 'dark'
+                    ? 'bg-gray-800 border-gray-600 text-white'
+                    : 'bg-white border-gray-300 text-gray-900'
+                } ${errors.type ? 'border-red-500' : ''}`}
               >
-                <option className={`w-full px-3 py-2  placeholder:!text-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
-                  ? 'bg-gray-800 border-gray-600 text-white'
-                  : 'bg-white border-gray-300 text-gray-900'
-                  }`} value="Outgoing">Outgoing</option>
-                <option className={`w-full px-3 py-2  placeholder:!text-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
-                  ? 'bg-gray-800 border-gray-600 text-white'
-                  : 'bg-white border-gray-300 text-gray-900'
-                  }`} value="Incoming">Incoming</option>
-                <option className={`w-full px-3 py-2  placeholder:!text-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
-                  ? 'bg-gray-800 border-gray-600 text-white'
-                  : 'bg-white border-gray-300 text-gray-900'
-                  }`} value="Missed">Missed</option>
+                <option value="Outgoing">Outgoing</option>
+                <option value="Incoming">Incoming</option>
+                <option value="Missed">Missed</option>
               </select>
+              {errors.type && (
+                <p className="text-red-500 text-xs mt-1">{errors.type}</p>
+              )}
             </div>
 
             {/* To Field */}
@@ -265,13 +323,16 @@ export function CreateCallLogModal({
                 value={formData.to}
                 onChange={handleChange}
                 disabled={loading}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
-                  ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400'
-                  : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-                  }`}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  theme === 'dark'
+                    ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400'
+                    : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                } ${errors.to ? 'border-red-500' : ''}`}
                 placeholder="To"
-                required
               />
+              {errors.to && (
+                <p className="text-red-500 text-xs mt-1">{errors.to}</p>
+              )}
             </div>
 
             {/* From Field */}
@@ -285,13 +346,16 @@ export function CreateCallLogModal({
                 value={formData.from}
                 onChange={handleChange}
                 disabled={loading}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
-                  ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400'
-                  : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-                  }`}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  theme === 'dark'
+                    ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400'
+                    : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                } ${errors.from ? 'border-red-500' : ''}`}
                 placeholder="From"
-                required
               />
+              {errors.from && (
+                <p className="text-red-500 text-xs mt-1">{errors.from}</p>
+              )}
             </div>
 
             {/* Status Field */}
@@ -304,16 +368,14 @@ export function CreateCallLogModal({
                 value={formData.status}
                 onChange={handleChange}
                 disabled={loading}
-                className={`w-full px-3 py-2  placeholder:!text-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
-                  ? 'bg-gray-800 border-gray-600 text-white'
-                  : 'bg-white border-gray-300 text-gray-900'
-                  }`}
-              >
-                {["Initiated", "Ringing", "In Progress", "Completed", "Failed", "Busy", "No Answer", "Queued", "Canceled"].map(status => (
-                  <option className={`w-full px-3 py-2  placeholder:!text-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  theme === 'dark'
                     ? 'bg-gray-800 border-gray-600 text-white'
                     : 'bg-white border-gray-300 text-gray-900'
-                    }`} key={status} value={status}>{status}</option>
+                }`}
+              >
+                {["Initiated", "Ringing", "In Progress", "Completed", "Failed", "Busy", "No Answer", "Queued", "Canceled"].map(status => (
+                  <option key={status} value={status}>{status}</option>
                 ))}
               </select>
             </div>
@@ -329,46 +391,50 @@ export function CreateCallLogModal({
                 value={formData.duration}
                 onChange={handleChange}
                 disabled={loading}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
-                  ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400'
-                  : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-                  }`}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  theme === 'dark'
+                    ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400'
+                    : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                } ${errors.duration ? 'border-red-500' : ''}`}
                 placeholder="Call duration in seconds"
                 min="0"
               />
+              {errors.duration && (
+                <p className="text-red-500 text-xs mt-1">{errors.duration}</p>
+              )}
             </div>
 
             {/* Caller Field (for Outgoing calls) */}
             {formData.type === 'Outgoing' && (
               <div>
                 <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>
-                  Caller
+                  Caller <span className="text-red-500">*</span>
                 </label>
                 <select
                   name="caller"
                   value={formData.caller}
                   onChange={handleChange}
                   disabled={loading || usersLoading}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
-                    ? 'bg-gray-800 border-gray-600 text-white'
-                    : 'bg-white border-gray-300 text-gray-900'
-                    } ${usersLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                >
-                  <option className={`w-full px-3 py-2  placeholder:!text-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
-                    ? 'bg-gray-800 border-gray-600 text-white'
-                    : 'bg-white border-gray-300 text-gray-900'
-                    }`} value="">Select Caller</option>
-                  {userOptions.map((user) => (
-                    <option className={`w-full px-3 py-2  placeholder:!text-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                    theme === 'dark'
                       ? 'bg-gray-800 border-gray-600 text-white'
                       : 'bg-white border-gray-300 text-gray-900'
-                      }`} key={user.value} value={user.value}>
+                  } ${usersLoading ? 'opacity-50 cursor-not-allowed' : ''} ${
+                    errors.caller ? 'border-red-500' : ''
+                  }`}
+                >
+                  <option value="">Select Caller</option>
+                  {userOptions.map((user) => (
+                    <option key={user.value} value={user.value}>
                       {user.label}
                     </option>
                   ))}
                 </select>
                 {usersLoading && (
                   <p className="text-xs text-gray-500 mt-1">Loading users...</p>
+                )}
+                {errors.caller && (
+                  <p className="text-red-500 text-xs mt-1">{errors.caller}</p>
                 )}
               </div>
             )}
@@ -377,33 +443,33 @@ export function CreateCallLogModal({
             {formData.type === 'Incoming' && (
               <div>
                 <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>
-                  Call Received By
+                  Call Received By <span className="text-red-500">*</span>
                 </label>
                 <select
                   name="receiver"
                   value={formData.receiver}
                   onChange={handleChange}
                   disabled={loading || usersLoading}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
-                    ? 'bg-gray-800 border-gray-600 text-white'
-                    : 'bg-white border-gray-300 text-gray-900'
-                    } ${usersLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                >
-                  <option className={`w-full px-3 py-2  placeholder:!text-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
-                    ? 'bg-gray-800 border-gray-600 text-white'
-                    : 'bg-white border-gray-300 text-gray-900'
-                    }`} value="">Select Receiver</option>
-                  {userOptions.map((user) => (
-                    <option className={`w-full px-3 py-2  placeholder:!text-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                    theme === 'dark'
                       ? 'bg-gray-800 border-gray-600 text-white'
                       : 'bg-white border-gray-300 text-gray-900'
-                      }`} key={user.value} value={user.value}>
+                  } ${usersLoading ? 'opacity-50 cursor-not-allowed' : ''} ${
+                    errors.receiver ? 'border-red-500' : ''
+                  }`}
+                >
+                  <option value="">Select Receiver</option>
+                  {userOptions.map((user) => (
+                    <option key={user.value} value={user.value}>
                       {user.label}
                     </option>
                   ))}
                 </select>
                 {usersLoading && (
                   <p className="text-xs text-gray-500 mt-1">Loading users...</p>
+                )}
+                {errors.receiver && (
+                  <p className="text-red-500 text-xs mt-1">{errors.receiver}</p>
                 )}
               </div>
             )}
@@ -414,20 +480,22 @@ export function CreateCallLogModal({
               type="button"
               onClick={handleClose}
               disabled={loading}
-              className={`px-4 py-2 rounded-lg border transition-colors ${theme === 'dark'
-                ? 'border-gray-600 text-white hover:bg-gray-800'
-                : 'border-gray-300 text-gray-700 hover:bg-gray-50'
-                } disabled:opacity-50`}
+              className={`px-4 py-2 rounded-lg border transition-colors ${
+                theme === 'dark'
+                  ? 'border-gray-600 text-white hover:bg-gray-800'
+                  : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+              } disabled:opacity-50`}
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className={`px-4 py-2 rounded-lg text-white flex items-center space-x-2 transition-colors ${theme === 'dark'
-                ? 'bg-purple-600 hover:bg-purple-700'
-                : 'bg-green-600 hover:bg-green-700'
-                } disabled:opacity-50`}
+              className={`px-4 py-2 rounded-lg text-white flex items-center space-x-2 transition-colors ${
+                theme === 'dark'
+                  ? 'bg-purple-600 hover:bg-purple-700'
+                  : 'bg-green-600 hover:bg-green-700'
+              } disabled:opacity-50`}
             >
               <span>
                 {loading

@@ -683,7 +683,7 @@ function AppContent() {
   };
 
   const getSubtitle = () => {
-    if (['leads', 'deals', 'contacts', 'organizations', 'users', 'reminders'].includes(activeMenuItem)) {
+    if (['leads', 'deals', 'contacts',  'organizations', 'users', 'reminders'].includes(activeMenuItem)) {
       return 'List';
     }
     return undefined;
@@ -920,7 +920,7 @@ function AppContent() {
     !isInNestedView;
 
   return (
-    <div className="min-h-screen flex bg-gray-50 dark:bg-gradient-to-br dark:from-[#0F0F23] dark:via-[#1A1A2E] dark:to-[#16213E]">
+    <div className="h-[100vh] flex bg-gray-50 dark:bg-gradient-to-br dark:from-[#0F0F23] dark:via-[#1A1A2E] dark:to-[#16213E]">
       {/* Sidebar */}
       <Sidebar
         isCollapsed={sidebarCollapsed}

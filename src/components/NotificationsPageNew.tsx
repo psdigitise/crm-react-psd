@@ -300,7 +300,7 @@ export function NotificationsPageNew() {
         <>
           {/* Today Section */}
           {todayNotifications.length > 0 && (
-            <div className="mb-8 overflow-y-auto h-[100vh]">
+            <div className="mb-8 h-[100vh]">
               <h2
                 className={`text-2xl font-bold mb-6 ${
                   theme === "dark" ? "text-white" : "text-black"

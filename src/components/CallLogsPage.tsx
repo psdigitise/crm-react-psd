@@ -55,6 +55,8 @@ interface CallLog {
   creation?: string;
   modified?: string;
   caller?: string;
+  receiver?: string;
+  _caller?: { label: string };
   _receiver?: { label: string };
   _notes?: Note[];
   _tasks?: Task[];
@@ -167,12 +169,11 @@ const EditCallModal: React.FC<EditCallModalProps> = ({
             </label>
             <select
               value={callForm.type}
-              // onChange={(e) => setCallForm({ ...callForm, type: e.target.value })}
               onChange={(e) => handleTypeChange(e.target.value)}
               className={`w-full px-3 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${inputBgColor}`}
             >
-              <option className="text-white" value="Incoming">Incoming</option>
-              <option className="text-white" value="Outgoing">Outgoing</option>
+              <option value="Incoming">Incoming</option>
+              <option value="Outgoing">Outgoing</option>
             </select>
           </div>
 
@@ -240,7 +241,7 @@ const EditCallModal: React.FC<EditCallModalProps> = ({
                 className={`w-full px-3 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${inputBgColor}`}
                 disabled={loadingUsers}
               >
-                <option value="">Caller</option>
+                <option value="">Select Caller</option>
                 {users.map((user) => (
                   <option key={user.value} value={user.value}>
                     {user.label}
@@ -252,6 +253,7 @@ const EditCallModal: React.FC<EditCallModalProps> = ({
               )}
             </div>
           )}
+
           {/* Receiver (Only show for Incoming) */}
           {callForm.type === 'Incoming' && (
             <div>
@@ -262,7 +264,7 @@ const EditCallModal: React.FC<EditCallModalProps> = ({
                 className={`w-full px-3 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${inputBgColor}`}
                 disabled={loadingUsers}
               >
-                <option value="">Call Received By</option>
+                <option value="">Select Receiver</option>
                 {users.map((user) => (
                   <option key={user.value} value={user.value}>
                     {user.label}
@@ -275,8 +277,6 @@ const EditCallModal: React.FC<EditCallModalProps> = ({
             </div>
           )}
         </div>
-
-
 
         {/* Actions */}
         <div className="flex justify-end p-6 pt-0">
@@ -348,6 +348,8 @@ const DeleteModal: React.FC<DeleteModalProps> = ({ isOpen, onClose, onConfirm, c
 const fetchUsers = async (): Promise<User[]> => {
   try {
     const session = getUserSession();
+    const sessionCompany = session?.company;
+    
     if (!session) {
       showToast('Session expired. Please login again.', { type: 'error' });
       return [];
@@ -358,9 +360,7 @@ const fetchUsers = async (): Promise<User[]> => {
     const requestBody = {
       txt: "",
       doctype: "User",
-      filters: {
-        name: ["in", ["admin@psd.com", "Administrator", "haripanchanthan2892005@gmail.com"]]
-      }
+      filters: sessionCompany ? { company: sessionCompany } : null
     };
 
     const response = await fetch(apiUrl, {
@@ -467,8 +467,6 @@ export function CallLogsPage({ onCreateCallLog, leadName, refreshTrigger = 0 }: 
         return;
       }
 
-      //const apiUrl = 'http://103.214.132.20:8002/api/method/crm.api.doc.get_data';
-
       const requestBody = {
         doctype: "CRM Call Log",
         filters: {
@@ -491,21 +489,7 @@ export function CallLogsPage({ onCreateCallLog, leadName, refreshTrigger = 0 }: 
         }
       };
 
-      // const response = await fetch(apiUrl, {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //     'Authorization': AUTH_TOKEN
-      //   },
-      //   body: JSON.stringify(requestBody)
-      // });
-
-      // if (!response.ok) {
-      //   throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      // }
-
-      // const result = await response.json();
-       const result = await api.post('/api/method/crm.api.doc.get_data', requestBody);
+      const result = await api.post('/api/method/crm.api.doc.get_data', requestBody);
       let callLogsData = result.message?.data || [];
 
       // If no call logs found, set empty array and return
@@ -568,6 +552,8 @@ export function CallLogsPage({ onCreateCallLog, leadName, refreshTrigger = 0 }: 
             creation: item.creation,
             modified: item.modified,
             note: item.note,
+            caller: item.caller, // Add caller field
+            receiver: item.receiver, // Add receiver field
             _caller: item._caller || { label: item.caller || item.from || 'Unknown' },
             _receiver: item._receiver || { label: item.receiver || item.to || 'Unknown' },
             // Include additional fields from detailed API if needed
@@ -598,14 +584,20 @@ export function CallLogsPage({ onCreateCallLog, leadName, refreshTrigger = 0 }: 
   };
 
   const handleEdit = (callLog: CallLog) => {
+    console.log('Editing call log:', callLog);
+    console.log('Caller value:', callLog.caller);
+    console.log('Receiver value:', callLog.receiver);
+    console.log('_caller:', callLog._caller);
+    console.log('_receiver:', callLog._receiver);
+    
     setCallForm({
       from: callLog.from || '',
       to: callLog.to || '',
       status: callLog.status || 'Ringing',
       type: callLog.type || 'Outgoing',
       duration: callLog.duration || '',
-      caller: callLog.caller || '',
-      receiver: callLog.to || '',
+      caller: callLog.caller || callLog._caller?.label || '', // Use caller or _caller.label
+      receiver: callLog.receiver || callLog._receiver?.label || '', // Use receiver or _receiver.label
       name: callLog.name || '',
     });
     setIsEditMode(true);
@@ -655,13 +647,13 @@ export function CallLogsPage({ onCreateCallLog, leadName, refreshTrigger = 0 }: 
           to: callForm.to,
           status: callForm.status,
           type: callForm.type,
-          //duration: callForm.duration
         }
       };
 
       if (callForm.duration) {
-        payload.duration = callForm.duration;
+        payload.fieldname.duration = callForm.duration;
       }
+
       // Add caller/receiver based on call type
       if (callForm.type === 'Outgoing') {
         payload.fieldname.caller = callForm.caller;
@@ -793,7 +785,6 @@ export function CallLogsPage({ onCreateCallLog, leadName, refreshTrigger = 0 }: 
     }
     return `${secs}s`;
   };
-
 
   // Function to fetch deal details
   const fetchDealDetails = async (dealName: string): Promise<Deal | null> => {
@@ -967,6 +958,7 @@ export function CallLogsPage({ onCreateCallLog, leadName, refreshTrigger = 0 }: 
       showToast(`Unsupported record type: ${callLog.reference_doctype}`, { type: 'error' });
     }
   };
+
   // If a deal is selected, show DealDetailView
   if (selectedDeal) {
     return (
@@ -1214,15 +1206,6 @@ export function CallLogsPage({ onCreateCallLog, leadName, refreshTrigger = 0 }: 
               {/* Dropdown menu */}
               {showMenu && (
                 <div className="absolute right-0 bottom-10 bg-white dark:bg-gray-700 dark:text-white shadow-lg rounded-md border dark:border-gray-600 py-1 w-40 z-50">
-                  {/* <button
-                    className="block w-full text-left px-4 py-2 hover:bg-gray-700"
-                    onClick={() => {
-                      // Add your edit functionality here
-                      setShowMenu(false);
-                    }}
-                  >
-                    Edit
-                  </button> */}
                   <button
                     className="block w-full text-left px-4 py-2 hover:bg-gray-300"
                     onClick={() => {
@@ -1281,13 +1264,11 @@ export function CallLogsPage({ onCreateCallLog, leadName, refreshTrigger = 0 }: 
             name: selectedCall.name,
             _notes: selectedCall._notes || [],
             _tasks: selectedCall._tasks || [],
-            reference_doctype: selectedCall.reference_doctype, // Add this
-            id: selectedCall.id // Add this for reference_docname
-            //reference_doctype: selectedCall.reference_doctype
+            reference_doctype: selectedCall.reference_doctype,
+            id: selectedCall.id
           }}
           onClose={() => setShowPopup(false)}
           onAddTask={() => {
-            // Handle add task functionality if needed
             console.log('Add task from call:', selectedCall);
             setShowPopup(false);
           }}

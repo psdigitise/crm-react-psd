@@ -9,6 +9,7 @@ import { LeadDetailView } from './LeadDetailView';
 import { formatDistanceToNow } from 'date-fns';
 import { AUTH_TOKEN } from '../api/apiUrl';
 import { api } from '../api/apiService';
+import { CreateNoteModalNew } from './CreateNoteModalNew';
 
 interface Note {
   name: string;
@@ -211,6 +212,10 @@ export function NotesPage({ onCreateNote, leadName }: NotesPageProps) {
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
   const [formData, setFormData] = useState<Note | null>(null);
   const [editForm, setEditForm] = useState({ title: '', content: '' });
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  
+  // Add state for create modal
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   // Add state for deal and lead navigation
   const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
@@ -221,9 +226,15 @@ export function NotesPage({ onCreateNote, leadName }: NotesPageProps) {
   // Add state for dropdown menu
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
 
+  const handleNoteCreated = () => {
+    // This will trigger a refresh of the notes list
+    setRefreshTrigger(prev => prev + 1);
+  };
+
+  // Update useEffect to include refreshTrigger
   useEffect(() => {
     fetchNotes();
-  }, [leadName]);
+  }, [leadName, refreshTrigger]); // Add refreshTrigger here
 
   const fetchNotes = async () => {
     try {
@@ -267,23 +278,7 @@ export function NotesPage({ onCreateNote, leadName }: NotesPageProps) {
         }
       };
 
-      //const apiUrl = `http://103.214.132.20:8002/api/method/crm.api.doc.get_data`;
-
-      // const response = await fetch(apiUrl, {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //     'Authorization': AUTH_TOKEN
-      //   },
-      //   body: JSON.stringify(payload)
-      // });
-
-      // if (!response.ok) {
-      //   throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      // }
-
-      //const result = await response.json();
-       const result = await api.post('/api/method/crm.api.doc.get_data', payload);
+      const result = await api.post('/api/method/crm.api.doc.get_data', payload);
       const notesData = result.message?.data || result.data || [];
 
       setNotes(notesData);
@@ -321,7 +316,6 @@ export function NotesPage({ onCreateNote, leadName }: NotesPageProps) {
     if (isNaN(parsed.getTime())) return '';
     return formatDistanceToNow(parsed, { addSuffix: true });
   }
-
 
   const handleDeleteClick = (noteId: string, event: React.MouseEvent) => {
     event.stopPropagation();
@@ -585,8 +579,6 @@ export function NotesPage({ onCreateNote, leadName }: NotesPageProps) {
   };
 
   const handleDelete = async (noteName: string) => {
-    // if (!confirm('Are you sure you want to delete this note?')) return;
-
     try {
       const session = getUserSession();
 
@@ -638,6 +630,11 @@ export function NotesPage({ onCreateNote, leadName }: NotesPageProps) {
     setSelectedLead(null);
   };
 
+  // Update the Header props to open create modal
+  const handleCreateNoteClick = () => {
+    setIsCreateModalOpen(true);
+  };
+
   const filteredNotes = notes.filter(note =>
     Object.values(note).some(value =>
       value?.toString().toLowerCase().includes(searchTerm.toLowerCase())
@@ -666,6 +663,11 @@ export function NotesPage({ onCreateNote, leadName }: NotesPageProps) {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
+
+  const getDisplayName = (ownerEmail: string) => {
+    if (!ownerEmail) return 'Unknown';
+    return ownerEmail.split('@')[0];
+  };
 
   // If a deal is selected, show DealDetailView
   if (selectedDeal) {
@@ -704,6 +706,7 @@ export function NotesPage({ onCreateNote, leadName }: NotesPageProps) {
           onFilter={() => { }}
           onSort={() => { }}
           onColumns={() => { }}
+          onCreate={handleCreateNoteClick}
           searchValue={searchTerm}
           onSearchChange={setSearchTerm}
           viewMode={viewMode}
@@ -718,11 +721,6 @@ export function NotesPage({ onCreateNote, leadName }: NotesPageProps) {
     );
   }
 
-  const getDisplayName = (ownerEmail: string) => {
-  if (!ownerEmail) return 'Unknown';
-  return ownerEmail.split('@')[0];
-};
-
   return (
     <div className={`min-h-screen ${theme === 'dark'
       ? 'bg-gradient-to-br from-dark-primary via-dark-secondary to-dark-tertiary'
@@ -735,6 +733,7 @@ export function NotesPage({ onCreateNote, leadName }: NotesPageProps) {
         onFilter={() => { }}
         onSort={() => { }}
         onColumns={() => { }}
+        onCreate={handleCreateNoteClick}
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}
         viewMode={viewMode}
@@ -758,8 +757,6 @@ export function NotesPage({ onCreateNote, leadName }: NotesPageProps) {
                   {note.title}
                 </h3>
 
-
-
                 <div className="relative dropdown-menu">
                   <button
                     onClick={(event) => toggleDropdown(note.name, event)}
@@ -767,9 +764,6 @@ export function NotesPage({ onCreateNote, leadName }: NotesPageProps) {
                   >
                     <MoreHorizontal className="w-4 h-4" />
                   </button>
-
-
-
 
                   {openDropdown === note.name && (
                     <div className={`absolute right-0 top-6 mt-1 w-32 rounded-md shadow-lg z-10 ${theme === 'dark' ? 'bg-dark-secondary border border-gray-600' : 'bg-white border border-gray-200'
@@ -789,7 +783,6 @@ export function NotesPage({ onCreateNote, leadName }: NotesPageProps) {
                     </div>
                   )}
                 </div>
-
               </div>
               <div className="h-50 overflow-hidden">
                 <h2 className={`text-xs mb-4 line-clamp-3 leading-relaxed ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>
@@ -797,19 +790,7 @@ export function NotesPage({ onCreateNote, leadName }: NotesPageProps) {
                 </h2>
               </div>
 
-
               <div className="mt-auto">
-                {/* {note.reference_docname && (
-                  <div className={`text-xs mb-2 font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`}>
-                    {note.reference_doctype}: {note.reference_docname}
-                  </div>
-                )} */}
-
-                {/* Debug info - remove this later */}
-                {/* <div className={`text-xs mb-2 opacity-50 ${theme === 'dark' ? 'text-white' : 'text-gray-400'}`}>
-                  Debug: doctype={note.reference_doctype || 'null'}, docname={note.reference_docname || 'null'}
-                </div> */}
-
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-1">
                     <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-semibold ${theme === 'dark' ? 'bg-white text-gray-700' : 'bg-gray-200 text-gray-700'}`}>
@@ -825,7 +806,6 @@ export function NotesPage({ onCreateNote, leadName }: NotesPageProps) {
                       {formatRelativeDate(note.modified)}
                     </div>
                   )}
-
                 </div>
               </div>
             </div>
@@ -842,6 +822,16 @@ export function NotesPage({ onCreateNote, leadName }: NotesPageProps) {
         )}
       </div>
 
+      {/* Create Note Modal */}
+      <CreateNoteModalNew
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSubmit={(data) => console.log(data)}
+        onNoteCreated={handleNoteCreated}
+        leadName={leadName}
+      />
+
+      {/* Edit Note Modal */}
       <EditModal
         show={!!editingNote && showEditModal}
         theme={theme}

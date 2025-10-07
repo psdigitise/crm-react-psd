@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { X, ExternalLink } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
@@ -12,9 +11,21 @@ interface CreateNoteModalNewProps {
   onClose: () => void;
   onSubmit: (data: any) => void;
   leadName?: string;
+  onNoteCreated?: () => void;
 }
 
-export function CreateNoteModalNew({ isOpen, onClose, onSubmit, leadName }: CreateNoteModalNewProps) {
+interface ValidationErrors {
+  title?: string;
+  content?: string;
+}
+
+export function CreateNoteModalNew({ 
+  isOpen, 
+  onClose, 
+  onSubmit, 
+  leadName, 
+  onNoteCreated 
+}: CreateNoteModalNewProps) {
   const { theme } = useTheme();
   const [formData, setFormData] = useState({
     title: '',
@@ -23,73 +34,85 @@ export function CreateNoteModalNew({ isOpen, onClose, onSubmit, leadName }: Crea
     reference_docname: leadName || ''
   });
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<ValidationErrors>({});
 
   if (!isOpen) return null;
 
-  // const handleSubmit = async (e: React.FormEvent) => {
-  //   e.preventDefault();
-  //   setLoading(true);
+  // Validation function
+  const validateField = (name: string, value: string): string => {
+    switch (name) {
+      case 'title':
+        if (!value.trim()) return 'Title is required';
+        if (value.trim().length < 2) return 'Title must be at least 2 characters long';
+        if (value.trim().length > 100) return 'Title must be less than 100 characters';
+        return '';
+      
+      case 'content':
+        if (!value.trim()) return 'Content is required';
+        if (value.trim().length < 10) return 'Content must be at least 10 characters long';
+        if (value.trim().length > 5000) return 'Content must be less than 5000 characters';
+        return '';
+      
+      default:
+        return '';
+    }
+  };
 
-  //   try {
-  //     const apiUrl = 'http://103.214.132.20:8002/api/v2/document/FCRM Note/';
+  // Validate entire form
+  const validateForm = (): boolean => {
+    const newErrors: ValidationErrors = {
+      title: validateField('title', formData.title),
+      // content: validateField('content', formData.content)
+    };
 
-  //     const response = await fetch(apiUrl, {
-  //       method: 'POST',
-  //       headers: {
-  //         'Content-Type': 'application/json',
-  //         'Authorization': AUTH_TOKEN
-  //       },
-  //       body: JSON.stringify(formData)
-  //     });
+    setErrors(newErrors);
+    return !newErrors.title && !newErrors.content;
+  };
 
-  //     if (!response.ok) {
-  //       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-  //     }
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    
+    setFormData({
+      ...formData,
+      [name]: value
+    });
 
-  //     const result = await response.json();
-  //     showToast('Note created successfully', { type: 'success' });
-  //     onSubmit(result);
-  //     onClose();
-
-  //     // Reset form
-  //     setFormData({
-  //       title: '',
-  //       content: '',
-  //       reference_doctype: 'CRM Lead',
-  //       reference_docname: leadName || ''
-  //     });
-  //   } catch (error) {
-  //     console.error('Error creating note:', error);
-  //     showToast('Failed to create note', { type: 'error' });
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
+    // Validate field on change and update errors
+    const error = validateField(name, value);
+    setErrors(prev => ({
+      ...prev,
+      [name]: error
+    }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate form before submission
+    if (!validateForm()) {
+      showToast('Please fix validation errors', { type: 'error' });
+      return;
+    }
+
     setLoading(true);
 
-    // try {
-    //   // Get company from sessionStorage
-    //   const sessionCompany = sessionStorage.getItem('company') || '';
-
-    //   // Add company to payload
-    //   const payload = {
-    //     ...formData,
-    //     company: sessionCompany, // <-- add this line
-    //   };
     try {
       // Get company from session
       const session = getUserSession();
       const sessionCompany = session?.company || '';
 
-      // Add company to payload
-      const payload = {
-        ...formData,
+      // Prepare the document data according to the API specification
+      const docData = {
+        doctype: "FCRM Note",
+        title: formData.title.trim(),
+        content: formData.content.trim(),
         company: sessionCompany,
+        reference_doctype: formData.reference_doctype,
+        reference_docname: formData.reference_docname
       };
-      const apiUrl = 'http://103.214.132.20:8002/api/v2/document/FCRM Note/';
+
+      // Updated API endpoint and request body
+      const apiUrl = 'http://103.214.132.20:8002/api/method/frappe.client.insert';
 
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -97,7 +120,9 @@ export function CreateNoteModalNew({ isOpen, onClose, onSubmit, leadName }: Crea
           'Content-Type': 'application/json',
           'Authorization': AUTH_TOKEN
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({
+          doc: docData
+        })
       });
 
       if (!response.ok) {
@@ -107,28 +132,28 @@ export function CreateNoteModalNew({ isOpen, onClose, onSubmit, leadName }: Crea
       const result = await response.json();
       showToast('Note created successfully', { type: 'success' });
       onSubmit(result);
+      
+      // Call the refresh callback if provided
+      if (onNoteCreated) {
+        onNoteCreated();
+      }
+      
       onClose();
 
-      // Reset form
+      // Reset form and errors
       setFormData({
         title: '',
         content: '',
         reference_doctype: 'CRM Lead',
         reference_docname: leadName || ''
       });
+      setErrors({});
     } catch (error) {
       console.error('Error creating note:', error);
       showToast('Failed to create note', { type: 'error' });
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
   };
 
   return (
@@ -146,10 +171,10 @@ export function CreateNoteModalNew({ isOpen, onClose, onSubmit, leadName }: Crea
               Create Note
             </h3>
             <div className="flex items-center space-x-2">
-              <button className={`p-1 rounded transition-colors ${theme === 'dark' ? 'hover:bg-purple-800/50' : 'hover:bg-gray-100'
+              {/* <button className={`p-1 rounded transition-colors ${theme === 'dark' ? 'hover:bg-purple-800/50' : 'hover:bg-gray-100'
                 }`}>
                 <ExternalLink className={`w-4 h-4 ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`} />
-              </button>
+              </button> */}
               <button
                 onClick={onClose}
                 className={`p-1 rounded transition-colors ${theme === 'dark' ? 'hover:bg-purple-800/50' : 'hover:bg-gray-100'
@@ -165,7 +190,7 @@ export function CreateNoteModalNew({ isOpen, onClose, onSubmit, leadName }: Crea
               <div className="md:col-span-2">
                 <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
                   }`}>
-                  Title <span className="text-red-500">*</span>
+                  Title <span className='text-red-500'>*</span>
                 </label>
                 <input
                   type="text"
@@ -173,60 +198,21 @@ export function CreateNoteModalNew({ isOpen, onClose, onSubmit, leadName }: Crea
                   value={formData.title}
                   onChange={handleChange}
                   placeholder="Note Title"
-                  required
                   disabled={loading}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
                     ? 'bg-white-31 border-white text-white placeholder-gray-400'
                     : 'bg-white/80 border-gray-300 placeholder-gray-500'
-                    }`}
+                    } ${errors.title ? 'border-red-500' : ''}`}
                 />
-              </div>
-
-              <div>
-                <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
-                  }`}>
-                  Reference Document Type
-                </label>
-                <select
-                  name="reference_doctype"
-                  value={formData.reference_doctype}
-                  onChange={handleChange}
-                  disabled={loading}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
-                    ? 'bg-white-31 border-white text-white'
-                    : 'bg-gray-50/80 border-gray-300'
-                    }`}
-                >
-                  <option value="CRM Lead">CRM Lead</option>
-                  <option value="CRM Deal">CRM Deal</option>
-                  <option value="Contact">Contact</option>
-                  <option value="Organization">Organization</option>
-                </select>
-              </div>
-
-              <div>
-                <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
-                  }`}>
-                  Reference Document Name
-                </label>
-                <input
-                  type="text"
-                  name="reference_docname"
-                  value={formData.reference_docname}
-                  onChange={handleChange}
-                  placeholder="Document Name"
-                  disabled={loading}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
-                    ? 'bg-white-31 border-white text-white placeholder-gray-400'
-                    : 'bg-white/80 border-gray-300 placeholder-gray-500'
-                    }`}
-                />
+                {errors.title && (
+                  <p className="mt-1 text-sm text-red-500">{errors.title}</p>
+                )}
               </div>
 
               <div className="md:col-span-2">
                 <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
                   }`}>
-                  Content <span className="text-red-500">*</span>
+                  Content 
                 </label>
                 <textarea
                   name="content"
@@ -234,13 +220,13 @@ export function CreateNoteModalNew({ isOpen, onClose, onSubmit, leadName }: Crea
                   onChange={handleChange}
                   placeholder="Enter note content..."
                   rows={6}
-                  required
                   disabled={loading}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
                     ? 'bg-white-31 border-white text-white placeholder-gray-400'
                     : 'bg-white/80 border-gray-300 placeholder-gray-500'
-                    }`}
+                    } ${errors.content ? 'border-red-500' : ''}`}
                 />
+               
               </div>
             </div>
 

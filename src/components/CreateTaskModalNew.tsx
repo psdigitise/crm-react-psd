@@ -13,7 +13,7 @@ interface CreateTaskModalNewProps {
   isEditMode?: boolean;
   currentTaskId?: string;
   tasksLoading?: boolean;
-  onSuccess?: () => void; // Add this prop for refresh callback
+  onSuccess?: () => void;
 }
 
 interface UserOption {
@@ -32,6 +32,11 @@ interface TaskForm {
   reference_docname: string;
 }
 
+interface ValidationErrors {
+  title?: string;
+  due_date?: string;
+}
+
 export function CreateTaskModalNew({ 
   isOpen, 
   onClose, 
@@ -40,7 +45,7 @@ export function CreateTaskModalNew({
   isEditMode = false, 
   currentTaskId = '',
   tasksLoading = false,
-  onSuccess // Add this prop
+  onSuccess
 }: CreateTaskModalNewProps) {
   const { theme } = useTheme();
   const [taskForm, setTaskForm] = useState<TaskForm>({
@@ -58,13 +63,16 @@ export function CreateTaskModalNew({
     { description: "admin", value: "admin@psd.com" }
   ]);
 
+  const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
+  const [isFormValid, setIsFormValid] = useState(false);
+
   const userSession = getUserSession();
   const Company = userSession?.company;
 
   useEffect(() => {
     if (isOpen) {
       fetchUsers();
-      // Reset form when modal opens
+      // Reset form and validation when modal opens
       setTaskForm({
         title: '',
         description: '',
@@ -75,8 +83,57 @@ export function CreateTaskModalNew({
         reference_doctype: 'CRM Lead',
         reference_docname: leadName || ''
       });
+      setValidationErrors({});
+      setIsFormValid(false);
     }
   }, [isOpen, leadName]);
+
+  // Validate form on every change
+  useEffect(() => {
+    validateForm();
+  }, [taskForm]);
+
+  const validateForm = () => {
+    const errors: ValidationErrors = {};
+
+    // Title validation
+    if (!taskForm.title.trim()) {
+      errors.title = 'Title is required';
+    } else if (taskForm.title.trim().length < 2) {
+      errors.title = 'Title must be at least 2 characters long';
+    } else if (taskForm.title.trim().length > 100) {
+      errors.title = 'Title must be less than 100 characters';
+    }
+
+    // Due date validation (if provided)
+    if (taskForm.due_date) {
+      const selectedDate = new Date(taskForm.due_date);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Reset time to compare dates only
+
+      if (selectedDate < today) {
+        errors.due_date = 'Due date cannot be in the past';
+      }
+    }
+
+    setValidationErrors(errors);
+    setIsFormValid(Object.keys(errors).length === 0);
+  };
+
+  const handleInputChange = (field: keyof TaskForm, value: string) => {
+    setTaskForm(prev => ({
+      ...prev,
+      [field]: value
+    }));
+
+    // Clear validation error for this field when user starts typing
+    if (validationErrors[field as keyof ValidationErrors]) {
+      setValidationErrors(prev => ({
+        ...prev,
+        [field]: undefined
+      }));
+    }
+  };
 
   const fetchUsers = async () => {
     try {
@@ -112,8 +169,11 @@ export function CreateTaskModalNew({
   };
 
   const handleSubmit = async () => {
-    if (!taskForm.title.trim()) {
-      showToast('Title is required', { type: 'error' });
+    // Final validation before submission
+    validateForm();
+    
+    if (!isFormValid) {
+      showToast('Please fix the validation errors before submitting', { type: 'error' });
       return false;
     }
 
@@ -161,7 +221,7 @@ export function CreateTaskModalNew({
       
       // Call onSuccess to trigger refresh in parent component
       if (onSuccess) {
-        onSuccess(); // This will trigger the refresh in parent
+        onSuccess();
       }
       
       // Reset form and close modal
@@ -176,7 +236,8 @@ export function CreateTaskModalNew({
         reference_docname: leadName || ''
       });
       
-      onClose(); // Close the modal
+      setValidationErrors({});
+      onClose();
       return true;
     } catch (error) {
       console.error(`Error ${isEditMode ? 'updating' : 'creating'} task:`, error);
@@ -218,13 +279,19 @@ export function CreateTaskModalNew({
               <input
                 type="text"
                 value={taskForm.title}
-                onChange={(e) => setTaskForm({ ...taskForm, title: e.target.value })}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
-                  ? 'bg-gray-800 border-gray-600 text-white'
-                  : 'bg-white border-gray-300 text-gray-900'
-                  }`}
+                onChange={(e) => handleInputChange('title', e.target.value)}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  theme === 'dark'
+                    ? 'bg-gray-800 border-gray-600 text-white'
+                    : 'bg-white border-gray-300 text-gray-900'
+                } ${
+                  validationErrors.title ? 'border-red-500 focus:ring-red-500' : ''
+                }`}
                 placeholder="Task title"
               />
+              {validationErrors.title && (
+                <p className="mt-1 text-sm text-red-500">{validationErrors.title}</p>
+              )}
             </div>
 
             <div>
@@ -233,12 +300,13 @@ export function CreateTaskModalNew({
               </label>
               <textarea
                 value={taskForm.description}
-                onChange={(e) => setTaskForm({ ...taskForm, description: e.target.value })}
+                onChange={(e) => handleInputChange('description', e.target.value)}
                 rows={6}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
-                  ? 'bg-gray-800 border-gray-600 text-white'
-                  : 'bg-white border-gray-300 text-gray-900'
-                  }`}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  theme === 'dark'
+                    ? 'bg-gray-800 border-gray-600 text-white'
+                    : 'bg-white border-gray-300 text-gray-900'
+                }`}
                 placeholder="Task description"
               />
             </div>
@@ -250,11 +318,12 @@ export function CreateTaskModalNew({
                 </label>
                 <select
                   value={taskForm.status}
-                  onChange={(e) => setTaskForm({ ...taskForm, status: e.target.value })}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
-                    ? 'bg-gray-800 border-gray-600 text-white'
-                    : 'bg-white border-gray-300 text-gray-900'
-                    }`}
+                  onChange={(e) => handleInputChange('status', e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                    theme === 'dark'
+                      ? 'bg-gray-800 border-gray-600 text-white'
+                      : 'bg-white border-gray-300 text-gray-900'
+                  }`}
                 >
                   <option className={theme === 'dark' ? 'bg-gray-800 text-white' : ''} value="Backlog">Backlog</option>
                   <option className={theme === 'dark' ? 'bg-gray-800 text-white' : ''} value="Todo">Todo</option>
@@ -271,11 +340,12 @@ export function CreateTaskModalNew({
                 </label>
                 <select
                   value={taskForm.priority}
-                  onChange={(e) => setTaskForm({ ...taskForm, priority: e.target.value })}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
-                    ? 'bg-gray-800 border-gray-600 text-white'
-                    : 'bg-white border-gray-300 text-gray-900'
-                    }`}
+                  onChange={(e) => handleInputChange('priority', e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                    theme === 'dark'
+                      ? 'bg-gray-800 border-gray-600 text-white'
+                      : 'bg-white border-gray-300 text-gray-900'
+                  }`}
                 >
                   <option className={theme === 'dark' ? 'bg-gray-800 text-white' : ''} value="Low">Low</option>
                   <option className={theme === 'dark' ? 'bg-gray-800 text-white' : ''} value="Medium">Medium</option>
@@ -285,17 +355,23 @@ export function CreateTaskModalNew({
 
               <div>
                 <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Date
+                  Due Date
                 </label>
                 <input
                   type="date"
                   value={taskForm.due_date}
-                  onChange={(e) => setTaskForm({ ...taskForm, due_date: e.target.value })}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
-                    ? 'bg-gray-800 border-gray-600 text-white'
-                    : 'bg-white border-gray-300 text-gray-900'
-                    }`}
+                  onChange={(e) => handleInputChange('due_date', e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                    theme === 'dark'
+                      ? 'bg-gray-800 border-gray-600 text-white'
+                      : 'bg-white border-gray-300 text-gray-900'
+                  } ${
+                    validationErrors.due_date ? 'border-red-500 focus:ring-red-500' : ''
+                  }`}
                 />
+                {validationErrors.due_date && (
+                  <p className="mt-1 text-sm text-red-500">{validationErrors.due_date}</p>
+                )}
               </div>
 
               <div>
@@ -304,11 +380,12 @@ export function CreateTaskModalNew({
                 </label>
                 <select
                   value={taskForm.assigned_to}
-                  onChange={(e) => setTaskForm({ ...taskForm, assigned_to: e.target.value })}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
-                    ? 'bg-gray-800 border-gray-600 text-white'
-                    : 'bg-white border-gray-300 text-gray-900'
-                    }`}
+                  onChange={(e) => handleInputChange('assigned_to', e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                    theme === 'dark'
+                      ? 'bg-gray-800 border-gray-600 text-white'
+                      : 'bg-white border-gray-300 text-gray-900'
+                  }`}
                 >
                   <option className={theme === 'dark' ? 'bg-gray-800 text-white' : ''} value="">Select Assign</option>
                   {users.map((user) => (
@@ -341,11 +418,14 @@ export function CreateTaskModalNew({
           <div className="w-full">
             <button
               onClick={handleSubmit}
-              disabled={tasksLoading}
-              className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-3 text-base font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 sm:text-sm ${theme === 'dark'
-                ? 'bg-purple-600 text-white hover:bg-purple-700 focus:ring-purple-500'
-                : 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500'
-                } ${tasksLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              disabled={tasksLoading || !isFormValid}
+              className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-3 text-base font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 sm:text-sm ${
+                theme === 'dark'
+                  ? 'bg-purple-600 text-white hover:bg-purple-700 focus:ring-purple-500'
+                  : 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500'
+              } ${
+                tasksLoading || !isFormValid ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
             >
               {tasksLoading ? (
                 <span className="flex items-center justify-center">

@@ -143,8 +143,30 @@ export default function ContactDetails({
   const [loadingAddresses, setLoadingAddresses] = useState(false);
   const userSession = getUserSession();
   const Company = userSession?.company;
+  const [editingEmail, setEditingEmail] = useState<{
+    name: string;
+    email_id: string;
+    is_primary: number;
+  } | null>(null);
+  const [deletingEmail, setDeletingEmail] = useState<{
+    name: string;
+    email_id: string;
+    is_primary: number;
+  } | null>(null);
+  const [editingPhone, setEditingPhone] = useState<{
+    name: string;
+    phone: string;
+    is_primary_phone: number;
+    is_primary_mobile_no: number;
+  } | null>(null);
+  const [deletingPhone, setDeletingPhone] = useState<{
+    name: string;
+    phone: string;
+    is_primary_phone: number;
+    is_primary_mobile_no: number;
+  } | null>(null);
 
-   useEffect(() => {
+  useEffect(() => {
     // Only fetch if the user is actively editing the address field
     if (editingField === 'address') {
       const fetchAddresses = async () => {
@@ -170,7 +192,7 @@ export default function ContactDetails({
       fetchAddresses();
     }
   }, [editingField, Company]); // Depend on editingField
-  
+
   useEffect(() => {
     // Find and set the primary or first email
     const primaryEmail =
@@ -980,11 +1002,125 @@ export default function ContactDetails({
     );
   }
 
+  const handleEditEmail = async () => {
+    if (!editingEmail || !newEmailValue.trim()) {
+      showToast('Please enter a valid email address', { type: 'error' });
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const session = getUserSession();
+      if (!session) {
+        showToast('Session not found', { type: 'error' });
+        return;
+      }
+
+      const apiUrl = 'http://103.214.132.20:8002/api/method/frappe.client.set_value';
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': AUTH_TOKEN
+        },
+        body: JSON.stringify({
+          doctype: "Contact Email",
+          name: editingEmail.name,
+          fieldname: "email_id",
+          value: newEmailValue.trim()
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+
+      showToast('Email updated successfully', { type: 'success' });
+      setEditingEmail(null);
+      setNewEmailValue('');
+
+      // Refresh contact details to get updated email list
+      await fetchContactDetails();
+
+    } catch (error) {
+      console.error('Error updating email:', error);
+      showToast('Failed to update email address', { type: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteEmail = async () => {
+    if (!deletingEmail) return;
+
+    try {
+      setLoading(true);
+
+      const session = getUserSession();
+      if (!session) {
+        showToast('Session not found', { type: 'error' });
+        return;
+      }
+
+      const apiUrl = 'http://103.214.132.20:8002/api/method/frappe.client.delete';
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': AUTH_TOKEN
+        },
+        body: JSON.stringify({
+          doctype: "Contact Email",
+          name: deletingEmail.name
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+
+      showToast('Email deleted successfully', { type: 'success' });
+      setDeletingEmail(null);
+
+      // Refresh contact details to get updated email list
+      await fetchContactDetails();
+
+    } catch (error) {
+      console.error('Error deleting email:', error);
+      showToast('Failed to delete email address', { type: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const renderEmailDropdownField = () => {
     const emails = contact.email_ids || [];
     const hasEmailId = contact.email_id && contact.email_id !== 'N/A';
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const dropdownRef = useRef(null);
 
-    // If there's a primary email_id, show it as editable text field
+    // Click outside handler
+    useEffect(() => {
+      const handleClickOutside = (event) => {
+        if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+          setIsDropdownOpen(false);
+        }
+      };
+
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }, []);
+
+    // If there's a primary email_id but no email_ids array, show as editable field
     if (hasEmailId && emails.length === 0) {
       return renderEditableField("Email Address", "email_id");
     }
@@ -998,25 +1134,24 @@ export default function ContactDetails({
               onClick={() => setAddingEmail(true)}
               className={`text-sm px-2 py-1 rounded border ${isDark ? 'border-gray-600 text-white hover:bg-gray-700' : 'border-gray-300 text-gray-700 hover:bg-gray-100'}`}
             >
-              + Add Email
+              + Create New
             </button>
           </div>
         </div>
       );
     }
 
-    // Handle email selection change
-    const handleEmailSelectChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
-      const selectedValue = e.target.value;
-
-      if (selectedValue === 'create_new') {
+    // Handle email selection
+    const handleEmailSelect = async (emailAddress: string) => {
+      if (emailAddress === 'create_new') {
         setAddingEmail(true);
-        e.target.value = selectedEmail; // Reset to previous value
+        setIsDropdownOpen(false);
         return;
       }
 
       // Update the selected email in state
-      setSelectedEmail(selectedValue);
+      setSelectedEmail(emailAddress);
+      setIsDropdownOpen(false);
 
       // Call API to update primary email using set_value
       try {
@@ -1040,7 +1175,7 @@ export default function ContactDetails({
             doctype: "Contact",
             name: contact.id,
             fieldname: "email_id",
-            value: selectedValue
+            value: emailAddress
           })
         });
 
@@ -1052,11 +1187,9 @@ export default function ContactDetails({
         const updatedContactData = result.message;
 
         if (updatedContactData) {
-          // Update the contact with the response data
           const updatedContact = {
             ...contact,
-            email_id: selectedValue,
-            // Update other fields from the response if available
+            email_id: emailAddress,
             full_name: updatedContactData.full_name || contact.full_name,
             modified: updatedContactData.modified || contact.modified,
           };
@@ -1076,65 +1209,183 @@ export default function ContactDetails({
       }
     };
 
+    // Get current selected email display text
+    const getSelectedEmailDisplay = () => {
+      if (!selectedEmail) return 'Select email address';
+      const currentEmail = emails.find(e => e.email_id === selectedEmail);
+      return currentEmail ? `${currentEmail.email_id}${currentEmail.is_primary ? ' (Primary)' : ''}` : selectedEmail;
+    };
+
     return (
-      <div className="text-sm flex gap-1 group">
+      <div className="text-sm flex gap-1 group relative" ref={dropdownRef}>
         <p className={`w-32 ${isDark ? "text-white/80" : "text-gray-600"}`}>Email Address:</p>
-        <div className="flex-1 flex items-center gap-2">
-          {emails.length > 0 ? (
-            <select
-              //value={selectedEmail}
-              onChange={handleEmailSelectChange}
-              className={`flex-1 px-2 py-1 border rounded w-full ${isDark
-                ? 'bg-dark-secondary text-white border-white/20 focus:border-purple-400'
-                : 'bg-white w-full text-gray-800 border-gray-300 focus:border-blue-400'
-                } focus:outline-none`}
-              disabled={loading}
+        <div className="flex-1">
+          {/* Closed State - Display selected email with dropdown arrow */}
+          <div className="relative">
+            <button
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              className={`w-full px-3 py-2 border rounded text-left flex items-center justify-between ${isDark
+                ? 'bg-dark-secondary text-white border-white/20 hover:border-purple-400'
+                : 'bg-white text-gray-800 border-gray-300 hover:border-blue-400'
+                } transition-colors focus:outline-none`}
             >
-              {emails.map((emailItem, index) => (
-                <option className="bg-white w-full text-gray-800" key={index} value={emailItem.email_id}>
-                  {emailItem.email_id} {emailItem.is_primary ? '(Primary)' : ''}
-                </option>
-              ))}
-              <option
-                className="bg-white w-full text-gray-800 border-t border-gray-200"
-                value="create_new"
-                style={{
-                  borderTop: '1px solid #e5e7eb',
-                  paddingTop: '8px',
-                  marginTop: '4px'
-                }}
-              >
-                + Create New
-              </option>
-            </select>
-          ) : (
-            <select
-              className={`flex-1 px-2 py-1 border rounded ${isDark
-                ? 'bg-dark-secondary text-white border-white/20 focus:border-purple-400'
-                : 'bg-white text-gray-800 border-gray-300 focus:border-blue-400'
-                } focus:outline-none`}
-              onChange={handleEmailSelectChange}
-            >
-              <option className="bg-white text-gray-800" value="">
-                No email addresses
-              </option>
-              <option
-                className="bg-white w-full text-gray-800 border-t border-gray-200"
-                value="create_new"
-                style={{
-                  borderTop: '1px solid #e5e7eb',
-                  paddingTop: '8px',
-                  marginTop: '4px'
-                }}
-              >
-                + Create New
-              </option>
-            </select>
-          )}
+              <span className={!selectedEmail ? 'text-gray-500 italic' : ''}>
+                {getSelectedEmailDisplay()}
+              </span>
+              <span className={`transform transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`}>
+                ▼
+              </span>
+            </button>
+
+            {/* Dropdown Menu */}
+            {isDropdownOpen && (
+              <div className={`absolute top-full right-0 left-[-95px] w-[250px] mt-1 border rounded shadow-lg z-10 max-h-60 overflow-y-auto ${isDark
+                ? 'bg-gray-800 border-white/20 text-white'
+                : 'bg-white border-gray-300 text-gray-800'
+                }`}>
+                {/* Email address options */}
+                {emails.map((emailItem, index) => (
+                  <div
+                    key={index}
+                    className={`px-3 py-2 flex items-center justify-between hover:${isDark ? 'bg-gray-700' : 'bg-gray-100'} cursor-pointer border-b ${isDark ? 'border-white/10' : 'border-gray-200'} last:border-b-0`}
+                    onClick={() => handleEmailSelect(emailItem.email_id)}
+                  >
+                    <div className="flex-1">
+                      <span className="font-medium">{emailItem.email_id}</span>
+                      {emailItem.is_primary && (
+                        <span className="text-xs text-green-500 ml-2">(Primary)</span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1 ml-2">
+                      {/* Edit Icon */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingEmail(emailItem);
+                          setNewEmailValue(emailItem.email_id);
+                          setIsDropdownOpen(false);
+                        }}
+                        className={`p-1 rounded ${isDark
+                          ? 'hover:bg-white/20 text-gray-300 hover:text-white'
+                          : 'hover:bg-gray-200 text-gray-500 hover:text-gray-700'
+                          }`}
+                        title="Edit email address"
+                      >
+                        <Edit size={14} />
+                      </button>
+
+                      {/* Delete Icon */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeletingEmail(emailItem);
+                          setIsDropdownOpen(false);
+                        }}
+                        className={`p-1 rounded ${isDark
+                          ? 'hover:bg-red-500/20 text-gray-300 hover:text-red-300'
+                          : 'hover:bg-red-50 text-gray-500 hover:text-red-600'
+                          }`}
+                        title="Delete email address"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+
+                {/* Create New Option */}
+                <div
+                  className={`px-3 py-2 flex items-center justify-between hover:${isDark ? 'bg-gray-700' : 'bg-gray-100'} cursor-pointer border-t ${isDark ? 'border-white/10' : 'border-gray-200'} font-semibold`}
+                  onClick={() => handleEmailSelect('create_new')}
+                >
+                  <span className="text-blue-500">+ Create New</span>
+                </div>
+              </div>
+            )}
+          </div>
+
           {emailloading && (
-            <Loader2 className="w-4 h-4 animate-spin text-purple-600" />
+            <Loader2 className="w-4 h-4 animate-spin text-purple-600 ml-1 mt-1" />
           )}
         </div>
+
+        {/* Edit Email Popup */}
+        {editingEmail && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className={`p-4 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-white'} w-96`}>
+              <h3 className="text-lg font-semibold mb-3">Edit Email Address</h3>
+              <div className="flex gap-2 mb-3">
+                <input
+                  type="email"
+                  value={newEmailValue}
+                  onChange={(e) => setNewEmailValue(e.target.value)}
+                  placeholder="Enter email address..."
+                  className={`flex-1 px-3 py-2 border rounded ${isDark
+                    ? 'bg-gray-700 text-white border-white/20 focus:border-green-400'
+                    : 'bg-white text-gray-800 border-gray-300 focus:border-green-400'
+                    } focus:outline-none`}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleEditEmail();
+                    else if (e.key === 'Escape') {
+                      setEditingEmail(null);
+                      setNewEmailValue('');
+                    }
+                  }}
+                  autoFocus
+                />
+              </div>
+              <div className="flex gap-2 justify-end">
+                <button
+                  onClick={() => {
+                    setEditingEmail(null);
+                    setNewEmailValue('');
+                  }}
+                  className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleEditEmail}
+                  disabled={loading || !newEmailValue.trim()}
+                  className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {loading ? <Loader2 size={16} className="animate-spin" /> : null}
+                  Update Email
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Email Confirmation Popup */}
+        {deletingEmail && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className={`p-4 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-white'} w-96`}>
+              <h3 className="text-lg font-semibold mb-3">Delete Email Address</h3>
+              <div className="mb-4">
+                <p className={isDark ? 'text-gray-300' : 'text-gray-600'}>
+                  Are you sure you want to delete email address <strong>{deletingEmail?.email_id}</strong>? This action cannot be undone.
+                </p>
+              </div>
+              <div className="flex gap-2 justify-end">
+                <button
+                  onClick={() => setDeletingEmail(null)}
+                  className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteEmail}
+                  disabled={loading}
+                  className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {loading ? <Loader2 size={16} className="animate-spin" /> : null}
+                  Delete Email
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   };
@@ -1145,8 +1396,24 @@ export default function ContactDetails({
   const renderPhoneDropdownField = () => {
     const phones = contact.phone_nos || [];
     const hasMobileNo = contact.mobile_no && contact.mobile_no !== 'N/A';
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const dropdownRef = useRef(null);
 
-    // If there's a primary mobile_no, show it as editable text field
+    // Click outside handler
+    useEffect(() => {
+      const handleClickOutside = (event) => {
+        if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+          setIsDropdownOpen(false);
+        }
+      };
+
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }, []);
+
+    // If there's a primary mobile_no but no phone_nos array, show as editable field
     if (hasMobileNo && phones.length === 0) {
       return renderEditableField("Mobile No", "mobile_no");
     }
@@ -1160,25 +1427,24 @@ export default function ContactDetails({
               onClick={() => setAddingPhone(true)}
               className={`text-sm px-2 py-1 rounded border ${isDark ? 'border-gray-600 text-white hover:bg-gray-700' : 'border-gray-300 text-gray-700 hover:bg-gray-100'}`}
             >
-              + Add Mobile no
+              + Create New
             </button>
           </div>
         </div>
       );
     }
 
-    // Handle phone selection change
-    const handlePhoneSelectChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
-      const selectedValue = e.target.value;
-
-      if (selectedValue === 'create_new') {
+    // Handle phone selection
+    const handlePhoneSelect = async (phoneNumber: string) => {
+      if (phoneNumber === 'create_new') {
         setAddingPhone(true);
-        e.target.value = selectedPhone; // Reset to previous value
+        setIsDropdownOpen(false);
         return;
       }
 
       // Update the selected phone in state
-      setSelectedPhone(selectedValue);
+      setSelectedPhone(phoneNumber);
+      setIsDropdownOpen(false);
 
       // Call API to update primary mobile number using set_value
       try {
@@ -1202,7 +1468,7 @@ export default function ContactDetails({
             doctype: "Contact",
             name: contact.id,
             fieldname: "mobile_no",
-            value: selectedValue
+            value: phoneNumber
           })
         });
 
@@ -1214,11 +1480,9 @@ export default function ContactDetails({
         const updatedContactData = result.message;
 
         if (updatedContactData) {
-          // Update the contact with the response data
           const updatedContact = {
             ...contact,
-            mobile_no: selectedValue,
-            // Update other fields from the response if available
+            mobile_no: phoneNumber,
             full_name: updatedContactData.full_name || contact.full_name,
             modified: updatedContactData.modified || contact.modified,
           };
@@ -1238,134 +1502,408 @@ export default function ContactDetails({
       }
     };
 
+    // Get current selected phone display text
+    const getSelectedPhoneDisplay = () => {
+      if (!selectedPhone) return 'Select phone number';
+      const currentPhone = phones.find(p => p.phone === selectedPhone);
+      return currentPhone ? `${currentPhone.phone}${(currentPhone.is_primary_phone || currentPhone.is_primary_mobile_no) ? ' (Primary)' : ''}` : selectedPhone;
+    };
+
     return (
-      <div className="text-sm flex gap-1 group">
+      <div className="text-sm flex gap-1 group relative" ref={dropdownRef}>
         <p className={`w-32 ${isDark ? "text-white/80" : "text-gray-600"}`}>Mobile No:</p>
-        <div className="flex-1 flex items-center gap-2">
-          {phones.length > 0 ? (
-            <select
-              //value={selectedPhone}
-              onChange={handlePhoneSelectChange}
-              className={`flex-1 px-2 py-1 border rounded w-full ${isDark
-                ? 'bg-dark-secondary text-white border-white/20 focus:border-purple-400'
-                : 'bg-white w-full text-gray-800 border-gray-300 focus:border-blue-400'
-                } focus:outline-none`}
-              disabled={loading}
+        <div className="flex-1">
+          {/* Closed State - Display selected phone with dropdown arrow */}
+          <div className="relative">
+            <button
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              className={`w-full px-3 py-2 border rounded text-left flex items-center justify-between ${isDark
+                ? 'bg-dark-secondary text-white border-white/20 hover:border-purple-400'
+                : 'bg-white text-gray-800 border-gray-300 hover:border-blue-400'
+                } transition-colors focus:outline-none`}
             >
-              {phones.map((phoneItem, index) => (
-                <option className="bg-white w-full text-gray-800" key={index} value={phoneItem.phone}>
-                  {phoneItem.phone} {(phoneItem.is_primary_phone || phoneItem.is_primary_mobile_no) ? '(Primary)' : ''}
-                </option>
-              ))}
-              <option
-                className="bg-white w-full text-gray-800 border-t border-gray-200"
-                value="create_new"
-                style={{
-                  borderTop: '1px solid #e5e7eb',
-                  paddingTop: '8px',
-                  marginTop: '4px'
-                }}
-              >
-                + Create New
-              </option>
-            </select>
-          ) : (
-            <select
-              className={`flex-1 px-2 py-1 border rounded ${isDark
-                ? 'bg-dark-secondary text-white border-white/20 focus:border-purple-400'
-                : 'bg-white text-gray-800 border-gray-300 focus:border-blue-400'
-                } focus:outline-none`}
-              onChange={handlePhoneSelectChange}
-            >
-              <option className="bg-white text-gray-800" value="">
-                No phone numbers
-              </option>
-              <option
-                className="bg-white w-full text-gray-800 border-t border-gray-200"
-                value="create_new"
-                style={{
-                  borderTop: '1px solid #e5e7eb',
-                  paddingTop: '8px',
-                  marginTop: '4px'
-                }}
-              >
-                + Create New
-              </option>
-            </select>
-          )}
+              <span className={!selectedPhone ? 'text-gray-500 italic' : ''}>
+                {getSelectedPhoneDisplay()}
+              </span>
+              <span className={`transform transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`}>
+                ▼
+              </span>
+            </button>
+
+            {/* Dropdown Menu */}
+            {isDropdownOpen && (
+              <div className={`absolute top-full left-[-45px] w-[200px] right-0 mt-1 border rounded shadow-lg z-10 max-h-60 overflow-y-auto ${isDark
+                ? 'bg-gray-800 border-white/20 text-white'
+                : 'bg-white border-gray-300 text-gray-800'
+                }`}>
+                {/* Phone number options */}
+                {phones.map((phoneItem, index) => (
+                  <div
+                    key={index}
+                    className={`px-3 py-2 flex items-center justify-between hover:${isDark ? 'bg-gray-700' : 'bg-gray-100'} cursor-pointer border-b ${isDark ? 'border-white/10' : 'border-gray-200'} last:border-b-0`}
+                    onClick={() => handlePhoneSelect(phoneItem.phone)}
+                  >
+                    <div className="flex-1">
+                      <span className="font-medium">{phoneItem.phone}</span>
+                      {(phoneItem.is_primary_phone || phoneItem.is_primary_mobile_no) && (
+                        <span className="text-xs text-green-500 ml-2">(Primary)</span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1 ml-2">
+                      {/* Edit Icon */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingPhone(phoneItem);
+                          setNewPhoneValue(phoneItem.phone);
+                          setIsDropdownOpen(false);
+                        }}
+                        className={`p-1 rounded ${isDark
+                          ? 'hover:bg-white/20 text-gray-300 hover:text-white'
+                          : 'hover:bg-gray-200 text-gray-500 hover:text-gray-700'
+                          }`}
+                        title="Edit phone number"
+                      >
+                        <Edit size={14} />
+                      </button>
+
+                      {/* Delete Icon */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeletingPhone(phoneItem);
+                          setIsDropdownOpen(false);
+                        }}
+                        className={`p-1 rounded ${isDark
+                          ? 'hover:bg-red-500/20 text-gray-300 hover:text-red-300'
+                          : 'hover:bg-red-50 text-gray-500 hover:text-red-600'
+                          }`}
+                        title="Delete phone number"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+
+                {/* Create New Option */}
+                <div
+                  className={`px-3 py-2 flex items-center justify-between hover:${isDark ? 'bg-gray-700' : 'bg-gray-100'} cursor-pointer border-t ${isDark ? 'border-white/10' : 'border-gray-200'} font-semibold`}
+                  onClick={() => handlePhoneSelect('create_new')}
+                >
+                  <span className="text-blue-500">+ Create New</span>
+                </div>
+              </div>
+            )}
+          </div>
+
           {loading && (
-            <Loader2 className="w-4 h-4 animate-spin text-purple-600" />
+            <Loader2 className="w-4 h-4 animate-spin text-purple-600 ml-1 mt-1" />
           )}
         </div>
+
+        {/* Edit Phone Popup */}
+        {editingPhone && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className={`p-4 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-white'} w-96`}>
+              <h3 className="text-lg font-semibold mb-3">Edit Phone Number</h3>
+              <div className="flex gap-2 mb-3">
+                <input
+                  type="tel"
+                  value={newPhoneValue}
+                  onChange={(e) => setNewPhoneValue(e.target.value)}
+                  placeholder="Enter phone number..."
+                  className={`flex-1 px-3 py-2 border rounded ${isDark
+                    ? 'bg-gray-700 text-white border-white/20 focus:border-green-400'
+                    : 'bg-white text-gray-800 border-gray-300 focus:border-green-400'
+                    } focus:outline-none`}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleEditPhone();
+                    else if (e.key === 'Escape') {
+                      setEditingPhone(null);
+                      setNewPhoneValue('');
+                    }
+                  }}
+                  autoFocus
+                />
+              </div>
+              <div className="flex gap-2 justify-end">
+                <button
+                  onClick={() => {
+                    setEditingPhone(null);
+                    setNewPhoneValue('');
+                  }}
+                  className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleEditPhone}
+                  disabled={loading || !newPhoneValue.trim()}
+                  className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {loading ? <Loader2 size={16} className="animate-spin" /> : null}
+                  Update Phone
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Phone Confirmation Popup */}
+        {deletingPhone && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className={`p-4 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-white'} w-96`}>
+              <h3 className="text-lg font-semibold mb-3">Delete Phone Number</h3>
+              <div className="mb-4">
+                <p className={isDark ? 'text-gray-300' : 'text-gray-600'}>
+                  Are you sure you want to delete phone number <strong>{deletingPhone?.phone}</strong>? This action cannot be undone.
+                </p>
+              </div>
+              <div className="flex gap-2 justify-end">
+                <button
+                  onClick={() => setDeletingPhone(null)}
+                  className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeletePhone}
+                  disabled={loading}
+                  className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {loading ? <Loader2 size={16} className="animate-spin" /> : null}
+                  Delete Phone
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   };
 
+  // Add this function to handle phone selection
+  const handlePhoneSelectionChange = async (phoneNumber: string) => {
+    setSelectedPhone(phoneNumber);
+
+    try {
+      setLoading(true);
+
+      const session = getUserSession();
+      if (!session) {
+        showToast('Session not found', { type: 'error' });
+        return;
+      }
+
+      const apiUrl = 'http://103.214.132.20:8002/api/method/frappe.client.set_value';
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': AUTH_TOKEN
+        },
+        body: JSON.stringify({
+          doctype: "Contact",
+          name: contact.id,
+          fieldname: "mobile_no",
+          value: phoneNumber
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      const updatedContactData = result.message;
+
+      if (updatedContactData) {
+        const updatedContact = {
+          ...contact,
+          mobile_no: phoneNumber,
+          full_name: updatedContactData.full_name || contact.full_name,
+          modified: updatedContactData.modified || contact.modified,
+        };
+
+        setContact(updatedContact);
+        onSave(updatedContact);
+        showToast('Primary mobile number updated successfully', { type: 'success' });
+      }
+
+    } catch (error) {
+      console.error('Error updating primary mobile number:', error);
+      showToast('Failed to update primary mobile number', { type: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Add the helper functions
+  const handleEditPhone = async () => {
+    if (!editingPhone || !newPhoneValue.trim()) {
+      showToast('Please enter a valid phone number', { type: 'error' });
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const session = getUserSession();
+      if (!session) {
+        showToast('Session not found', { type: 'error' });
+        return;
+      }
+
+      const apiUrl = 'http://103.214.132.20:8002/api/method/frappe.client.set_value';
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': AUTH_TOKEN
+        },
+        body: JSON.stringify({
+          doctype: "Contact Phone",
+          name: editingPhone.name,
+          fieldname: "phone",
+          value: newPhoneValue.trim()
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+
+      showToast('Phone number updated successfully', { type: 'success' });
+      setEditingPhone(null);
+      setNewPhoneValue('');
+
+      // Refresh contact details to get updated phone list
+      await fetchContactDetails();
+
+    } catch (error) {
+      console.error('Error updating phone:', error);
+      showToast('Failed to update phone number', { type: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeletePhone = async () => {
+    if (!deletingPhone) return;
+
+    try {
+      setLoading(true);
+
+      const session = getUserSession();
+      if (!session) {
+        showToast('Session not found', { type: 'error' });
+        return;
+      }
+
+      const apiUrl = 'http://103.214.132.20:8002/api/method/frappe.client.delete';
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': AUTH_TOKEN
+        },
+        body: JSON.stringify({
+          doctype: "Contact Phone",
+          name: deletingPhone.name
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+
+      showToast('Phone number deleted successfully', { type: 'success' });
+      setDeletingPhone(null);
+
+      // Refresh contact details to get updated phone list
+      await fetchContactDetails();
+
+    } catch (error) {
+      console.error('Error deleting phone:', error);
+      showToast('Failed to delete phone number', { type: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Render address field with textarea for multi-line input
   // 🔽 UPDATE THIS FUNCTION 🔽
-const renderAddressField = () => {
-  const isEditing = editingField === "address";
-  const value = contact.address as string;
+  const renderAddressField = () => {
+    const isEditing = editingField === "address";
+    const value = contact.address as string;
 
-  // ❌ REMOVE THE HOOKS FROM HERE ❌
-  // const [addressOptions, setAddressOptions] = useState<{ name: string }[]>([]);
-  // const [loadingAddresses, setLoadingAddresses] = useState(false);
-  // const userSession = getUserSession();
-  // const Company = userSession?.company;
-  // useEffect(() => { ... });
+    // ❌ REMOVE THE HOOKS FROM HERE ❌
+    // const [addressOptions, setAddressOptions] = useState<{ name: string }[]>([]);
+    // const [loadingAddresses, setLoadingAddresses] = useState(false);
+    // const userSession = getUserSession();
+    // const Company = userSession?.company;
+    // useEffect(() => { ... });
 
-  return (
-    <div className="text-sm flex gap-1 group">
-      <p className={`w-32 ${isDark ? "text-white/80" : "text-gray-600"}`}>Address:</p>
+    return (
+      <div className="text-sm flex gap-1 group">
+        <p className={`w-32 ${isDark ? "text-white/80" : "text-gray-600"}`}>Address:</p>
 
-      {isEditing ? (
-        <div className="flex-1">
-          {loadingAddresses ? (
-            <p className="text-xs text-gray-500">Loading addresses...</p>
-          ) : (
-            <select
-              value={editValue}
-              onChange={(e) => setEditValue(e.target.value)}
-              onBlur={() => handleBlur("address")}
-              className={`w-full px-2 py-1 border rounded ${isDark
-                ? "bg-white text-black border-white/20 focus:border-purple-400"
-                 : "bg-white text-gray-800 border-gray-300 focus:border-blue-400"
-                } focus:outline-none`}
-              disabled={loading}
-            >
-              <option value="">Select Address</option>
-              {addressOptions.map((addr) => (
-                <option key={addr.name} value={addr.name}>
-                  {addr.name}
-                </option>
-              ))}
-            </select>
-          )}
-        </div>
-      ) : (
-        // ... rest of the function remains the same
-        <div
+        {isEditing ? (
+          <div className="flex-1">
+            {loadingAddresses ? (
+              <p className="text-xs text-gray-500">Loading addresses...</p>
+            ) : (
+              <select
+                value={editValue}
+                onChange={(e) => setEditValue(e.target.value)}
+                onBlur={() => handleBlur("address")}
+                className={`w-full px-2 py-1 border rounded ${isDark
+                  ? "bg-white text-black border-white/20 focus:border-purple-400"
+                  : "bg-white text-gray-800 border-gray-300 focus:border-blue-400"
+                  } focus:outline-none`}
+                disabled={loading}
+              >
+                <option value="">Select Address</option>
+                {addressOptions.map((addr) => (
+                  <option key={addr.name} value={addr.name}>
+                    {addr.name}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+        ) : (
+          // ... rest of the function remains the same
+          <div
             className={`flex-1 cursor-pointer px-2 py-1 rounded transition-colors hover:bg-opacity-50 ${isDark
-            ? "text-white hover:bg-white/10"
-            : "text-gray-800 hover:bg-gray-100"
-            } min-h-[40px]`}
+              ? "text-white hover:bg-white/10"
+              : "text-gray-800 hover:bg-gray-100"
+              } min-h-[40px]`}
             onClick={() => handleSingleClick("address")}
             title="Click to edit address"
-        >
+          >
             {value && value !== "N/A" ? (
-            <div className="whitespace-pre-wrap">{value}</div>
+              <div className="whitespace-pre-wrap">{value}</div>
             ) : (
-            <span className="italic opacity-60">Select Address</span>
+              <span className="italic opacity-60">Select Address</span>
             )}
-        </div>
-      )}
+          </div>
+        )}
 
-      {loading && editingField === "address" && (
-        <Loader2 className="w-4 h-4 animate-spin text-purple-600 ml-1" />
-      )}
-    </div>
-  );
-};
+        {loading && editingField === "address" && (
+          <Loader2 className="w-4 h-4 animate-spin text-purple-600 ml-1" />
+        )}
+      </div>
+    );
+  };
 
   const renderEditableField = (label: string, field: keyof Contact) => {
     const value = contact[field] as string;

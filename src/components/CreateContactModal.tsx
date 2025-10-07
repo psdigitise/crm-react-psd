@@ -797,7 +797,6 @@
 //     </>
 //   );
 // }
-
 import React, { useState, useEffect } from 'react';
 import { X, ExternalLink, Plus } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
@@ -821,12 +820,74 @@ function CreateAddressModal({ isOpen, onClose, onSubmit }: CreateAddressModalPro
     city: '',
     country: 'India'
   });
+  const [errors, setErrors] = useState({
+    address_title: '',
+    address_line1: '',
+    city: '',
+    country: ''
+  });
   const [loading, setLoading] = useState(false);
 
   if (!isOpen) return null;
 
+  const validateField = (name: string, value: string) => {
+    let error = '';
+    
+    switch (name) {
+      case 'address_title':
+        if (!value.trim()) {
+          error = 'Address title is required';
+        } else if (value.trim().length < 2) {
+          error = 'Address title must be at least 2 characters long';
+        }
+        break;
+      case 'address_line1':
+        if (!value.trim()) {
+          error = 'Address is required';
+        } else if (value.trim().length < 5) {
+          error = 'Address must be at least 5 characters long';
+        }
+        break;
+      case 'city':
+        if (!value.trim()) {
+          error = 'City is required';
+        } else if (value.trim().length < 2) {
+          error = 'City must be at least 2 characters long';
+        }
+        break;
+      case 'country':
+        if (!value.trim()) {
+          error = 'Country is required';
+        }
+        break;
+      default:
+        break;
+    }
+    
+    return error;
+  };
+
+  const validateForm = () => {
+    const newErrors = {
+      address_title: validateField('address_title', formData.address_title),
+      address_line1: validateField('address_line1', formData.address_line1),
+      city: validateField('city', formData.city),
+      country: validateField('country', formData.country)
+    };
+    
+    setErrors(newErrors);
+    
+    return !Object.values(newErrors).some(error => error !== '');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateForm()) {
+      showToast('Please fix the validation errors', { type: 'error' });
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -865,6 +926,12 @@ function CreateAddressModal({ isOpen, onClose, onSubmit }: CreateAddressModalPro
         city: '',
         country: 'India'
       });
+      setErrors({
+        address_title: '',
+        address_line1: '',
+        city: '',
+        country: ''
+      });
     } catch (error) {
       console.error('Error creating address:', error);
       showToast('Failed to create address', { type: 'error' });
@@ -874,10 +941,19 @@ function CreateAddressModal({ isOpen, onClose, onSubmit }: CreateAddressModalPro
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [name]: value
     });
+
+    // Validate the field on change
+    const error = validateField(name, value);
+    setErrors(prev => ({
+      ...prev,
+      [name]: error
+    }));
   };
 
   return (
@@ -909,7 +985,7 @@ function CreateAddressModal({ isOpen, onClose, onSubmit }: CreateAddressModalPro
               <div className="md:col-span-2">
                 <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
                   }`}>
-                  Address Title <span className="text-red-500">*</span>
+                  Address Title
                 </label>
                 <input
                   type="text"
@@ -917,26 +993,27 @@ function CreateAddressModal({ isOpen, onClose, onSubmit }: CreateAddressModalPro
                   value={formData.address_title}
                   onChange={handleChange}
                   placeholder="Address Title"
-                  required
                   disabled={loading}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
                     ? 'bg-white-31 text-white placeholder-gray-400'
                     : 'bg-white/80 border-gray-300 placeholder-gray-500'
-                    }`}
+                    } ${errors.address_title ? 'border-red-500' : ''}`}
                 />
+                {errors.address_title && (
+                  <p className="text-red-500 text-xs mt-1">{errors.address_title}</p>
+                )}
               </div>
 
               {/* Address Type */}
               <div>
                 <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
                   }`}>
-                  Address Type <span className="text-red-500">*</span>
+                  Address Type
                 </label>
                 <select
                   name="address_type"
                   value={formData.address_type}
                   onChange={handleChange}
-                  required
                   disabled={loading}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
                     ? 'bg-white-31 text-white'
@@ -955,7 +1032,7 @@ function CreateAddressModal({ isOpen, onClose, onSubmit }: CreateAddressModalPro
               <div>
                 <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
                   }`}>
-                  Country <span className="text-red-500">*</span>
+                  Country
                 </label>
                 <input
                   type="text"
@@ -963,20 +1040,22 @@ function CreateAddressModal({ isOpen, onClose, onSubmit }: CreateAddressModalPro
                   value={formData.country}
                   onChange={handleChange}
                   placeholder="Country"
-                  required
                   disabled={loading}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
                     ? 'bg-white-31 text-white placeholder-gray-400'
                     : 'bg-white/80 border-gray-300 placeholder-gray-500'
-                    }`}
+                    } ${errors.country ? 'border-red-500' : ''}`}
                 />
+                {errors.country && (
+                  <p className="text-red-500 text-xs mt-1">{errors.country}</p>
+                )}
               </div>
 
               {/* Address Line 1 */}
               <div className="md:col-span-2">
                 <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
                   }`}>
-                  Address <span className="text-red-500">*</span>
+                  Address
                 </label>
                 <input
                   type="text"
@@ -984,20 +1063,22 @@ function CreateAddressModal({ isOpen, onClose, onSubmit }: CreateAddressModalPro
                   value={formData.address_line1}
                   onChange={handleChange}
                   placeholder="Address Line 1"
-                  required
                   disabled={loading}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
                     ? 'bg-white-31 text-white placeholder-gray-400'
                     : 'bg-white/80 border-gray-300 placeholder-gray-500'
-                    }`}
+                    } ${errors.address_line1 ? 'border-red-500' : ''}`}
                 />
+                {errors.address_line1 && (
+                  <p className="text-red-500 text-xs mt-1">{errors.address_line1}</p>
+                )}
               </div>
 
               {/* City */}
               <div className="md:col-span-2">
                 <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
                   }`}>
-                  City <span className="text-red-500">*</span>
+                  City
                 </label>
                 <input
                   type="text"
@@ -1005,13 +1086,15 @@ function CreateAddressModal({ isOpen, onClose, onSubmit }: CreateAddressModalPro
                   value={formData.city}
                   onChange={handleChange}
                   placeholder="City"
-                  required
                   disabled={loading}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
                     ? 'bg-white-31 text-white placeholder-gray-400'
                     : 'bg-white/80 border-gray-300 placeholder-gray-500'
-                    }`}
+                    } ${errors.city ? 'border-red-500' : ''}`}
                 />
+                {errors.city && (
+                  <p className="text-red-500 text-xs mt-1">{errors.city}</p>
+                )}
               </div>
             </div>
 
@@ -1067,6 +1150,13 @@ export function CreateContactModal({ isOpen, onClose, onSubmit }: CreateContactM
     phone: '',
     address: ''
   });
+  const [errors, setErrors] = useState({
+    first_name: '',
+    email_id: '',
+    phone: '',
+    company_name: '',
+    designation: ''
+  });
   const [loading, setLoading] = useState(false);
   const [addresses, setAddresses] = useState([]);
   const [loadingAddresses, setLoadingAddresses] = useState(false);
@@ -1078,6 +1168,60 @@ export function CreateContactModal({ isOpen, onClose, onSubmit }: CreateContactM
       fetchAddresses();
     }
   }, [isOpen]);
+
+  const validateField = (name: string, value: string) => {
+    let error = '';
+    
+    switch (name) {
+      case 'first_name':
+        if (!value.trim()) {
+          error = 'First name is required';
+        } else if (value.trim().length < 2) {
+          error = 'First name must be at least 2 characters long';
+        } else if (!/^[a-zA-Z\s]*$/.test(value)) {
+          error = 'First name can only contain letters and spaces';
+        }
+        break;
+      case 'email_id':
+        if (value.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())) {
+          error = 'Please enter a valid email address';
+        }
+        break;
+      case 'phone':
+        if (value.trim() && !/^[\+]?[0-9\s\-\(\)]{10,}$/.test(value.trim())) {
+          error = 'Please enter a valid phone number';
+        }
+        break;
+      case 'company_name':
+        if (value.trim() && value.trim().length < 2) {
+          error = 'Company name must be at least 2 characters long';
+        }
+        break;
+      case 'designation':
+        if (value.trim() && value.trim().length < 2) {
+          error = 'Designation must be at least 2 characters long';
+        }
+        break;
+      default:
+        break;
+    }
+    
+    return error;
+  };
+
+  const validateForm = () => {
+    const newErrors = {
+      first_name: validateField('first_name', formData.first_name),
+      email_id: validateField('email_id', formData.email_id),
+      phone: validateField('phone', formData.phone),
+      company_name: validateField('company_name', formData.company_name),
+      designation: validateField('designation', formData.designation)
+    };
+    
+    setErrors(newErrors);
+    
+    return !Object.values(newErrors).some(error => error !== '');
+  };
 
   const fetchAddresses = async () => {
     setLoadingAddresses(true);
@@ -1131,6 +1275,12 @@ export function CreateContactModal({ isOpen, onClose, onSubmit }: CreateContactM
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateForm()) {
+      showToast('Please fix the validation errors', { type: 'error' });
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -1197,6 +1347,13 @@ export function CreateContactModal({ isOpen, onClose, onSubmit }: CreateContactM
         phone: '',
         address: ''
       });
+      setErrors({
+        first_name: '',
+        email_id: '',
+        phone: '',
+        company_name: '',
+        designation: ''
+      });
     } catch (error) {
       console.error('Error creating contact:', error);
       showToast('Failed to create contact', { type: 'error' });
@@ -1206,10 +1363,29 @@ export function CreateContactModal({ isOpen, onClose, onSubmit }: CreateContactM
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [name]: value
     });
+
+    // Validate the field on change
+    const error = validateField(name, value);
+    setErrors(prev => ({
+      ...prev,
+      [name]: error
+    }));
+  };
+
+  const handleAddressChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    if (e.target.value === 'create_new') {
+      setShowAddressModal(true);
+      // Reset the select to the previous value
+      e.target.value = formData.address;
+    } else {
+      handleChange(e);
+    }
   };
 
   return (
@@ -1228,10 +1404,6 @@ export function CreateContactModal({ isOpen, onClose, onSubmit }: CreateContactM
                 New Contact
               </h3>
               <div className="flex items-center space-x-2">
-                {/* <button className={`p-1 rounded transition-colors ${theme === 'dark' ? 'hover:bg-purple-800/50' : 'hover:bg-gray-100'
-                  }`}>
-                  <ExternalLink className={`w-4 h-4 ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`} />
-                </button> */}
                 <button
                   onClick={onClose}
                   className={`p-1 rounded transition-colors ${theme === 'dark' ? 'hover:bg-purple-800/50' : 'hover:bg-gray-100'
@@ -1282,13 +1454,15 @@ export function CreateContactModal({ isOpen, onClose, onSubmit }: CreateContactM
                       value={formData.first_name}
                       onChange={handleChange}
                       placeholder="First Name"
-                      required
                       disabled={loading}
                       className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
                         ? 'bg-white-31 text-white placeholder-gray-400'
                         : 'bg-white/80 border-gray-300 placeholder-gray-500'
-                        }`}
+                        } ${errors.first_name ? 'border-red-500' : ''}`}
                     />
+                    {errors.first_name && (
+                      <p className="text-red-500 text-xs mt-1">{errors.first_name}</p>
+                    )}
                   </div>
 
                   <div>
@@ -1327,8 +1501,11 @@ export function CreateContactModal({ isOpen, onClose, onSubmit }: CreateContactM
                     className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
                       ? 'bg-white-31 text-white placeholder-gray-400'
                       : 'bg-white/80 border-gray-300 placeholder-gray-500'
-                      }`}
+                      } ${errors.email_id ? 'border-red-500' : ''}`}
                   />
+                  {errors.email_id && (
+                    <p className="text-red-500 text-xs mt-1">{errors.email_id}</p>
+                  )}
                 </div>
 
                 {/* Mobile No and Gender */}
@@ -1348,8 +1525,11 @@ export function CreateContactModal({ isOpen, onClose, onSubmit }: CreateContactM
                       className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
                         ? 'bg-white-31 text-white placeholder-gray-400'
                         : 'bg-white/80 border-gray-300 placeholder-gray-500'
-                        }`}
+                        } ${errors.phone ? 'border-red-500' : ''}`}
                     />
+                    {errors.phone && (
+                      <p className="text-red-500 text-xs mt-1">{errors.phone}</p>
+                    )}
                   </div>
 
                   <div>
@@ -1393,8 +1573,11 @@ export function CreateContactModal({ isOpen, onClose, onSubmit }: CreateContactM
                     className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
                       ? 'bg-white-31 text-white placeholder-gray-400'
                       : 'bg-white/80 border-gray-300 placeholder-gray-500'
-                      }`}
+                      } ${errors.company_name ? 'border-red-500' : ''}`}
                   />
+                  {errors.company_name && (
+                    <p className="text-red-500 text-xs mt-1">{errors.company_name}</p>
+                  )}
                 </div>
 
                 {/* Designation */}
@@ -1413,10 +1596,14 @@ export function CreateContactModal({ isOpen, onClose, onSubmit }: CreateContactM
                     className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
                       ? 'bg-white-31 text-white placeholder-gray-400'
                       : 'bg-white/80 border-gray-300 placeholder-gray-500'
-                      }`}
+                      } ${errors.designation ? 'border-red-500' : ''}`}
                   />
+                  {errors.designation && (
+                    <p className="text-red-500 text-xs mt-1">{errors.designation}</p>
+                  )}
                 </div>
-                {/* /* Address with custom dropdown - Updated version */}
+
+                {/* Address with custom dropdown */}
                 <div>
                   <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
                     }`}>
@@ -1426,15 +1613,7 @@ export function CreateContactModal({ isOpen, onClose, onSubmit }: CreateContactM
                     <select
                       name="address"
                       value={formData.address}
-                      onChange={(e) => {
-                        if (e.target.value === 'create_new') {
-                          setShowAddressModal(true);
-                          // Reset the select to the previous value
-                          e.target.value = formData.address;
-                        } else {
-                          handleChange(e);
-                        }
-                      }}
+                      onChange={handleAddressChange}
                       disabled={loading || loadingAddresses}
                       className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm appearance-none ${theme === 'dark'
                         ? 'bg-white-31 text-white'
@@ -1516,3 +1695,5 @@ export function CreateContactModal({ isOpen, onClose, onSubmit }: CreateContactM
     </>
   );
 }
+
+export default CreateContactModal;
