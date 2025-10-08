@@ -19,7 +19,10 @@ interface CreateOrganizationPopupProps {
     textColor?: string;
     textSecondaryColor?: string;
     inputBgColor?: string;
-    onOrganizationCreated?: () => void;
+    onOrganizationCreated: (organizationName: string, organizationData?: any) => void;
+    // Add these new props for deal context
+    dealName?: string; // The deal that needs to be updated
+    currentDealData?: any; // Current deal data for the set_value API
 }
 
 export const CreateOrganizationPopup: React.FC<CreateOrganizationPopupProps> = ({
@@ -32,6 +35,8 @@ export const CreateOrganizationPopup: React.FC<CreateOrganizationPopupProps> = (
     textSecondaryColor = "text-gray-700 dark:text-white",
     inputBgColor = "bg-white-31 text-white",
     onOrganizationCreated,
+    dealName, // New prop
+    currentDealData, // New prop
 }) => {
     const [formData, setFormData] = React.useState({
         name: "",
@@ -51,7 +56,7 @@ export const CreateOrganizationPopup: React.FC<CreateOrganizationPopupProps> = (
     const [industryOptions, setIndustryOptions] = useState<AddressOption[]>([]);
     const [industrySearch, setIndustrySearch] = useState("");
     const [isIndustryLoading, setIsIndustryLoading] = useState(false);
-
+    const [isCreating, setIsCreating] = useState(false);
 
     const handleChange = (field: string, value: string) => {
         setFormData((prev) => ({ ...prev, [field]: value }));
@@ -93,7 +98,6 @@ export const CreateOrganizationPopup: React.FC<CreateOrganizationPopupProps> = (
                     filters: {
                         company: sessionCompany,
                     }
-                    // company: sessionCompany,
                 },
                 {
                     headers: {
@@ -111,33 +115,25 @@ export const CreateOrganizationPopup: React.FC<CreateOrganizationPopupProps> = (
         }
     };
 
-    // --- NEW: useEffect to fetch addresses with debouncing ---
+    // --- useEffect to fetch addresses with debouncing ---
     useEffect(() => {
-        // Use a timer to delay the API call, reducing requests while typing
         const debounceTimer = setTimeout(() => {
-            // Only fetch if the popup is open
             if (isOpen) {
                 fetchAddresses(addressSearch);
             }
-        }, 500); // 500ms delay
-        // Cleanup function to clear the timer if the component unmounts or search term changes
+        }, 500);
         return () => clearTimeout(debounceTimer);
     }, [addressSearch, isOpen]);
 
-    //Territory dropdown
+    // Territory dropdown
     const fetchTerritories = async (searchTerm: string) => {
         setIsTerritoryLoading(true);
         try {
-            // const session = getUserSession();
-            // const sessionCompany = session?.company || '';
             const response = await apiAxios.post(
                 "/api/method/frappe.desk.search.search_link",
                 {
                     txt: searchTerm,
                     doctype: "CRM Territory",
-                    // "filters": {
-                    //     "company": sessionCompany,
-                    // }
                 },
                 {
                     headers: {
@@ -165,7 +161,7 @@ export const CreateOrganizationPopup: React.FC<CreateOrganizationPopupProps> = (
         return () => clearTimeout(debounceTimer);
     }, [territorySearch, isOpen]);
 
-    //Industry dropdown list
+    // Industry dropdown list
     const fetchIndustries = async (searchTerm: string) => {
         setIsIndustryLoading(true);
         try {
@@ -201,32 +197,58 @@ export const CreateOrganizationPopup: React.FC<CreateOrganizationPopupProps> = (
         return () => clearTimeout(debounceTimer);
     }, [industrySearch, isOpen]);
 
-    const showToast = ({ title, message, type = 'info', duration = 3000 }) => {
-        // Create a simple toast element
-        const toast = document.createElement('div');
-        toast.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        padding: 12px 20px;
-        border-radius: 4px;
-        color: white;
-        z-index: 1000;
-        transition: opacity 0.3s;
-        background-color: ${type === 'success' ? '#28a745' : type === 'error' ? '#dc3545' : '#17a2b8'};
-    `;
-        toast.textContent = message;
-        document.body.appendChild(toast);
+    // NEW FUNCTION: Update deal with organization information
+    const updateDealWithOrganization = async (organizationName: string) => {
+        if (!dealName) return true; // Return true if no deal to update
 
-        setTimeout(() => {
-            toast.style.opacity = '0';
-            setTimeout(() => document.body.removeChild(toast), 300);
-        }, duration);
+        try {
+            const payload = {
+                doctype: "CRM Deal",
+                name: dealName,
+                fieldname: {
+                    organization: organizationName,
+                    organization_name: organizationName,
+                    // Include other fields from current deal data to preserve them
+                    website: currentDealData?.website || "",
+                    territory: currentDealData?.territory || "",
+                    annual_revenue: currentDealData?.annual_revenue || "0",
+                    close_date: currentDealData?.close_date || "",
+                    probability: currentDealData?.probability || "0",
+                    next_step: currentDealData?.next_step || "",
+                    deal_owner: currentDealData?.deal_owner || "Administrator",
+                    status: currentDealData?.status || "Qualification",
+                },
+            };
+
+            const response = await apiAxios.post(
+                "/api/method/frappe.client.set_value",
+                payload,
+                {
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: AUTH_TOKEN,
+                    },
+                }
+            );
+
+            console.log("✅ Updated deal with organization:", response.data);
+            return true;
+        } catch (error: any) {
+            console.error("❌ Error updating deal:", error);
+            return false;
+        }
     };
 
-
-
     const handleSubmit = async () => {
+        if (!formData.name.trim()) {
+            showToast('Organization name is required', { 
+                type: "error", 
+                duration: 3000 
+            });
+            return;
+        }
+
+        setIsCreating(true);
         try {
             const session = getUserSession();
             const sessionCompany = session?.company || '';
@@ -236,9 +258,6 @@ export const CreateOrganizationPopup: React.FC<CreateOrganizationPopupProps> = (
                     no_of_employees: formData.employees,
                     organization_name: formData.name,
                     territory: formData.territory,
-                    // "filters": {
-                    //     "company": sessionCompany
-                    // },
                     company: sessionCompany,
                     industry: formData.industry,
                     annual_revenue: parseFloat(
@@ -262,15 +281,40 @@ export const CreateOrganizationPopup: React.FC<CreateOrganizationPopupProps> = (
 
             console.log("✅ Created organization:", response.data);
 
-            // Show success toast message
-            showToast({
-                title: "Success",
-                message: "Organization created successfully!",
-                type: "success",
-                duration: 3000
+            // NEW: Update the deal with the organization information
+            let dealUpdateSuccess = true;
+            if (dealName) {
+                dealUpdateSuccess = await updateDealWithOrganization(formData.name);
+            }
+
+            // Show appropriate success message
+            if (dealName && dealUpdateSuccess) {
+                showToast('Organization created and deal updated successfully!', { 
+                    type: "success", 
+                    duration: 3000 
+                });
+            } else if (dealName && !dealUpdateSuccess) {
+                showToast('Organization created but failed to update deal', { 
+                    type: "warning", 
+                    duration: 3000 
+                });
+            } else {
+                showToast('Organization created successfully!', { 
+                    type: "success", 
+                    duration: 3000 
+                });
+            }
+
+            // Call the callback with organization data
+            onOrganizationCreated(formData.name, {
+                name: formData.name,
+                website: formData.website,
+                territory: formData.territory,
+                industry: formData.industry,
+                // Include any other relevant data
             });
 
-            // 1. Clear all form fields
+            // Clear all form fields
             setFormData({
                 name: "",
                 website: "",
@@ -281,14 +325,11 @@ export const CreateOrganizationPopup: React.FC<CreateOrganizationPopupProps> = (
                 address: "",
             });
 
-            // 2. Clear search fields
+            // Clear search fields
             setAddressSearch("");
             setTerritorySearch("");
             setIndustrySearch("");
 
-            if (onOrganizationCreated) {
-                onOrganizationCreated();
-            }
             // Close popup after success
             onClose();
         } catch (error: any) {
@@ -298,34 +339,22 @@ export const CreateOrganizationPopup: React.FC<CreateOrganizationPopupProps> = (
             let errorMessage = "Failed to create organization";
 
             try {
-                // Check if the error response has _server_messages
                 if (error.response?.data?._server_messages) {
-                    // Parse the _server_messages array (it's a stringified JSON array)
                     const serverMessages = JSON.parse(error.response.data._server_messages);
-
                     if (serverMessages.length > 0) {
-                        // Parse the first message (which is also a stringified JSON object)
                         const firstMessage = JSON.parse(serverMessages[0]);
-
-                        // Remove HTML tags from the message
                         errorMessage = firstMessage.message
                             ? firstMessage.message.replace(/<[^>]*>/g, '')
                             : errorMessage;
 
-                        // You can also use the title if you want
-                        const errorTitle = firstMessage.title || "Error";
-
-                        showToast({
-                            title: errorTitle,
-                            message: errorMessage,
-                            type: "error",
-                            duration: 5000
+                        showToast(errorMessage, { 
+                            type: "error", 
+                            duration: 5000 
                         });
-                        return; // Return early since we've shown the error
+                        return;
                     }
                 }
 
-                // Fallback to regular error message extraction
                 if (error.response?.data?.message) {
                     errorMessage = error.response.data.message;
                 } else if (error.message) {
@@ -334,26 +363,22 @@ export const CreateOrganizationPopup: React.FC<CreateOrganizationPopupProps> = (
 
             } catch (parseError) {
                 console.error("Error parsing server messages:", parseError);
-                // If parsing fails, use the original error message
                 if (error.response?.data?.message) {
                     errorMessage = error.response.data.message;
                 }
             }
 
-
             // Show error toast message
-            showToast({
-                title: "Error",
-                message: error.response?.data?.message || "Failed to create organization",
-                type: "error",
-                duration: 5000
+            showToast(errorMessage, { 
+                type: "error", 
+                duration: 5000 
             });
+        } finally {
+            setIsCreating(false);
         }
     };
 
-
     if (!isOpen) return null;
-
 
     const labelClass = `block text-sm font-medium ${textSecondaryColor} mb-1`;
     const inputClass = `w-full px-3 py-2 border text-white ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}}`;
@@ -380,7 +405,7 @@ export const CreateOrganizationPopup: React.FC<CreateOrganizationPopupProps> = (
                 <div className="space-y-4">
                     <div>
                         <label htmlFor="orgName" className={labelClass}>
-                            Organization Name
+                            Organization Name *
                         </label>
                         <input
                             id="orgName"
@@ -389,6 +414,7 @@ export const CreateOrganizationPopup: React.FC<CreateOrganizationPopupProps> = (
                             onChange={(e) => handleChange("name", e.target.value)}
                             className={inputClass}
                             placeholder="Enter organization name"
+                            required
                         />
                     </div>
 
@@ -421,7 +447,7 @@ export const CreateOrganizationPopup: React.FC<CreateOrganizationPopupProps> = (
                         </div>
                     </div>
 
-
+                    {/* Rest of your form components remain the same */}
                     <div>
                         <label className={labelClass}>Territory</label>
                         <Listbox
@@ -536,21 +562,6 @@ export const CreateOrganizationPopup: React.FC<CreateOrganizationPopupProps> = (
                                             <div className="py-2 px-4 text-gray-500">No territories found</div>
                                         )}
 
-                                        {/* Create New */}
-                                        <div className="sticky bottom-0 bg-white border-t">
-                                            <button
-                                                type="button"
-                                                className="flex items-center w-full px-3 py-2 text-sm text-blue-600 hover:bg-gray-100"
-                                                onClick={() => {
-                                                    console.log("Create New Territory");
-                                                    // You can open a "Create Territory" modal here
-                                                    // close();
-                                                }}
-                                            >
-                                                + Create New
-                                            </button>
-                                        </div>
-
                                         {/* Clear */}
                                         <div className="sticky bottom-0 bg-white border-t">
                                             <button
@@ -570,7 +581,6 @@ export const CreateOrganizationPopup: React.FC<CreateOrganizationPopupProps> = (
                             )}
                         </Listbox>
                     </div>
-
 
                     <div className="grid grid-cols-2 gap-4">
                         <div>
@@ -670,7 +680,6 @@ export const CreateOrganizationPopup: React.FC<CreateOrganizationPopupProps> = (
                                                 </button>
                                             </div>
 
-
                                             {/* Options */}
                                             {isIndustryLoading ? (
                                                 <div className="py-2 px-4 text-gray-500">Loading...</div>
@@ -695,39 +704,10 @@ export const CreateOrganizationPopup: React.FC<CreateOrganizationPopupProps> = (
                                             ) : (
                                                 <div className="py-2 px-4 text-gray-500">No industries found</div>
                                             )}
-                                            {/* <div className="sticky bottom-0 bg-white  border-t">
-                                                <button
-                                                    type="button"
-                                                    className="flex items-center w-full px-3 py-2 text-sm text-blue-600 hover:bg-gray-100"
-                                                    onClick={() => {
-                                                        // You can open a "Create Address" modal here
-                                                        console.log("Create New Address");
-                                                        //close();
-                                                    }}
-                                                >
-                                                    + Create New
-                                                </button>
-                                            </div> */}
-
-                                            {/* Clear */}
-                                            {/* <div className="sticky bottom-0 bg-white border-t">
-                                                <button
-                                                    type="button"
-                                                    className="flex items-center w-full px-3 py-2 text-sm text-red-600 hover:bg-gray-100"
-                                                    onClick={() => {
-                                                        handleChange("industry", "");
-                                                        setIndustrySearch("");
-                                                        close();
-                                                    }}
-                                                >
-                                                    ✕ Clear
-                                                </button>
-                                            </div> */}
                                         </Listbox.Options>
                                     </div>
                                 )}
                             </Listbox>
-
                         </div>
                     </div>
 
@@ -857,21 +837,6 @@ export const CreateOrganizationPopup: React.FC<CreateOrganizationPopupProps> = (
                                             <div className="py-2 px-4 text-gray-500">No addresses found</div>
                                         )}
 
-                                        {/* Create New */}
-                                        <div className="sticky bottom-0 bg-white  border-t">
-                                            <button
-                                                type="button"
-                                                className="flex items-center w-full px-3 py-2 text-sm text-blue-600 hover:bg-gray-100"
-                                                onClick={() => {
-                                                    // You can open a "Create Address" modal here
-                                                    console.log("Create New Address");
-                                                    //close();
-                                                }}
-                                            >
-                                                + Create New
-                                            </button>
-                                        </div>
-
                                         {/* Clear */}
                                         <div className="sticky bottom-0 bg-white border-t">
                                             <button
@@ -891,7 +856,6 @@ export const CreateOrganizationPopup: React.FC<CreateOrganizationPopupProps> = (
                             )}
                         </Listbox>
                     </div>
-
                 </div>
 
                 {/* Footer */}
@@ -899,12 +863,13 @@ export const CreateOrganizationPopup: React.FC<CreateOrganizationPopupProps> = (
                     <button
                         type="button"
                         onClick={handleSubmit}
+                        disabled={isCreating}
                         className={`px-4 py-2 rounded-lg text-white transition-colors ${theme === "dark"
                             ? "bg-purple-600 hover:bg-purple-700"
                             : "bg-blue-600 hover:bg-blue-700"
-                            }`}
+                            } ${isCreating ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
-                        Create
+                        {isCreating ? 'Creating...' : 'Create'}
                     </button>
                 </div>
             </div>

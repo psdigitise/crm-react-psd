@@ -2176,7 +2176,10 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                       </label>
                       <Listbox
                         value={editedDeal.organization_name || ""}
-                        onChange={(value) => handleInputChange("organization_name", value)}
+                        onChange={(value) => {
+                          handleInputChange("organization_name", value);
+                          handleInputChange("organization", value); // Set both fields
+                        }}
                       >
                         {({ open, close }) => (
                           <div className="relative mt-1">
@@ -2194,14 +2197,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                                 >
                                   <path
                                     fillRule="evenodd"
-                                    d="M10 3a1 1 0 01.707.293l3 3a1 1 0 01-1.414 
-                                      1.414L10 5.414 7.707 7.707a1 1 
-                                      0 01-1.414-1.414l3-3A1 1 0 0110 
-                                      3zm-3.707 9.293a1 1 0 011.414 
-                                      0L10 14.586l2.293-2.293a1 1 
-                                       0 011.414 1.414l-3 3a1 1 0 
-                                      01-1.414 0l-3-3a1 1 
-                                       0 010-1.414z"
+                                    d="M10 3a1 1 0 01.707.293l3 3a1 1 0 01-1.414 1.414L10 5.414 7.707 7.707a1 1 0 01-1.414-1.414l3-3A1 1 0 0110 3zm-3.707 9.293a1 1 0 011.414 0L10 14.586l2.293-2.293a1 1 0 011.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
                                     clipRule="evenodd"
                                   />
                                 </svg>
@@ -2209,7 +2205,6 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                             </Listbox.Button>
 
                             <Listbox.Options className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
-
                               {/* Search Input */}
                               <div className="sticky top-0 z-10 bg-white p-2 border-b">
                                 <div className="relative">
@@ -2230,9 +2225,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                                       strokeLinecap="round"
                                       strokeLinejoin="round"
                                       strokeWidth="2"
-                                      d="M21 21l-6-6m2-5a7 7 
-                     0 11-14 0 7 7 0 0114 0z"
-                                    ></path>
+                                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                                    />
                                   </svg>
                                   <button
                                     className="absolute right-2 top-2 text-gray-400 hover:text-gray-600"
@@ -2274,12 +2268,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                                             >
                                               <path
                                                 fillRule="evenodd"
-                                                d="M16.707 5.293a1 1 
-                               0 010 1.414l-8 8a1 1 
-                               0 01-1.414 0l-4-4a1 1 
-                               0 011.414-1.414L8 
-                               12.586l7.293-7.293a1 1 
-                               0 011.414 0z"
+                                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
                                                 clipRule="evenodd"
                                               />
                                             </svg>
@@ -2312,8 +2301,9 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                                   className="flex items-center w-full px-3 py-2 text-sm text-red-600 hover:bg-gray-100"
                                   onClick={() => {
                                     handleInputChange("organization_name", "");
+                                    handleInputChange("organization", ""); // Clear both fields
                                     setOrganizationSearch("");
-                                    //close();
+                                    close();
                                   }}
                                 >
                                   <svg
@@ -2327,7 +2317,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                                       strokeLinejoin="round"
                                       strokeWidth="2"
                                       d="M6 18L18 6M6 6l12 12"
-                                    ></path>
+                                    />
                                   </svg>
                                   Clear
                                 </button>
@@ -2336,11 +2326,27 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                           </div>
                         )}
                       </Listbox>
+
                       <CreateOrganizationPopup
                         isOpen={showCreateOrganizationModal}
                         onClose={() => setShowCreateOrganizationModal(false)}
                         theme="dark"
-                        onOrganizationCreated={fetchOrganizations}
+                        dealName={deal.name}
+                        currentDealData={editedDeal}
+                        onOrganizationCreated={(newOrganizationName, organizationData) => {
+                          // Set both organization fields
+                          handleInputChange("organization", newOrganizationName);
+                          handleInputChange("organization_name", newOrganizationName);
+
+                          // Refresh the organization list and close modal
+                          fetchOrganizations();
+                          setShowCreateOrganizationModal(false);
+
+                          // Show success message - use the correct showToast
+                          showToast('Organization created and deal updated successfully!', {
+                            type: 'success'
+                          });
+                        }}
                       />
                     </div>
 
