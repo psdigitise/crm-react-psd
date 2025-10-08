@@ -320,6 +320,8 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [showCreateIndustryModal, setShowCreateIndustryModal] = useState(false);
   const [industrySearch, setIndustrySearch] = useState('');
+  const [organizationInfo, setOrganizationInfo] = useState<any>(null);
+  const [generatingInfo, setGeneratingInfo] = useState(false);
   const [showFileModal, setShowFileModal] = useState(false);
   const [emailModalMode, setEmailModalMode] = useState<"reply" | "reply-all" | "comment">("reply");
   const [expandedEmailId, setExpandedEmailId] = useState<string | null>(null);
@@ -1423,6 +1425,40 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
     }
   };
 
+  const fetchOrganizationInfo = async (companyName: string) => {
+    if (!companyName.trim()) {
+      showToast('Please enter an organization name', { type: 'warning' });
+      return;
+    }
+
+    setGeneratingInfo(true);
+    try {
+      const response = await fetch('http://103.214.132.20:8002/api/method/customcrm.email.get_company_info.get_company_info', {
+        method: 'POST',
+        headers: {
+          'Authorization': AUTH_TOKEN,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          company_name: companyName
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        setOrganizationInfo(result.message);
+        showToast('Organization information generated successfully', { type: 'success' });
+      } else {
+        throw new Error('Failed to fetch organization info');
+      }
+    } catch (error) {
+      console.error('Error fetching organization info:', error);
+      showToast('Failed to generate organization information', { type: 'error' });
+    } finally {
+      setGeneratingInfo(false);
+    }
+  };
+
   // Add this useEffect to automatically close modals on successful submission
   useEffect(() => {
     if (listSuccess && (showEmailModal || showCommentModal)) {
@@ -1583,7 +1619,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
       showToast('Deal converted successfully!', { type: 'success' });
       setShowPopup(false);
       const leadResponseData = await leadResponse.json();
-const newDealId = leadResponseData.message;
+      const newDealId = leadResponseData.message;
       //onBack();
       onConversionSuccess(newDealId);
     } catch (error) {
@@ -2865,16 +2901,89 @@ const newDealId = leadResponseData.message;
                       ) : 'Save'}
                     </button>
                   </div>
+
+                  {/* Organization Info Display */}
+                  {organizationInfo && (
+                    <div className={`mb-6 p-4 rounded-lg border ${borderColor} ${theme === 'dark' ? 'bg-gray-800' : 'bg-blue-50'}`}>
+                      <div className="flex justify-between items-center mb-2">
+                        <h4 className={`text-md font-semibold ${textColor}`}>
+                          Company Overview:
+                        </h4>
+                        <button
+                          onClick={() => setOrganizationInfo(null)}
+                          className={`p-1 rounded-full ${theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-blue-100'}`}
+                        >
+                          <IoCloseOutline className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      {/* Display the organization info - adjust based on your API response structure */}
+                      <div className={`text-sm ${textSecondaryColor} space-y-2`}>
+                        {organizationInfo.company_name && (
+                          <p><strong>Company Name:</strong> {organizationInfo.company_name}</p>
+                        )}
+                        {organizationInfo.industry && (
+                          <p><strong>Industry:</strong> {organizationInfo.industry}</p>
+                        )}
+                        {organizationInfo.description && (
+                          <p><strong>Description:</strong> {organizationInfo.description}</p>
+                        )}
+                        {organizationInfo.website && (
+                          <p><strong>Website:</strong> {organizationInfo.website}</p>
+                        )}
+                        {organizationInfo.address && (
+                          <p><strong>Address:</strong> {organizationInfo.address}</p>
+                        )}
+                        {organizationInfo.employees && (
+                          <p><strong>Employees:</strong> {organizationInfo.employees}</p>
+                        )}
+                        {organizationInfo.revenue && (
+                          <p><strong>Revenue:</strong> {organizationInfo.revenue}</p>
+                        )}
+
+                        {/* Fallback for any other data structure */}
+                        {typeof organizationInfo === 'string' && (
+                          <p>{organizationInfo}</p>
+                        )}
+
+                        {organizationInfo && Object.keys(organizationInfo).length === 0 && (
+                          <p>No information available for this organization.</p>
+                        )}
+                      </div>
+
+                      {/* Auto-fill button to populate the form fields */}
+                      
+                    </div>
+                  )}
+
                   <h3 className={`text-lg font-semibold text-gray-900 dark:text-white mb-4`}>Details</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <div>
-                      <label className={`block text-sm  font-medium ${textSecondaryColor}`}>Organization</label>
-                      <input
-                        type="text"
-                        value={editedLead.organization || ''}
-                        onChange={(e) => handleInputChange('organization', e.target.value)}
-                        className={`p-[2px] pl-2 mt-1 block border w-full rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
-                      />
+                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>Organization</label>
+                      <div className="relative mt-1">
+                        <input
+                          type="text"
+                          value={editedLead.organization || ''}
+                          onChange={(e) => handleInputChange('organization', e.target.value)}
+                          className={`p-[2px] pl-2 pr-20 block border w-full rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
+                        />
+                        <button
+                          onClick={() => fetchOrganizationInfo(editedLead.organization || '')}
+                          disabled={generatingInfo || !editedLead.organization}
+                          className={`absolute right-1 top-1/2 transform -translate-y-1/2 px-3 py-1 text-xs rounded-md transition-colors ${generatingInfo || !editedLead.organization
+                            ? 'bg-gray-400 cursor-not-allowed text-gray-200'
+                            : theme === 'dark'
+                              ? 'bg-purple-600 hover:bg-purple-700 text-white'
+                              : 'bg-blue-600 hover:bg-blue-700 text-white'
+                            }`}
+                        >
+                          {generatingInfo ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : (
+                            'Generate'
+                          )}
+                        </button>
+                      </div>
                     </div>
 
                     <div>
