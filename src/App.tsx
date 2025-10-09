@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { LoginPage } from './components/LoginPage';
 import { NotificationsPanel } from './components/NotificationsPanel';
@@ -37,6 +37,7 @@ import { isUserLoggedIn, getUserSession, clearUserSession } from './utils/sessio
 import { apiAxios, AUTH_TOKEN } from './api/apiUrl';
 import { AuthErrorModal } from './components/SessionLogout/AuthErrorModal';
 import { registerAuthModalCallback, registerLogoutCallback } from './utils/apiErrorHandler';
+import PasswordResetPage from './components/ResetPassword';
 
 
 function AppContent() {
@@ -554,54 +555,54 @@ function AppContent() {
 
     }
   };
- 
 
-const handleCreateDeal = async (data: any) => {
-  console.log("Deal creation response:", data);
 
-  if (data && data.message) {
-    setShowCreateModal(false);
+  const handleCreateDeal = async (data: any) => {
+    console.log("Deal creation response:", data);
 
-    // 1. Get the ID of the newly created deal from the response
-    const newDealId = data.message; // This is likely the deal's name, e.g., "CRM-DEAL-2025-00429"
-    
-    if (!newDealId) {
-      console.error("Deal name/ID was not found in the creation response.");
-      return;
-    }
+    if (data && data.message) {
+      setShowCreateModal(false);
 
-    try {
-      // 2. Fetch the FULL deal data using the new ID
-      const response = await apiAxios.post("/api/method/frappe.client.get", {
-        doctype: "CRM Deal",
-        name: newDealId,
-      });
+      // 1. Get the ID of the newly created deal from the response
+      const newDealId = data.message; // This is likely the deal's name, e.g., "CRM-DEAL-2025-00429"
 
-      const fullDealData = response.data.message;
-
-      if (fullDealData) {
-        // 3. Update the state with the complete data
-        const dealForState = {
-          ...fullDealData,
-          id: fullDealData.name, // Ensure 'id' is mapped from 'name'
-          organization: fullDealData.organization_name || fullDealData.organization // Map organization name
-        };
-
-        setSelectedDeal(dealForState);
-        setActiveMenuItem("deals");
-        
-        // 4. The useEffect hook will now handle the navigation to the correct URL
-        // window.history.pushState({}, "", `/deals/${newDealId}`); // This is handled by useEffect now
-      } else {
-        throw new Error("Failed to fetch full deal data after creation.");
+      if (!newDealId) {
+        console.error("Deal name/ID was not found in the creation response.");
+        return;
       }
-    } catch (err) {
-      console.error("Error fetching full deal details:", err);
-      // Fallback: navigate to the deals list if the fetch fails
-      setActiveMenuItem("deals");
+
+      try {
+        // 2. Fetch the FULL deal data using the new ID
+        const response = await apiAxios.post("/api/method/frappe.client.get", {
+          doctype: "CRM Deal",
+          name: newDealId,
+        });
+
+        const fullDealData = response.data.message;
+
+        if (fullDealData) {
+          // 3. Update the state with the complete data
+          const dealForState = {
+            ...fullDealData,
+            id: fullDealData.name, // Ensure 'id' is mapped from 'name'
+            organization: fullDealData.organization_name || fullDealData.organization // Map organization name
+          };
+
+          setSelectedDeal(dealForState);
+          setActiveMenuItem("deals");
+
+          // 4. The useEffect hook will now handle the navigation to the correct URL
+          // window.history.pushState({}, "", `/deals/${newDealId}`); // This is handled by useEffect now
+        } else {
+          throw new Error("Failed to fetch full deal data after creation.");
+        }
+      } catch (err) {
+        console.error("Error fetching full deal details:", err);
+        // Fallback: navigate to the deals list if the fetch fails
+        setActiveMenuItem("deals");
+      }
     }
-  }
-};
+  };
 
   const handleConversionSuccess = async (dealId: string) => {
     try {
@@ -693,7 +694,7 @@ const handleCreateDeal = async (data: any) => {
   };
 
   const getSubtitle = () => {
-    if (['leads', 'deals', 'contacts',  'organizations', 'users', 'reminders'].includes(activeMenuItem)) {
+    if (['leads', 'deals', 'contacts', 'organizations', 'users', 'reminders'].includes(activeMenuItem)) {
       return 'List';
     }
     return undefined;
@@ -984,6 +985,7 @@ function App() {
       <Router>
         <Routes>
           <Route path="*" element={<AppContent />} />
+          <Route path="/update-password" element={<PasswordResetPage />} />
         </Routes>
       </Router>
     </ThemeProvider>
