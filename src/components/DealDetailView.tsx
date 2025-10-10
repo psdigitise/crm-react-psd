@@ -1076,7 +1076,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
     }
   };
 
-  const editTask = async () => {
+  const editTask = async (taskName: string | null) => {
     const newErrors: { [key: string]: string } = {};
 
     if (!taskForm.title.trim()) {
