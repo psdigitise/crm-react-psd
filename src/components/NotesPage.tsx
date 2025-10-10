@@ -10,6 +10,8 @@ import { formatDistanceToNow } from 'date-fns';
 import { AUTH_TOKEN } from '../api/apiUrl';
 import { api } from '../api/apiService';
 import { CreateNoteModalNew } from './CreateNoteModalNew';
+import DOMPurify from 'dompurify';
+
 
 interface Note {
   name: string;
@@ -176,7 +178,7 @@ const EditModal: React.FC<EditModalProps> = ({ show, theme, editForm, setEditFor
               <div>
                 <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>Content</label>
                 <textarea
-                  value={editForm.content}
+                  value={editForm.content.replace(/<[^>]+>/g, '')}
                   onChange={(e) => setEditForm((prev) => ({ ...prev, content: e.target.value }))}
                   rows={6}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none ${theme === 'dark'
@@ -213,7 +215,7 @@ export function NotesPage({ onCreateNote, leadName }: NotesPageProps) {
   const [formData, setFormData] = useState<Note | null>(null);
   const [editForm, setEditForm] = useState({ title: '', content: '' });
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  
+
   // Add state for create modal
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
@@ -478,7 +480,7 @@ export function NotesPage({ onCreateNote, leadName }: NotesPageProps) {
 
       console.log('Transformed lead:', transformedLead); // Debug log
       return transformedLead;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching lead details:', error);
       showToast(`Failed to fetch lead details: ${error.message}`, { type: 'error' });
       return null;
@@ -785,9 +787,12 @@ export function NotesPage({ onCreateNote, leadName }: NotesPageProps) {
                 </div>
               </div>
               <div className="h-50 overflow-hidden">
-                <h2 className={`text-xs mb-4 line-clamp-3 leading-relaxed ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>
-                  {note.content}
-                </h2>
+                <div
+                  className={`text-xs mb-4 line-clamp-3 leading-relaxed ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}
+                  dangerouslySetInnerHTML={{
+                    __html: DOMPurify.sanitize(note.content || '')
+                  }}
+                />
               </div>
 
               <div className="mt-auto">

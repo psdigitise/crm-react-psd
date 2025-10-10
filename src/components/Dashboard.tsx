@@ -670,7 +670,7 @@ export function Dashboard() {
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         <TaskTable title="Today Task" data={taskData} compact={false} />
-        <LeadTable title="Leads" data={leadTableData} />
+        {/* <LeadTable title="Leads" data={leadTableData} /> */}
         <TodayLeadstable title="Today Leads" data={TodayLeadsData} />
         <Dealstable title="Deals Closing This Month" data={DealsTableData} />
       </div>

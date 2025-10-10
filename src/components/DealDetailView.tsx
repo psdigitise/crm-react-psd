@@ -3097,13 +3097,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                   <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>Status</label>
                   <select
                     value={callForm.status}
-                    onChange={(e) => {
-                      setCallForm({ ...callForm, from: e.target.value });
-                      // Clear from error when user starts typing
-                      if (errors.from) {
-                        setErrors(prev => ({ ...prev, from: '' }));
-                      }
-                    }}
+                    onChange={(e) => setCallForm({ ...callForm, status: e.target.value })}
                     className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
                   >
                     {["Initiated", "Ringing", "In Progress", "Completed", "Failed", "Busy", "No Answer", "Queued", "Canceled"].map(status => (
