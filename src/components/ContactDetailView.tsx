@@ -1,4 +1,4 @@
-import  { useState } from 'react';
+import { useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import { showToast } from '../utils/toast';
@@ -31,16 +31,15 @@ interface ContactDetailViewProps {
     contact: Contact;
     onBack: () => void;
     onSave: (updatedContact: Contact) => void;
+    onDealClick?: (dealName: string) => void; // Add this prop
 }
 
-export function ContactDetailView({ contact, onBack, onSave }: ContactDetailViewProps) {
+export function ContactDetailView({ contact, onBack, onSave, onDealClick }: ContactDetailViewProps) {
     const { theme } = useTheme();
     const [isEditing, setIsEditing] = useState(false);
     const [editedContact, setEditedContact] = useState<Contact>(contact);
     const [loading, setLoading] = useState(false);
     const [showingDealDetail, setShowingDealDetail] = useState(false);
-
-    
 
     const handleSave = async () => {
         try {
@@ -155,12 +154,13 @@ export function ContactDetailView({ contact, onBack, onSave }: ContactDetailView
                 </div>
             )}
 
-            {/* Pass the deal view change handler to ContactDetails */}
+            {/* Pass the deal click handler to ContactDetails */}
             <ContactDetails 
                 contact={contact} 
                 onBack={onBack} 
                 onSave={onSave} 
                 onDealViewChange={handleDealViewChange}
+                onDealClick={onDealClick} // Pass it through
             />
         </div>
     );

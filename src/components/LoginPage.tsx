@@ -63,8 +63,8 @@ const Toast: React.FC<ToastProps> = ({ message, type, isVisible, onClose }) => {
   return (
     <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top-2">
       <div className={`flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg border ${type === 'success'
-          ? 'bg-green-50 border-green-200 text-green-800'
-          : 'bg-red-50 border-red-200 text-red-800'
+        ? 'bg-green-50 border-green-200 text-green-800'
+        : 'bg-red-50 border-red-200 text-red-800'
         }`}>
         {type === 'success' ? (
           <CheckCircle className="w-5 h-5 text-green-600" />
@@ -97,11 +97,11 @@ export function LoginPage({ onLogin }: LoginPageProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [passwordError, setPasswordError] = useState("");
-  
+
   // Login form validation states
   const [emailError, setEmailError] = useState('');
   const [loginPasswordError, setLoginPasswordError] = useState('');
-  
+
   // Add state for the phone number
   const [phoneNumber, setPhoneNumber] = useState('');
   const [phoneError, setPhoneError] = useState('');
@@ -272,18 +272,18 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validate form before submission
     const emailValidation = validateEmail(email);
     const passwordValidation = validateLoginPassword(password);
-    
+
     setEmailError(emailValidation);
     setLoginPasswordError(passwordValidation);
-    
+
     if (emailValidation || passwordValidation) {
       return; // Don't submit if validation fails
     }
-    
+
     setLoading(true);
     setError('');
 
@@ -339,25 +339,25 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validate all fields before submission
     const firstNameValidation = validateFirstName(registerData.first_name);
     const emailValidation = validateEmail(registerData.email);
     const phoneValidation = validatePhone(phoneNumber);
     const companyNameValidation = validateCompanyName(companyData.company_name);
     const employeesValidation = validateEmployees(companyData.no_employees);
-    
+
     setFirstNameError(firstNameValidation);
     setRegisterEmailError(emailValidation);
     setPhoneError(phoneValidation);
     setCompanyNameError(companyNameValidation);
     setEmployeesError(employeesValidation);
-    
+
     if (firstNameValidation || emailValidation || phoneValidation || companyNameValidation || employeesValidation) {
       // setError("Please fix the validation errors Below");
       return;
     }
-    
+
     setLoading(true);
     setError("");
 
@@ -659,9 +659,16 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                 </label>
                 <div className="relative border border-white rounded-lg">
                   <input
-                    type="number"
+                    type="text"
                     value={companyData.no_employees || ""}
-                    onChange={(e) => handleEmployeesChange(e.target.value)}
+                    // onChange={(e) => handleEmployeesChange(e.target.value)}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      // Allow only digits
+                      if (/^\d*$/.test(value)) {
+                        handleEmployeesChange(value);
+                      }
+                    }}
                     className="w-full pl-4 pr-4 py-3 border border-transparent rounded-lg bg-transparent text-white placeholder-white focus:outline-none"
                     placeholder="50"
                     disabled={loading}

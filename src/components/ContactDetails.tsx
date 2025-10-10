@@ -974,10 +974,15 @@ export default function ContactDetails({
   };
 
   // Modified deal row click handler
+  // const handleDealRowClick = (dealName: string) => {
+  //   fetchDealDetailsAndNavigate(dealName);
+  // };
+  // Replace the fetchDealDetailsAndNavigate function with this simpler one:
   const handleDealRowClick = (dealName: string) => {
-    fetchDealDetailsAndNavigate(dealName);
+    if (onDealClick) {
+      onDealClick(dealName);
+    }
   };
-
   // Handle deal detail back navigation
   const handleDealDetailBack = () => {
     setShowDealDetail(false);
@@ -992,15 +997,15 @@ export default function ContactDetails({
   };
 
   // If showing deal detail, render DealDetailView
-  if (showDealDetail && selectedDeal) {
-    return (
-      <DealDetailView
-        deal={selectedDeal}
-        onBack={handleDealDetailBack}
-        onSave={handleDealSave}
-      />
-    );
-  }
+  // if (showDealDetail && selectedDeal) {
+  //   return (
+  //     <DealDetailView
+  //       deal={selectedDeal}
+  //       onBack={handleDealDetailBack}
+  //       onSave={handleDealSave}
+  //     />
+  //   );
+  // }
 
   const handleEditEmail = async () => {
     if (!editingEmail || !newEmailValue.trim()) {

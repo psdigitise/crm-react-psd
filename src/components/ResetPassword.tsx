@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Eye, EyeOff, CheckCircle, X } from "lucide-react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 interface ToastProps {
     message: string;
@@ -10,6 +11,8 @@ interface ToastProps {
 }
 
 const Toast: React.FC<ToastProps> = ({ message, type, isVisible, onClose }) => {
+
+
     if (!isVisible) return null;
 
     return (
@@ -44,7 +47,7 @@ export default function PasswordResetPage() {
     const [isSuccess, setIsSuccess] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
-
+    const navigate = useNavigate();
     // Toast state
     const [toast, setToast] = useState({
         isVisible: false,
@@ -165,7 +168,10 @@ export default function PasswordResetPage() {
                         </div>
 
                         <button
-                            onClick={() => setIsSuccess(false)}
+                            // onClick={() => setIsSuccess(false)}
+                            onClick={() => {
+                                navigate("/"); // this navigates to localhost:5173/
+                            }}
                             className="w-full bg-white text-[#2D243C] py-3 rounded-lg font-medium hover:bg-gray-100 transition-colors"
                         >
                             Back to Login

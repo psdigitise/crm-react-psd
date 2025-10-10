@@ -439,9 +439,39 @@ function AppContent() {
   };
 
   // Add handler for deal click from contact view
-  const handleDealClickFromContact = (dealName: string) => {
-    setIsInNestedView(true);
-    // You can add additional logic here if needed
+  // const handleDealClickFromContact = (dealName: string) => {
+  //   setIsInNestedView(true);
+  //   // You can add additional logic here if needed
+  // };
+  const handleDealClickFromContact = async (dealName: string) => {
+    try {
+      // Fetch the deal details
+      const response = await apiAxios.post("/api/method/frappe.client.get", {
+        doctype: "CRM Deal",
+        name: dealName,
+      });
+
+      const dealData = response.data.message;
+
+      if (dealData) {
+        // Create a deal object that matches your Deal interface
+        const deal = {
+          ...dealData,
+          id: dealData.name,
+          organization: dealData.organization_name || dealData.organization
+        };
+
+        // Clear contact view and set deal view
+        setSelectedContact(null);
+        setSelectedDeal(deal);
+        setActiveMenuItem('deals');
+        setIsInNestedView(true);
+        window.history.pushState({}, '', `/deals/${dealName}`);
+      }
+    } catch (error) {
+      console.error("Error fetching deal details:", error);
+      // Show error toast or handle error appropriately
+    }
   };
 
   const handleLeadSave = (updatedLead: any) => {
@@ -743,6 +773,16 @@ function AppContent() {
       );
     }
 
+    if (selectedContact && activeMenuItem === 'contacts') {
+      return (
+        <ContactDetailView
+          contact={selectedContact}
+          onBack={handleContactBack}
+          onSave={handleContactSave}
+          onDealClick={handleDealClickFromContact} // Add this line
+        />
+      );
+    }
 
 
     switch (activeMenuItem) {

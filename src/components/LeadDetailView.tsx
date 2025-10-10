@@ -6,7 +6,6 @@ import { Listbox } from '@headlessui/react';
 import EmailComposerleads from '../components/Leads/EmailComposerleads';
 import { getAuthToken } from '../api/apiUrl';
 
-
 // Icons
 import {
   ArrowLeft,
@@ -336,6 +335,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
     status: 'Ringing',
     type: 'Outgoing',
     duration: '',
+    caller: '',
     receiver: '',
     name: ''
   });
@@ -1820,58 +1820,144 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
     fetchNotes, fetchTasks, fetchFiles]);
 
 
+  // const addCall = async () => {
+
+  //   // if (!callForm.from.trim() || !callForm.to.trim()) {
+  //   //   showToast('All required fields must be filled before proceeding.', { type: 'error' });
+  //   //   return;
+  //   // }
+  //   const newErrors: { [key: string]: string } = {};
+
+  //   if (!callForm.from.trim()) {
+  //     newErrors.from = 'From is required';
+  //   }
+
+  //   if (!callForm.to.trim()) {
+  //     newErrors.to = 'To is required';
+  //   }
+  //   if (!callForm.type.trim()) {
+  //     newErrors.type = 'Type is required';
+  //   }
+
+  //   if (Object.keys(newErrors).length > 0) {
+  //     setErrors(newErrors);
+  //     showToast('Please fill all required fields', { type: 'error' });
+  //     return;
+  //   }
+
+  //   // Clear any previous errors
+  //   setErrors({});
+
+  //   setCallsLoading(true);
+  //   try {
+  //     const session = getUserSession();
+  //     const sessionCompany = session?.company || '';
+  //     // Generate a random ID (or you can keep your existing ID generation logic)
+  //     const randomId = Math.random().toString(36).substring(2, 8).toUpperCase();
+
+  //     // Prepare the document data
+  //     const docData = {
+  //       doctype: "CRM Call Log",
+  //       id: randomId,
+  //       telephony_medium: "Manual",
+  //       reference_doctype: "CRM Lead",
+  //       company: sessionCompany,
+  //       reference_docname: lead.name,
+  //       type: callForm.type === 'Outgoing' ? 'Outgoing' : 'Incoming',
+  //       to: callForm.to,
+  //       from: callForm.from,
+  //       status: callForm.status,
+  //       duration: callForm.duration || "0",
+  //       // receiver: userSession?.email || "Administrator" // Use current user's email
+  //     };
+
+  //     if (callForm.type === 'Outgoing') {
+  //       docData.caller = callForm.caller; // Only add caller for outgoing
+  //     } else if (callForm.type === 'Incoming') {
+  //       docData.receiver = callForm.receiver; // Only add receiver for incoming
+  //     }
+
+  //     // Call the frappe.client.insert API
+  //     const response = await fetch('http://103.214.132.20:8002/api/method/frappe.client.insert', {
+  //       method: 'POST',
+  //       headers: {
+  //         'Authorization': AUTH_TOKEN,
+  //         'Content-Type': 'application/json'
+  //       },
+  //       body: JSON.stringify({
+  //         doc: docData
+  //       })
+  //     });
+
+  //     if (response.ok) {
+  //       setCallForm({
+  //         from: '',
+  //         to: '',
+  //         status: 'Ringing',
+  //         type: 'Outgoing',
+  //         duration: '',
+  //         caller: '',
+  //         receiver: '',
+  //         name: ''
+  //       });
+  //       await fetchCallLogs();
+  //       return true; // Return success status
+  //     } else {
+  //       const errorData = await response.json();
+  //       throw new Error(errorData.message || 'Failed to add call log');
+  //     }
+  //   } catch (error: any) {
+  //     console.error('Error adding call log:', error);
+  //     showToast(error.message || 'Failed to add call log', { type: 'error' });
+  //     return false; // Return failure status
+  //   } finally {
+  //     setCallsLoading(false);
+  //   }
+  // };
   const addCall = async () => {
-
-    // if (!callForm.from.trim() || !callForm.to.trim()) {
-    //   showToast('All required fields must be filled before proceeding.', { type: 'error' });
-    //   return;
-    // }
+    // --- Validation remains the same ---
     const newErrors: { [key: string]: string } = {};
-
-    if (!callForm.from.trim()) {
-      newErrors.from = 'From is required';
-    }
-
-    if (!callForm.to.trim()) {
-      newErrors.to = 'To is required';
-    }
-    if (!callForm.type.trim()) {
-      newErrors.type = 'Type is required';
-    }
+    if (!callForm.from.trim()) newErrors.from = 'From is required';
+    if (!callForm.to.trim()) newErrors.to = 'To is required';
+    if (!callForm.type.trim()) newErrors.type = 'Type is required';
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       showToast('Please fill all required fields', { type: 'error' });
       return;
     }
-
-    // Clear any previous errors
     setErrors({});
-
     setCallsLoading(true);
+
     try {
       const session = getUserSession();
       const sessionCompany = session?.company || '';
-      // Generate a random ID (or you can keep your existing ID generation logic)
       const randomId = Math.random().toString(36).substring(2, 8).toUpperCase();
 
-      // Prepare the document data
-      const docData = {
+      // --- MODIFICATION START ---
+      // 1. Create a base data object with common fields
+      const docData: any = {
         doctype: "CRM Call Log",
         id: randomId,
         telephony_medium: "Manual",
         reference_doctype: "CRM Lead",
         company: sessionCompany,
         reference_docname: lead.name,
-        type: callForm.type === 'Outgoing' ? 'Outgoing' : 'Incoming',
+        type: callForm.type,
         to: callForm.to,
         from: callForm.from,
         status: callForm.status,
         duration: callForm.duration || "0",
-        receiver: userSession?.email || "Administrator" // Use current user's email
       };
 
-      // Call the frappe.client.insert API
+      // 2. Conditionally add 'caller' or 'receiver' based on the type
+      if (callForm.type === 'Outgoing') {
+        docData.caller = callForm.caller; // Only add caller for outgoing
+      } else if (callForm.type === 'Incoming') {
+        docData.receiver = callForm.receiver; // Only add receiver for incoming
+      }
+      // --- MODIFICATION END ---
+
       const response = await fetch('http://103.214.132.20:8002/api/method/frappe.client.insert', {
         method: 'POST',
         headers: {
@@ -1879,7 +1965,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          doc: docData
+          doc: docData // Use the dynamically created docData object
         })
       });
 
@@ -1889,10 +1975,13 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
           to: '',
           status: 'Ringing',
           type: 'Outgoing',
-          duration: ''
+          duration: '',
+          caller: '',
+          receiver: '',
+          name: ''
         });
         await fetchCallLogs();
-        return true; // Return success status
+        return true;
       } else {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to add call log');
@@ -1900,44 +1989,55 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
     } catch (error: any) {
       console.error('Error adding call log:', error);
       showToast(error.message || 'Failed to add call log', { type: 'error' });
-      return false; // Return failure status
+      return false;
     } finally {
       setCallsLoading(false);
     }
   };
 
   const editCall = async () => {
-    // if (!callForm.from.trim() || !callForm.to.trim()) {
-    //   showToast('All required fields must be filled before proceeding.', { type: 'warning' });
-    //   return false;
-    // }
-
+    // --- Validation remains the same ---
     const newErrors: { [key: string]: string } = {};
-
-    if (!callForm.from.trim()) {
-      newErrors.from = 'From is required';
-    }
-
-    if (!callForm.to.trim()) {
-      newErrors.to = 'To is required';
-    }
-
-    if (!callForm.type.trim()) {
-      newErrors.type = 'Type is required';
-    }
+    if (!callForm.from.trim()) newErrors.from = 'From is required';
+    if (!callForm.to.trim()) newErrors.to = 'To is required';
+    if (!callForm.type.trim()) newErrors.type = 'Type is required';
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       showToast('Please fill all required fields', { type: 'error' });
       return;
     }
-
-    // Clear any previous errors
     setErrors({});
     setCallsLoading(true);
+
     try {
       const session = getUserSession();
       const sessionCompany = session?.company || '';
+
+      // --- MODIFICATION START ---
+      // 1. Create a base fieldname object with common fields
+      const fieldname: any = {
+        telephony_medium: "Manual",
+        reference_doctype: "CRM Lead",
+        reference_docname: lead.name,
+        company: sessionCompany,
+        type: callForm.type,
+        to: callForm.to,
+        from: callForm.from,
+        status: callForm.status,
+        duration: callForm.duration || "0",
+      };
+
+      // 2. Conditionally set 'caller' or 'receiver' and nullify the other
+      if (callForm.type === 'Outgoing') {
+        fieldname.caller = callForm.caller;
+        fieldname.receiver = null; // Clear receiver when it's an outgoing call
+      } else if (callForm.type === 'Incoming') {
+        fieldname.receiver = callForm.receiver;
+        fieldname.caller = null; // Clear caller when it's an incoming call
+      }
+      // --- MODIFICATION END ---
+
       const response = await fetch('http://103.214.132.20:8002/api/method/frappe.client.set_value', {
         method: 'POST',
         headers: {
@@ -1946,25 +2046,14 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
         },
         body: JSON.stringify({
           doctype: "CRM Call Log",
-          name: callForm.name, // Existing document name
-          fieldname: {
-            telephony_medium: "Manual",
-            reference_doctype: "CRM Lead",
-            reference_docname: lead.name,
-            company: sessionCompany,
-            type: callForm.type === 'Outgoing' ? 'Outgoing' : 'Incoming',
-            to: callForm.to,
-            from: callForm.from,
-            status: callForm.status,
-            duration: callForm.duration || "0",
-            receiver: userSession?.email || "Administrator"
-          }
+          name: callForm.name,
+          fieldname: fieldname // Use the dynamically created fieldname object
         })
       });
 
       if (response.ok) {
         showToast('Call log updated successfully', { type: 'success' });
-        setCallForm({ from: '', to: '', status: 'Ringing', type: 'Outgoing', duration: '', receiver: '', name: '' });
+        setCallForm({ from: '', to: '', status: 'Ringing', type: 'Outgoing', duration: '', caller: '', receiver: '', name: '' });
         await fetchCallLogs();
         setShowCallModal(false);
         await refreshAllActivities();
@@ -1981,7 +2070,6 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
       setCallsLoading(false);
     }
   };
-
 
 
   const addTask = async (formData: TaskForm) => {
@@ -2952,7 +3040,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
                       </div>
 
                       {/* Auto-fill button to populate the form fields */}
-                      
+
                     </div>
                   )}
 
@@ -4137,6 +4225,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
                       status: 'Ringing',
                       type: 'Outgoing',
                       duration: '',
+                      caller: '',
                       receiver: '',
                       name: ''
                     });
@@ -4282,9 +4371,9 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
                           status: editingCall.status || 'Ringing',
                           type: editingCall.type || 'Outgoing',
                           duration: editingCall.duration || '',
-                          receiver: editingCall.to || editingCall._receiver?.label || '',
+                          caller: editingCall.caller || '',      // Use the 'caller' field for the user ID
+                          receiver: editingCall.receiver || '',
                           name: editingCall.name || '',
-
                         });
                         setIsEditMode(true);
                         setShowPopup(false);
@@ -4308,7 +4397,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
               <button
                 onClick={() => {
                   setShowCallModal(false);
-                  setCallForm({ from: '', to: '', status: 'Ringing', type: 'Outgoing', duration: '', receiver: '', name: '' });
+                  setCallForm({ from: '', to: '', status: 'Ringing', type: 'Outgoing', duration: '', caller: '', receiver: '', name: '' });
                 }}
                 className="absolute top-2 right-3 text-gray-500 hover:text-gray-700 dark:hover:text-white"
               >
@@ -4407,8 +4496,8 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
                   <div>
                     <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>Caller</label>
                     <select
-                      value={callForm.from}
-                      onChange={(e) => setCallForm({ ...callForm, from: e.target.value })}
+                      value={callForm.caller}
+                      onChange={(e) => setCallForm({ ...callForm, caller: e.target.value })}
                       className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
                     >
                       <option value="">Select Caller</option>
@@ -5450,7 +5539,8 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
                 status: editingCall.status || 'Ringing',
                 type: editingCall.type || 'Outgoing',
                 duration: editingCall.duration || '',
-                receiver: editingCall.to || editingCall._receiver?.label || '',
+                caller: editingCall.caller || '',      // Use the 'caller' field for the user ID
+                receiver: editingCall.receiver || '',
                 name: editingCall.name || '',
               });
               setIsEditMode(true);

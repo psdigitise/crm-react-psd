@@ -31,8 +31,6 @@ import { FiChevronDown } from "react-icons/fi";
 import { CreateOrganizationPopup } from './DealPopups/CreateOrganizationPopup';
 import { CreateTerritoryPopup } from './DealPopups/CreateTerritoryPopup';
 
-
-
 export interface Deal {
   id: string;
   name: string;
@@ -4754,7 +4752,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
               status: callToEdit.status || 'Ringing',
               type: callToEdit.type || 'Outgoing',
               duration: callToEdit.duration || '',
-              receiver: callToEdit.to || callToEdit._receiver?.label || '',
+              caller: editingCall.caller || '',
+              receiver: editingCall.receiver || '',
               name: callToEdit.name || '',
             });
             setIsEditMode(true);
