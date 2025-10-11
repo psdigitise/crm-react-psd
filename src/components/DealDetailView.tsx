@@ -829,7 +829,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
       const randomId = Math.random().toString(36).substring(2, 8).toUpperCase();
 
       // Prepare the document data
-      const docData = {
+      const docData: { [key: string]: any } = {
         doctype: "CRM Call Log",
         id: randomId,
         telephony_medium: "Manual",
@@ -841,9 +841,14 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         from: callForm.from,
         status: callForm.status,
         duration: callForm.duration || "0",
-        receiver: userSession?.email || "Administrator" // Use current user's email
+        //receiver: userSession?.email || "Administrator" // Use current user's email
       };
 
+      if (callForm.type === 'Outgoing') {
+        docData.caller = callForm.caller; // Only add caller for outgoing
+      } else if (callForm.type === 'Incoming') {
+        docData.receiver = callForm.receiver; // Only add receiver for incoming
+      }
       // Call the frappe.client.insert API
       const response = await fetch(`${API_BASE_URL}/method/frappe.client.insert`, {
         method: 'POST',
@@ -862,7 +867,10 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
           to: '',
           status: 'Ringing',
           type: 'Outgoing',
-          duration: ''
+          duration: '',
+          name: '',
+          caller: '',
+          receiver: '',
         });
         await fetchCallLogs();
         return true; // Return success status
@@ -870,7 +878,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to add call log');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding call log:', error);
       showToast(error.message || 'Failed to add call log', { type: 'error' });
       return false; // Return failure status
@@ -927,6 +935,26 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
     try {
       const session = getUserSession();
       const sessionCompany = session?.company || '';
+
+      const fieldname: { [key: string]: any } = {
+        telephony_medium: "Manual",
+        reference_doctype: "CRM Deal",
+        reference_docname: deal.name,
+        type: callForm.type,
+        to: callForm.to,
+        company: sessionCompany,
+        from: callForm.from,
+        status: callForm.status,
+        duration: callForm.duration || "0",
+      };
+
+      // 2. Conditionally add 'caller' or 'receiver' based on the type
+      if (callForm.type === 'Outgoing') {
+        fieldname.caller = callForm.caller;
+      } else if (callForm.type === 'Incoming') {
+        fieldname.receiver = callForm.receiver;
+      }
+
       const response = await fetch(`${API_BASE_URL}/method/frappe.client.set_value`, {
         method: 'POST',
         headers: {
@@ -936,24 +964,13 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         body: JSON.stringify({
           doctype: "CRM Call Log",
           name: callForm.name, // Existing document name
-          fieldname: {
-            telephony_medium: "Manual",
-            reference_doctype: "CRM Deal",
-            reference_docname: deal.name,
-            type: callForm.type === 'Outgoing' ? 'Outgoing' : 'Incoming',
-            to: callForm.to,
-            company: sessionCompany,
-            from: callForm.from,
-            status: callForm.status,
-            duration: callForm.duration || "0",
-            receiver: userSession?.email || "Administrator"
-          }
+          fieldname: fieldname
         })
       });
 
       if (response.ok) {
         showToast('Call log updated successfully', { type: 'success' });
-        setCallForm({ from: '', to: '', status: 'Ringing', type: 'Outgoing', duration: '', receiver: '', name: '' });
+        setCallForm({ from: '', to: '', status: 'Ringing', type: 'Outgoing', duration: '', caller: '', receiver: '', name: '' });
         await fetchCallLogs();
         setShowCallModal(false);
         await refreshAllActivities();
@@ -1955,7 +1972,6 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
   //   }
   //   setShowCallDetailsPopup(true);
   // };
-
 
   const handleLabelClick = (call: any) => {
     console.log("=== DEBUGGING CALL DATA ===");
@@ -2972,15 +2988,17 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                     <CallDetailsPopup
                       call={{
                         type: editingCall.type,
-                        caller: editingCall._caller?.label || "Unknown",
-                        receiver: editingCall._receiver?.label || "Unknown",
+                        caller: editingCall.from || editingCall._caller?.label || "Unknown",
+                        receiver: editingCall.to || editingCall._receiver?.label || "Unknown",
                         date: formatDateRelative(editingCall.creation),
                         duration: editingCall.duration,
                         status: editingCall.status,
+                        name: editingCall.name,
                         _notes: editingCall._notes || [],
                         _tasks: editingCall._tasks || []
                       }}
                       onClose={() => setShowPopup(false)}
+                      onTaskCreated={fetchTasks}
                       onAddTask={handleAddTaskFromCall}
                       onEdit={() => {
                         setCallForm({
@@ -2989,14 +3007,15 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                           status: editingCall.status || 'Ringing',
                           type: editingCall.type || 'Outgoing',
                           duration: editingCall.duration || '',
+                          caller: editingCall._caller?.value || editingCall.caller || '',
+                          receiver: editingCall._receiver?.value || editingCall.receiver || '',
                           name: editingCall.name || '',
-                          caller: editingCall.caller || '',
-                          receiver: editingCall.receiver || '',
                         });
                         setIsEditMode(true);
                         setShowPopup(false);
                         setShowCallModal(true);
                       }}
+                      fetchCallLogs={fetchCallLogs}
                       theme={theme}
                     />
                   )}
@@ -3011,7 +3030,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
               <button
                 onClick={() => {
                   setShowCallModal(false);
-                  setCallForm({ from: '', to: '', status: 'Ringing', type: 'Outgoing', duration: '', receiver: '', name: '' });
+                  setCallForm({ from: '', to: '', status: 'Ringing', type: 'Outgoing', duration: '', caller: '', receiver: '', name: '' });
                   setErrors({});
                 }}
                 className="absolute top-2 right-3 text-gray-500 hover:text-gray-700 dark:hover:text-white"
@@ -3115,24 +3134,25 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                   />
                 </div>
 
+                {/* Caller Field (Conditionally rendered for 'Outgoing' calls) */}
                 {callForm.type === 'Outgoing' && (
                   <div>
                     <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>Caller</label>
                     <select
                       value={callForm.caller}
                       onChange={(e) => setCallForm({ ...callForm, caller: e.target.value })}
-                      className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
                     >
                       <option value="">Select Caller</option>
-                      {OwnersOptions.map((user: any) => (
+                      {userOptions.map((user) => (
                         <option key={user.value} value={user.value}>
-                          {user.description || user.label}  {/* Show description instead of label */}
+                          {user.label}
                         </option>
                       ))}
                     </select>
                   </div>
                 )}
 
+                {/* Receiver Field (Conditionally rendered for 'Incoming' calls) */}
                 {callForm.type === 'Incoming' && (
                   <div>
                     <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>Call Received By</label>
@@ -3142,14 +3162,16 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                       className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
                     >
                       <option value="">Select Receiver</option>
-                      {OwnersOptions.map((user: any) => (
+                      {/* This also maps over the same user list */}
+                      {userOptions.map((user) => (
                         <option key={user.value} value={user.value}>
-                          {user.description || user.label}  {/* Show description instead of label */}
+                          {user.label}
                         </option>
                       ))}
                     </select>
                   </div>
                 )}
+
               </div>
 
               <div className="flex justify-end mt-6">
@@ -3164,7 +3186,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                     if (success) {
                       setShowCallModal(false);
                       setIsEditMode(false);
-                      setCallForm({ from: '', to: '', status: 'Ringing', type: 'Outgoing', duration: '', receiver: '', name: '' });
+                      setCallForm({ from: '', to: '', status: 'Ringing', type: 'Outgoing', duration: '', caller: '', receiver: '', name: '' });
                     }
                   }}
                   disabled={callsLoading}
@@ -4736,7 +4758,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
             status: (editingCall || editingCallFromActivity)?.status,
             name: (editingCall || editingCallFromActivity)?.name, // ADDED: Passes the unique call name/ID
             _notes: (editingCall || editingCallFromActivity)?._notes || [], // ADDED: Passes the notes for this call
-            _tasks: (editingCall || editingCallFromActivity)?._tasks || [] // ADDED: Passes the notes for this call
+            _tasks: (editingCall || editingCallFromActivity)?._tasks || [],// ADDED: Passes the notes for this call
           }}
           onClose={() => {
             setShowCallDetailsPopup(false);
@@ -4752,8 +4774,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
               status: callToEdit.status || 'Ringing',
               type: callToEdit.type || 'Outgoing',
               duration: callToEdit.duration || '',
-              caller: editingCall.caller || '',
-              receiver: editingCall.receiver || '',
+              caller: editingCall._caller?.value || editingCall.caller || '',
+              receiver: editingCall._receiver?.value || editingCall.receiver || '',
               name: callToEdit.name || '',
             });
             setIsEditMode(true);

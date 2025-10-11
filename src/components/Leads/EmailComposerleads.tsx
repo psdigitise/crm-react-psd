@@ -90,10 +90,15 @@ export default function EmailComposerleads({
     const [showConfirmationPopup, setShowConfirmationPopup] = useState(false);
     const [subjectToGenerate, setSubjectToGenerate] = useState("");
 
+    // const isValidEmail = (email: string) => {
+    //     // Simple regex for email validation
+    //     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    //     return emailRegex.test(email);
+    // };
     const isValidEmail = (email: string) => {
-        // Simple regex for email validation
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return emailRegex.test(email);
+        // Allow both plain and display-name email formats
+        const emailRegex = /^([^<>]+<)?[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(>)?$/;
+        return emailRegex.test(email.trim());
     };
 
     useEffect(() => {
