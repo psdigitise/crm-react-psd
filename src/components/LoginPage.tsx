@@ -5,6 +5,7 @@ import { FiPhone } from 'react-icons/fi';
 import axios from 'axios';
 import { apiAxios, AUTH_TOKEN } from '../api/apiUrl';
 import { CrmSetupModal } from './LoginPopups/CrmSetupModal';
+import { useNavigate } from 'react-router-dom';
 
 interface LoginPageProps {
   onLogin: () => void;
@@ -97,7 +98,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [passwordError, setPasswordError] = useState("");
-
+  const navigate = useNavigate();
   // Login form validation states
   const [emailError, setEmailError] = useState('');
   const [loginPasswordError, setLoginPasswordError] = useState('');
@@ -770,6 +771,17 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                 {loginPasswordError && (
                   <p className="text-red-400 text-sm mt-1">{loginPasswordError}</p>
                 )}
+              </div>
+
+              <div className="text-right">
+                <button
+                  type="button"
+                  className="text-md font-medium text-white hover:underline"
+                  disabled={loading}
+                  onClick={() => navigate("/ForgotPassword")}
+                >
+                  Forgot Password?
+                </button>
               </div>
 
               {/* Login Button */}

@@ -753,14 +753,25 @@ Can you please provider more details on this..."
               <button
                 className="text-red-500 text-base font-semibold px-5 py-2"
                 onClick={() => {
+                  // Reset all form-related states
                   setEmailForm({ recipient: "", cc: "", bcc: "", subject: "", message: "" });
+                  setUploadedFiles([]);
+                  setQuotedMessage("");
+                  setShowCC(false);
+                  setShowBCC(false);
+                  setShowEmojiPicker(false);
+                  setUserSuggestions([]);
+                  setShowSuggestions(false);
+
+                  // Optional cleanup
+                  if (clearSelectedEmail) clearSelectedEmail();
                   if (onClose) onClose();
-                  if (clearSelectedEmail) clearSelectedEmail(); // Clear selected email
                 }}
                 type="button"
               >
                 Discard
               </button>
+
               <button
                 className={`text-base font-semibold px-5 py-2 rounded-md flex items-center gap-1
     ${loading || !emailForm.message.trim()

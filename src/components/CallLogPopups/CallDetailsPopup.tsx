@@ -10,7 +10,8 @@ import { PiDotsThreeOutlineFill } from 'react-icons/pi';
 import { SquarePen } from 'lucide-react';
 import { showToast } from '../../utils/toast';
 import { SiTicktick } from 'react-icons/si';
-import { getAuthToken } from '../../api/apiUrl';
+import { apiAxios, getAuthToken } from '../../api/apiUrl';
+import { getUserSession } from '../../utils/session';
 
 interface CallDetailsPopupProps {
     onClose: () => void;
@@ -85,7 +86,7 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
         title: '',
         content: ''
     });
-
+    const [userOptions, setUserOptions] = useState<{ value: string; label: string; }[]>([]);
     // Fetches tasks and sets notes from props when the component mounts
     useEffect(() => {
         console.log("=== CallDetailsPopup Mount ===");
@@ -320,14 +321,16 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
         setIsAddingNote(false);
         setIsEditingNote(false);
 
+
         if (tasks.length > 0) { // Check if there are any tasks
             const firstTask = tasks[0]; // Get the first task
+            const dueDate = firstTask.due_date ? firstTask.due_date.split(' ')[0] : '';
             setTaskForm({
                 title: firstTask.title,
                 description: firstTask.description,
                 status: firstTask.status,
                 priority: firstTask.priority,
-                due_date: firstTask.due_date,
+                due_date: dueDate,
                 assigned_to: firstTask.assigned_to
             });
         }
@@ -459,7 +462,46 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
         }
     };
 
+    useEffect(() => {
+        const fetchUsers = async () => {
+            try {
+                const session = getUserSession();
+                const sessionCompany = session?.company;
+                const response = await apiAxios.post(
+                    '/api/method/frappe.desk.search.search_link',
+                    {
+                        txt: "",
+                        doctype: "User",
+                        filters: sessionCompany ? { company: sessionCompany } : null
+                        //company: sessionCompany
+                    },
+                    {
+                        headers: {
+                            'Authorization': AUTH_TOKEN,
+                            'Content-Type': 'application/json'
+                        }
+                    }
+                    // ... headers
+                );
 
+                const data = response.data;
+
+                // Map the response to the correct { value, label } format
+                const options = data.message.map((item: { value: string; description: string; }) => ({
+                    value: item.value,       // The email to send to the backend
+                    label: item.description  // The full name to show in the dropdown
+                }));
+
+                setUserOptions(options); // Set the new state
+
+            } catch (err) {
+                console.error('Error fetching users:', err);
+                showToast('Failed to load user list', { type: 'error' });
+            }
+        };
+
+        fetchUsers();
+    }, []);
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto">
@@ -677,43 +719,20 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
                                     <select
                                         value={taskForm.assigned_to}
                                         onChange={(e) => setTaskForm({ ...taskForm, assigned_to: e.target.value })}
-                                        className={`w-full px-2 py-2 rounded-lg ${theme === 'dark'
-                                            ? 'bg-gray-800 border border-gray-600 text-white'
-                                            : 'bg-gray-100 border border-gray-300 text-gray-900'
+                                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
+                                            ? 'bg-gray-800 border-gray-600 text-white'
+                                            : 'bg-white border-gray-300 text-gray-900'
                                             }`}
                                     >
-                                        <option className={`mt-2 w-full rounded px-3 py-2 ${theme === 'dark'
-                                            ? 'bg-gray-800 border-gray-600 text-white'
-                                            : 'bg-white border-gray-300 text-gray-900'
-                                            } border`} value="">Select Assignee</option>
-                                        <option className={`mt-2 w-full rounded px-3 py-2 ${theme === 'dark'
-                                            ? 'bg-gray-800 border-gray-600 text-white'
-                                            : 'bg-white border-gray-300 text-gray-900'
-                                            } border`} value="hari@psd123.com">Hari</option>
-                                        <option className={`mt-2 w-full rounded px-3 py-2 ${theme === 'dark'
-                                            ? 'bg-gray-800 border-gray-600 text-white'
-                                            : 'bg-white border-gray-300 text-gray-900'
-                                            } border`} value="arun@psd.com">Arun</option>
-                                        <option className={`mt-2 w-full rounded px-3 py-2 ${theme === 'dark'
-                                            ? 'bg-gray-800 border-gray-600 text-white'
-                                            : 'bg-white border-gray-300 text-gray-900'
-                                            } border`} value="demo@psdigitise.com">Demo</option>
-                                        <option className={`mt-2 w-full rounded px-3 py-2 ${theme === 'dark'
-                                            ? 'bg-gray-800 border-gray-600 text-white'
-                                            : 'bg-white border-gray-300 text-gray-900'
-                                            } border`} value="fen87joshi@yahoo.com">Feni</option>
-                                        <option className={`mt-2 w-full rounded px-3 py-2 ${theme === 'dark'
-                                            ? 'bg-gray-800 border-gray-600 text-white'
-                                            : 'bg-white border-gray-300 text-gray-900'
-                                            } border`} value="fenila@psd.com">Fenila</option>
-                                        <option className={`mt-2 w-full rounded px-3 py-2 ${theme === 'dark'
-                                            ? 'bg-gray-800 border-gray-600 text-white'
-                                            : 'bg-white border-gray-300 text-gray-900'
-                                            } border`} value="mx.techies@gmail.com">MX Techies</option>
-                                        <option className={`mt-2 w-full rounded px-3 py-2 ${theme === 'dark'
-                                            ? 'bg-gray-800 border-gray-600 text-white'
-                                            : 'bg-white border-gray-300 text-gray-900'
-                                            } border`} value="prasad@psd.com">Prasad</option>
+                                        <option value="" style={{ color: theme === 'dark' ? '#fff' : '#000' }}>
+                                            Select Assignee
+                                        </option>
+                                        {userOptions.map((user) => (
+                                            <option key={user.value} value={user.value} style={{ color: theme === 'dark' ? '#fff' : '#000' }}>
+                                                {user.label}
+                                            </option>
+                                        ))}
+
                                     </select>
                                 </div>
                             </div>

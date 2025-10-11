@@ -4800,15 +4800,16 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
                       key={task.name}
                       onClick={() => {
                         // Format the date correctly for the date input
-                        let formattedDate = '';
-                        if (task.due_date) {
-                          // Parse the date string to a Date object
-                          const dateObj = new Date(task.due_date);
-                          if (!isNaN(dateObj.getTime())) {
-                            // Format to YYYY-MM-DD for the date input
-                            formattedDate = dateObj.toISOString().split('T')[0];
-                          }
-                        }
+                        // let formattedDate = '';
+                        // if (task.due_date) {
+                        //   // Parse the date string to a Date object
+                        //   const dateObj = new Date(task.due_date);
+                        //   if (!isNaN(dateObj.getTime())) {
+                        //     // Format to YYYY-MM-DD for the date input
+                        //     formattedDate = dateObj.toISOString().split('T')[0];
+                        //   }
+                        // }
+                        const dueDate = task.due_date ? task.due_date.split(' ')[0] : '';
 
                         setTaskForm({
                           name: task.name,
@@ -4816,7 +4817,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
                           description: task.description || '',
                           status: task.status || 'Open',
                           priority: task.priority || 'Medium',
-                          due_date: formattedDate,
+                          due_date: dueDate,
                           assigned_to: task.assigned_to || '',
                         });
                         setIsEditMode(true);

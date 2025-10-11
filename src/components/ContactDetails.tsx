@@ -666,31 +666,58 @@ export default function ContactDetails({
 
       const session = getUserSession();
       if (!session) {
-        showToast('Session not found', { type: 'error' });
+        showToast("Session not found", { type: "error" });
         setShowDeleteConfirm(false);
         return;
       }
 
-      const apiUrl = `http://103.214.132.20:8002/api/v2/document/Contact/${contact.id}`;
+      // Use the contact ID (document name) instead of full_name
+      const apiUrl = "http://103.214.132.20:8002/api/method/frappe.client.delete";
 
-      const response = await fetch(apiUrl, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': AUTH_TOKEN
+      const response = await axios.post(
+        apiUrl,
+        {
+          doctype: "Contact",
+          name: contact.id, // Use contact.id instead of contact.full_name
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: AUTH_TOKEN,
+          },
         }
-      });
+      );
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      // ✅ Improved success check
+      if (response.status === 200) {
+        // Frappe delete often returns empty object on success
+        // Check for any positive indication of success
+        if (response.data && (response.data.message === "ok" || Object.keys(response.data).length === 0)) {
+          showToast("Contact deleted successfully", { type: "success" });
+          setShowDeleteConfirm(false);
+          onBack(); // Navigate back after successful deletion
+        } else {
+          throw new Error("Delete operation completed but with unexpected response");
+        }
+      } else {
+        throw new Error(`Delete failed with status: ${response.status}`);
+      }
+    } catch (error:any) {
+      console.error("Error deleting contact:", error);
+
+      // More specific error message
+      if (error.response) {
+        // Server responded with error status
+        showToast(`Failed to delete contact: ${error.response.data.message || error.response.statusText}`, { type: "error" });
+      } else if (error.request) {
+        // Request made but no response received
+        showToast("Failed to delete contact: No response from server", { type: "error" });
+      } else {
+        // Something else happened
+        showToast(`Failed to delete contact: ${error.message}`, { type: "error" });
       }
 
-      showToast('Contact deleted successfully', { type: 'success' });
-      setShowDeleteConfirm(false); // Close the popup
-      onBack(); // Navigate back
-    } catch (error) {
-      console.error('Error deleting contact:', error);
-      showToast('Failed to delete contact', { type: 'error' });
-      setShowDeleteConfirm(false); // Close the popup even on error
+      setShowDeleteConfirm(false);
     } finally {
       setDeleteLoading(false);
     }

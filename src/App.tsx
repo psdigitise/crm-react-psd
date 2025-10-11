@@ -38,6 +38,7 @@ import { apiAxios, AUTH_TOKEN } from './api/apiUrl';
 import { AuthErrorModal } from './components/SessionLogout/AuthErrorModal';
 import { registerAuthModalCallback, registerLogoutCallback } from './utils/apiErrorHandler';
 import PasswordResetPage from './components/ResetPassword';
+import ForgotPasswordPage from './components/ForgotPasswordPage';
 
 
 function AppContent() {
@@ -1026,6 +1027,7 @@ function App() {
         <Routes>
           <Route path="*" element={<AppContent />} />
           <Route path="/update-password" element={<PasswordResetPage />} />
+          <Route path="/ForgotPassword" element={<ForgotPasswordPage />} />
         </Routes>
       </Router>
     </ThemeProvider>
