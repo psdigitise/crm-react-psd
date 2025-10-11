@@ -121,7 +121,7 @@ function CreateAddressModal({ isOpen, onClose, onSubmit }: CreateAddressModalPro
         }
       });
 
-      const apiUrl = 'http://103.214.132.20:8002/api/method/frappe.client.insert';
+      const apiUrl = 'https://api.erpnext.ai/api/method/frappe.client.insert';
 
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -447,7 +447,7 @@ export function CreateOrganizationModal({ isOpen, onClose, onSubmit }: CreateOrg
         return;
       }
 
-      const apiUrl = 'http://103.214.132.20:8002/api/method/frappe.desk.search.search_link';
+      const apiUrl = 'https://api.erpnext.ai/api/method/frappe.desk.search.search_link';
 
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -484,7 +484,7 @@ export function CreateOrganizationModal({ isOpen, onClose, onSubmit }: CreateOrg
         return;
       }
 
-      const apiUrl = 'http://103.214.132.20:8002/api/method/frappe.desk.search.search_link';
+      const apiUrl = 'https://api.erpnext.ai/api/method/frappe.desk.search.search_link';
 
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -524,7 +524,7 @@ export function CreateOrganizationModal({ isOpen, onClose, onSubmit }: CreateOrg
       const sessionCompany = session?.company;
 
       // Build URL with filter parameter
-      let apiUrl = 'http://103.214.132.20:8002/api/v2/document/Address';
+      let apiUrl = 'https://api.erpnext.ai/api/v2/document/Address';
 
       // Add filter if session company exists
       if (sessionCompany) {
@@ -610,7 +610,7 @@ export function CreateOrganizationModal({ isOpen, onClose, onSubmit }: CreateOrg
         }
       });
 
-      const apiUrl = 'http://103.214.132.20:8002/api/method/frappe.client.insert';
+      const apiUrl = 'https://api.erpnext.ai/api/method/frappe.client.insert';
 
       const response = await fetch(apiUrl, {
         method: 'POST',

@@ -293,7 +293,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
       formData.append('usr', email);
       formData.append('pwd', password);
 
-      const response = await fetch('http://103.214.132.20:8002/api/method/customcrm.api.login', {
+      const response = await fetch('https://api.erpnext.ai/api/method/customcrm.api.login', {
         method: 'POST',
         body: formData,
         headers: {
@@ -365,7 +365,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
     try {
       // 1️⃣ First validate that company name is unique
       const checkCompanyResponse = await fetch(
-        `http://103.214.132.20:8002/api/v2/document/Company?filters=[["name","=","${companyData.company_name}"]]`,
+        `https://api.erpnext.ai/api/v2/document/Company?filters=[["name","=","${companyData.company_name}"]]`,
         {
           method: "GET",
           headers: {
@@ -384,7 +384,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 
       // 2️⃣ Validate that email doesn't exist
       const checkUserResponse = await fetch(
-        `http://103.214.132.20:8002/api/v2/document/User?filters=[["email","=","${registerData.email}"]]`,
+        `https://api.erpnext.ai/api/v2/document/User?filters=[["email","=","${registerData.email}"]]`,
         {
           method: "GET",
           headers: {
@@ -409,7 +409,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
       };
 
       const companyResponse = await fetch(
-        "http://103.214.132.20:8002/api/v2/document/Company/",
+        "https://api.erpnext.ai/api/v2/document/Company/",
         {
           method: "POST",
           headers: {
@@ -455,7 +455,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
         // If user creation fails, delete the company
         try {
           await fetch(
-            `http://103.214.132.20:8002/api/v2/document/Company/${encodeURIComponent(companyData.company_name)}`,
+            `https://api.erpnext.ai/api/v2/document/Company/${encodeURIComponent(companyData.company_name)}`,
             {
               method: "DELETE",
               headers: {

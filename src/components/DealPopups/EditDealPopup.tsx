@@ -43,7 +43,7 @@ export const EditDealPopup: React.FC<EditDealPopupProps> = ({
       setLoading(true);
       setFetchError(null);
       
-      const apiUrl = 'http://103.214.132.20:8002/api/method/crm.api.doc.get_fields';
+      const apiUrl = 'https://api.erpnext.ai/api/method/crm.api.doc.get_fields';
 
       const payload = {
         doctype: "CRM Deal"
@@ -97,7 +97,7 @@ export const EditDealPopup: React.FC<EditDealPopupProps> = ({
       setLoading(true);
       setError(null);
       
-      const apiUrl = 'http://103.214.132.20:8002/api/method/frappe.desk.doctype.bulk_update.bulk_update.submit_cancel_or_update_docs';
+      const apiUrl = 'https://api.erpnext.ai/api/method/frappe.desk.doctype.bulk_update.bulk_update.submit_cancel_or_update_docs';
       
       // Prepare the payload as specified
       const payload = {

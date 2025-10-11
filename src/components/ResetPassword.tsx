@@ -102,7 +102,7 @@ export default function PasswordResetPage() {
             formData.append('cmd', 'frappe.core.doctype.user.user.update_password');
 
             // Make API call using Axios
-            const response = await axios.post('http://103.214.132.20:8002/', formData, {
+            const response = await axios.post('https://api.erpnext.ai/', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },

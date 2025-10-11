@@ -236,7 +236,7 @@ interface SalutationOption {
   label: string;
 }
 
-const API_BASE_URL = 'http://103.214.132.20:8002/api';
+const API_BASE_URL = 'https://api.erpnext.ai/api';
 //const AUTH_TOKEN = AUTH_TOKEN;
 
 
@@ -584,7 +584,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
     try {
       setLoading(true);
       const response = await fetch(
-        "http://103.214.132.20:8002/api/method/crm.api.activities.get_activities",
+        "https://api.erpnext.ai/api/method/crm.api.activities.get_activities",
         {
           method: "POST",
           headers: {
@@ -656,7 +656,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
     try {
       // Create an array of promises for each call log detail fetch
       const detailPromises = callNames.map(name =>
-        fetch(`http://103.214.132.20:8002/api/method/crm.fcrm.doctype.crm_call_log.crm_call_log.get_call_log`, {
+        fetch(`https://api.erpnext.ai/api/method/crm.fcrm.doctype.crm_call_log.crm_call_log.get_call_log`, {
           method: 'POST',
           headers: {
             'Authorization': AUTH_TOKEN,
@@ -685,7 +685,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
     setActivities([]);
     try {
       const response = await fetch(
-        "http://103.214.132.20:8002/api/method/crm.api.activities.get_activities",
+        "https://api.erpnext.ai/api/method/crm.api.activities.get_activities",
         {
           method: "POST",
           headers: {
@@ -1198,7 +1198,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
     setNotesLoading(true);
     try {
       const response = await fetch(
-        'http://103.214.132.20:8002/api/method/crm.api.activities.get_activities',
+        'https://api.erpnext.ai/api/method/crm.api.activities.get_activities',
         {
           method: 'POST',
           headers: {
@@ -1433,7 +1433,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
 
     setGeneratingInfo(true);
     try {
-      const response = await fetch('http://103.214.132.20:8002/api/method/customcrm.email.get_company_info.get_company_info', {
+      const response = await fetch('https://api.erpnext.ai/api/method/customcrm.email.get_company_info.get_company_info', {
         method: 'POST',
         headers: {
           'Authorization': AUTH_TOKEN,
@@ -1878,7 +1878,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
   //     }
 
   //     // Call the frappe.client.insert API
-  //     const response = await fetch('http://103.214.132.20:8002/api/method/frappe.client.insert', {
+  //     const response = await fetch('https://api.erpnext.ai/api/method/frappe.client.insert', {
   //       method: 'POST',
   //       headers: {
   //         'Authorization': AUTH_TOKEN,
@@ -1958,7 +1958,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
       }
       // --- MODIFICATION END ---
 
-      const response = await fetch('http://103.214.132.20:8002/api/method/frappe.client.insert', {
+      const response = await fetch('https://api.erpnext.ai/api/method/frappe.client.insert', {
         method: 'POST',
         headers: {
           'Authorization': AUTH_TOKEN,
@@ -2038,7 +2038,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
       }
       // --- MODIFICATION END ---
 
-      const response = await fetch('http://103.214.132.20:8002/api/method/frappe.client.set_value', {
+      const response = await fetch('https://api.erpnext.ai/api/method/frappe.client.set_value', {
         method: 'POST',
         headers: {
           'Authorization': AUTH_TOKEN,
@@ -2243,7 +2243,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
     const fetchSalutations = async () => {
       setLoading(true);
       try {
-        const response = await fetch("http://103.214.132.20:8002/api/method/frappe.desk.search.search_link", {
+        const response = await fetch("https://api.erpnext.ai/api/method/frappe.desk.search.search_link", {
           method: "POST",
           headers: {
             'Authorization': AUTH_TOKEN,
@@ -2857,7 +2857,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
 
                 try {
                   setLoading(true);
-                  const response = await fetch('http://103.214.132.20:8002/api/method/frappe.client.set_value', {
+                  const response = await fetch('https://api.erpnext.ai/api/method/frappe.client.set_value', {
                     method: 'POST',
                     headers: {
                       'Content-Type': 'application/json',
@@ -3676,7 +3676,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
                                 <div className="mt-4">
                                   <div className="flex flex-wrap gap-3">
                                     {activity.attachments.map((attachment: any, index: number) => {
-                                      const baseURL = "http://103.214.132.20:8002";
+                                      const baseURL = "https://api.erpnext.ai";
                                       const fullURL = attachment.file_url && attachment.file_url.startsWith("http")
                                         ? attachment.file_url
                                         : `${baseURL}${attachment.file_url || ''}`;
@@ -3795,7 +3795,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
                                       {emailData.files.map((attachment: any, index: number) => (
                                         <a
                                           key={index}
-                                          href={`http://103.214.132.20:8002${attachment.file_url}`}
+                                          href={`https://api.erpnext.ai${attachment.file_url}`}
                                           download
                                           target="_blank"
                                           rel="noopener noreferrer"
@@ -3816,7 +3816,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
                       case 'file': {
                         const fileData = activity.data;
                         if (!fileData) return null;
-                        const baseURL = "http://103.214.132.20:8002";
+                        const baseURL = "https://api.erpnext.ai";
                         const fullURL = fileData.file_url?.startsWith("http")
                           ? fileData.file_url
                           : fileData.file_url?.startsWith("/")
@@ -4626,7 +4626,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
                                     const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(attachment.file_url || attachment.file_name || '');
                                     const fileUrl = attachment.file_url?.startsWith('http') ?
                                       attachment.file_url :
-                                      `http://103.214.132.20:8002${attachment.file_url || ''}`;
+                                      `https://api.erpnext.ai${attachment.file_url || ''}`;
 
                                     return isImage ? (
                                       <button
@@ -5158,7 +5158,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
                   <div className="space-y-4">
                     {files.map(file => (
                       <div key={file.name} className={`flex items-center justify-between p-4 rounded-lg ${theme === 'dark' ? 'bg-gray-800 hover:bg-gray-700' : 'bg-gray-50 hover:bg-gray-100'} transition-colors cursor-pointer`}
-                        onClick={() => window.open(`http://103.214.132.20:8002${file.file_url}`, '_blank')}
+                        onClick={() => window.open(`https://api.erpnext.ai${file.file_url}`, '_blank')}
 
                       >
                         <div className="flex items-center w-full">
@@ -5168,7 +5168,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
                                 Number(file.is_private) === 1
                                   ? 'https://www.shutterstock.com/shutterstock/photos/2495883211/display_1500/stock-vector-no-photo-image-viewer-thumbnail-picture-placeholder-graphic-element-flat-picture-landscape-symbol-2495883211.jpg' // show default thumbnail for private
                                   :
-                                  `http://103.214.132.20:8002${file.file_url}` // actual file for public
+                                  `https://api.erpnext.ai${file.file_url}` // actual file for public
                               }
                               alt={file.file_name}
                               className="w-12 h-12 mr-3 object-cover rounded border border-gray-400 hover:opacity-80"
@@ -5430,7 +5430,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
                                     {attachments.map((attachment: any, index: number) => (
                                       <a
                                         key={index}
-                                        href={`http://103.214.132.20:8002${attachment.file_url}`}
+                                        href={`https://api.erpnext.ai${attachment.file_url}`}
                                         download
                                         target="_blank"
                                         rel="noopener noreferrer"

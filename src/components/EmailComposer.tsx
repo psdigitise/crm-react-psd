@@ -33,9 +33,9 @@ interface EmailComposerProps {
   deal?: Deal; // Add this line
 }
 
-const API_BASE_URL = "http://103.214.132.20:8002/api/method/frappe.core.doctype.communication.email.make";
+const API_BASE_URL = "https://api.erpnext.ai/api/method/frappe.core.doctype.communication.email.make";
 const AUTH_TOKEN = getAuthToken(); // Replace with your actual token
-const SEARCH_API_URL = "http://103.214.132.20:8002/api/method/frappe.desk.search.search_link";
+const SEARCH_API_URL = "https://api.erpnext.ai/api/method/frappe.desk.search.search_link";
 
 interface User {
   value: string;
@@ -198,7 +198,7 @@ export default function EmailOrCommentComposer({ deal, onClose, mode, dealName, 
   };
 
 
-  const UPLOAD_API_URL = "http://103.214.132.20:8002/api/method/upload_file";
+  const UPLOAD_API_URL = "https://api.erpnext.ai/api/method/upload_file";
 
   async function uploadFiles(files: File[]): Promise<string[]> {
     const uploadedFileIds: string[] = [];

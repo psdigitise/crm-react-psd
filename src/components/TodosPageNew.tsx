@@ -45,7 +45,7 @@ export function TodosPageNew({ onCreateTodo }: TodosPageNewProps) {
   // const fetchTodos = async () => {
   //   try {
   //     setLoading(true);
-  //     const apiUrl = 'http://103.214.132.20:8002/api/v2/document/ToDo?fields=["name","status","date","description","reference_type","creation","modified"]';
+  //     const apiUrl = 'https://api.erpnext.ai/api/v2/document/ToDo?fields=["name","status","date","description","reference_type","creation","modified"]';
 
   //     const response = await fetch(apiUrl, {
   //       method: 'GET',
@@ -83,7 +83,7 @@ export function TodosPageNew({ onCreateTodo }: TodosPageNewProps) {
 
   //     // Add filter for company field (if your ToDo doctype has a 'company' field)
   //     const filters = encodeURIComponent(JSON.stringify([["company", "=", sessionCompany]]));
-  //     const apiUrl = `http://103.214.132.20:8002/api/v2/document/ToDo?fields=["name","status","date","description","reference_type","creation","modified"]&filters=${filters}`;
+  //     const apiUrl = `https://api.erpnext.ai/api/v2/document/ToDo?fields=["name","status","date","description","reference_type","creation","modified"]&filters=${filters}`;
 
   //     const response = await fetch(apiUrl, {
   //       method: 'GET',
@@ -112,7 +112,7 @@ export function TodosPageNew({ onCreateTodo }: TodosPageNewProps) {
         ["company", "=", sessionCompany]
       ]));
 
-      const apiUrl = `http://103.214.132.20:8002/api/v2/document/ToDo?fields=["name","status","date","description","reference_type","creation","modified"]&filters=${filters}`;
+      const apiUrl = `https://api.erpnext.ai/api/v2/document/ToDo?fields=["name","status","date","description","reference_type","creation","modified"]&filters=${filters}`;
 
       const response = await fetch(apiUrl, {
         method: 'GET',
@@ -143,7 +143,7 @@ export function TodosPageNew({ onCreateTodo }: TodosPageNewProps) {
 
   const handleUpdate = async (updatedTodo: Todo) => {
     try {
-      const apiUrl = `http://103.214.132.20:8002/api/v2/document/ToDo/${updatedTodo.name}`;
+      const apiUrl = `https://api.erpnext.ai/api/v2/document/ToDo/${updatedTodo.name}`;
 
       const response = await fetch(apiUrl, {
         method: 'PATCH',
@@ -177,7 +177,7 @@ export function TodosPageNew({ onCreateTodo }: TodosPageNewProps) {
     if (!confirm('Are you sure you want to delete this todo?')) return;
 
     try {
-      const apiUrl = `http://103.214.132.20:8002/api/v2/document/ToDo/${todoName}`;
+      const apiUrl = `https://api.erpnext.ai/api/v2/document/ToDo/${todoName}`;
 
       const response = await fetch(apiUrl, {
         method: 'DELETE',

@@ -117,7 +117,7 @@ const UploadAttachmentPopup: React.FC<Props> = ({
         formData.append("is_private", "0"); // or "0" if you want it public
         formData.append("folder", "Home/Attachments");
 
-        const response = await fetch("http://103.214.132.20:8002/api/method/upload_file", {
+        const response = await fetch("https://api.erpnext.ai/api/method/upload_file", {
           method: "POST",
           headers: {
             Authorization: AUTH_TOKEN ,
@@ -155,7 +155,7 @@ const UploadAttachmentPopup: React.FC<Props> = ({
         formData.append("is_private", fileItem.isPrivate ? "1" : "0");
         formData.append("folder", "Home/Attachments");
 
-        const response = await fetch("http://103.214.132.20:8002/api/method/upload_file", {
+        const response = await fetch("https://api.erpnext.ai/api/method/upload_file", {
           method: "POST",
           headers: {
             Authorization: AUTH_TOKEN ,

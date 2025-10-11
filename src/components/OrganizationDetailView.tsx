@@ -53,7 +53,7 @@ export function OrganizationDetailView({ organization, onBack, onSave }: Organiz
     try {
       setLoading(true);
       
-      const apiUrl = `http://103.214.132.20:8002/api/v2/document/CRM Organization/${organization.id}`;
+      const apiUrl = `https://api.erpnext.ai/api/v2/document/CRM Organization/${organization.id}`;
       
       const response = await fetch(apiUrl, {
         method: 'PATCH',
@@ -92,7 +92,7 @@ export function OrganizationDetailView({ organization, onBack, onSave }: Organiz
       try {
         setLoading(true);
 
-        const apiUrl = `http://103.214.132.20:8002/api/v2/document/CRM Organization/${organization.id}`;
+        const apiUrl = `https://api.erpnext.ai/api/v2/document/CRM Organization/${organization.id}`;
 
         const response = await fetch(apiUrl, {
           method: 'DELETE',

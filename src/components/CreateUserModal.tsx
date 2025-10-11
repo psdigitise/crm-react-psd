@@ -66,7 +66,7 @@ export function CreateUserModal({ isOpen, onClose, onSubmit }: CreateUserModalPr
 
       const sessionCompany = session?.company || 'PSDigitise';
 
-      const apiUrl = 'http://103.214.132.20:8002/api/v2/document/User/';
+      const apiUrl = 'https://api.erpnext.ai/api/v2/document/User/';
 
       const payload = {
         ...formData,

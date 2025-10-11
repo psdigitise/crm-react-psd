@@ -168,7 +168,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
       }
 
       // The new API endpoint for the POST request
-      //const apiUrl = 'http://103.214.132.20:8002/api/method/crm.api.doc.get_data';
+      //const apiUrl = 'https://api.erpnext.ai/api/method/crm.api.doc.get_data';
 
       // The payload (body) for the POST request, as you provided
       const payload = {
@@ -358,7 +358,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
     try {
       const session = getUserSession();
       for (const id of selectedIds) {
-        const apiUrl = `http://103.214.132.20:8002/api/v2/document/CRM Lead/${id}`;
+        const apiUrl = `https://api.erpnext.ai/api/v2/document/CRM Lead/${id}`;
         const response = await fetch(apiUrl, {
           method: 'DELETE',
           headers: {
@@ -525,7 +525,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
 
   //   try {
   //     const baseUrl =
-  //       "http://103.214.132.20:8002/api/method/frappe.desk.reportview.export_query";
+  //       "https://api.erpnext.ai/api/method/frappe.desk.reportview.export_query";
 
   //     // ✅ Prepare request parameters
   //     const params:any = {
@@ -588,7 +588,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
       const sessionCompany = session?.company;
 
       const baseUrl =
-        "http://103.214.132.20:8002/api/method/frappe.desk.reportview.export_query";
+        "https://api.erpnext.ai/api/method/frappe.desk.reportview.export_query";
 
       // Build filters object properly
       const exportFilters: any = {
@@ -752,7 +752,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
       const session = getUserSession();
 
       // Use frappe.desk.reportview.delete_items to delete all selected items
-      const deleteApiUrl = `http://103.214.132.20:8002/api/method/frappe.desk.reportview.delete_items`;
+      const deleteApiUrl = `https://api.erpnext.ai/api/method/frappe.desk.reportview.delete_items`;
 
       const deletePayload = {
         items: JSON.stringify(selectedIds),

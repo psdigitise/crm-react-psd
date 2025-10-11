@@ -43,7 +43,7 @@ const priorityColors = {
   'High': 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
 };
 
-const API_BASE_URL = 'http://103.214.132.20:8002';
+const API_BASE_URL = 'https://api.erpnext.ai';
 // const AUTH_TOKEN = 'token 1b670b800ace83b:f32066fea74d0fe';
 
 export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0 }: TasksPageProps) {

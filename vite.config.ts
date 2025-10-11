@@ -23,7 +23,7 @@ export default defineConfig({
     // port: 3000,      // optional: specify a port
     proxy: {
       '/api': {
-        target: 'http://103.214.132.20:8002',
+        target: 'https://api.erpnext.ai',
         changeOrigin: true,
         rewrite: path => path.replace(/^\/api/, '')
       }

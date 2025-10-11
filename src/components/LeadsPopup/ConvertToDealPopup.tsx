@@ -35,7 +35,7 @@ export function ConvertToDealPopup({
       
       // Convert each selected lead to a deal
       for (const leadId of selectedIds) {
-        const apiUrl = `http://103.214.132.20:8002/api/method/crm.fcrm.doctype.crm_lead.crm_lead.convert_to_deal`;
+        const apiUrl = `https://api.erpnext.ai/api/method/crm.fcrm.doctype.crm_lead.crm_lead.convert_to_deal`;
         
         const payload = {
           lead: leadId

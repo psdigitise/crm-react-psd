@@ -48,7 +48,7 @@ export function UsersTable({ searchTerm, onUserClick, refreshTrigger }: UsersTab
         ["company", "=", sessionCompany]
       ]));
 
-      const apiUrl = `http://103.214.132.20:8002/api/v2/document/User?fields=["name","email","first_name","last_name","full_name","creation","modified"]&filters=${filters}`;
+      const apiUrl = `https://api.erpnext.ai/api/v2/document/User?fields=["name","email","first_name","last_name","full_name","creation","modified"]&filters=${filters}`;
 
       console.log('Session Company:', sessionCompany);
       console.log('API URL:', apiUrl);

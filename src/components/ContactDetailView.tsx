@@ -45,7 +45,7 @@ export function ContactDetailView({ contact, onBack, onSave, onDealClick }: Cont
         try {
             setLoading(true);
 
-            const apiUrl = `http://103.214.132.20:8002/api/v2/document/Contact/${contact.id}`;
+            const apiUrl = `https://api.erpnext.ai/api/v2/document/Contact/${contact.id}`;
 
             const response = await fetch(apiUrl, {
                 method: 'PATCH',
@@ -86,7 +86,7 @@ export function ContactDetailView({ contact, onBack, onSave, onDealClick }: Cont
         try {
             setLoading(true);
 
-            const apiUrl = `http://103.214.132.20:8002/api/v2/document/Contact/${contact.id}`;
+            const apiUrl = `https://api.erpnext.ai/api/v2/document/Contact/${contact.id}`;
 
             const response = await fetch(apiUrl, {
                 method: 'DELETE',

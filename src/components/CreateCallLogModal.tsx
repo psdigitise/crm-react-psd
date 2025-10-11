@@ -62,7 +62,7 @@ export function CreateCallLogModal({
       const sessionCompany = session?.company;
 
       const response = await fetch(
-        'http://103.214.132.20:8002/api/method/frappe.desk.search.search_link',
+        'https://api.erpnext.ai/api/method/frappe.desk.search.search_link',
         {
           method: 'POST',
           headers: {
@@ -184,7 +184,7 @@ export function CreateCallLogModal({
         doc.duration = formData.duration;
       }
 
-      const apiUrl = 'http://103.214.132.20:8002/api/method/frappe.client.insert';
+      const apiUrl = 'https://api.erpnext.ai/api/method/frappe.client.insert';
 
       const response = await fetch(apiUrl, {
         method: 'POST',

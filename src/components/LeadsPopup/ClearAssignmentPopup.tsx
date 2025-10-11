@@ -30,7 +30,7 @@ export function ClearAssignmentPopup({
     setError(null);
 
     try {
-      const apiUrl = `http://103.214.132.20:8002/api/method/frappe.desk.form.assign_to.remove_multiple`;
+      const apiUrl = `https://api.erpnext.ai/api/method/frappe.desk.form.assign_to.remove_multiple`;
 
       // Format the payload exactly as shown in the image
       const payload = {

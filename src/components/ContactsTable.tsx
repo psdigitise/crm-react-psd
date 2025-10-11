@@ -163,7 +163,7 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
         return;
       }
 
-     const apiUrl = 'http://103.214.132.20:8002/api/method/crm.api.doc.get_data';
+     const apiUrl = 'https://api.erpnext.ai/api/method/crm.api.doc.get_data';
 
       const requestBody = {
         doctype: "Contact",
@@ -263,7 +263,7 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
       const session = getUserSession();
       if (!session) return;
 
-      const apiUrl = 'http://103.214.132.20:8002/api/v2/document/Address';
+      const apiUrl = 'https://api.erpnext.ai/api/v2/document/Address';
 
       const response = await fetch(apiUrl, {
         method: 'GET',
@@ -290,7 +290,7 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
       const session = getUserSession();
       if (!session) return;
 
-      const apiUrl = 'http://103.214.132.20:8002/api/method/crm.api.doc.get_fields';
+      const apiUrl = 'https://api.erpnext.ai/api/method/crm.api.doc.get_fields';
 
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -335,7 +335,7 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
         return;
       }
 
-      //const apiUrl = 'http://103.214.132.20:8002/api/method/crm.api.doc.get_data';
+      //const apiUrl = 'https://api.erpnext.ai/api/method/crm.api.doc.get_data';
 
       const requestBody = {
         doctype: "Contact",
@@ -487,7 +487,7 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
         throw new Error('No active session');
       }
 
-      const apiUrl = 'http://103.214.132.20:8002/api/method/frappe.desk.doctype.bulk_update.bulk_update.submit_cancel_or_update_docs';
+      const apiUrl = 'https://api.erpnext.ai/api/method/frappe.desk.doctype.bulk_update.bulk_update.submit_cancel_or_update_docs';
 
       const payload = {
         doctype: "Contact",
@@ -551,7 +551,7 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
     setError(null);
 
     try {
-      const apiUrl = `http://103.214.132.20:8002/api/method/frappe.desk.reportview.delete_items`;
+      const apiUrl = `https://api.erpnext.ai/api/method/frappe.desk.reportview.delete_items`;
       const payload = {
         items: JSON.stringify(selectedIds), // Stringify all selected IDs
         doctype: "Contact"

@@ -336,7 +336,7 @@ export function NotesPage({ onCreateNote, leadName }: NotesPageProps) {
         return null;
       }
 
-      const response = await fetch(`http://103.214.132.20:8002/api/method/frappe.client.get`, {
+      const response = await fetch(`https://api.erpnext.ai/api/method/frappe.client.get`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -410,7 +410,7 @@ export function NotesPage({ onCreateNote, leadName }: NotesPageProps) {
         return null;
       }
 
-      const response = await fetch(`http://103.214.132.20:8002/api/method/frappe.client.get`, {
+      const response = await fetch(`https://api.erpnext.ai/api/method/frappe.client.get`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -552,7 +552,7 @@ export function NotesPage({ onCreateNote, leadName }: NotesPageProps) {
         return;
       }
 
-      const apiUrl = `http://103.214.132.20:8002/api/v2/document/FCRM Note/${editingNote?.name}`;
+      const apiUrl = `https://api.erpnext.ai/api/v2/document/FCRM Note/${editingNote?.name}`;
 
       const response = await fetch(apiUrl, {
         method: 'PATCH',
@@ -589,7 +589,7 @@ export function NotesPage({ onCreateNote, leadName }: NotesPageProps) {
         return;
       }
 
-      const apiUrl = `http://103.214.132.20:8002/api/v2/document/FCRM Note/${noteName}`;
+      const apiUrl = `https://api.erpnext.ai/api/v2/document/FCRM Note/${noteName}`;
 
       const response = await fetch(apiUrl, {
         method: 'DELETE',

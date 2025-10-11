@@ -46,7 +46,7 @@ export function UserDetailView({ user, onBack, onSave }: UserDetailViewProps) {
     try {
       setLoading(true);
 
-      const apiUrl = `http://103.214.132.20:8002/api/v2/document/User/${user.name}`;
+      const apiUrl = `https://api.erpnext.ai/api/v2/document/User/${user.name}`;
 
       const response = await fetch(apiUrl, {
         method: 'PATCH',
@@ -80,7 +80,7 @@ export function UserDetailView({ user, onBack, onSave }: UserDetailViewProps) {
     try {
       setLoading(true);
 
-      const apiUrl = `http://103.214.132.20:8002/api/v2/document/User/${encodeURIComponent(user.email)}`;
+      const apiUrl = `https://api.erpnext.ai/api/v2/document/User/${encodeURIComponent(user.email)}`;
 
       const response = await fetch(apiUrl, {
         method: 'DELETE',

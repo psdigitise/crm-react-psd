@@ -80,7 +80,7 @@ export function CrmSetupModal({ isOpen, onClose }: CrmSetupModalProps) {
 
         // 🔹 Fire both requests simultaneously
         const [companyResponse, userSaveResponse] = await Promise.all([
-            fetch("http://103.214.132.20:8002/api/v2/document/Company/", {
+            fetch("https://api.erpnext.ai/api/v2/document/Company/", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -88,7 +88,7 @@ export function CrmSetupModal({ isOpen, onClose }: CrmSetupModalProps) {
                 },
                 body: JSON.stringify(companyPayload),
             }),
-            fetch("http://103.214.132.20:8002/api/method/frappe.client.save", {
+            fetch("https://api.erpnext.ai/api/method/frappe.client.save", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

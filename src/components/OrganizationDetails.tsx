@@ -18,11 +18,11 @@ const getFullImageUrl = (imagePath) => {
   
   // If it starts with /, prepend the base URL (this is your case)
   if (imagePath.startsWith('/')) {
-    return `http://103.214.132.20:8002${imagePath}`;
+    return `https://api.erpnext.ai${imagePath}`;
   }
   
   // Fallback: assume it needs /files/ prefix
-  return `http://103.214.132.20:8002/files/${imagePath}`;
+  return `https://api.erpnext.ai/files/${imagePath}`;
 };
 
 interface Organization {
@@ -156,7 +156,7 @@ export default function OrganizationDetails({
   // Add state for delete confirmation popup
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  const API_BASE = 'http://103.214.132.20:8002/api/method';
+  const API_BASE = 'https://api.erpnext.ai/api/method';
 
   // Fetch address options from API
   const fetchAddressOptions = async () => {
@@ -401,7 +401,7 @@ export default function OrganizationDetails({
       formData.append('folder', 'Home/Attachments');
 
       console.log('🔄 Step 1: Uploading file...');
-      const uploadResponse = await fetch('http://103.214.132.20:8002/api/method/upload_file', {
+      const uploadResponse = await fetch('https://api.erpnext.ai/api/method/upload_file', {
         method: 'POST',
         headers: {
           'Authorization': AUTH_TOKEN

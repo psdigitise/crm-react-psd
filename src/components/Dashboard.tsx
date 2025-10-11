@@ -263,7 +263,7 @@ export function Dashboard() {
       const userSession = getUserSession();
       const Company = userSession?.company;
       // const response = await axios.get(
-      //   'http://103.214.132.20:8002/api/v2/document/CRM Deal',
+      //   'https://api.erpnext.ai/api/v2/document/CRM Deal',
       //   {
       //     headers: {
       //       Authorization: AUTH_TOKEN,
@@ -311,7 +311,7 @@ export function Dashboard() {
       const userSession = getUserSession();
       const Company = userSession?.company;
       // const response = await axios.get(
-      //   'http://103.214.132.20:8002/api/v2/document/Contact',
+      //   'https://api.erpnext.ai/api/v2/document/Contact',
       //   {
       //     headers: {
       //       Authorization: AUTH_TOKEN,
@@ -346,7 +346,7 @@ export function Dashboard() {
       const userSession = getUserSession();
       const Company = userSession?.company;
       // const response = await axios.get(
-      //   'http://103.214.132.20:8002/api/v2/document/CRM Organization',
+      //   'https://api.erpnext.ai/api/v2/document/CRM Organization',
       //   {
       //     headers: {
       //       Authorization: AUTH_TOKEN,
@@ -379,7 +379,7 @@ export function Dashboard() {
     try {
       const userSession = getUserSession();
       const Company = userSession?.company;
-      // const response = await axios.get('http://103.214.132.20:8002/api/v2/document/CRM Lead/', {
+      // const response = await axios.get('https://api.erpnext.ai/api/v2/document/CRM Lead/', {
       //   headers: {
       //     Authorization: AUTH_TOKEN,
       //   },

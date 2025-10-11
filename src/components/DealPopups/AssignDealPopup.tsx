@@ -31,7 +31,7 @@ export const AssignDealPopup: React.FC<AssignDealPopupProps> = ({
         setIsApiLoading(true);
         
         try {
-            const response = await fetch('http://103.214.132.20:8002/api/method/frappe.desk.form.assign_to.add_multiple', {
+            const response = await fetch('https://api.erpnext.ai/api/method/frappe.desk.form.assign_to.add_multiple', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

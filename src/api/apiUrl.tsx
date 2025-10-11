@@ -2,7 +2,7 @@
 // import axios from 'axios';
 
 // export const apiUrl = {
-//     apiUrlConfig: "http://103.214.132.20:8002",
+//     apiUrlConfig: "https://api.erpnext.ai",
 // }
 
 // // Create an Axios instance with the base URL
@@ -16,7 +16,7 @@ import axios from 'axios';
 import { getUserSession } from '../utils/session'; // Adjust the path based on your project structure
 
 export const apiUrl = {
-    apiUrlConfig: "http://103.214.132.20:8002",
+    apiUrlConfig: "https://api.erpnext.ai",
 }
 
 // Create an Axios instance with the base URL

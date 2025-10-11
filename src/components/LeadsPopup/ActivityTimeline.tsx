@@ -26,7 +26,7 @@ type Lead = {
   name: string;
 };
 
-const API_BASE_URL = "http://103.214.132.20:8002/api";
+const API_BASE_URL = "https://api.erpnext.ai/api";
 const AUTH_TOKEN =  getAuthToken();
 
 const ActivityTimeline: React.FC<{ deal: Lead; theme?: "light" | "dark" }> = ({
@@ -249,7 +249,7 @@ const ActivityTimeline: React.FC<{ deal: Lead; theme?: "light" | "dark" }> = ({
                       {commentData.attachments.map((a: any, idx: number) => {
                         const url = a.file_url.startsWith("http")
                           ? a.file_url
-                          : `http://103.214.132.20:8002${a.file_url}`;
+                          : `https://api.erpnext.ai${a.file_url}`;
                         return (
                           <a
                             key={idx}
@@ -281,7 +281,7 @@ const ActivityTimeline: React.FC<{ deal: Lead; theme?: "light" | "dark" }> = ({
                   {emailData.attachments?.map((a: any, idx: number) => {
                     const url = a.file_url.startsWith("http")
                       ? a.file_url
-                      : `http://103.214.132.20:8002${a.file_url}`;
+                      : `https://api.erpnext.ai${a.file_url}`;
                     return (
                       <a
                         key={idx}

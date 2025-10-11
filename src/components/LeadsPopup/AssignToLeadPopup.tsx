@@ -67,7 +67,7 @@ export function AssignToPopup({ isOpen, onClose, selectedIds, theme, onSuccess }
         try {
             const session = getUserSession();
             const sessionCompany = session?.company;
-            const apiUrl = 'http://103.214.132.20:8002/api/method/frappe.desk.search.search_link';
+            const apiUrl = 'https://api.erpnext.ai/api/method/frappe.desk.search.search_link';
 
             const payload = {
                 txt: searchText,
@@ -121,7 +121,7 @@ export function AssignToPopup({ isOpen, onClose, selectedIds, theme, onSuccess }
 
         setIsSubmitting(true);
         try {
-            const apiUrl = 'http://103.214.132.20:8002/api/method/frappe.desk.form.assign_to.add_multiple';
+            const apiUrl = 'https://api.erpnext.ai/api/method/frappe.desk.form.assign_to.add_multiple';
 
             const payload = {
                 doctype: "CRM Lead",

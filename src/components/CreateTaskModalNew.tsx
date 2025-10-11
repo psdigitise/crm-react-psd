@@ -137,7 +137,7 @@ export function CreateTaskModalNew({
 
   const fetchUsers = async () => {
     try {
-      const apiUrl = 'http://103.214.132.20:8002/api/method/frappe.desk.search.search_link';
+      const apiUrl = 'https://api.erpnext.ai/api/method/frappe.desk.search.search_link';
 
       const requestBody = {
         txt: "",
@@ -194,7 +194,7 @@ export function CreateTaskModalNew({
         company: sessionCompany
       };
 
-      const apiUrl = 'http://103.214.132.20:8002/api/method/frappe.client.insert';
+      const apiUrl = 'https://api.erpnext.ai/api/method/frappe.client.insert';
 
       const requestBody = {
         doc: docData

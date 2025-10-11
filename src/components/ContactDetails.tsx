@@ -172,7 +172,7 @@ export default function ContactDetails({
       const fetchAddresses = async () => {
         try {
           setLoadingAddresses(true);
-          const res = await axios.get("http://103.214.132.20:8002/api/v2/document/Address", {
+          const res = await axios.get("https://api.erpnext.ai/api/v2/document/Address", {
             headers: {
               Authorization: AUTH_TOKEN,
             },
@@ -246,7 +246,7 @@ export default function ContactDetails({
         return;
       }
 
-      const apiUrl = 'http://103.214.132.20:8002/api/method/crm.api.contact.get_contact';
+      const apiUrl = 'https://api.erpnext.ai/api/method/crm.api.contact.get_contact';
 
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -293,7 +293,7 @@ export default function ContactDetails({
           address: contactData.address || 'N/A', // Added address mapping
 
           // FIX: Map the 'image' field from API to 'image_url' for display
-          image_url: contactData.image ? `http://103.214.132.20:8002${contactData.image}` : null,
+          image_url: contactData.image ? `https://api.erpnext.ai${contactData.image}` : null,
 
           reference_deals: [],
           email_ids: contactData.email_ids || [],
@@ -358,7 +358,7 @@ export default function ContactDetails({
       formData.append('folder', 'Home/Attachments');
 
       // Upload file to server
-      const uploadResponse = await fetch('http://103.214.132.20:8002/api/method/upload_file', {
+      const uploadResponse = await fetch('https://api.erpnext.ai/api/method/upload_file', {
         method: 'POST',
         headers: {
           'Authorization': AUTH_TOKEN
@@ -378,7 +378,7 @@ export default function ContactDetails({
       }
 
       // Now update the contact's image field with the uploaded file URL
-      const updateResponse = await fetch('http://103.214.132.20:8002/api/method/frappe.client.set_value', {
+      const updateResponse = await fetch('https://api.erpnext.ai/api/method/frappe.client.set_value', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -401,7 +401,7 @@ export default function ContactDetails({
       const updatedContact = {
         ...contact,
         // Set the image_url for display purposes  
-        image_url: `http://103.214.132.20:8002${fileData.file_url}`,
+        image_url: `https://api.erpnext.ai${fileData.file_url}`,
         modified: updateResult.message?.modified || contact.modified
       };
 
@@ -443,7 +443,7 @@ export default function ContactDetails({
       const session = getUserSession();
       if (!session) return;
 
-      const apiUrl = 'http://103.214.132.20:8002/api/method/crm.api.contact.get_linked_deals';
+      const apiUrl = 'https://api.erpnext.ai/api/method/crm.api.contact.get_linked_deals';
 
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -499,7 +499,7 @@ export default function ContactDetails({
       }
 
       // Fetch full deal details from API
-      const apiUrl = 'http://103.214.132.20:8002/api/method/frappe.client.get';
+      const apiUrl = 'https://api.erpnext.ai/api/method/frappe.client.get';
 
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -600,7 +600,7 @@ export default function ContactDetails({
         return;
       }
 
-      const apiUrl = 'http://103.214.132.20:8002/api/method/frappe.client.set_value';
+      const apiUrl = 'https://api.erpnext.ai/api/method/frappe.client.set_value';
 
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -672,7 +672,7 @@ export default function ContactDetails({
       }
 
       // Use the contact ID (document name) instead of full_name
-      const apiUrl = "http://103.214.132.20:8002/api/method/frappe.client.delete";
+      const apiUrl = "https://api.erpnext.ai/api/method/frappe.client.delete";
 
       const response = await axios.post(
         apiUrl,
@@ -912,7 +912,7 @@ export default function ContactDetails({
         return;
       }
 
-      const apiUrl = 'http://103.214.132.20:8002/api/method/crm.api.contact.create_new';
+      const apiUrl = 'https://api.erpnext.ai/api/method/crm.api.contact.create_new';
 
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -964,7 +964,7 @@ export default function ContactDetails({
         return;
       }
 
-      const apiUrl = 'http://103.214.132.20:8002/api/method/crm.api.contact.create_new';
+      const apiUrl = 'https://api.erpnext.ai/api/method/crm.api.contact.create_new';
 
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -1049,7 +1049,7 @@ export default function ContactDetails({
         return;
       }
 
-      const apiUrl = 'http://103.214.132.20:8002/api/method/frappe.client.set_value';
+      const apiUrl = 'https://api.erpnext.ai/api/method/frappe.client.set_value';
 
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -1098,7 +1098,7 @@ export default function ContactDetails({
         return;
       }
 
-      const apiUrl = 'http://103.214.132.20:8002/api/method/frappe.client.delete';
+      const apiUrl = 'https://api.erpnext.ai/api/method/frappe.client.delete';
 
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -1195,7 +1195,7 @@ export default function ContactDetails({
           return;
         }
 
-        const apiUrl = 'http://103.214.132.20:8002/api/method/frappe.client.set_value';
+        const apiUrl = 'https://api.erpnext.ai/api/method/frappe.client.set_value';
 
         const response = await fetch(apiUrl, {
           method: 'POST',
@@ -1488,7 +1488,7 @@ export default function ContactDetails({
           return;
         }
 
-        const apiUrl = 'http://103.214.132.20:8002/api/method/frappe.client.set_value';
+        const apiUrl = 'https://api.erpnext.ai/api/method/frappe.client.set_value';
 
         const response = await fetch(apiUrl, {
           method: 'POST',
@@ -1728,7 +1728,7 @@ export default function ContactDetails({
         return;
       }
 
-      const apiUrl = 'http://103.214.132.20:8002/api/method/frappe.client.set_value';
+      const apiUrl = 'https://api.erpnext.ai/api/method/frappe.client.set_value';
 
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -1788,7 +1788,7 @@ export default function ContactDetails({
         return;
       }
 
-      const apiUrl = 'http://103.214.132.20:8002/api/method/frappe.client.set_value';
+      const apiUrl = 'https://api.erpnext.ai/api/method/frappe.client.set_value';
 
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -1837,7 +1837,7 @@ export default function ContactDetails({
         return;
       }
 
-      const apiUrl = 'http://103.214.132.20:8002/api/method/frappe.client.delete';
+      const apiUrl = 'https://api.erpnext.ai/api/method/frappe.client.delete';
 
       const response = await fetch(apiUrl, {
         method: 'POST',

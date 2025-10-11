@@ -24,7 +24,7 @@ interface CommentEmailProps {
 const showToast = (msg, opts) => alert(msg);
 
 const AUTH_TOKEN =  getAuthToken();
-const UPLOAD_API_URL = "http://103.214.132.20:8002/api/method/upload_file";
+const UPLOAD_API_URL = "https://api.erpnext.ai/api/method/upload_file";
 
 export default function Commentemail({
   fetchComments,
@@ -99,7 +99,7 @@ export default function Commentemail({
       }
 
       // Step 2: Add the comment
-      const commentResponse = await fetch(`http://103.214.132.20:8002/api/method/frappe.desk.form.utils.add_comment`, {
+      const commentResponse = await fetch(`https://api.erpnext.ai/api/method/frappe.desk.form.utils.add_comment`, {
         method: "POST",
         headers: {
           Authorization: AUTH_TOKEN,
@@ -121,7 +121,7 @@ export default function Commentemail({
         if (attachmentIds.length > 0) {
           const commentName = commentData.message.name; // Get the comment name/id from response
 
-          await fetch(`http://103.214.132.20:8002/api/method/crm.api.comment.add_attachments`, {
+          await fetch(`https://api.erpnext.ai/api/method/crm.api.comment.add_attachments`, {
             method: "POST",
             headers: {
               Authorization: AUTH_TOKEN,

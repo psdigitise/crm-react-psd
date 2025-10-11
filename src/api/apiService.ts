@@ -3,7 +3,7 @@
 import { authenticatedFetch, handleApiResponse } from '../utils/apiErrorHandler';
 import { AUTH_TOKEN } from './apiUrl'; // Assuming you have this constant
 
-const BASE_URL = 'http://103.214.132.20:8002';
+const BASE_URL = 'https://api.erpnext.ai';
 
 // General purpose function for making API calls
 async function apiCall(url: string, options: RequestInit = {}) {

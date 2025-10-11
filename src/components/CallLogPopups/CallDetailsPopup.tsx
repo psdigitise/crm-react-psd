@@ -115,7 +115,7 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
                 }
             };
 
-            const insertResponse = await fetch('http://103.214.132.20:8002/api/method/frappe.client.insert', {
+            const insertResponse = await fetch('https://api.erpnext.ai/api/method/frappe.client.insert', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -142,7 +142,7 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
                 note: createdNote        // Using the full 'message' object from the first API response
             };
 
-            const addToCallLogResponse = await fetch('http://103.214.132.20:8002/api/method/crm.integrations.api.add_note_to_call_log', {
+            const addToCallLogResponse = await fetch('https://api.erpnext.ai/api/method/crm.integrations.api.add_note_to_call_log', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -198,7 +198,7 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
                 },
             };
 
-            const response = await fetch('http://103.214.132.20:8002/api/method/frappe.client.set_value', {
+            const response = await fetch('https://api.erpnext.ai/api/method/frappe.client.set_value', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -263,7 +263,7 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
                 }
             };
 
-            const response = await fetch('http://103.214.132.20:8002/api/method/frappe.client.set_value', {
+            const response = await fetch('https://api.erpnext.ai/api/method/frappe.client.set_value', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': AUTH_TOKEN, },
                 body: JSON.stringify(payload)
@@ -391,7 +391,7 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
                 }
             };
 
-            const response = await fetch('http://103.214.132.20:8002/api/method/frappe.client.insert', {
+            const response = await fetch('https://api.erpnext.ai/api/method/frappe.client.insert', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -416,7 +416,7 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
                     task: data.message // Pass the entire task object from the first API response
                 };
 
-                const addToCallLogResponse = await fetch('http://103.214.132.20:8002/api/method/crm.integrations.api.add_task_to_call_log', {
+                const addToCallLogResponse = await fetch('https://api.erpnext.ai/api/method/crm.integrations.api.add_task_to_call_log', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

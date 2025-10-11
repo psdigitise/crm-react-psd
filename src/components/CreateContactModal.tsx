@@ -35,7 +35,7 @@
 //         return;
 //       }
 
-//       const apiUrl = 'http://103.214.132.20:8002/api/v2/document/Address';
+//       const apiUrl = 'https://api.erpnext.ai/api/v2/document/Address';
 
 //       const response = await fetch(apiUrl, {
 //         method: 'POST',
@@ -289,7 +289,7 @@
 //         return;
 //       }
 
-//       const apiUrl = 'http://103.214.132.20:8002/api/v2/document/Address';
+//       const apiUrl = 'https://api.erpnext.ai/api/v2/document/Address';
 
 //       const response = await fetch(apiUrl, {
 //         method: 'GET',
@@ -374,7 +374,7 @@
 
 //       const payload = { doc };
 
-//       const apiUrl = 'http://103.214.132.20:8002/api/method/frappe.client.insert';
+//       const apiUrl = 'https://api.erpnext.ai/api/method/frappe.client.insert';
 
 //       const response = await fetch(apiUrl, {
 //         method: 'POST',
@@ -897,7 +897,7 @@ function CreateAddressModal({ isOpen, onClose, onSubmit }: CreateAddressModalPro
         return;
       }
 
-      const apiUrl = 'http://103.214.132.20:8002/api/v2/document/Address';
+      const apiUrl = 'https://api.erpnext.ai/api/v2/document/Address';
 
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -1234,7 +1234,7 @@ export function CreateContactModal({ isOpen, onClose, onSubmit }: CreateContactM
 
       const sessionCompany = session?.company;
 
-      let apiUrl = 'http://103.214.132.20:8002/api/v2/document/Address';
+      let apiUrl = 'https://api.erpnext.ai/api/v2/document/Address';
 
       if (sessionCompany) {
         const params = new URLSearchParams({
@@ -1313,7 +1313,7 @@ export function CreateContactModal({ isOpen, onClose, onSubmit }: CreateContactM
 
       const payload = { doc };
 
-      const apiUrl = 'http://103.214.132.20:8002/api/method/frappe.client.insert';
+      const apiUrl = 'https://api.erpnext.ai/api/method/frappe.client.insert';
 
       const response = await fetch(apiUrl, {
         method: 'POST',

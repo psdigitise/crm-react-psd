@@ -11,7 +11,7 @@ import { getAuthToken } from "../api/apiUrl";
 // Dummy showToast for demo. Replace with your own.
 const showToast = (msg, opts) => alert(msg);
 
-const API_BASE_URL = "http://103.214.132.20:8002/api/v2/document";
+const API_BASE_URL = "https://api.erpnext.ai/api/v2/document";
 const AUTH_TOKEN = getAuthToken();
 
 export default function Emailpageleads({ deal, onClose }) {

@@ -30,7 +30,7 @@ interface CreateDealModalProps {
   onSubmit: (data: any) => void;
 }
 
-const API_BASE_URL = 'http://103.214.132.20:8002/api';
+const API_BASE_URL = 'https://api.erpnext.ai/api';
 const AUTH_TOKEN = getAuthToken();
 
 export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalProps) {
@@ -96,7 +96,7 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
       }
 
       const filters = encodeURIComponent(JSON.stringify([["company", "=", sessionCompany]]));
-      const apiUrl = `http://103.214.132.20:8002/api/v2/document/User?fields=["name","email"]&filters=${filters}`;
+      const apiUrl = `https://api.erpnext.ai/api/v2/document/User?fields=["name","email"]&filters=${filters}`;
 
       fetch(apiUrl, {
         headers: {
@@ -419,7 +419,7 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
         }
       };
 
-      const apiUrl = `http://103.214.132.20:8002/api/method/crm.fcrm.doctype.crm_deal.crm_deal.create_deal`;
+      const apiUrl = `https://api.erpnext.ai/api/method/crm.fcrm.doctype.crm_deal.crm_deal.create_deal`;
 
       const response = await fetch(apiUrl, {
         method: 'POST',

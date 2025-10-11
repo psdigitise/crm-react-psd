@@ -25,7 +25,7 @@
 
 //         try {
 //             const response = await apiAxios.post(
-//                 'http://103.214.132.20:8002/api/method/frappe.client.delete',
+//                 'https://api.erpnext.ai/api/method/frappe.client.delete',
 //                 {
 //                     doctype: "CRM Task", // Changed to "CRM Task"
 //                     name: task.name
@@ -150,7 +150,7 @@ export const DeleteTaskPopup: React.FC<DeleteTaskPopupProps> = ({
         try {
             // Use the correct endpoint - remove the duplicate "api" in the URL
             const response = await apiAxios.post(
-                'http://103.214.132.20:8002/api/method/frappe.client.delete',
+                'https://api.erpnext.ai/api/method/frappe.client.delete',
                 {
                     doctype: "CRM Task",
                     name: task.name

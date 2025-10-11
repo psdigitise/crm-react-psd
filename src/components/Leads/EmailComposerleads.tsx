@@ -41,9 +41,9 @@ interface User {
     description: string;
 }
 
-const API_BASE_URL = "http://103.214.132.20:8002/api/method/frappe.core.doctype.communication.email.make";
+const API_BASE_URL = "https://api.erpnext.ai/api/method/frappe.core.doctype.communication.email.make";
 const AUTH_TOKEN = getAuthToken();
-const SEARCH_API_URL = "http://103.214.132.20:8002/api/method/frappe.desk.search.search_link";
+const SEARCH_API_URL = "https://api.erpnext.ai/api/method/frappe.desk.search.search_link";
 
 export default function EmailComposerleads({
     mode = "reply",
@@ -245,7 +245,7 @@ export default function EmailComposerleads({
             formData.append("folder", "Home/Attachments");
 
             try {
-                const response = await fetch("http://103.214.132.20:8002/api/method/upload_file/", {
+                const response = await fetch("https://api.erpnext.ai/api/method/upload_file/", {
                     method: "POST",
                     headers: {
                         Authorization: AUTH_TOKEN,
@@ -256,7 +256,7 @@ export default function EmailComposerleads({
                 const data = await response.json();
 
                 if (response.ok && data.message?.name) {
-                    const fileUrl = `http://103.214.132.20:8002${data.message.file_url}`;
+                    const fileUrl = `https://api.erpnext.ai${data.message.file_url}`;
                     const fileName = data.message.file_name;
                     const name = data.message.name;
 

@@ -71,7 +71,7 @@ export function Sidebar({ isCollapsed, onToggle, activeItem, onItemClick }: Side
     const companyName = session?.company;
     if (!companyName) return;
 
-    fetch(`http://103.214.132.20:8002/api/v2/document/Company/${encodeURIComponent(companyName)}`, {
+    fetch(`https://api.erpnext.ai/api/v2/document/Company/${encodeURIComponent(companyName)}`, {
       headers: {
         'Authorization': AUTH_TOKEN,
         'Content-Type': 'application/json'
@@ -112,7 +112,7 @@ export function Sidebar({ isCollapsed, onToggle, activeItem, onItemClick }: Side
 
   const fetchNotifications = async () => {
     try {
-      const apiUrl = 'http://103.214.132.20:8002/api/v2/document/CRM Notification?fields=["name","creation","modified","message"]';
+      const apiUrl = 'https://api.erpnext.ai/api/v2/document/CRM Notification?fields=["name","creation","modified","message"]';
 
       const response = await fetch(apiUrl, {
         method: 'GET',

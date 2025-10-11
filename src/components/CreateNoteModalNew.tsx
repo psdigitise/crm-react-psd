@@ -112,7 +112,7 @@ export function CreateNoteModalNew({
       };
 
       // Updated API endpoint and request body
-      const apiUrl = 'http://103.214.132.20:8002/api/method/frappe.client.insert';
+      const apiUrl = 'https://api.erpnext.ai/api/method/frappe.client.insert';
 
       const response = await fetch(apiUrl, {
         method: 'POST',

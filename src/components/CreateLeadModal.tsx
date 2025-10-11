@@ -91,7 +91,7 @@ export function CreateLeadModal({ isOpen, onClose, onSubmit }: CreateLeadModalPr
       }
 
       const filters = encodeURIComponent(JSON.stringify([["company", "=", sessionCompany]]));
-      const apiUrl = `http://103.214.132.20:8002/api/v2/document/User?fields=["email"]&filters=${filters}`;
+      const apiUrl = `https://api.erpnext.ai/api/v2/document/User?fields=["email"]&filters=${filters}`;
 
       const response = await fetch(apiUrl, {
         headers: {
@@ -115,7 +115,7 @@ export function CreateLeadModal({ isOpen, onClose, onSubmit }: CreateLeadModalPr
     setIsLoadingTerritories(true);
 
     try {
-      const apiUrl = 'http://103.214.132.20:8002/api/method/frappe.desk.search.search_link';
+      const apiUrl = 'https://api.erpnext.ai/api/method/frappe.desk.search.search_link';
 
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -153,7 +153,7 @@ export function CreateLeadModal({ isOpen, onClose, onSubmit }: CreateLeadModalPr
     setIsLoadingSalutations(true);
 
     try {
-      const apiUrl = 'http://103.214.132.20:8002/api/method/frappe.desk.search.search_link';
+      const apiUrl = 'https://api.erpnext.ai/api/method/frappe.desk.search.search_link';
 
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -192,7 +192,7 @@ export function CreateLeadModal({ isOpen, onClose, onSubmit }: CreateLeadModalPr
     setIsLoadingGenders(true);
 
     try {
-      const apiUrl = 'http://103.214.132.20:8002/api/method/frappe.desk.search.search_link';
+      const apiUrl = 'https://api.erpnext.ai/api/method/frappe.desk.search.search_link';
 
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -231,7 +231,7 @@ export function CreateLeadModal({ isOpen, onClose, onSubmit }: CreateLeadModalPr
     setIsLoadingIndustries(true);
 
     try {
-      const apiUrl = 'http://103.214.132.20:8002/api/method/frappe.desk.search.search_link';
+      const apiUrl = 'https://api.erpnext.ai/api/method/frappe.desk.search.search_link';
 
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -365,7 +365,7 @@ export function CreateLeadModal({ isOpen, onClose, onSubmit }: CreateLeadModalPr
         company: sessionCompany,
       };
 
-      const apiUrl = 'http://103.214.132.20:8002/api/method/frappe.client.insert';
+      const apiUrl = 'https://api.erpnext.ai/api/method/frappe.client.insert';
 
       const response = await fetch(apiUrl, {
         method: 'POST',

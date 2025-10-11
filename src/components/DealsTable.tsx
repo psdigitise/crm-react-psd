@@ -182,7 +182,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
         "page_length_count": 20
       };
 
-      // const response = await fetch("http://103.214.132.20:8002/api/method/crm.api.doc.get_data", {
+      // const response = await fetch("https://api.erpnext.ai/api/method/crm.api.doc.get_data", {
       //   method: "POST",
       //   headers: {
       //     "Content-Type": "application/json",
@@ -352,7 +352,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
       const session = getUserSession();
       const sessionCompany = session?.company;
 
-      const baseUrl = "http://103.214.132.20:8002/api/method/frappe.desk.reportview.export_query";
+      const baseUrl = "https://api.erpnext.ai/api/method/frappe.desk.reportview.export_query";
 
       // Build filters object
       const exportFilters: any = {
@@ -609,7 +609,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
         throw new Error("No deals selected for clearing assignment.");
       }
 
-      const apiUrl = "http://103.214.132.20:8002/api/method/frappe.desk.form.assign_to.remove_multiple";
+      const apiUrl = "https://api.erpnext.ai/api/method/frappe.desk.form.assign_to.remove_multiple";
 
       const payload = {
         doctype: "CRM Deal",

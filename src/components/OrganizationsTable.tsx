@@ -169,7 +169,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
       const session = getUserSession();
       if (!session) return;
 
-      const apiUrl = 'http://103.214.132.20:8002/api/method/frappe.desk.search.search_link';
+      const apiUrl = 'https://api.erpnext.ai/api/method/frappe.desk.search.search_link';
 
       const requestBody = {
         txt: "",
@@ -210,7 +210,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
       const session = getUserSession();
       if (!session) return;
 
-      const apiUrl = 'http://103.214.132.20:8002/api/method/frappe.desk.search.search_link';
+      const apiUrl = 'https://api.erpnext.ai/api/method/frappe.desk.search.search_link';
 
       const requestBody = {
         txt: "",
@@ -251,7 +251,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
       const session = getUserSession();
       if (!session) return;
 
-      const apiUrl = 'http://103.214.132.20:8002/api/v2/document/Address';
+      const apiUrl = 'https://api.erpnext.ai/api/v2/document/Address';
 
       const response = await fetch(apiUrl, {
         method: 'GET',
@@ -294,7 +294,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
         return;
       }
 
-      //const apiUrl = `http://103.214.132.20:8002/api/method/crm.api.doc.get_data`;
+      //const apiUrl = `https://api.erpnext.ai/api/method/crm.api.doc.get_data`;
 
       const requestBody = {
         doctype: "CRM Organization",
@@ -394,7 +394,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
         return;
       }
 
-      const apiUrl = `http://103.214.132.20:8002/api/method/crm.api.doc.get_data`;
+      const apiUrl = `https://api.erpnext.ai/api/method/crm.api.doc.get_data`;
 
       const requestBody = {
         doctype: "CRM Organization",
@@ -581,7 +581,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
         throw new Error('No active session');
       }
 
-      const apiUrl = `http://103.214.132.20:8002/api/method/frappe.desk.reportview.delete_items`;
+      const apiUrl = `https://api.erpnext.ai/api/method/frappe.desk.reportview.delete_items`;
 
       const requestBody = {
         items: JSON.stringify(selectedIds),
@@ -643,7 +643,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
       const backendFieldName = fieldMapping[bulkEdit.selectedField] || bulkEdit.selectedField;
 
       // Use the correct API endpoint with the proper format
-      const apiUrl = `http://103.214.132.20:8002/api/method/frappe.desk.doctype.bulk_update.bulk_update.submit_cancel_or_update_docs`;
+      const apiUrl = `https://api.erpnext.ai/api/method/frappe.desk.doctype.bulk_update.bulk_update.submit_cancel_or_update_docs`;
 
       const requestBody = {
         doctype: "CRM Organization",

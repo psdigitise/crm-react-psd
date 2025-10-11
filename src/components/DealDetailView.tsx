@@ -204,7 +204,7 @@ const commentTypes = [
   'Edit'
 ];
 
-const API_BASE_URL = 'http://103.214.132.20:8002/api';
+const API_BASE_URL = 'https://api.erpnext.ai/api';
 // const AUTH_TOKEN = 'AUTH_TOKEN';
 
 
@@ -432,7 +432,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
           try {
             // Second API call: Get detailed call log information
             const callDetailResponse = await fetch(
-              'http://103.214.132.20:8002/api/method/crm.fcrm.doctype.crm_call_log.crm_call_log.get_call_log',
+              'https://api.erpnext.ai/api/method/crm.fcrm.doctype.crm_call_log.crm_call_log.get_call_log',
               {
                 method: 'POST',
                 headers: {
@@ -1289,7 +1289,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
 
       // Create an array of promises for each call log detail fetch
       const detailPromises = callNames.map(name =>
-        fetch(`http://103.214.132.20:8002/api/method/crm.fcrm.doctype.crm_call_log.crm_call_log.get_call_log`, {
+        fetch(`https://api.erpnext.ai/api/method/crm.fcrm.doctype.crm_call_log.crm_call_log.get_call_log`, {
           method: 'POST',
           headers: {
             'Authorization': AUTH_TOKEN,
@@ -3253,7 +3253,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                           <div className="mt-2">
                             <div className="flex flex-wrap gap-3">
                               {comment.attachments.map((attachment, index) => {
-                                const baseURL = "http://103.214.132.20:8002";
+                                const baseURL = "https://api.erpnext.ai";
                                 const fullURL = attachment.file_url.startsWith("http")
                                   ? attachment.file_url
                                   : `${baseURL}${attachment.file_url}`;
@@ -3884,7 +3884,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                           />
 
                           {email.attachments.map((attachment, index) => {
-                            const baseURL = "http://103.214.132.20:8002";
+                            const baseURL = "https://api.erpnext.ai";
                             const fullURL = `${baseURL}${attachment.file_url}`;
                             //const isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(attachment.file_name);
 
@@ -4177,7 +4177,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                                 <div className="mt-4">
                                   <div className="flex flex-wrap gap-3">
                                     {commentData.attachments.map((attachment, index) => {
-                                      const baseURL = "http://103.214.132.20:8002";
+                                      const baseURL = "https://api.erpnext.ai";
                                       const fullURL = attachment.file_url.startsWith("http")
                                         ? attachment.file_url
                                         : `${baseURL}${attachment.file_url}`;
@@ -4230,7 +4230,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                                   <div className="flex items-center">
                                     {isImageFile(attachmentData.file_name) ? (
                                       <img
-                                        src={`http://103.214.132.20:8002${attachmentData.file_url}`}
+                                        src={`https://api.erpnext.ai${attachmentData.file_url}`}
                                         alt={attachmentData.file_name}
                                         className="w-12 h-12 mr-3 object-cover rounded border border-gray-400"
                                       />
@@ -4255,7 +4255,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                                     )}
 
                                     <a
-                                      href={`http://103.214.132.20:8002${attachmentData.file_url}`}
+                                      href={`https://api.erpnext.ai${attachmentData.file_url}`}
                                       target="_blank"
                                       rel="noopener noreferrer"
                                       className={`p-1.5 rounded-full ${theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-200'}`}
@@ -4339,7 +4339,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
 
                                 {/* Attachments */}
                                 {emailData.attachments.map((attachment, index) => {
-                                  const baseURL = "http://103.214.132.20:8002";
+                                  const baseURL = "https://api.erpnext.ai";
                                   const fullURL = attachment.file_url.startsWith("http") ? attachment.file_url : `${baseURL}${attachment.file_url}`;
                                   return (
                                     <a key={index} href={fullURL} target="_blank" rel="noopener noreferrer" className={`px-3 py-1 border ${borderColor} rounded-md text-sm flex items-center ${theme === "dark" ? "bg-gray-700 text-white" : "bg-gray-200 text-gray-800"}`}>
@@ -4640,12 +4640,12 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                     <div
                       key={attachment.name}
                       className={`flex items-center justify-between p-4 rounded-lg ${theme === 'dark' ? 'bg-gray-800 hover:bg-gray-700' : 'bg-gray-50 hover:bg-gray-100'} transition-colors cursor-pointer`}
-                      onClick={() => window.open(`http://103.214.132.20:8002${attachment.file_url}`, '_blank')}
+                      onClick={() => window.open(`https://api.erpnext.ai${attachment.file_url}`, '_blank')}
                     >
                       <div className="flex items-center">
                         {isImageFile(attachment.file_name) ? (
                           <img
-                            src={`http://103.214.132.20:8002${attachment.file_url}`}
+                            src={`https://api.erpnext.ai${attachment.file_url}`}
                             alt={attachment.file_name}
                             className="w-12 h-12 mr-3 object-cover rounded border border-gray-400 hover:opacity-80"
                           />

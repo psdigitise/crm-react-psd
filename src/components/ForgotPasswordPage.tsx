@@ -94,7 +94,7 @@ export default function ForgotPasswordPage() {
             formData.append('user', email);
 
             // Make API call using Axios
-            const response = await axios.post('http://103.214.132.20:8002/', formData, {
+            const response = await axios.post('https://api.erpnext.ai/', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },

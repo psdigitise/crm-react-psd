@@ -8,6 +8,6 @@ export default defineConfig({
     exclude: ['lucide-react'],
   },
   define: {
-    'import.meta.env.VITE_API_BASE_URL': JSON.stringify('http://103.214.132.20:8002')
+    'import.meta.env.VITE_API_BASE_URL': JSON.stringify('https://api.erpnext.ai')
   }
 });
