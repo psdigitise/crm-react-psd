@@ -3141,6 +3141,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                     <select
                       value={callForm.caller}
                       onChange={(e) => setCallForm({ ...callForm, caller: e.target.value })}
+                      className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
                     >
                       <option value="">Select Caller</option>
                       {userOptions.map((user) => (
