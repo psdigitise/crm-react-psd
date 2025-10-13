@@ -38,6 +38,7 @@ export interface UserSession {
   sid?: string;
   api_key?: string;
   api_secret?: string;
+  role_profile?:string;
 }
 
 // export function setUserSession(sessionData: UserSession): void {

@@ -220,7 +220,7 @@ export function CreateUserModal({ isOpen, onClose, onSubmit }: CreateUserModalPr
                   name="last_name"
                   value={formData.last_name}
                   onChange={handleChange}
-                  placeholder="First Name"
+                  placeholder="Last Name"
                   disabled={loading}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
                     ? 'bg-white-31 border-white text-white placeholder-gray-400'
@@ -245,6 +245,9 @@ export function CreateUserModal({ isOpen, onClose, onSubmit }: CreateUserModalPr
                     }`}
                 >
                   <option value="Only If Create">Only If Create</option>
+                  <option value="Admin">Admin</option>
+                  <option value="Manager">Manager</option>
+                  <option value="User">User</option>
                 </select>
               </div>
 

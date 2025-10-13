@@ -299,6 +299,17 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
     recipient: '',
     message: ''
   });
+  const getCallerName = useCallback((call: any) => {
+    // Extract the name once and cache it to prevent flickering
+    const name = call._caller?.label || call.caller || call.from || "Unknown";
+    return name;
+  }, []);
+
+  const getCallerInitial = useCallback((call: any) => {
+    const name = getCallerName(call);
+    return (name && name.length > 0) ? name.charAt(0).toUpperCase() : "U";
+  }, [getCallerName]);
+
 
   const tabs = [
     { id: 'activity', label: 'Activity', icon: RiShining2Line },
@@ -454,14 +465,16 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                 from: detailedCall.from || call.from || '',
                 to: detailedCall.to || call.to || '',
                 status: detailedCall.status || call.status || 'Unknown',
-                type: detailedCall.type === 'Incoming' ? 'Inbound' : 'Outbound',
+                type: detailedCall.type,
                 duration: detailedCall.duration || call._duration || '0s',
                 reference_doctype: 'CRM Deal',
                 reference_name: deal.name,
                 creation: detailedCall.creation || call.creation,
                 owner: detailedCall.owner || call.caller || call.receiver || 'Unknown',
-                _caller: detailedCall._caller || call._caller,
-                _receiver: detailedCall._receiver || call._receiver,
+                caller: detailedCall.caller || call._caller.label,
+                receiver: detailedCall.receiver || call._receiver.label,
+                _caller: call._caller || { label: null, image: null },
+                _receiver: call._receiver || { label: null, image: null },
                 start_time: detailedCall.start_time,
                 end_time: detailedCall.end_time,
                 recording_url: detailedCall.recording_url,
@@ -480,14 +493,14 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                 from: call.from || '',
                 to: call.to || '',
                 status: call.status || 'Unknown',
-                type: call.type === 'Incoming' ? 'Inbound' : 'Outbound',
+                type: call.type,
                 duration: call._duration || '0s',
                 reference_doctype: 'CRM Deal',
                 reference_name: deal.name,
                 creation: call.creation,
                 owner: call.caller || call.receiver || 'Unknown',
-                _caller: call._caller,
-                _receiver: call._receiver,
+                caller: call.caller,
+                receiver: call.receiver,
                 _notes: call._notes || [] // Added fallback here too
               };
               allFormattedCallLogs.push(formattedCallLog);
@@ -500,14 +513,14 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
               from: call.from || '',
               to: call.to || '',
               status: call.status || 'Unknown',
-              type: call.type === 'Incoming' ? 'Inbound' : 'Outbound',
+              type: call.type,
               duration: call._duration || '0s',
               reference_doctype: 'CRM Deal',
               reference_name: deal.name,
               creation: call.creation,
               owner: call.caller || call.receiver || 'Unknown',
-              _caller: call._caller,
-              _receiver: call._receiver,
+              caller: call.caller,
+              receiver: call.receiver,
               _notes: call._notes || [] // And here
             };
             allFormattedCallLogs.push(formattedCallLog);
@@ -523,6 +536,67 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
     }
   }, [deal.name]);
 
+  // const fetchCallLogs = async () => {
+  //   setCallsLoading(true);
+  //   try {
+  //     // 1. First, fetch the initial list of all call logs to get their names.
+  //     const listResponse = await fetch(`${API_BASE_URL}/method/frappe.client.get_list`, {
+  //       method: 'POST',
+  //       headers: {
+  //         'Authorization': AUTH_TOKEN,
+  //         'Content-Type': 'application/json'
+  //       },
+  //       body: JSON.stringify({
+  //         doctype: 'CRM Call Log',
+  //         filters: JSON.stringify([
+  //           ['reference_doctype', '=', 'CRM Deal'],
+  //           ['reference_docname', '=', deal.name]
+  //         ]),
+  //         fields: JSON.stringify(['name']) // We only need the 'name' for the next step
+  //       })
+  //     });
+
+  //     if (!listResponse.ok) {
+  //       throw new Error(`Failed to fetch initial call list: ${listResponse.statusText}`);
+  //     }
+
+  //     const listData = await listResponse.json();
+  //     const callSummaries = listData.message || [];
+
+  //     if (callSummaries.length === 0) {
+  //       setCallLogs([]); // If there are no calls, set state to empty and exit.
+  //       return;
+  //     }
+
+  //     // 2. Create an array of promises. Each promise is an API call to get the details for one call log.
+  //     const detailPromises = callSummaries.map((summary: { name: any; }) =>
+  //       fetch(`${API_BASE_URL}/method/crm.fcrm.doctype.crm_call_log.crm_call_log.get_call_log`, {
+  //         method: 'POST',
+  //         headers: {
+  //           'Authorization': AUTH_TOKEN,
+  //           'Content-Type': 'application/json'
+  //         },
+  //         body: JSON.stringify({ name: summary.name }) // Pass the unique name for each call
+  //       }).then(res => res.json()) // Parse the JSON response for each call
+  //     );
+
+  //     // 3. Use Promise.all to wait for ALL the detail-fetching API calls to complete.
+  //     const detailResponses = await Promise.all(detailPromises);
+
+  //     // 4. The result is an array of responses. We need to combine their 'message' properties.
+  //     // .flatMap() is a clean way to merge the arrays from each response.
+  //     const allCallLogs = detailResponses.flatMap(response => response.message || []);
+
+  //     // 5. Finally, update the state a single time with the complete, combined list of call logs.
+  //     setCallLogs(allCallLogs);
+
+  //   } catch (error) {
+  //     console.error('Error fetching call logs:', error);
+  //     showToast('Failed to fetch call logs', { type: 'error' });
+  //   } finally {
+  //     setCallsLoading(false);
+  //   }
+  // };
 
 
   const fetchComments = useCallback(async () => {
@@ -951,8 +1025,10 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
       // 2. Conditionally add 'caller' or 'receiver' based on the type
       if (callForm.type === 'Outgoing') {
         fieldname.caller = callForm.caller;
+        fieldname.receiver = null; // Clear receiver for outgoing calls
       } else if (callForm.type === 'Incoming') {
         fieldname.receiver = callForm.receiver;
+        fieldname.caller = null; // Clear caller for incoming calls
       }
 
       const response = await fetch(`${API_BASE_URL}/method/frappe.client.set_value`, {
@@ -1991,6 +2067,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
     const callWithNotes = originalCall || call;
     console.log("8. Final call data being passed:", callWithNotes);
     console.log("9. Final call._notes:", callWithNotes._notes);
+    console.log("10._caller", call._caller);
+    console.log("11._receiver", call._receiver);
 
     setEditingCall(callWithNotes);
     setShowCallDetailsPopup(true);
@@ -2889,13 +2967,13 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                           {/* Icon container */}
                           <div
                             className={`p-2 rounded-full mr-3 flex items-center justify-center
-                             ${call.type === 'Inbound'
+                             ${call.type === 'Incoming'
                                 ? 'bg-blue-100 text-blue-600'
                                 : 'bg-green-100 text-green-600'
                               }`}
                             style={{ width: '32px', height: '32px' }}
                           >
-                            {call.type === 'Inbound' ? (
+                            {call.type === 'Incoming' ? (
                               <SlCallIn className="w-4 h-4" />
                             ) : (
                               <SlCallOut className="w-4 h-4" />
@@ -2907,12 +2985,12 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                             className="p-2 rounded-full flex items-center justify-center bg-gray-200 text-gray-700 font-medium"
                             style={{ width: '32px', height: '32px' }}
                           >
-                            {call._caller?.label?.charAt(0).toUpperCase() || "U"}
+                            {getCallerInitial(call)}
                           </div>
 
                           {/* Text */}
                           <span className="ml-2 text-sm text-white">
-                            {getFullname(call._caller?.label || "Unknown")} has reached out
+                            {getFullname(getCallerName(call))} has reached out
                           </span>
                         </div>
 
@@ -3007,8 +3085,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                           status: editingCall.status || 'Ringing',
                           type: editingCall.type || 'Outgoing',
                           duration: editingCall.duration || '',
-                          caller: editingCall._caller?.value || editingCall.caller || '',
-                          receiver: editingCall._receiver?.value || editingCall.receiver || '',
+                          caller: editingCall.caller || editingCall._caller?.value || '', // Use the actual caller field from API
+                          receiver: editingCall.receiver || editingCall._receiver?.value || '', // Use the actual receiver field from API
                           name: editingCall.name || '',
                         });
                         setIsEditMode(true);
@@ -4031,13 +4109,13 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                               <div className="flex items-center">
                                 <div
                                   className={`p-2 rounded-full mr-3 flex items-center justify-center
-                                  ${callData.type === 'Inbound' || callData.type === 'Incoming'
+                                  ${callData.type === 'Incoming' || callData.type === 'Incoming'
                                       ? 'bg-blue-100 text-blue-600'
                                       : 'bg-green-100 text-green-600'
                                     }`}
                                   style={{ width: '32px', height: '32px' }}
                                 >
-                                  {callData.type === 'Inbound' || callData.type === 'Incoming' ? (
+                                  {callData.type === 'Incoming' || callData.type === 'Incoming' ? (
                                     <SlCallIn className="w-4 h-4" />
                                   ) : (
                                     <SlCallOut className="w-4 h-4" />
@@ -4752,8 +4830,10 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         <CallDetailsPopup
           call={{
             type: (editingCall || editingCallFromActivity)?.type,
-            caller: (editingCall || editingCallFromActivity)?._caller?.label || "Unknown",
-            receiver: (editingCall || editingCallFromActivity)?._receiver?.label || "Unknown",
+            // caller: (editingCall || editingCallFromActivity)?._caller?.label || "Unknown",
+            // receiver: (editingCall || editingCallFromActivity)?._receiver?.label || "Unknown",
+            caller: (editingCall || editingCallFromActivity)?._caller?.label || (editingCall || editingCallFromActivity)?.caller || "Unknown",
+            receiver: (editingCall || editingCallFromActivity)?._receiver?.label || (editingCall || editingCallFromActivity)?.receiver || "Unknown",
             date: formatDateRelative((editingCall || editingCallFromActivity)?.creation),
             duration: (editingCall || editingCallFromActivity)?.duration,
             status: (editingCall || editingCallFromActivity)?.status,
@@ -4775,8 +4855,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
               status: callToEdit.status || 'Ringing',
               type: callToEdit.type || 'Outgoing',
               duration: callToEdit.duration || '',
-              caller: editingCall._caller?.value || editingCall.caller || '',
-              receiver: editingCall._receiver?.value || editingCall.receiver || '',
+              caller: editingCall.caller || '',
+              receiver: editingCall.receiver || '',
               name: callToEdit.name || '',
             });
             setIsEditMode(true);

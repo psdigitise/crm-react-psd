@@ -4371,8 +4371,8 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
                           status: editingCall.status || 'Ringing',
                           type: editingCall.type || 'Outgoing',
                           duration: editingCall.duration || '',
-                          caller: editingCall.caller || '',      // Use the 'caller' field for the user ID
-                          receiver: editingCall.receiver || '',
+                          caller: editingCall.caller || editingCall._caller?.value || '', // Use the actual caller field from API
+                          receiver: editingCall.receiver || editingCall._receiver?.value || '', // Use the actual receiver field from API
                           name: editingCall.name || '',
                         });
                         setIsEditMode(true);

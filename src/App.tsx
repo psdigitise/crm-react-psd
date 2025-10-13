@@ -39,6 +39,7 @@ import { AuthErrorModal } from './components/SessionLogout/AuthErrorModal';
 import { registerAuthModalCallback, registerLogoutCallback } from './utils/apiErrorHandler';
 import PasswordResetPage from './components/ResetPassword';
 import ForgotPasswordPage from './components/ForgotPasswordPage';
+import AccountActivationPage from './components/AccountActivationPage';
 
 
 function AppContent() {
@@ -1026,7 +1027,9 @@ function App() {
       <Router>
         <Routes>
           <Route path="*" element={<AppContent />} />
-          <Route path="/update-password" element={<PasswordResetPage />} />
+          {/* <Route path="/update-password" element={<PasswordResetPage />} /> */}
+          <Route path="/update-password" element={<AccountActivationPage />} />
+          <Route path="/reset-password" element={<PasswordResetPage />} />
           <Route path="/ForgotPassword" element={<ForgotPasswordPage />} />
         </Routes>
       </Router>

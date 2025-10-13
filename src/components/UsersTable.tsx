@@ -45,7 +45,8 @@ export function UsersTable({ searchTerm, onUserClick, refreshTrigger }: UsersTab
       }
 
       const filters = encodeURIComponent(JSON.stringify([
-        ["company", "=", sessionCompany]
+        ["company", "=", sessionCompany],
+        ["enabled", "=", 1],
       ]));
 
       const apiUrl = `https://api.erpnext.ai/api/v2/document/User?fields=["name","email","first_name","last_name","full_name","creation","modified"]&filters=${filters}`;
@@ -75,7 +76,7 @@ export function UsersTable({ searchTerm, onUserClick, refreshTrigger }: UsersTab
         last_name: apiUser.last_name || '',
         full_name: apiUser.full_name || `${apiUser.first_name || ''} ${apiUser.last_name || ''}`.trim() || apiUser.email,
         creation: apiUser.creation,
-        modified: apiUser.modified
+        modified: apiUser.modified,
       }));
 
       setUsers(transformedUsers);
@@ -90,7 +91,7 @@ export function UsersTable({ searchTerm, onUserClick, refreshTrigger }: UsersTab
 
   useEffect(() => {
     fetchUsers();
-  }, [refreshTrigger]); 
+  }, [refreshTrigger]);
 
   const formatDate = (dateString: string): string => {
     if (!dateString) return 'N/A';
@@ -154,7 +155,7 @@ export function UsersTable({ searchTerm, onUserClick, refreshTrigger }: UsersTab
 
   if (loading) {
     return (
-         <div className={`rounded-lg shadow-sm border p-8 ${theme === 'dark'
+      <div className={`rounded-lg shadow-sm border p-8 ${theme === 'dark'
         ? 'bg-custom-gradient border-transparent !rounded-none'
         : 'bg-white border-gray-200'
         }`}>
@@ -168,7 +169,7 @@ export function UsersTable({ searchTerm, onUserClick, refreshTrigger }: UsersTab
 
   if (error) {
     return (
-         <div className={`rounded-lg shadow-sm border p-8 ${theme === 'dark'
+      <div className={`rounded-lg shadow-sm border p-8 ${theme === 'dark'
         ? 'bg-custom-gradient border-transparent !rounded-none'
         : 'bg-white border-gray-200'
         }`}>
@@ -190,7 +191,7 @@ export function UsersTable({ searchTerm, onUserClick, refreshTrigger }: UsersTab
   }
 
   return (
-       <div className={`rounded-lg shadow-sm border overflow-hidden ${theme === 'dark'
+    <div className={`rounded-lg shadow-sm border overflow-hidden ${theme === 'dark'
       ? 'bg-custom-gradient border-transparent !rounded-none'
       : 'bg-white border-gray-200'
       }`}>

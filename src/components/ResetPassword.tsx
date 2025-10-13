@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Eye, EyeOff, CheckCircle, X } from "lucide-react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
@@ -47,6 +47,7 @@ export default function PasswordResetPage() {
     const [isSuccess, setIsSuccess] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+    const [isFromActivation, setIsFromActivation] = useState(false);
     const navigate = useNavigate();
     // Toast state
     const [toast, setToast] = useState({
@@ -80,6 +81,14 @@ export default function PasswordResetPage() {
     );
     const isConfirmValid = confirmPassword === password && password.length > 0;
     const canSubmit = isPasswordValid && isConfirmValid;
+
+    // Detect if user came from activation
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('from') === 'activation') {
+            setIsFromActivation(true);
+        }
+    }, []);
 
     const handleSubmit = async () => {
         if (!canSubmit) return;
@@ -205,8 +214,14 @@ export default function PasswordResetPage() {
 
                 <div className="bg-white/10 backdrop-blur-md rounded-lg shadow-sm border border-gray-200 p-8">
                     <div className="text-center mb-8">
-                        <h1 className="text-[1.7rem] font-[600] text-white mb-2">Reset Password</h1>
-                        <p className="text-gray-300 text-sm">Enter your new password below</p>
+                        <h1 className="text-[1.7rem] font-[600] text-white mb-2">
+                            {isFromActivation ? "Set Your Password" : "Reset Password"}
+                        </h1>
+                        <p className="text-gray-300 text-sm">
+                            {isFromActivation
+                                ? "Create a new password for your account."
+                                : "Enter your new password below."}
+                        </p>
                     </div>
 
                     {/* Error Message */}

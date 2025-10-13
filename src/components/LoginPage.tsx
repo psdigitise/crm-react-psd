@@ -23,6 +23,7 @@ interface LoginResponse {
     company?: string | null;
     warning?: string;
     full_name?: string;
+    role_profile?: string;
   };
 }
 
@@ -316,7 +317,8 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           full_name: result.message.full_name || '',
           sid: result.message.sid || '',
           api_key: result.message.api_key || '',
-          api_secret: result.message.api_secret || ''
+          api_secret: result.message.api_secret || '',
+          role_profile: result.message.role_profile || ''
         };
 
         setUserSession(sessionData);
@@ -713,9 +715,13 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           ) : (
             /* Login Form */
             <form onSubmit={handleLogin} className="space-y-6">
-              <h1 className="text-[1.7rem] text-center font-[600] text-white">
+              {/* <h1 className="text-[1.7rem] text-center font-[600] text-white">
                 Login to ERPNext.ai
-              </h1>
+              </h1> */}
+              <div className="text-left mb-4">
+                <h1 className="text-3xl font-bold text-white">Sign in</h1>
+                <p className="text-sm text-gray-300 mt-1 italic">to access CRM</p>
+              </div>
               {/* Error Message */}
               {error && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-4">
