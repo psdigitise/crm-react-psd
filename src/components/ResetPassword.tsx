@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Eye, EyeOff, CheckCircle, X } from "lucide-react";
+import { Eye, EyeOff, CheckCircle, X, ArrowRight } from "lucide-react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
@@ -11,8 +11,6 @@ interface ToastProps {
 }
 
 const Toast: React.FC<ToastProps> = ({ message, type, isVisible, onClose }) => {
-
-
     if (!isVisible) return null;
 
     return (
@@ -48,7 +46,9 @@ export default function PasswordResetPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [isFromActivation, setIsFromActivation] = useState(false);
+    const [showRedirectOption, setShowRedirectOption] = useState(false);
     const navigate = useNavigate();
+    
     // Toast state
     const [toast, setToast] = useState({
         isVisible: false,
@@ -94,6 +94,9 @@ export default function PasswordResetPage() {
         if (!canSubmit) return;
 
         setLoading(true);
+        setError("");
+        setShowRedirectOption(false);
+        
         try {
             // Get the 'key' parameter from the URL
             const urlParams = new URLSearchParams(window.location.search);
@@ -116,6 +119,7 @@ export default function PasswordResetPage() {
                     'Content-Type': 'multipart/form-data',
                 },
             });
+            
             if (response.status === 200) {
                 setIsSuccess(true);
                 showToast("Password updated successfully!", 'success');
@@ -127,17 +131,26 @@ export default function PasswordResetPage() {
 
         } catch (error: any) {
             let errorMessage = "Failed to update password. Please try again.";
+            let showRedirect = false;
 
             if (axios.isAxiosError(error)) {
                 if (error.response) {
                     // Extract the specific error message from the nested structure
                     const apiError = error.response.data?.message?.error;
 
-                    if (apiError === "The reset password link has been expired") {
-                        errorMessage = "Your password reset link has expired. Please request a new reset link.";
+                    if (apiError === "The reset password link has been expired" || 
+                        apiError === "The reset password link has either been used before or is invalid") {
+                        errorMessage = "Your password reset link has expired or has already been used. Please request a new reset link.";
+                        showRedirect = true;
                     } else if (apiError) {
                         // Use the specific API error message if available
                         errorMessage = apiError;
+                        // Check if it's an expired/invalid link error
+                        if (apiError.toLowerCase().includes('expired') || 
+                            apiError.toLowerCase().includes('invalid') || 
+                            apiError.toLowerCase().includes('used')) {
+                            showRedirect = true;
+                        }
                     } else {
                         // Fallback to status-based messages
                         errorMessage = `Server error: ${error.response.status}`;
@@ -150,10 +163,15 @@ export default function PasswordResetPage() {
             }
 
             setError(errorMessage);
+            setShowRedirectOption(showRedirect);
             showToast(errorMessage, 'error');
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleRedirectToForgotPassword = () => {
+        navigate("/ForgotPassword");
     };
 
     if (isSuccess) {
@@ -177,10 +195,7 @@ export default function PasswordResetPage() {
                         </div>
 
                         <button
-                            // onClick={() => setIsSuccess(false)}
-                            onClick={() => {
-                                navigate("/"); // this navigates to localhost:5173/
-                            }}
+                            onClick={() => navigate("/")}
                             className="w-full bg-white text-[#2D243C] py-3 rounded-lg font-medium hover:bg-gray-100 transition-colors"
                         >
                             Back to Login
@@ -201,7 +216,7 @@ export default function PasswordResetPage() {
             />
 
             <div className="w-full max-w-md">
-                {/* Logo - similar to login page */}
+                {/* Logo */}
                 <div className="text-center mb-8">
                     <div className="inline-flex items-center space-x-2">
                         <img
@@ -224,10 +239,19 @@ export default function PasswordResetPage() {
                         </p>
                     </div>
 
-                    {/* Error Message */}
+                    {/* Error Message with Redirect Option */}
                     {/* {error && (
                         <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-                            <p className="text-red-800 text-sm">{error}</p>
+                            <p className="text-red-800 text-sm mb-3">{error}</p>
+                            {showRedirectOption && (
+                                <button
+                                    onClick={handleRedirectToForgotPassword}
+                                    className="flex items-center gap-2 text-red-700 hover:text-red-900 font-medium text-sm transition-colors group"
+                                >
+                                    Request a new reset link
+                                    <ArrowRight className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" />
+                                </button>
+                            )}
                         </div>
                     )} */}
 
@@ -322,6 +346,19 @@ export default function PasswordResetPage() {
                         >
                             {loading ? "Updating Password..." : "Reset Password"}
                         </button>
+
+                        {/* Additional redirect option at the bottom */}
+                        {showRedirectOption && (
+                            <div className="text-center pt-4 border-t border-gray-600">
+                                <button
+                                    onClick={handleRedirectToForgotPassword}
+                                    className="flex items-center justify-center gap-2 text-white hover:text-gray-300 font-medium text-sm transition-colors group mx-auto"
+                                >
+                                    Need a new reset link? Click here
+                                    {/* <ArrowRight className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" /> */}
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

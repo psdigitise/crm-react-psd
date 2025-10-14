@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { IoCloseOutline } from 'react-icons/io5';
 import { AUTH_TOKEN } from '../../api/apiUrl';
 
@@ -13,6 +13,11 @@ interface AssignDealPopupProps {
     dealNames: string[]; // Array of deal names to assign
 }
 
+interface UserOption {
+    value: string;
+    description: string;
+}
+
 export const AssignDealPopup: React.FC<AssignDealPopupProps> = ({
     isOpen,
     onClose,
@@ -24,12 +29,62 @@ export const AssignDealPopup: React.FC<AssignDealPopupProps> = ({
 }) => {
     const [selectedAssignee, setSelectedAssignee] = useState(currentAssignee);
     const [isApiLoading, setIsApiLoading] = useState(false);
+    const [userOptions, setUserOptions] = useState<UserOption[]>([]);
+    const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+
+    // Fetch users when modal opens
+    useEffect(() => {
+        if (isOpen) {
+            fetchUserOptions();
+        }
+    }, [isOpen]);
+
+    const fetchUserOptions = async () => {
+        try {
+            setIsLoadingUsers(true);
+
+            // You'll need to get the company from session or props
+            const sessionCompany = "testtttt"; // Replace with actual company from your session
+
+            const response = await fetch('https://api.erpnext.ai/api/method/frappe.desk.search.search_link', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': AUTH_TOKEN
+                },
+                body: JSON.stringify({
+                    txt: "",
+                    doctype: "User",
+                    filters: {
+                        company: sessionCompany
+                    }
+                })
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                if (result.message && Array.isArray(result.message)) {
+                    const users = result.message.map((item: any) => ({
+                        value: item.value, // Email address
+                        description: item.description || item.value // Full name
+                    }));
+                    setUserOptions(users);
+                }
+            } else {
+                console.error('Failed to fetch users:', response.statusText);
+            }
+        } catch (error) {
+            console.error('Error fetching users:', error);
+        } finally {
+            setIsLoadingUsers(false);
+        }
+    };
 
     const handleAssign = async () => {
         if (!selectedAssignee) return;
-        
+
         setIsApiLoading(true);
-        
+
         try {
             const response = await fetch('https://api.erpnext.ai/api/method/frappe.desk.form.assign_to.add_multiple', {
                 method: 'POST',
@@ -45,7 +100,7 @@ export const AssignDealPopup: React.FC<AssignDealPopupProps> = ({
                     re_assign: true
                 })
             });
-            
+
             if (response.ok) {
                 const result = await response.json();
                 console.log('Assignment successful:', result);
@@ -106,21 +161,26 @@ export const AssignDealPopup: React.FC<AssignDealPopupProps> = ({
                                 value={selectedAssignee}
                                 onChange={(e) => setSelectedAssignee(e.target.value)}
                                 className={`block w-full rounded-md border py-2 px-3 shadow-sm focus:outline-none focus:ring-1 sm:text-sm ${theme === 'dark'
-                                        ? 'bg-dark-accent border-gray-600 text-white focus:ring-purple-500 focus:border-purple-500'
-                                        : 'border-gray-300 text-gray-900 focus:ring-blue-500 focus:border-blue-500'
+                                    ? 'bg-dark-accent border-gray-600 text-white focus:ring-purple-500 focus:border-purple-500'
+                                    : 'border-gray-300 text-gray-900 focus:ring-blue-500 focus:border-blue-500'
                                     }`}
+                                disabled={isLoadingUsers}
                             >
                                 <option value="">Select an assignee</option>
-                                {assignOptions.map((option) => (
-                                    <option
-                                        key={option}
-                                        value={option}
-                                        className={`${theme === 'dark' ? 'text-white bg-dark-accent' : 'text-gray-900 bg-white'
-                                            }`}
-                                    >
-                                        {option}
-                                    </option>
-                                ))}
+                                {isLoadingUsers ? (
+                                    <option value="" disabled>Loading users...</option>
+                                ) : (
+                                    userOptions.map((user) => (
+                                        <option
+                                            key={user.value}
+                                            value={user.value}
+                                            className={`${theme === 'dark' ? 'text-white bg-dark-accent' : 'text-gray-900 bg-white'
+                                                }`}
+                                        >
+                                            {user.description} {/* Display full name */}
+                                        </option>
+                                    ))
+                                )}
                             </select>
                         </div>
                     </div>
@@ -134,8 +194,8 @@ export const AssignDealPopup: React.FC<AssignDealPopupProps> = ({
                         onClick={handleAssign}
                         disabled={isApiLoading || !selectedAssignee}
                         className={`inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-1.5 text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 ${isApiLoading || !selectedAssignee
-                                ? 'bg-blue-400 cursor-not-allowed'
-                                : 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500'
+                            ? 'bg-blue-400 cursor-not-allowed'
+                            : 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500'
                             }`}
                     >
                         {isApiLoading ? 'Assigning...' : 'Update'}
@@ -145,8 +205,8 @@ export const AssignDealPopup: React.FC<AssignDealPopupProps> = ({
                         onClick={onClose}
                         disabled={isApiLoading}
                         className={`inline-flex justify-center rounded-md border shadow-sm px-4 py-1.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 ${theme === 'dark'
-                                ? 'border-purple-500/30 bg-dark-accent text-white hover:bg-purple-800/50'
-                                : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                            ? 'border-purple-500/30 bg-dark-accent text-white hover:bg-purple-800/50'
+                            : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
                             }`}
                     >
                         Cancel

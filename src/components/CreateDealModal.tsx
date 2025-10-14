@@ -80,12 +80,18 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
 
   useEffect(() => {
     if (isOpen) {
-      setIsLoadingUsers(true);
+      fetchUsers(); // Use the new function
       fetchIndustryOptions();
       fetchTerritoryOptions();
       fetchGenderOptions();
       fetchSalutationOptions();
+    }
+  }, [isOpen]);
 
+  const fetchUsers = async () => {
+    setIsLoadingUsers(true);
+
+    try {
       const session = getUserSession();
       const sessionCompany = session?.company;
 
@@ -95,22 +101,43 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
         return;
       }
 
-      const filters = encodeURIComponent(JSON.stringify([["company", "=", sessionCompany]]));
-      const apiUrl = `https://api.erpnext.ai/api/v2/document/User?fields=["name","email"]&filters=${filters}`;
+      const apiUrl = 'https://api.erpnext.ai/api/method/frappe.desk.search.search_link';
 
-      fetch(apiUrl, {
+      const response = await fetch(apiUrl, {
+        method: 'POST',
         headers: {
+          'Content-Type': 'application/json',
           'Authorization': AUTH_TOKEN,
-        }
-      })
-        .then(res => res.json())
-        .then(data => {
-          setUsers(data.data || []);
+        },
+        body: JSON.stringify({
+          txt: "",
+          doctype: "User",
+          filters: {
+            company: sessionCompany
+          }
         })
-        .catch(() => setUsers([]))
-        .finally(() => setIsLoadingUsers(false));
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.message && Array.isArray(result.message)) {
+          const userOptions = result.message.map((item: any) => ({
+            name: item.value, // This will be passed to the API (email)
+            email: item.value, // Email for display
+            full_name: item.description || item.value // Full name for display
+          }));
+          setUsers(userOptions);
+        }
+      } else {
+        throw new Error('Failed to fetch users');
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      setUsers([]);
+    } finally {
+      setIsLoadingUsers(false);
     }
-  }, [isOpen]);
+  };
 
   // Fetch dynamic dropdown options
   const fetchIndustryOptions = async () => {
@@ -1016,7 +1043,7 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
                   <option value="">Select a Deal Owner</option>
                   {users.map(user => (
                     <option key={user.name} value={user.name}>
-                      {user.email}
+                      {user.full_name}
                     </option>
                   ))}
                 </select>

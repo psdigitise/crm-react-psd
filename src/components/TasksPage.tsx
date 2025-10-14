@@ -28,6 +28,11 @@ interface TasksPageProps {
   refreshTrigger?: number;
 }
 
+interface ContactOption {
+  value: string;
+  description: string;
+}
+
 const statusColors = {
   'Open': '!bg-white !text-black-800 dark:bg-white dark:text-black',
   'Backlog': '!bg-gray-100 !text-gray-800 dark:bg-gray-900/30 dark:text-white',
@@ -58,7 +63,7 @@ export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0 }: TasksP
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
-  const [contactOptions, setContactOptions] = useState<string[]>([]);
+  const [contactOptions, setContactOptions] = useState<ContactOption[]>([]);
   const [isLoadingContacts, setIsLoadingContacts] = useState(false);
   const [internalRefreshTrigger, setInternalRefreshTrigger] = useState(0);
 
@@ -173,26 +178,35 @@ export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0 }: TasksP
         return;
       }
 
-      const params = new URLSearchParams({
-        fields: JSON.stringify(["name", "email"]),
-        filters: JSON.stringify([["company", "=", sessionCompany]])
-      });
+      const apiUrl = 'https://api.erpnext.ai/api/method/frappe.desk.search.search_link';
 
-      const response = await fetch(`${API_BASE_URL}/api/v2/document/User?${params}`, {
-        method: 'GET',
+      const response = await fetch(apiUrl, {
+        method: 'POST',
         headers: {
-          'Authorization': AUTH_TOKEN,
-          'Content-Type': 'application/json'
-        }
+          'Content-Type': 'application/json',
+          'Authorization': AUTH_TOKEN
+        },
+        body: JSON.stringify({
+          txt: "",
+          doctype: "User",
+          filters: {
+            company: sessionCompany
+          }
+        })
       });
 
       if (response.ok) {
         const result = await response.json();
-        const users = result.data || [];
-        const names = users
-          .map((user: any) => user.name)
-          .filter((name: string | undefined) => !!name && name.trim() !== "");
-        setContactOptions(Array.from(new Set(names)));
+        if (result.message && Array.isArray(result.message)) {
+          // Store both value and description for display
+          const userOptions = result.message.map((item: any) => ({
+            value: item.value, // This will be passed to the API (email)
+            description: item.description || item.value // Full name for display
+          }));
+          setContactOptions(userOptions);
+        }
+      } else {
+        throw new Error('Failed to fetch users');
       }
     } catch (error) {
       console.error('Error fetching users:', error);
@@ -516,13 +530,24 @@ export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0 }: TasksP
                       : 'bg-white border-gray-300 text-gray-900'
                       }`}
                   >
-                    <option value="">Select Assign</option>
+                    <option value=""
+                      style={{
+                        color: theme === 'dark' ? 'white' : 'black',
+                        backgroundColor: theme === 'dark' ? '#1f2937' : 'white',
+                      }}>Select Assign</option>
                     {isLoadingContacts ? (
                       <option value="" disabled>Loading contacts...</option>
                     ) : (
                       contactOptions.map((contact) => (
-                        <option key={contact} value={contact}>
-                          {contact}
+                        <option
+                          key={contact.value}
+                          value={contact.value}
+                          style={{
+                            color: theme === 'dark' ? 'white' : 'black',
+                            backgroundColor: theme === 'dark' ? '#1f2937' : 'white',
+                          }}
+                        >
+                          {contact.description} {/* Display the full name */}
                         </option>
                       ))
                     )}

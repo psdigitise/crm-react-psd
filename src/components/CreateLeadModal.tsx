@@ -90,18 +90,35 @@ export function CreateLeadModal({ isOpen, onClose, onSubmit }: CreateLeadModalPr
         return;
       }
 
-      const filters = encodeURIComponent(JSON.stringify([["company", "=", sessionCompany]]));
-      const apiUrl = `https://api.erpnext.ai/api/v2/document/User?fields=["email"]&filters=${filters}`;
+      const apiUrl = 'https://api.erpnext.ai/api/method/frappe.desk.search.search_link';
 
       const response = await fetch(apiUrl, {
+        method: 'POST',
         headers: {
+          'Content-Type': 'application/json',
           'Authorization': getAuthToken(),
-        }
+        },
+        body: JSON.stringify({
+          txt: "",
+          doctype: "User",
+          filters: {
+            company: sessionCompany
+          }
+        })
       });
 
       if (response.ok) {
         const data = await response.json();
-        setUsers(data.data || []);
+        if (data.message && Array.isArray(data.message)) {
+          const userOptions = data.message.map((item: any) => ({
+            name: item.value, // Using value as name for API submission
+            email: item.value, // Value contains email
+            full_name: item.description // Description contains the full name
+          }));
+          setUsers(userOptions);
+        }
+      } else {
+        throw new Error('Failed to fetch users');
       }
     } catch (error) {
       console.error('Error fetching users:', error);
@@ -820,7 +837,7 @@ export function CreateLeadModal({ isOpen, onClose, onSubmit }: CreateLeadModalPr
                   name="leadOwner"
                   value={formData.leadOwner}
                   onChange={handleChange}
-                  className={`w-full  text-sm  px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
+                  className={`w-full text-sm px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
                     ? 'bg-white-31 border-white text-white'
                     : 'bg-gray-50/80 border-gray-300'
                     }`}
@@ -829,7 +846,7 @@ export function CreateLeadModal({ isOpen, onClose, onSubmit }: CreateLeadModalPr
                   <option value="">Select Lead Owner</option>
                   {users.map(user => (
                     <option key={user.name} value={user.name}>
-                      {user.email}
+                      {user.full_name} {/* This displays the email address */}
                     </option>
                   ))}
                 </select>
