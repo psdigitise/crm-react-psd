@@ -37,6 +37,7 @@ interface Notification {
   creation: string;
   modified: string;
   message: string;
+  is_read?: boolean;
 }
 
 const menuItems = [
@@ -47,24 +48,20 @@ const menuItems = [
   { id: 'contacts', label: 'Contacts', icon: User },
   { id: 'organizations', label: 'Organizations', icon: Building2 },
   { id: 'users', label: 'Users', icon: UserCheck },
-  // { id: 'reminders', label: 'Reminders', icon: Clock },
-  // { id: 'todos', label: 'TODOs', icon: ListTodo },
   { id: 'notes', label: 'Notes', icon: FileText },
   { id: 'tasks', label: 'Tasks', icon: CheckSquare },
   { id: 'call-logs', label: 'Call Logs', icon: Phone },
-  // { id: 'email-templates', label: 'Email Templates', icon: Mail },
 ];
 
 export function Sidebar({ isCollapsed, onToggle, activeItem, onItemClick }: SidebarProps) {
   const { theme, toggleTheme } = useTheme();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [lastNotificationCount, setLastNotificationCount] = useState(0);
   const [companyInfo, setCompanyInfo] = useState<{ start_date?: string, end_date?: string } | null>(null);
   const [expiryStatus, setExpiryStatus] = useState<{ expired: boolean, daysLeft: number } | null>(null);
   const userSession = getUserSession();
-   const CompanyName = userSession?.company || "Administrator";
-    const Username = userSession?.username || "Administrator";
+  const CompanyName = userSession?.company || "Administrator";
+  const Username = userSession?.username || "Administrator";
 
   useEffect(() => {
     const session = getUserSession();
@@ -112,7 +109,15 @@ export function Sidebar({ isCollapsed, onToggle, activeItem, onItemClick }: Side
 
   const fetchNotifications = async () => {
     try {
-      const apiUrl = 'https://api.erpnext.ai/api/v2/document/CRM Notification?fields=["name","creation","modified","message"]';
+      const session = getUserSession();
+      const sessionCompany = session?.company;
+
+      let apiUrl = 'https://api.erpnext.ai/api/v2/document/CRM Notification?fields=["name","creation","modified","message"]';
+
+      // Add company filter if company exists in session
+      if (sessionCompany) {
+        apiUrl += `&filters=[["company","=","${sessionCompany}"]]`;
+      }
 
       const response = await fetch(apiUrl, {
         method: 'GET',
@@ -126,17 +131,10 @@ export function Sidebar({ isCollapsed, onToggle, activeItem, onItemClick }: Side
         const result = await response.json();
         const newNotifications = result.data || [];
 
-        // Check for new notifications
-        const currentCount = newNotifications.length;
-
-        if (currentCount > lastNotificationCount) {
-          // New notifications arrived
-          const newCount = currentCount - lastNotificationCount;
-          setUnreadCount(prev => prev + newCount);
-        }
-
+        // Set the unread count to the actual number of notifications
+        const totalNotifications = newNotifications.length;
         setNotifications(newNotifications);
-        setLastNotificationCount(currentCount);
+        setUnreadCount(totalNotifications);
       }
     } catch (error) {
       console.error('Error fetching notifications:', error);
@@ -145,7 +143,7 @@ export function Sidebar({ isCollapsed, onToggle, activeItem, onItemClick }: Side
 
   const handleNotificationClick = () => {
     onItemClick('notifications');
-    // Mark notifications as read
+    // Mark all notifications as read by resetting count to 0
     setUnreadCount(0);
 
     // Close sidebar on mobile after selection
@@ -156,7 +154,7 @@ export function Sidebar({ isCollapsed, onToggle, activeItem, onItemClick }: Side
 
   const handleLogout = () => {
     clearUserSession();
-    window.location.reload(); // Refresh to trigger login page
+    window.location.reload();
   };
 
   return (
@@ -184,7 +182,7 @@ export function Sidebar({ isCollapsed, onToggle, activeItem, onItemClick }: Side
         <div className={`p-4 border-b ${theme === 'dark' ? 'border-purple-500/30' : 'border-gray-100'}`}>
           <div className="flex w-full items-center justify-between">
             {!isCollapsed && (
-              <div className=" w-full  items-center space-x-3">
+              <div className="w-full items-center space-x-3">
                 <img
                   src="../../public/assets/images/Erpnextlogo.png"
                   alt="ERPNext Logo"
@@ -202,7 +200,7 @@ export function Sidebar({ isCollapsed, onToggle, activeItem, onItemClick }: Side
                       }`}
                     title="Companyname"
                   >
-                   {CompanyName}
+                    {CompanyName}
                   </h2>
                   <p
                     className={`text-xs truncate max-w-[180px] ${theme === "dark"
@@ -211,14 +209,13 @@ export function Sidebar({ isCollapsed, onToggle, activeItem, onItemClick }: Side
                       }`}
                     title="username"
                   >
-                 {Username}
+                    {Username}
                   </p>
                 </div>
               </div>
             )}
 
-            <div className="flex items-center ">
-
+            <div className="flex items-center">
               <button
                 onClick={toggleTheme}
                 className={`p-1.5 rounded-lg transition-colors ${theme === 'dark' ? 'hover:bg-purple-800/50' : 'hover:bg-gray-100'
@@ -228,9 +225,10 @@ export function Sidebar({ isCollapsed, onToggle, activeItem, onItemClick }: Side
                 {theme === 'dark' ? (
                   <Sun className="w-4 h-4 text-yellow-500" />
                 ) : (
-                  <Moon className='w-4 h-4 text-gray-600 ' />
+                  <Moon className='w-4 h-4 text-gray-600' />
                 )}
               </button>
+
               {/* Collapse Toggle */}
               <button
                 onClick={onToggle}
@@ -281,19 +279,21 @@ export function Sidebar({ isCollapsed, onToggle, activeItem, onItemClick }: Side
                   >
                     <Icon
                       className={`w-5 h-5 flex-shrink-0 ${isActive
-                        ? theme === 'dark' ? 'text-white  ' : 'text-blue-600'
+                        ? theme === 'dark' ? 'text-white' : 'text-blue-600'
                         : theme === 'dark'
                           ? 'text-white group-hover:text-white'
-                          : 'text-gray-500  group-hover:text-gray-700'
+                          : 'text-gray-500 group-hover:text-gray-700'
                         }`}
                     />
                     {!isCollapsed && (
-                      <span className={`text-sm  font-medium truncate ${theme === "dark" ? "text-white" : ""}`}>{item.label}</span>
+                      <span className={`text-sm font-medium truncate ${theme === "dark" ? "text-white" : ""}`}>
+                        {item.label}
+                      </span>
                     )}
 
-                    {/* Notification Badge */}
+                    {/* Notification Badge - Shows actual count from data */}
                     {showNotificationBadge && (
-                      <span className="absolute top-2.5 right-1 bg-red-500 text-white text-sm rounded-full w-5 h-5 flex items-center justify-center font-bold">
+                      <span className="absolute top-2.5 right-1 bg-red-500 text-white text-xs rounded-full min-w-[20px] h-5 flex items-center justify-center font-bold px-1">
                         {unreadCount > 99 ? '99+' : unreadCount}
                       </span>
                     )}
@@ -304,8 +304,8 @@ export function Sidebar({ isCollapsed, onToggle, activeItem, onItemClick }: Side
                     <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-sm font-semibold rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 whitespace-nowrap pointer-events-none">
                       {item.label}
                       {showNotificationBadge && (
-                        <span className="ml-1 bg-red-500 text-white text-sm font-semibold rounded-full px-1">
-                          {unreadCount}
+                        <span className="ml-1 bg-red-500 text-white text-xs font-semibold rounded-full px-1 min-w-[20px] inline-block text-center">
+                          {unreadCount > 99 ? '99+' : unreadCount}
                         </span>
                       )}
                     </div>
@@ -314,17 +314,15 @@ export function Sidebar({ isCollapsed, onToggle, activeItem, onItemClick }: Side
               );
             })}
           </ul>
-
         </nav>
 
+        {/* Expiry Status */}
         <div>
           {companyInfo && (
-            <div
-              style={{ fontFamily: 'Inter, sans-serif' }}
-            >
+            <div style={{ fontFamily: 'Inter, sans-serif' }}>
               {expiryStatus && (
                 <div className={`mt-2 text-sm font-semibold flex items-center justify-center gap-2
-        ${expiryStatus.expired
+                  ${expiryStatus.expired
                     ? 'text-white bg-red-500/20'
                     : expiryStatus.daysLeft <= 7
                       ? 'text-yellow-600'
@@ -333,7 +331,7 @@ export function Sidebar({ isCollapsed, onToggle, activeItem, onItemClick }: Side
                 >
                   {expiryStatus.expired ? (
                     <>
-                      <span className="inline-block w-2 h-2 bg-white-500 rounded-full animate-pulse"></span>
+                      <span className="inline-block w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
                       PACK Expired
                     </>
                   ) : (
@@ -350,10 +348,8 @@ export function Sidebar({ isCollapsed, onToggle, activeItem, onItemClick }: Side
           )}
         </div>
 
-
         {/* User Info & Logout */}
         <div className={`p-4 border-t ${theme === 'dark' ? 'border-purple-500/30' : 'border-gray-100'}`}>
-
           <button
             onClick={handleLogout}
             className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-all duration-200 ${theme === 'dark'

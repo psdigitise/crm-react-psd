@@ -190,21 +190,9 @@ export function UserDetailView({ user, onBack, onSave }: UserDetailViewProps) {
               <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>
                 Email
               </label>
-              {isEditing ? (
-                <input
-                  type="email"
-                  value={editedUser.email}
-                  onChange={(e) => handleInputChange('email', e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
-                    ? 'bg-white-31 border-white text-white'
-                    : 'bg-white/80 border-gray-300'
-                    }`}
-                />
-              ) : (
-                <p className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                  {user.email}
-                </p>
-              )}
+              <p className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                {user.email}
+              </p>
             </div>
 
             <div>
