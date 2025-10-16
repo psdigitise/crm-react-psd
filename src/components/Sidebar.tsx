@@ -60,8 +60,9 @@ export function Sidebar({ isCollapsed, onToggle, activeItem, onItemClick }: Side
   const [companyInfo, setCompanyInfo] = useState<{ start_date?: string, end_date?: string } | null>(null);
   const [expiryStatus, setExpiryStatus] = useState<{ expired: boolean, daysLeft: number } | null>(null);
   const userSession = getUserSession();
-  const CompanyName = userSession?.company || "Administrator";
-  const Username = userSession?.username || "Administrator";
+  const CompanyName = userSession?.company;
+   const sessionfullname = userSession?.full_name;
+  const Username = userSession?.username || sessionfullname;
 
   useEffect(() => {
     const session = getUserSession();

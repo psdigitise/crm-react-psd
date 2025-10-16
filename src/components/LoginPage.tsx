@@ -12,6 +12,7 @@ interface LoginPageProps {
 }
 
 interface LoginResponse {
+  full_name: string;
   message: {
     success_key: number;
     message: string;
@@ -314,7 +315,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           company: result.message.company || '',
           username: result.message.username || '',
           email: result.message.email || email,
-          full_name: result.message.full_name || '',
+          full_name: result.full_name || result.message.full_name || '', // ✅ fixed here
           sid: result.message.sid || '',
           api_key: result.message.api_key || '',
           api_secret: result.message.api_secret || '',

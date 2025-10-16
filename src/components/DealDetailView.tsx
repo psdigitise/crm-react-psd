@@ -31,6 +31,22 @@ import { FiChevronDown } from "react-icons/fi";
 import { CreateOrganizationPopup } from './DealPopups/CreateOrganizationPopup';
 import { CreateTerritoryPopup } from './DealPopups/CreateTerritoryPopup';
 
+// Add these new interfaces
+interface UserInfo {
+  fullname: string;
+  image: string | null;
+  name: string;
+  email: string;
+  time_zone: string;
+}
+
+interface DocInfo {
+  user_info: {
+    [key: string]: UserInfo; // This is the index signature fix
+  };
+  comments: any[]; // You can use a more specific type if you have one
+  shared: any[];
+}
 export interface Deal {
   id: string;
   name: string;
@@ -256,7 +272,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
   const [activityLoading, setActivityLoading] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const userSession = getUserSession();
-  const Username = userSession?.username || "Administrator";
+  const sessionfullname = userSession?.full_name;
+  const Username = userSession?.username || sessionfullname;
   const [organizationSearch, setOrganizationSearch] = useState('');
   const [showCreateOrganizationModal, setShowCreateOrganizationModal] = useState(false);
   const [emailModalTab, setEmailModalTab] = useState<TabType | null>(null);
@@ -1328,7 +1345,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
   };
 
   // Add to your state variables
-  const [docinfo, setDocinfo] = useState({
+  const [docinfo, setDocinfo] = useState<DocInfo>({
     user_info: {
       "santhaashwingsdigitise@gmail.com": {
         fullname: "john-2",
@@ -1427,19 +1444,39 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
       if (!response.ok) throw new Error('Failed to fetch activities');
 
       const result = await response.json();
-      const message = result.message;
 
-      // 1. Populate states for individual tabs and detailed views
+      // --- FIX STARTS HERE ---
+
+      // 1. Get the fresh user info directly from the API result.
+      const userInfoMap = result.docinfo?.user_info || {};
+
+      // 2. Update the component's state for any other parts of your app that might need it.
+      if (result.docinfo) {
+        setDocinfo(result.docinfo);
+      }
+
+      // 3. Create a local helper function that uses the fresh user info from this specific API call.
+      const getFreshFullname = (username: string): string => {
+        if (!username) return 'Unknown';
+        const user = userInfoMap[username];
+        if (user && user.fullname) {
+          return user.fullname;
+        }
+        // Fallback if user is not in the map
+        return username.split('@')[0] || username;
+      };
+
+      // --- FIX ENDS HERE ---
+
+      const message = result.message;
       const timelineItems = message[0] || [];
       const rawCallLogs = message[1] || [];
       const rawNotes = message[2] || [];
       const rawTasks = message[3] || [];
 
-      // ✨ NEW: Fetch detailed call logs with notes and tasks
       const callNames = rawCallLogs.map(call => call.name).filter(Boolean);
       const detailedCallLogs = await fetchDetailedCallLogsForActivity(callNames);
 
-      // Create a map for easy lookup of detailed call data
       const detailedCallMap = new Map();
       detailedCallLogs.forEach(detailedCall => {
         if (detailedCall.name) {
@@ -1447,22 +1484,20 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         }
       });
 
-      // Update call logs with detailed data for both activity and calls tab
       const enhancedCallLogs = rawCallLogs.map(call => {
         const detailedCall = detailedCallMap.get(call.name);
         return {
           ...call,
-          ...(detailedCall || {}), // Merge detailed data if available
+          ...(detailedCall || {}),
           _notes: detailedCall?._notes || call._notes || [],
           _tasks: detailedCall?._tasks || call._tasks || []
         };
       });
 
-      setCallLogs(enhancedCallLogs); // Set enhanced call logs
+      setCallLogs(enhancedCallLogs);
       setNotes(rawNotes);
       setTasks(rawTasks);
 
-      // Extract detailed data from timeline items
       const rawEmails = timelineItems
         .filter((item: any) => item.activity_type === 'communication')
         .map((item: any) => ({
@@ -1480,28 +1515,18 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
       const rawComments = timelineItems.filter((item: any) => item.activity_type === 'comment');
       setComments(rawComments);
 
-      // 2. ✨ ENHANCED: Map call activities with detailed data including notes and tasks
-      const callActivities = enhancedCallLogs.map((call: any) => {
-        console.log("Creating call activity with enhanced data:", call);
+      // Now we use `getFreshFullname` for all activity mappings below
 
-        return {
-          id: call.name,
-          type: 'call',
-          title: `${call.type} Call`,
-          description: ``,
-          timestamp: call.creation,
-          user: getFullname(call.caller || call.receiver || 'Unknown'),
-          icon: <Phone className="w-4 h-4 text-green-500" />,
-          // ✨ Include detailed call data with notes and tasks
-          callData: {
-            ...call,
-            _notes: call._notes || [],
-            _tasks: call._tasks || []
-          }
-        };
-      });
-
-      console.log("Enhanced call activities:", callActivities);
+      const callActivities = enhancedCallLogs.map((call: any) => ({
+        id: call.name,
+        type: 'call',
+        title: `${call.type} Call`,
+        description: ``,
+        timestamp: call.creation,
+        user: getFreshFullname(call.caller || call.receiver || 'Unknown'), // USE FRESH HELPER
+        icon: <Phone className="w-4 h-4 text-green-500" />,
+        callData: { ...call, _notes: call._notes || [], _tasks: call._tasks || [] }
+      }));
 
       const taskActivities = rawTasks.map((task: any) => ({
         id: task.name,
@@ -1509,7 +1534,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         title: `Task Created: ${task.title}`,
         description: ``,
         timestamp: task.modified,
-        user: getFullname(task.assigned_to || 'Unassigned'),
+        user: getFreshFullname(task.assigned_to || 'Unassigned'), // USE FRESH HELPER
         icon: <SiTicktick className="w-4 h-4 text-gray-600" />,
       }));
 
@@ -1522,22 +1547,21 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         title: 'Attachment Added',
         description: attachment.file_name,
         timestamp: attachment.creation,
-        user: getFullname(attachment.owner),
+        user: getFreshFullname(attachment.owner), // USE FRESH HELPER
         icon: <Paperclip className="w-4 h-4 text-gray-500" />,
         attachmentData: attachment
       }));
 
       const timelineActivities = timelineItems.map((item: any) => {
-        // Your existing timeline mapping logic here
         switch (item.activity_type) {
           case 'creation':
             return {
               id: `creation-${item.creation}`,
               type: 'edit',
-              title: `${getFullname(item.owner)} ${item.data}`,
+              title: `${getFreshFullname(item.owner)} ${item.data}`, // USE FRESH HELPER
               description: '',
               timestamp: item.creation,
-              user: getFullname(item.owner),
+              user: getFreshFullname(item.owner), // USE FRESH HELPER
               icon: <UserPlus className="w-4 h-4 text-gray-500" />
             };
           case 'comment':
@@ -1545,10 +1569,10 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
               return {
                 id: item.name,
                 type: 'edit',
-                title: `${getFullname(item.owner)} converted the lead to this deal.`,
+                title: `${getFreshFullname(item.owner)} converted the lead to this deal.`, // USE FRESH HELPER
                 description: '',
                 timestamp: item.creation,
-                user: getFullname(item.owner),
+                user: getFreshFullname(item.owner), // USE FRESH HELPER
                 icon: <RxLightningBolt className="w-4 h-4 text-blue-500" />
               };
             }
@@ -1558,7 +1582,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
               title: 'New Comment',
               description: item.content.replace(/<[^>]+>/g, ''),
               timestamp: item.creation,
-              user: getFullname(item.owner),
+              user: getFreshFullname(item.owner), // USE FRESH HELPER
               icon: <MessageSquare className="w-4 h-4 text-purple-500" />
             };
           case 'communication':
@@ -1568,7 +1592,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
               title: `Email: ${item.data.subject}`,
               description: ``,
               timestamp: item.creation,
-              user: getFullname(item.data.sender_full_name || item.data.sender),
+              user: getFreshFullname(item.data.sender_full_name || item.data.sender), // USE FRESH HELPER
               icon: <Mail className="w-4 h-4 text-red-500" />
             };
           case 'added':
@@ -1579,7 +1603,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                 id: `group-${item.creation}`,
                 type: 'grouped_change',
                 timestamp: item.creation,
-                user: getFullname(item.owner),
+                user: getFreshFullname(item.owner), // USE FRESH HELPER
                 icon: <Layers className="w-4 h-4 text-white" />,
                 changes: allChanges
               };
@@ -1590,10 +1614,10 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
             return {
               id: `change-${item.creation}`,
               type: 'edit',
-              title: `${getFullname(item.owner)} ${actionText}`,
+              title: `${getFreshFullname(item.owner)} ${actionText}`, // USE FRESH HELPER
               description: '',
               timestamp: item.creation,
-              user: getFullname(item.owner),
+              user: getFreshFullname(item.owner), // USE FRESH HELPER
               icon: <RxLightningBolt className="w-4 h-4 text-yellow-500" />
             };
           default:
@@ -1601,7 +1625,6 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         }
       }).filter(Boolean);
 
-      // 3. Combine, sort, and set the final activities list
       const allActivities = [...callActivities, ...taskActivities, ...timelineActivities, ...attachmentActivities];
       allActivities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
       setActivities(allActivities);
@@ -1612,7 +1635,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
     } finally {
       setActivityLoading(false);
     }
-  }, [deal.name, docinfo.user_info]);
+  }, [deal.name]); // 5. REMOVE docinfo.user_info from the dependency array
 
 
   const [organizationOptions, setOrganizationOptions] = useState([]);
@@ -4262,7 +4285,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                                   {commentData.owner?.charAt(0).toUpperCase() || "?"}
                                 </div>
                                 <p className={`text-sm font-medium ${textSecondaryColor}`}>
-                                  {commentData.owner} added a comment
+                                  {getFullname(commentData.owner)} added a comment
                                 </p>
                               </div>
                               <p className={`text-xs ${textSecondaryColor}`}>

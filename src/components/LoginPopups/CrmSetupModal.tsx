@@ -12,7 +12,7 @@ export function CrmSetupModal({ isOpen, onClose }: CrmSetupModalProps) {
     const [employeeCount, setEmployeeCount] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const userSession = getUserSession();
-    const userEmail = userSession?.email || "Administrator";
+    const userEmail = userSession?.email;
     const userName = userSession?.full_name || "";
     // const userPhone = userSession?.phone || "";
 

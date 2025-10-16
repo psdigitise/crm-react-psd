@@ -86,7 +86,8 @@ export default function EmailComposerleads({
     const recipientInputRef = useRef<HTMLInputElement>(null);
     const suggestionsRef = useRef<HTMLDivElement>(null);
     const userSession = getUserSession();
-    const senderUsername = userSession?.username || "Administrator";
+    const sessionfullname = userSession?.full_name;
+    const senderUsername = userSession?.username || sessionfullname;
     const [showConfirmationPopup, setShowConfirmationPopup] = useState(false);
     const [subjectToGenerate, setSubjectToGenerate] = useState("");
 

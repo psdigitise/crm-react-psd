@@ -256,7 +256,8 @@ export function Dashboard() {
   const [organizationCount, setOrganizationCount] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const userSession = getUserSession();
-  const sessionUsername = userSession?.username || "Administrator";
+  const sessionfullname = userSession?.full_name;
+  const sessionUsername = userSession?.username || sessionfullname;
   // Function to fetch deals data
   const fetchDealsData = async () => {
     try {

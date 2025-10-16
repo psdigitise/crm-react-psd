@@ -41,8 +41,9 @@ export default function Commentemail({
   const emojiPickerRef = useRef<HTMLDivElement>(null);
 
   const userSession = getUserSession();
-  const CommentedBy = userSession?.username || "Administrator";
-  const email = userSession?.email || "Administrator";
+   const sessionfullname = userSession?.full_name;
+  const CommentedBy = userSession?.username ||sessionfullname;
+  const email = userSession?.email;
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 

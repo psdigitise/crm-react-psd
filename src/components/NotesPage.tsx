@@ -215,16 +215,13 @@ export function NotesPage({ onCreateNote, leadName }: NotesPageProps) {
   const [formData, setFormData] = useState<Note | null>(null);
   const [editForm, setEditForm] = useState({ title: '', content: '' });
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-
   // Add state for create modal
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-
   // Add state for deal and lead navigation
   const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [dealLoading, setDealLoading] = useState(false);
   const [leadLoading, setLeadLoading] = useState(false);
-
   // Add state for dropdown menu
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
 

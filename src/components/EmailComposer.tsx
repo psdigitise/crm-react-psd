@@ -73,7 +73,8 @@ export default function EmailOrCommentComposer({ deal, onClose, mode, dealName, 
   const [subjectToGenerate, setSubjectToGenerate] = useState("");
 
   const userSession = getUserSession();
-  const senderUsername = userSession?.username || "Administrator";
+   const sessionfullname = userSession?.full_name;
+  const senderUsername = userSession?.username || sessionfullname;
   const [quotedMessage, setQuotedMessage] = useState("");
 
   const addEmoji = (emoji: { native: string; }) => {
