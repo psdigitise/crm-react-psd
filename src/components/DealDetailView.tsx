@@ -1785,8 +1785,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
       // Update the editedDeal state with the fetched data
       setEditedDeal(prev => ({
         ...prev,
-        organization: dealData.organization_name || '',
-        organization_name: dealData.organization_name || '',
+        organization: dealData.organization || dealData.organization_name || '', // Add this fallback
+        organization_name: dealData.organization_name || dealData.organization || '', // Add this fallback
         website: dealData.website || '',
         no_of_employees: dealData.no_of_employees || '',
         territory: dealData.territory || '',
@@ -1811,6 +1811,10 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
       setLoading(false);
     }
   }, [deal.name]);
+
+  const getOrganizationName = () => {
+    return editedDeal.organization_name || editedDeal.organization || 'No Organization';
+  };
 
 
   // Call this effect when the component mounts or when the deal changes
@@ -2164,7 +2168,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
             </button>
             <div>
               <h1 className={`text-xl font-semibold ${textColor}`}>
-                {deal.organization} - {deal.name}
+                {getOrganizationName()} - {deal.name}
               </h1>
               <p className={`text-sm ${textSecondaryColor}`}>{deal.id}</p>
             </div>

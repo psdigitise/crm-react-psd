@@ -520,7 +520,7 @@ export function Header({
             placeholder="Search..."
             value={searchValue}
             onChange={(e) => onSearchChange(e.target.value)}
-            className={`pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full ${
+            className={`pl-10 pr-4 py-2 border rounded-lg focus:ring-2 placeholder:text-black focus:ring-blue-500 focus:border-transparent w-full ${
               theme === 'dark' 
                 ? 'bg-white-31 text-white border-transparent placeholder-white' 
                 : 'border-gray-300 placeholder-gray-500'

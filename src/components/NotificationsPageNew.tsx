@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useTheme } from "./ThemeProvider";
 import { showToast } from "../utils/toast";
 import { Loader2, Bell } from "lucide-react";
-import { AUTH_TOKEN } from "../api/apiUrl";
 import { api } from "../api/apiService";
 import { getUserSession } from "../utils/session";
 
@@ -11,6 +10,7 @@ interface Notification {
   creation: string;
   modified: string;
   message: string;
+  read?: boolean;
 }
 
 export function NotificationsPageNew() {
@@ -19,39 +19,22 @@ export function NotificationsPageNew() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchNotifications();
-  }, []);
-
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     const userSession = getUserSession();
     const Company = userSession?.company;
+
     try {
       setLoading(true);
       setError(null);
 
-      // const apiUrl =
-      //   'https://api.erpnext.ai/api/v2/document/CRM Notification?fields=["name","creation","modified","message"]';
-
-      // const response = await fetch(apiUrl, {
-      //   method: "GET",
-      //   headers: {
-      //     "Content-Type": "application/json",
-      //     Authorization:AUTH_TOKEN,
-      //   },
-      // });
-
-      // if (!response.ok) {
-      //   throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      // }
-
-      // const result = await response.json();
       const result = await api.get('api/v2/document/CRM Notification', {
-        fields: JSON.stringify(["name", "creation", "modified", "message"]),
+        fields: JSON.stringify(["name", "creation", "modified", "message", "read"]),
         filters: JSON.stringify({
-          company: Company
+          company: Company,
+          read: 1
         }),
       });
+
       setNotifications(result.data || []);
     } catch (error) {
       console.error("Error fetching notifications:", error);
@@ -61,6 +44,63 @@ export function NotificationsPageNew() {
       showToast("Failed to fetch notifications", { type: "error" });
     } finally {
       setLoading(false);
+    }
+  }, []);
+
+  const markAsRead = async (notificationId: string) => {
+    try {
+      await api.patch(`api/v2/document/CRM Notification/${notificationId}`, {
+        read: 1
+      });
+      
+      // Update local state to reflect the read status
+      setNotifications(prev => prev.map(notif => 
+        notif.name === notificationId ? { ...notif, read: true } : notif
+      ));
+      
+      showToast("Notification marked as read", { type: "success" });
+      
+    } catch (error) {
+      console.error("Error marking notification as read:", error);
+      showToast("Failed to mark notification as read", { type: "error" });
+    }
+  };
+
+  // Mark all notifications as read when component mounts
+  useEffect(() => {
+    const markAllAsRead = async () => {
+      const userSession = getUserSession();
+      const Company = userSession?.company;
+      
+      try {
+        // Directly update all unread notifications for this company
+        await api.patch('api/v2/document/CRM Notification', {
+          data: { read: 1 },
+          filters: JSON.stringify({
+            company: Company,
+            read: 0 // Only mark unread ones as read
+          })
+        });
+        
+        // Update local state to mark all as read
+        setNotifications(prev => prev.map(notif => ({ ...notif, read: true })));
+        
+      } catch (error) {
+        console.error("Error marking all notifications as read:", error);
+      }
+    };
+
+    // Only run once when component mounts
+    markAllAsRead();
+  }, []);
+
+  useEffect(() => {
+    fetchNotifications();
+  }, [fetchNotifications]);
+
+  const handleNotificationClick = (notification: Notification) => {
+    if (!notification.read) {
+      markAsRead(notification.name);
     }
   };
 
@@ -118,7 +158,10 @@ export function NotificationsPageNew() {
       className={`${theme === "dark"
         ? "bg-custom-gradient border-0 rounded-none"
         : "bg-white/80 border-gray-100"
-        } rounded-lg p-4 mb-4 shadow-sm border backdrop-blur-md hover:shadow-md transition-all`}
+        } rounded-lg p-4 mb-4 shadow-sm border backdrop-blur-md hover:shadow-md transition-all ${!notification.read ? "border-l-4 border-l-blue-500" : ""
+        }`}
+      onClick={() => handleNotificationClick(notification)}
+      style={{ cursor: "pointer" }}
     >
       <div
         className={`p-2 ${theme === "dark" ? "bg-transparent" : "bg-white"
@@ -131,10 +174,13 @@ export function NotificationsPageNew() {
                 }`}
             >
               <Bell
-                className={`w-5 h-5 mr-2 fill-white inline-block ${theme === "dark" ? "text-white" : "text-blue-600"
+                className={`w-5 h-5 mr-2 inline-block ${theme === "dark" ? "text-white" : "text-blue-600"
                   }`}
               />
               Notification
+              {!notification.read && (
+                <span className="ml-2 inline-block w-2 h-2 bg-red-500 rounded-full"></span>
+              )}
             </h3>
             <p
               className={`text-base font-semibold ps-5 leading-relaxed ${theme === "dark" ? "text-white" : "text-gray-700"
@@ -168,11 +214,6 @@ export function NotificationsPageNew() {
 
   if (loading) {
     return (
-      // <div className={`p-4 sm:p-6 min-h-screen max-w-4xl mx-auto ${
-      //   theme === 'dark'
-      //     ? 'bg-gradient-to-br from-dark-primary via-dark-secondary to-dark-tertiary'
-      //     : 'bg-gray-50'
-      // }`}>
       <div
         className={`p-4 sm:p-6 min-h-screen w-full ${theme === "dark"
           ? "bg-gradient-to-b from-[#1E1A2B] to-[#191428]"
@@ -181,7 +222,7 @@ export function NotificationsPageNew() {
       >
         <div className="flex items-center justify-center py-12">
           <Loader2
-            className={`w-8 h-8 animate-spin mr-3 ${theme === "dark" ? "text-purplebg" : "text-blue-600"
+            className={`w-8 h-8 animate-spin mr-3 ${theme === "dark" ? "text-purple-500" : "text-blue-600"
               }`}
           />
           <span className={theme === "dark" ? "text-white" : "text-gray-600"}>
@@ -194,10 +235,6 @@ export function NotificationsPageNew() {
 
   if (error) {
     return (
-      // <div className={`p-4 sm:p-6 min-h-screen max-w-4xl mx-auto ${theme === 'dark'
-      //     ? 'bg-gradient-to-br from-dark-primary via-dark-secondary to-dark-tertiary'
-      //     : 'bg-gray-50'
-      //   }`}>
       <div
         className={`p-4 sm:p-6 min-h-screen w-full ${theme === "dark"
           ? "bg-gradient-to-b from-[#1E1A2B] to-[#191428]"
@@ -220,8 +257,8 @@ export function NotificationsPageNew() {
           <button
             onClick={fetchNotifications}
             className={`px-4 py-2 rounded-lg transition-colors ${theme === "dark"
-              ? "bg-purplebg text-white hover:bg-purple-700"
-              : "bg-blue-600 text-gray-600 hover:purple-700"
+              ? "bg-purple-600 text-white hover:bg-purple-700"
+              : "bg-blue-600 text-white hover:bg-blue-700"
               }`}
           >
             Retry
@@ -235,12 +272,8 @@ export function NotificationsPageNew() {
     groupNotificationsByDate(notifications);
 
   return (
-    // <div className={`p-4 sm:p-6 min-h-screen max-w-4xl mx-auto ${theme === 'dark'
-    //   ? 'bg-gradient-to-br from-dark-primary via-dark-secondary to-dark-tertiary'
-    //   : 'bg-gray-50'
-    //   }`}>
     <div
-      className={`p-4 sm:p-6 overflow-auto   h-[100vh] w-full ${theme === "dark"
+      className={`p-4 sm:p-6 overflow-auto h-[100vh] w-full ${theme === "dark"
         ? "bg-gradient-to-b from-[#1E1A2B] to-[#191428]"
         : "bg-gray-100"
         }`}
@@ -249,7 +282,7 @@ export function NotificationsPageNew() {
       <div className="mb-8">
         <div className="flex items-center space-x-3 mb-2">
           <Bell
-            className={`w-8 h-8 ${theme === "dark" ? "text-purplebg" : "text-blue-600"
+            className={`w-8 h-8 ${theme === "dark" ? "text-purple-500" : "text-blue-600"
               }`}
           />
           <h1
@@ -267,7 +300,7 @@ export function NotificationsPageNew() {
       {notifications.length === 0 ? (
         <div className="text-center py-12">
           <Bell
-            className={`w-16 h-16 mx-auto mb-4 ${theme === "dark" ? "text-gray-500" : "text-white"
+            className={`w-16 h-16 mx-auto mb-4 ${theme === "dark" ? "text-gray-500" : "text-gray-400"
               }`}
           />
           <h3
@@ -287,7 +320,7 @@ export function NotificationsPageNew() {
         <>
           {/* Today Section */}
           {todayNotifications.length > 0 && (
-            <div className="mb-8 h-[100vh]">
+            <div className="mb-8">
               <h2
                 className={`text-2xl font-bold mb-6 ${theme === "dark" ? "text-white" : "text-black"
                   }`}

@@ -107,10 +107,10 @@ export function RemindersPage({ onCreateReminder }: RemindersPageProps) {
             placeholder="Search..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className={`pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full ${
+            className={`pl-10 pr-4 py-2 border rounded-lg focus:ring-2 placeholder-black focus:ring-blue-500 focus:border-transparent w-full ${
               theme === 'dark' 
                 ? 'bg-white-31 border-white text-white placeholder-gray-400' 
-                : 'border-gray-300'
+                : 'border-gray-300 placeholder-black'
             }`}
           />
         </div>
