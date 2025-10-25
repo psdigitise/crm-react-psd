@@ -246,7 +246,8 @@ export default function ContactDetails({
         return;
       }
 
-      const apiUrl = 'https://api.erpnext.ai/api/method/crm.api.contact.get_contact';
+      // const apiUrl = 'https://api.erpnext.ai/api/method/crm.api.contact.get_contact';
+      const apiUrl = 'https://api.erpnext.ai/api/method/frappe.client.get';
 
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -255,6 +256,7 @@ export default function ContactDetails({
           'Authorization': AUTH_TOKEN
         },
         body: JSON.stringify({
+          doctype:"Contact",
           name: initialContact.id
         })
       });

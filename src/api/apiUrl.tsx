@@ -34,7 +34,7 @@ export const getAuthToken = (): string => {
     
     // Fallback to hardcoded token if session data is not available
     console.warn('Session API credentials not found, using fallback token');
-    return "token 1b670b800ace83b:f32066fea74d0fe";
+    return "token 11c96b6a1db6ad9:b864f10ffc5e362";
 };
 
 // Legacy export for backward compatibility (but now dynamic)
