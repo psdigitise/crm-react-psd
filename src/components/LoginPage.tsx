@@ -554,7 +554,13 @@ export function LoginPage({ onLogin }: LoginPageProps) {
         <div className="text-center mb-8">
           <div className="text-center">
             <div className="inline-flex items-center space-x-2 ">
-              <img src="../../public/assets/images/Erpnextlogo.png" alt="" className={`w-[300px] h-100 filter invert brightness-0 saturate-100 sepia hue-rotate-[90deg] contrast-125`} />
+              {/* <img src="../../public/assets/images/Erpnextlogo.png" alt="" className={`w-[300px] h-100 filter invert brightness-0 saturate-100 sepia hue-rotate-[90deg] contrast-125`} /> */}
+              <img
+                src="/login/assets/images/Erpnextlogo.png"
+                alt="Erpnext Logo"
+                className="w-[300px] h-100 filter invert brightness-0 saturate-100 sepia hue-rotate-[90deg] contrast-125"
+              />
+
             </div>
           </div>
         </div>

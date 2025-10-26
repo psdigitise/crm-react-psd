@@ -61,7 +61,7 @@ export function Sidebar({ isCollapsed, onToggle, activeItem, onItemClick }: Side
   const [expiryStatus, setExpiryStatus] = useState<{ expired: boolean, daysLeft: number } | null>(null);
   const userSession = getUserSession();
   const CompanyName = userSession?.company;
-   const sessionfullname = userSession?.full_name;
+  const sessionfullname = userSession?.full_name;
   const Username = userSession?.username || sessionfullname;
 
   useEffect(() => {
@@ -184,14 +184,24 @@ export function Sidebar({ isCollapsed, onToggle, activeItem, onItemClick }: Side
           <div className="flex w-full items-center justify-between">
             {!isCollapsed && (
               <div className="w-full items-center space-x-3">
-                <img
+                {/* <img
                   src="../../public/assets/images/Erpnextlogo.png"
                   alt="ERPNext Logo"
                   className={`w-[250px] h-auto transition duration-300 ${theme === "dark"
                     ? "filter invert brightness-0 saturate-100 sepia hue-rotate-[90deg] contrast-125"
                     : ""
                     }`}
+                /> */}
+
+                <img
+                  src="/login/assets/images/Erpnextlogo.png"
+                  alt="ERPNext Logo"
+                  className={`w-[250px] h-auto transition duration-300 ${theme === "dark"
+                      ? "filter invert brightness-0 saturate-100 sepia hue-rotate-[90deg] contrast-125"
+                      : ""
+                    }`}
                 />
+
 
                 <div className="mt-2">
                   <h2

@@ -94,6 +94,31 @@ function AppContent() {
   // Add state to track if we're in a nested view (like deal detail from contact)
   const [isInNestedView, setIsInNestedView] = useState(false);
 
+  // useEffect(() => {
+  //   const checkSession = async () => {
+  //     try {
+  //       const loggedIn = isUserLoggedIn();
+  //       const session = getUserSession();
+
+  //       console.log('Session check:', { loggedIn, session });
+
+  //       if (loggedIn && session) {
+  //         setIsLoggedIn(true);
+  //         initializeStateFromUrl(); // This should run before setIsLoggedIn(true)
+  //       } else {
+  //         clearUserSession();
+  //         setIsLoggedIn(false);
+  //       }
+  //     } catch (error) {
+  //       console.error('Error checking session:', error);
+  //       clearUserSession();
+  //       setIsLoggedIn(false);
+  //     } finally {
+  //       setIsCheckingSession(false);
+  //     }
+  //   };
+
+
   useEffect(() => {
     const checkSession = async () => {
       try {
@@ -104,7 +129,7 @@ function AppContent() {
 
         if (loggedIn && session) {
           setIsLoggedIn(true);
-          initializeStateFromUrl(); // This should run before setIsLoggedIn(true)
+          await initializeStateFromUrl(); // Make it async
         } else {
           clearUserSession();
           setIsLoggedIn(false);
@@ -118,87 +143,232 @@ function AppContent() {
       }
     };
 
-    const initializeStateFromUrl = () => {
-      const path = window.location.pathname;
+    checkSession();
+  }, []); // Remove 'leads' dependency
+  //   const initializeStateFromUrl = () => {
+  //     const path = window.location.pathname;
 
-      // First check for detail views
-      if (path.startsWith('/leads/')) {
-        const leadId = path.split('/')[2];
-        const lead = leads.find(l => l.id === leadId);
-        if (lead) {
+  //     // First check for detail views
+  //     if (path.startsWith('/leads/')) {
+  //       const leadId = path.split('/')[2];
+  //       const lead = leads.find(l => l.id === leadId);
+  //       if (lead) {
+  //         setSelectedLead(lead);
+  //         setActiveMenuItem('leads');
+  //         return;
+  //       }
+  //     }
+
+  //     if (path.startsWith('/deals/')) {
+  //       const dealId = path.split('/')[2];
+  //       const deal = sampleDeals.find(d => d.id === dealId);
+  //       if (deal) {
+  //         setSelectedDeal(deal);
+  //         setActiveMenuItem('deals');
+  //         return;
+  //       }
+  //     }
+
+  //     if (path.startsWith('/contacts/')) {
+  //       const contactId = path.split('/')[2];
+  //       const contact = sampleContacts.find(c => c.id === contactId);
+  //       if (contact) {
+  //         setSelectedContact(contact);
+  //         setActiveMenuItem('contacts');
+  //         return;
+  //       }
+  //     }
+
+  //     if (path.startsWith('/organizations/')) {
+  //       const orgId = path.split('/')[2];
+  //       const org = sampleOrganizations.find(o => o.id === orgId);
+  //       if (org) {
+  //         setSelectedOrganization(org);
+  //         setActiveMenuItem('organizations');
+  //         return;
+  //       }
+  //     }
+
+  //     // Then check for list views
+  //     if (path === '/' || path === '/dashboard') {
+  //       setActiveMenuItem('dashboard');
+  //     } else {
+  //       const menuItem = path.split('/')[1];
+  //       if (menuItem && [
+  //         'leads', 'deals', 'contacts', 'organizations', 'users',
+  //         'reminders', 'todos', 'notifications', 'notes',
+  //         'tasks', 'call-logs', 'email-templates'
+  //       ].includes(menuItem)) {
+  //         setActiveMenuItem(menuItem);
+  //       }
+  //     }
+  //   };
+
+  //   checkSession();
+  // }, [leads]);
+
+
+  const initializeStateFromUrl = async () => {
+    const path = window.location.pathname;
+    // Remove the /login base path if present
+    const cleanPath = path.replace('/login', '');
+
+    // Handle detail views with API fetching
+    if (cleanPath.startsWith('/leads/')) {
+      const leadId = cleanPath.split('/')[2];
+      try {
+        const response = await apiAxios.post("/api/method/frappe.client.get", {
+          doctype: "CRM Lead",
+          name: leadId,
+        });
+
+        if (response.data.message) {
+          const lead = { ...response.data.message, id: response.data.message.name };
           setSelectedLead(lead);
           setActiveMenuItem('leads');
           return;
         }
+      } catch (error) {
+        console.error('Error fetching lead:', error);
+        // Fallback to leads list if lead not found
+        setActiveMenuItem('leads');
+        window.history.replaceState({}, '', '/login/leads');
+        return;
       }
+    }
 
-      if (path.startsWith('/deals/')) {
-        const dealId = path.split('/')[2];
-        const deal = sampleDeals.find(d => d.id === dealId);
-        if (deal) {
+    if (cleanPath.startsWith('/deals/')) {
+      const dealId = cleanPath.split('/')[2];
+      try {
+        const response = await apiAxios.post("/api/method/frappe.client.get", {
+          doctype: "CRM Deal",
+          name: dealId,
+        });
+
+        if (response.data.message) {
+          const deal = {
+            ...response.data.message,
+            id: response.data.message.name,
+            organization: response.data.message.organization_name || response.data.message.organization
+          };
           setSelectedDeal(deal);
           setActiveMenuItem('deals');
           return;
         }
+      } catch (error) {
+        console.error('Error fetching deal:', error);
+        setActiveMenuItem('deals');
+        window.history.replaceState({}, '', '/login/deals');
+        return;
       }
+    }
 
-      if (path.startsWith('/contacts/')) {
-        const contactId = path.split('/')[2];
-        const contact = sampleContacts.find(c => c.id === contactId);
-        if (contact) {
+    if (cleanPath.startsWith('/contacts/')) {
+      const contactId = cleanPath.split('/')[2];
+      try {
+        const response = await apiAxios.post("/api/method/frappe.client.get", {
+          doctype: "CRM Contact",
+          name: contactId,
+        });
+
+        if (response.data.message) {
+          const contact = { ...response.data.message, id: response.data.message.name };
           setSelectedContact(contact);
           setActiveMenuItem('contacts');
           return;
         }
+      } catch (error) {
+        console.error('Error fetching contact:', error);
+        setActiveMenuItem('contacts');
+        window.history.replaceState({}, '', '/login/contacts');
+        return;
       }
+    }
 
-      if (path.startsWith('/organizations/')) {
-        const orgId = path.split('/')[2];
-        const org = sampleOrganizations.find(o => o.id === orgId);
-        if (org) {
+    if (cleanPath.startsWith('/organizations/')) {
+      const orgId = cleanPath.split('/')[2];
+      try {
+        const response = await apiAxios.post("/api/method/frappe.client.get", {
+          doctype: "CRM Organization",
+          name: orgId,
+        });
+
+        if (response.data.message) {
+          const org = { ...response.data.message, id: response.data.message.name };
           setSelectedOrganization(org);
           setActiveMenuItem('organizations');
           return;
         }
+      } catch (error) {
+        console.error('Error fetching organization:', error);
+        setActiveMenuItem('organizations');
+        window.history.replaceState({}, '', '/login/organizations');
+        return;
       }
+    }
 
-      // Then check for list views
-      if (path === '/' || path === '/dashboard') {
-        setActiveMenuItem('dashboard');
+    // Handle list views
+    if (cleanPath === '/' || cleanPath === '/dashboard' || cleanPath === '') {
+      setActiveMenuItem('dashboard');
+    } else {
+      const menuItem = cleanPath.split('/')[1];
+      if (menuItem && [
+        'leads', 'deals', 'contacts', 'organizations', 'users',
+        'reminders', 'todos', 'notifications', 'notes',
+        'tasks', 'call-logs', 'email-templates'
+      ].includes(menuItem)) {
+        setActiveMenuItem(menuItem);
       } else {
-        const menuItem = path.split('/')[1];
-        if (menuItem && [
-          'leads', 'deals', 'contacts', 'organizations', 'users',
-          'reminders', 'todos', 'notifications', 'notes',
-          'tasks', 'call-logs', 'email-templates'
-        ].includes(menuItem)) {
-          setActiveMenuItem(menuItem);
-        }
+        // Unknown route, redirect to dashboard
+        setActiveMenuItem('dashboard');
+        window.history.replaceState({}, '', '/login/');
       }
-    };
+    }
+  };
 
-    checkSession();
-  }, [leads]);
+
 
   // Update URL when state changes
+  // useEffect(() => {
+  //   if (!isLoggedIn) return;
+
+  //   let path = '/';
+
+  //   if (selectedLead) {
+  //     path = `/leads/${selectedLead.id}`;
+  //   } else if (selectedDeal) {
+  //     path = `/deals/${selectedDeal.id}`;
+  //   } else if (selectedContact) {
+  //     path = `/contacts/${selectedContact.id}`;
+  //   } else if (selectedOrganization) {
+  //     path = `/organizations/${selectedOrganization.id}`;
+  //   } else if (activeMenuItem !== 'dashboard') {
+  //     path = `/${activeMenuItem}`;
+  //   }
+
+  //   // Only update if the path has changed
+  //   if (window.location.pathname !== path) {
+  //     window.history.pushState({}, '', path);
+  //   }
+  // }, [activeMenuItem, selectedLead, selectedDeal, selectedContact, selectedOrganization, isLoggedIn]);
+
   useEffect(() => {
     if (!isLoggedIn) return;
 
-    let path = '/';
+    let path = '/login/';
 
     if (selectedLead) {
-      path = `/leads/${selectedLead.id}`;
+      path = `/login/leads/${selectedLead.id}`;
     } else if (selectedDeal) {
-      path = `/deals/${selectedDeal.id}`;
+      path = `/login/deals/${selectedDeal.id}`;
     } else if (selectedContact) {
-      path = `/contacts/${selectedContact.id}`;
+      path = `/login/contacts/${selectedContact.id}`;
     } else if (selectedOrganization) {
-      path = `/organizations/${selectedOrganization.id}`;
+      path = `/login/organizations/${selectedOrganization.id}`;
     } else if (activeMenuItem !== 'dashboard') {
-      path = `/${activeMenuItem}`;
+      path = `/login/${activeMenuItem}`;
     }
 
-    // Only update if the path has changed
     if (window.location.pathname !== path) {
       window.history.pushState({}, '', path);
     }
@@ -286,64 +456,64 @@ function AppContent() {
   };
 
   // Add this function to your component
-  const initializeStateFromUrl = () => {
-    const path = window.location.pathname;
+  // const initializeStateFromUrl = () => {
+  //   const path = window.location.pathname;
 
-    // Handle detail views
-    if (path.startsWith('/leads/')) {
-      const leadId = path.split('/')[2];
-      const lead = leads.find(l => l.id === leadId);
-      if (lead) {
-        setSelectedLead(lead);
-        setActiveMenuItem('leads');
-        return;
-      }
-    }
+  //   // Handle detail views
+  //   if (path.startsWith('/leads/')) {
+  //     const leadId = path.split('/')[2];
+  //     const lead = leads.find(l => l.id === leadId);
+  //     if (lead) {
+  //       setSelectedLead(lead);
+  //       setActiveMenuItem('leads');
+  //       return;
+  //     }
+  //   }
 
-    if (path.startsWith('/deals/')) {
-      const dealId = path.split('/')[2];
-      const deal = sampleDeals.find(d => d.id === dealId);
-      if (deal) {
-        setSelectedDeal(deal);
-        setActiveMenuItem('deals');
-        return;
-      }
-    }
+  //   if (path.startsWith('/deals/')) {
+  //     const dealId = path.split('/')[2];
+  //     const deal = sampleDeals.find(d => d.id === dealId);
+  //     if (deal) {
+  //       setSelectedDeal(deal);
+  //       setActiveMenuItem('deals');
+  //       return;
+  //     }
+  //   }
 
-    if (path.startsWith('/contacts/')) {
-      const contactId = path.split('/')[2];
-      const contact = sampleContacts.find(c => c.id === contactId);
-      if (contact) {
-        setSelectedContact(contact);
-        setActiveMenuItem('contacts');
-        return;
-      }
-    }
+  //   if (path.startsWith('/contacts/')) {
+  //     const contactId = path.split('/')[2];
+  //     const contact = sampleContacts.find(c => c.id === contactId);
+  //     if (contact) {
+  //       setSelectedContact(contact);
+  //       setActiveMenuItem('contacts');
+  //       return;
+  //     }
+  //   }
 
-    if (path.startsWith('/organizations/')) {
-      const orgId = path.split('/')[2];
-      const org = sampleOrganizations.find(o => o.id === orgId);
-      if (org) {
-        setSelectedOrganization(org);
-        setActiveMenuItem('organizations');
-        return;
-      }
-    }
+  //   if (path.startsWith('/organizations/')) {
+  //     const orgId = path.split('/')[2];
+  //     const org = sampleOrganizations.find(o => o.id === orgId);
+  //     if (org) {
+  //       setSelectedOrganization(org);
+  //       setActiveMenuItem('organizations');
+  //       return;
+  //     }
+  //   }
 
-    // Handle list views
-    if (path === '/' || path === '/dashboard') {
-      setActiveMenuItem('dashboard');
-    } else {
-      const menuItem = path.split('/')[1];
-      if (menuItem && [
-        'leads', 'deals', 'contacts', 'organizations', 'users',
-        'reminders', 'todos', 'notifications', 'notes',
-        'tasks', 'call-logs', 'email-templates'
-      ].includes(menuItem)) {
-        setActiveMenuItem(menuItem);
-      }
-    }
-  };
+  //   // Handle list views
+  //   if (path === '/' || path === '/dashboard') {
+  //     setActiveMenuItem('dashboard');
+  //   } else {
+  //     const menuItem = path.split('/')[1];
+  //     if (menuItem && [
+  //       'leads', 'deals', 'contacts', 'organizations', 'users',
+  //       'reminders', 'todos', 'notifications', 'notes',
+  //       'tasks', 'call-logs', 'email-templates'
+  //     ].includes(menuItem)) {
+  //       setActiveMenuItem(menuItem);
+  //     }
+  //   }
+  // };
 
   useEffect(() => {
     registerLogoutCallback(handleLogout);
@@ -1021,20 +1191,36 @@ function AppContent() {
   );
 }
 
+// function App() {
+//   return (
+//     <ThemeProvider>
+//       <Router>
+//         <Routes>
+//           <Route path="*" element={<AppContent />} />
+//           {/* <Route path="/update-password" element={<PasswordResetPage />} /> */}
+//           <Route path="/update-password" element={<AccountActivationPage />} />
+//           <Route path="/reset-password" element={<PasswordResetPage />} />
+//           <Route path="/ForgotPassword" element={<ForgotPasswordPage />} />
+//         </Routes>
+//       </Router>
+//     </ThemeProvider>
+//   );
+// }
+
+
 function App() {
   return (
     <ThemeProvider>
-      <Router>
+      <Router basename="/login">   {/* ✅ tell React Router the base path */}
         <Routes>
-          <Route path="*" element={<AppContent />} />
-          {/* <Route path="/update-password" element={<PasswordResetPage />} /> */}
+          <Route path="/" element={<AppContent />} />
           <Route path="/update-password" element={<AccountActivationPage />} />
           <Route path="/reset-password" element={<PasswordResetPage />} />
           <Route path="/ForgotPassword" element={<ForgotPasswordPage />} />
+          <Route path="*" element={<AppContent />} />
         </Routes>
       </Router>
     </ThemeProvider>
   );
 }
-
 export default App;
