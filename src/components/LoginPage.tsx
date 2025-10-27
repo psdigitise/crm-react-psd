@@ -601,6 +601,27 @@ export function LoginPage({ onLogin }: LoginPageProps) {
               </div>
 
               {/* Email Field */}
+
+              <div>
+                <label className="block text-sm font-medium text-white mb-1">
+                  Full Name <span className="text-red-500">*</span>
+                </label>
+                <div className="relative border border-white rounded-lg">
+                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <input
+                    type="text"
+                    value={registerData.first_name}
+                    onChange={(e) => handleFirstNameChange(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 border border-transparent rounded-lg bg-transparent text-white placeholder-white focus:outline-none"
+                    placeholder="John"
+                    disabled={loading}
+                  />
+                </div>
+                {firstNameError && (
+                  <p className="text-red-400 text-sm mt-1">{firstNameError}</p>
+                )}
+              </div>
+              
               <div>
                 <label className="block text-sm font-medium text-white mb-1">
                   Work Email <span className="text-red-500">*</span>
