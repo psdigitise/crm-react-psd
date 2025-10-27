@@ -175,7 +175,7 @@ export function Sidebar({ isCollapsed, onToggle, activeItem, onItemClick }: Side
           ${theme === 'dark'
             ? 'bg-gradient-to-b from-dark-primary via-dark-secondary to-dark-tertiary border-purple-500/30'
             : 'bg-white border-gray-200'
-          } border-r transition-all duration-300 ease-in-out flex flex-col
+          } border-r transition-transform duration-300 ease-in-out flex flex-col
           ${isCollapsed ? '-translate-x-full lg:translate-x-0 lg:w-16' : 'translate-x-0 w-64'}
         `}
       >

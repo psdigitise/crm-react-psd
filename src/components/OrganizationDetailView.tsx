@@ -122,9 +122,9 @@ export function OrganizationDetailView({ organization, onBack, onSave }: Organiz
   };
 
   return (
-    <div className={`min-h-screen ${
+    <div className={`min-h-screen  ${
       theme === 'dark' 
-        ? 'bg-gradient-to-br from-dark-primary via-dark-secondary to-dark-tertiary' 
+        ? 'bg-gradient-to-br  from-dark-primary via-dark-secondary to-dark-tertiary' 
         : 'bg-gray-50'
     }`}>
       {/* Header - Only show when not showing deal/contact detail */}

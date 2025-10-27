@@ -856,7 +856,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
   return (
     <div className=" max-h-[100vh]  pr-3">
       {/* Action Bar */}
-      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+      <div className="flex flex-col mb-3  sm:flex-row gap-4 items-start sm:items-center justify-between">
         <div className="flex items-center space-x-2">
           <button
             onClick={fetchDeals}

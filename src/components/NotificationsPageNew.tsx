@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useTheme } from "./ThemeProvider";
 import { showToast } from "../utils/toast";
-import { Loader2, Bell } from "lucide-react";
+import { Loader2, Bell, Menu } from "lucide-react";
 import { api } from "../api/apiService";
 import { getUserSession } from "../utils/session";
 
@@ -13,7 +13,11 @@ interface Notification {
   read?: boolean;
 }
 
-export function NotificationsPageNew() {
+interface NotificationsPageProps {
+  onMenuToggle: () => void;
+}
+
+export function NotificationsPageNew({ onMenuToggle }: NotificationsPageProps) {
   const { theme } = useTheme();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -278,23 +282,34 @@ export function NotificationsPageNew() {
         : "bg-gray-100"
         }`}
     >
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center space-x-3 mb-2">
-          <Bell
-            className={`w-8 h-8 ${theme === "dark" ? "text-purple-500" : "text-blue-600"
-              }`}
-          />
-          <h1
-            className={`text-3xl font-bold ${theme === "dark" ? "text-white" : "text-gray-900"
-              }`}
+      <div className="flex">
+        <div className="p-4 sm:p-6 lg:hidden">
+          <button
+            onClick={onMenuToggle}
+            className={`p-2 rounded-lg transition-colors ${theme === 'dark' ? 'hover:bg-purple-800/50' : 'hover:bg-gray-100'}`}
           >
-            Notifications
-          </h1>
+            <Menu className={`w-6 h-6 ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`} />
+          </button>
         </div>
-        <p className={`${theme === "dark" ? "text-white" : "text-gray-600"}`}>
-          Stay updated with your latest CRM activities
-        </p>
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-center space-x-3 mb-2">
+            <Bell
+              className={`w-8 h-8 ${theme === "dark" ? "text-purple-500" : "text-blue-600"
+                }`}
+            />
+            <h1
+              className={`text-3xl font-bold ${theme === "dark" ? "text-white" : "text-gray-900"
+                }`}
+            >
+              Notifications
+            </h1>
+          </div>
+          <p className={`${theme === "dark" ? "text-white" : "text-gray-600"}`}>
+            Stay updated with your latest CRM activities
+          </p>
+        </div>
+
       </div>
 
       {notifications.length === 0 ? (

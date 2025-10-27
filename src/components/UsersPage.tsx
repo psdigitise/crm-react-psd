@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { UsersTable } from './UsersTable';
 import { UserDetailView } from './UserDetailView';
+import { Menu } from 'lucide-react';
 import { CreateUserModal } from './CreateUserModal';
 import { Header } from './Header';
 import { useTheme } from './ThemeProvider';
@@ -17,7 +18,11 @@ interface User {
   role_profile_name?: string;
 }
 
-export function UsersPage() {
+interface UsersPageProps {
+  onMenuToggle: () => void;
+}
+
+export function UsersPage({ onMenuToggle }: UsersPageProps) {
   const { theme } = useTheme();
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
@@ -79,19 +84,33 @@ export function UsersPage() {
       ? 'bg-gradient-to-br from-dark-primary via-dark-secondary to-dark-tertiary'
       : 'bg-gray-50'
       }`}>
-      <Header
-        title="Users"
-        subtitle="List"
-        onRefresh={handleRefresh}
-        onFilter={handleFilter}
-        onSort={handleSort}
-        onColumns={handleColumns}
-        onCreate={handleCreate}
-        searchValue={searchTerm}
-        onSearchChange={setSearchTerm}
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-      />
+      <div className='flex items-center space-x-3'>
+        <div className={`p-2 rounded-lg transition-colors lg:hidden ${theme === 'dark' ? 'hover:bg-purple-800/50' : 'hover:bg-gray-100'
+          }`}>
+          <button
+            onClick={onMenuToggle}
+            className={`p-2 rounded-lg transition-colors ${theme === 'dark' ? 'hover:bg-purple-800/50' : 'hover:bg-gray-100'}`}
+          >
+            <Menu className={`w-6 h-6 ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`} />
+          </button>
+        </div>
+        <div className='flex-1 flex flex-col min-w-0'>
+          <Header
+            title="Users"
+            subtitle="List"
+            onRefresh={handleRefresh}
+            onFilter={handleFilter}
+            onSort={handleSort}
+            onColumns={handleColumns}
+            onCreate={handleCreate}
+            searchValue={searchTerm}
+            onSearchChange={setSearchTerm}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+          />
+
+        </div>
+      </div>
 
       <div className="p-4 sm:p-6">
         <UsersTable

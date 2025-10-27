@@ -73,7 +73,7 @@ export default function EmailOrCommentComposer({ deal, onClose, mode, dealName, 
   const [subjectToGenerate, setSubjectToGenerate] = useState("");
 
   const userSession = getUserSession();
-   const sessionfullname = userSession?.full_name;
+  const sessionfullname = userSession?.full_name;
   const senderUsername = userSession?.username || sessionfullname;
   const [quotedMessage, setQuotedMessage] = useState("");
 
@@ -640,13 +640,14 @@ export default function EmailOrCommentComposer({ deal, onClose, mode, dealName, 
                   onClick={handleGenerateButtonClick}
                   disabled={!emailForm.subject.trim()}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${theme === 'dark'
-                    ? 'bg-purplebg hover:bg-purple-700 text-white'
-                    : 'bg-purplebg hover:bg-purple-700 text-white'
+                      ? 'bg-purplebg hover:bg-purple-700 text-white'
+                      : 'bg-purplebg hover:bg-purple-700 text-white'
                     } disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
                   <Sparkles size={16} />
-                  Generate
+                  <span className="hidden sm:inline">Generate</span>
                 </button>
+
               )}
             </div>
             {generatingContent && (

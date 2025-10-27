@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MoreHorizontal, Edit, Trash2, Phone, Clock, X, Timer } from 'lucide-react';
+import { Menu, MoreHorizontal, Edit, Trash2, Phone, Clock, X, Timer } from 'lucide-react';
 import { SlCallIn, SlCallOut } from 'react-icons/sl';
 import { BsCheckCircle, BsThreeDots } from 'react-icons/bs';
 import { showToast } from '../utils/toast';
@@ -66,6 +66,7 @@ interface CallLogsPageProps {
   onCreateCallLog: () => void;
   leadName?: string;
   refreshTrigger?: number;
+  onMenuToggle: () => void;
 }
 
 interface CallForm {
@@ -392,7 +393,7 @@ const fetchUsers = async (): Promise<User[]> => {
   }
 };
 
-export function CallLogsPage({ onCreateCallLog, leadName, refreshTrigger = 0 }: CallLogsPageProps) {
+export function CallLogsPage({ onCreateCallLog, leadName, refreshTrigger = 0, onMenuToggle }: CallLogsPageProps) {
   const { theme } = useTheme();
   const [searchTerm, setSearchTerm] = useState('');
   const [callLogs, setCallLogs] = useState<CallLog[]>([]);
@@ -1022,6 +1023,14 @@ export function CallLogsPage({ onCreateCallLog, leadName, refreshTrigger = 0 }: 
       ? 'bg-gradient-to-br from-dark-primary via-dark-secondary to-dark-tertiary'
       : 'bg-gray-50'
       }`}>
+      {/* <div className="p-4 sm:p-6 lg:hidden">
+        <button
+          onClick={onMenuToggle}
+          className={`p-2 rounded-lg transition-colors ${theme === 'dark' ? 'hover:bg-purple-800/50' : 'hover:bg-gray-100'}`}
+        >
+          <Menu className={`w-6 h-6 ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`} />
+        </button>
+      </div>
       <Header
         title="Call Logs"
         subtitle={leadName ? `For Lead: ${leadName}` : undefined}
@@ -1034,7 +1043,7 @@ export function CallLogsPage({ onCreateCallLog, leadName, refreshTrigger = 0 }: 
         onSearchChange={setSearchTerm}
         viewMode={viewMode}
         onViewModeChange={setViewMode}
-      />
+      /> */}
 
       <div className="p-4 sm:p-6">
         {/* Call Logs Table */}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MoreHorizontal } from 'lucide-react';
+import { Menu, MoreHorizontal } from 'lucide-react';
 import { showToast } from '../utils/toast';
 import { Header } from './Header';
 import { useTheme } from './ThemeProvider';
@@ -93,6 +93,7 @@ interface Lead {
 interface NotesPageProps {
   onCreateNote: () => void;
   leadName?: string;
+  onMenuToggle: () => void;
 }
 
 interface EditModalProps {
@@ -204,7 +205,7 @@ const EditModal: React.FC<EditModalProps> = ({ show, theme, editForm, setEditFor
   );
 };
 
-export function NotesPage({ onCreateNote, leadName }: NotesPageProps) {
+export function NotesPage({ onCreateNote, leadName, onMenuToggle }: NotesPageProps) {
   const { theme } = useTheme();
   const [searchTerm, setSearchTerm] = useState('');
   const [notes, setNotes] = useState<Note[]>([]);
@@ -725,6 +726,14 @@ export function NotesPage({ onCreateNote, leadName }: NotesPageProps) {
       ? 'bg-gradient-to-br from-dark-primary via-dark-secondary to-dark-tertiary'
       : 'bg-gray-50'
       }`}>
+      {/* <div className="p-4 sm:p-6 lg:hidden">
+        <button
+          onClick={onMenuToggle}
+          className={`p-2 rounded-lg transition-colors ${theme === 'dark' ? 'hover:bg-purple-800/50' : 'hover:bg-gray-100'}`}
+        >
+          <Menu className={`w-6 h-6 ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`} />
+        </button>
+      </div>
       <Header
         title="Notes"
         subtitle={leadName ? `For Lead: ${leadName}` : undefined}
@@ -737,7 +746,7 @@ export function NotesPage({ onCreateNote, leadName }: NotesPageProps) {
         onSearchChange={setSearchTerm}
         viewMode={viewMode}
         onViewModeChange={setViewMode}
-      />
+      /> */}
 
       <div className="p-4 sm:p-6">
         {/* Notes Grid */}

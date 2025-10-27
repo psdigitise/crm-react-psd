@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { showToast } from '../utils/toast';
+import { Menu } from 'lucide-react';
 import { Header } from './Header';
 import { useTheme } from './ThemeProvider';
 import { getUserSession } from '../utils/session';
@@ -26,6 +27,7 @@ interface TasksPageProps {
   onCreateTask: () => void;
   leadName?: string;
   refreshTrigger?: number;
+  onMenuToggle: () => void;
 }
 
 interface ContactOption {
@@ -51,7 +53,7 @@ const priorityColors = {
 const API_BASE_URL = 'https://api.erpnext.ai';
 // const AUTH_TOKEN = 'token 1b670b800ace83b:f32066fea74d0fe';
 
-export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0 }: TasksPageProps) {
+export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0, onMenuToggle }: TasksPageProps) {
   const { theme } = useTheme();
   const [searchTerm, setSearchTerm] = useState('');
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -655,6 +657,14 @@ export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0 }: TasksP
       ? 'bg-gradient-to-br from-dark-primary via-dark-secondary to-dark-tertiary'
       : 'bg-gray-50'
       }`}>
+      {/* <div className="p-4 sm:p-6 lg:hidden">
+        <button
+          onClick={onMenuToggle}
+          className={`p-2 rounded-lg transition-colors ${theme === 'dark' ? 'hover:bg-purple-800/50' : 'hover:bg-gray-100'}`}
+        >
+          <Menu className={`w-6 h-6 ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`} />
+        </button>
+      </div>
       <Header
         title="Tasks"
         subtitle={leadName ? `For Lead: ${leadName}` : undefined}
@@ -667,7 +677,7 @@ export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0 }: TasksP
         onSearchChange={setSearchTerm}
         viewMode={viewMode}
         onViewModeChange={setViewMode}
-      />
+      /> */}
 
       <div className="p-4 sm:p-6">
         <div className={`rounded-lg shadow-sm border overflow-hidden ${theme === 'dark'

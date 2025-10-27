@@ -2700,7 +2700,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
         ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
         : 'bg-white border-gray-200'
         }`}>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center space-x-4">
             <button
               onClick={onBack}
@@ -2717,7 +2717,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
               {/* <p className={`text-sm ${textSecondaryColor}`}>{lead.leadId}</p> */}
             </div>
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex flex-wrap items-center gap-2 self-start sm:self-center">
             <div>
               <button
                 onClick={() => setShowPopup(true)}
@@ -2938,7 +2938,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
 
       {/* Tabs */}
       <div className={`border-b ${borderColor}`}>
-        <nav className="flex space-x-8 px-4 sm:px-6" aria-label="Tabs">
+        <nav className="flex space-x-4 sm:space-x-8 px-4 sm:px-6 overflow-x-auto" aria-label="Tabs">
           {tabs.map(tab => {
             const Icon = tab.icon;
             return (
@@ -2946,7 +2946,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`
-                  py-4 px-1 inline-flex items-center border-b-2 font-medium text-sm
+                  py-4 px-1 inline-flex items-center border-b-2 font-medium text-sm whitespace-nowrap
                   ${activeTab === tab.id
                     ? theme === 'dark'
                       ? 'border-purple-500 text-purple-400'
@@ -2969,7 +2969,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
       <div className="p-4 sm:p-6">
         {activeTab === 'overview' && (
           <div>
-            <div className="grid grid-cols-1 gap-6">
+            <div className="grid grid-cols-1  gap-6">
               <div className="space-y-6">
 
 
@@ -3045,7 +3045,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
                   )}
 
                   <h3 className={`text-lg font-semibold text-gray-900 dark:text-white mb-4`}>Details</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div>
                       <label className={`block text-sm font-medium ${textSecondaryColor}`}>Organization</label>
                       <div className="relative mt-1">
@@ -3530,7 +3530,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
 
         {activeTab === 'activity' && (
           <div className="h-full">
-            <div className={`relative h-full rounded-lg shadow-sm border p-6 pb-5  ${theme === 'dark' ? `bg-gray-900 border-gray-700` : 'bg-white border-gray-200'}`}>
+            <div className={`relative h-full rounded-lg shadow-sm border p-4 sm:p-6 pb-5  ${theme === 'dark' ? `bg-gray-900 border-gray-700` : 'bg-white border-gray-200'}`}>
               <h3 className={`text-lg font-semibold mb-6 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Activity</h3>
 
               {activityLoading ? (

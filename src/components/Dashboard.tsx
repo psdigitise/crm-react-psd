@@ -13,6 +13,7 @@ import {
   CheckCircle,
   AlertCircle,
   Phone,
+  Menu,
   Mail,
 } from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
@@ -151,7 +152,7 @@ function TaskTable({ title, data, compact = false }: TaskTableProps) {
       ? 'bg-custom-gradient border-white'
       : 'bg-white border-gray-100'
       }`}>
-      <div className={`p-4 sm:p-6 border-b ${theme === 'dark' ? 'border-purple-500/30' : 'border-gray-100'}`}>
+      <div className={`p-4 sm:p-6 border-b ${theme === 'dark' ? 'border-purple-500/30' : 'border-gray-200'}`}>
         <div className="flex items-center justify-between">
           <h3 className={`text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{title}</h3>
         </div>
@@ -160,20 +161,20 @@ function TaskTable({ title, data, compact = false }: TaskTableProps) {
         <table className="w-full table-fixed min-w-[700px]">
           <thead className={`sticky top-0 z-10 ${theme === 'dark' ? 'bg-purplebg' : 'bg-gray-50'} sticky top-0 z-10`}>
             <tr className={`divide-x-2 divide-white ${theme === 'dark' ? 'divide-white' : 'divide-white'} py-3`}>
-              <th className={`px-4 sm:px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`}>
+              <th className={`px-4 sm:px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>
                 Description
               </th>
               {!compact && (
                 <>
-                  <th className={`px-4 sm:px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider hidden sm:table-cell ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`}>
+                  <th className={`px-4 sm:px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider hidden sm:table-cell ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>
                     Start Date
                   </th>
-                  <th className={`px-4 sm:px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider hidden sm:table-cell ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`}>
+                  <th className={`px-4 sm:px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider hidden sm:table-cell ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>
                     Due Date
                   </th>
                 </>
               )}
-              <th className={`px-4 sm:px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`}>
+              <th className={`px-4 sm:px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>
                 Priority
               </th>
             </tr>
@@ -201,11 +202,11 @@ function TaskTable({ title, data, compact = false }: TaskTableProps) {
 
                 {!compact && (
                   <>
-                    <td className={`px-4 sm:px-6 py-4 whitespace-nowrap text-sm hidden sm:table-cell ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                    <td className={`px-4 sm:px-6 py-4 whitespace-nowrap text-sm hidden sm:table-cell ${theme === 'dark' ? 'text-white' : 'text-gray-500'
                       }`}>
                       {item.StartDate}
                     </td>
-                    <td className={`px-4 sm:px-6 py-4 whitespace-nowrap text-sm hidden sm:table-cell ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                    <td className={`px-4 sm:px-6 py-4 whitespace-nowrap text-sm hidden sm:table-cell ${theme === 'dark' ? 'text-white' : 'text-gray-500'
                       }`}>
                       {item.dueDate}
                     </td>
@@ -222,7 +223,7 @@ function TaskTable({ title, data, compact = false }: TaskTableProps) {
               <tr>
                 <td
                   colSpan={4}
-                  className={`px-8 py-4 text-sm text-center ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`}
+                  className={`px-8 py-4 text-sm text-center ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}
                 >
                   No Today Tasks Found
                 </td>
@@ -235,7 +236,11 @@ function TaskTable({ title, data, compact = false }: TaskTableProps) {
   );
 }
 
-export function Dashboard() {
+interface DashboardProps {
+  onMenuToggle: () => void;
+}
+
+export function Dashboard({ onMenuToggle }: DashboardProps) {
   const { theme } = useTheme();
   const [leadCount, setLeadCount] = useState(0);
   const [statusCounts, setStatusCounts] = useState<StatusCounts>({
@@ -609,32 +614,42 @@ export function Dashboard() {
       ? 'bg-gradient-to-br from-dark-primary via-dark-secondary to-dark-tertiary'
       : 'bg-gray-50'
       }`}>
-      {/* Welcome Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className={`text-2xl sm:text-3xl font-bold flex items-center ${theme === 'dark' ? 'text-white' : 'text-gray-900'
-            }`}>
-            <span className="mr-3 text-2xl">👋</span>
-            Hello, {sessionUsername}!
-          </h1>
-          <p className={`mt-1 ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>Here’s your sales performance snapshot for today.</p>
-        </div>
-        <div className="flex items-center space-x-2">
-          {/* <button
-            className={`p-2 rounded-lg transition-all ${theme === 'dark'
-              ? 'hover:bg-purple-800/50 hover:shadow-sm'
-              : 'hover:bg-white hover:shadow-sm'
-              } ${refreshing ? 'opacity-50 cursor-not-allowed' : ''}`}
-            onClick={refreshDashboard}
-            disabled={refreshing}
+      <div className='flex'>
+        {/* Welcome Header - Made responsive */}
+        <div className="lg:hidden flex items-center justify-between mb-4">
+          <button
+            onClick={onMenuToggle}
+            className={`p-2 rounded-lg transition-colors ${theme === 'dark' ? 'hover:bg-purple-800/50' : 'hover:bg-gray-100'}`}
           >
-            <RefreshCw className={`w-5 h-5 ${theme === 'dark' ? 'text-white' : 'text-gray-500'} ${refreshing ? 'animate-spin' : ''}`} />
-          </button> */}
+            <Menu className={`w-6 h-6 ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`} />
+          </button>
+        </div>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className={`text-2xl sm:text-3xl font-bold flex items-center ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+              }`}>
+              <span className="mr-3 text-2xl">👋</span>
+              Hello, {sessionUsername}!
+            </h1>
+            <p className={`mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Here’s your sales performance snapshot for today.</p>
+          </div>
+          <div className="flex items-center space-x-2">
+            {/* <button
+              className={`p-2 rounded-lg transition-all ${theme === 'dark'
+                ? 'hover:bg-purple-800/50 hover:shadow-sm'
+                : 'hover:bg-white hover:shadow-sm'
+                } ${refreshing ? 'opacity-50 cursor-not-allowed' : ''}`}
+              onClick={refreshDashboard}
+              disabled={refreshing}
+            >
+              <RefreshCw className={`w-5 h-5 ${theme === 'dark' ? 'text-white' : 'text-gray-500'} ${refreshing ? 'animate-spin' : ''}`} />
+            </button> */}
+          </div>
         </div>
       </div>
 
-      {/* Key Metrics */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+      {/* Key Metrics - Adjusted grid for better mobile view */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6">
         <MetricCard
           title="Total Contacts"
           value={contactCount}
@@ -669,15 +684,15 @@ export function Dashboard() {
         />
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <TaskTable title="Today Task" data={taskData} compact={false} />
         {/* <LeadTable title="Leads" data={leadTableData} /> */}
         <TodayLeadstable title="Today Leads" data={TodayLeadsData} />
         <Dealstable title="Deals Closing This Month" data={DealsTableData} />
       </div>
 
-      {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 bg-white rounded-lg ">
+      {/* Charts Section - Adjusted grid and background */}
+      <div className={`grid grid-cols-1 lg:grid-cols-2 gap-6 rounded-lg ${theme === 'dark' ? 'bg-gray-900/50' : 'bg-white'}`}>
         <div className=''>
           <ChartCard title="Lead Conversion Funnel">
             <ResponsiveContainer width="100%" height={300}>
@@ -713,8 +728,8 @@ export function Dashboard() {
                     className="w-3 h-3 rounded-full"
                     style={{ backgroundColor: item.color }}
                   />
-                  <span className={`text-sm ${theme === 'dark' ? 'text-gray-500' : 'text-gray-600'}`}>{item.name}</span>
-                  <span className={`text-sm font-semibold  ${theme === 'dark' ? 'text-gray-500' : 'text-gray-600'}`}>{item.value}</span>
+                  <span className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>{item.name}</span>
+                  <span className={`text-sm font-semibold  ${theme === 'dark' ? 'text-gray-300' : 'text-gray-800'}`}>{item.value}</span>
                 </div>
               ))}
             </div>
@@ -722,7 +737,7 @@ export function Dashboard() {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 relative">
+        <div className="grid grid-cols-1 relative lg:border-l lg:border-gray-200 dark:lg:border-gray-700 lg:pl-6">
           <div className='before:absolute before:content-[""] before:w-[2px] before:h-[70%] before:bg-black before:top-[20%]'></div>
 
           <ChartCard title="Quick Actions">

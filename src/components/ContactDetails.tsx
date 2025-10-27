@@ -1162,7 +1162,7 @@ export default function ContactDetails({
     if (!hasEmailId && emails.length === 0) {
       return (
         <div className="text-sm flex gap-1 group">
-          <p className={`w-32 ${isDark ? "text-white/80" : "text-gray-600"}`}>Email Address:</p>
+          <p className={`w-32 max-sm:w-[50%] ${isDark ? "text-white/80" : "text-gray-600"}`}>Email Address:</p>
           <div className="flex-1">
             <button
               onClick={() => setAddingEmail(true)}
@@ -1455,7 +1455,7 @@ export default function ContactDetails({
     if (!hasMobileNo && phones.length === 0) {
       return (
         <div className="text-sm flex gap-1 group">
-          <p className={`w-32 ${isDark ? "text-white/80" : "text-gray-600"}`}>Mobile No:</p>
+          <p className={`w-32 max-sm:w-[50%] ${isDark ? "text-white/80" : "text-gray-600"}`}>Mobile No:</p>
           <div className="flex-1">
             <button
               onClick={() => setAddingPhone(true)}
@@ -1945,7 +1945,7 @@ export default function ContactDetails({
 
     return (
       <div key={field} className="text-sm flex gap-1 group">
-        <p className={`w-32 ${isDark ? "text-white/80" : "text-gray-600"}`}>{label}:</p>
+        <p className={`w-32 max-sm:w-[50%] ${isDark ? "text-white/80" : "text-gray-600"}`}>{label}:</p>
         {isEditing ? (
           (field === 'salutation' || field === 'gender') ? (
             <select
@@ -2020,7 +2020,7 @@ export default function ContactDetails({
   };
 
   return (
-    <div className={`min-h-screen flex ${isDark ? "bg-transparent text-white" : "bg-white text-gray-800"}`}>
+    <div className={`min-h-screen overflow-x-auto flex-col sm:flex-row  flex ${isDark ? "bg-transparent text-white" : "bg-white text-gray-800"}`}>
       {fetchLoading && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white dark:bg-gray-800 p-4 rounded-lg flex items-center gap-3">
@@ -2032,7 +2032,7 @@ export default function ContactDetails({
 
       {/* Sidebar - Only show when NOT showing deal detail */}
       {!showDealDetail && (
-        <div className={`w-80 border-r ${isDark ? "border-white bg-transparent" : "border-gray-300 bg-white"}`}>
+        <div className={`w-80 max-sm:w-[100%] border-r ${isDark ? "border-white bg-transparent" : "border-gray-300 bg-white"}`}>
           {/* Header */}
           <div className={`p-4 border-b ${isDark ? "border-white/20" : "border-gray-300"}`}>
             <div className="flex items-center gap-3 mb-4">

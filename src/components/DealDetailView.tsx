@@ -2157,7 +2157,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
         : 'bg-white border-gray-200'
         }`}>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center space-x-4">
             <button
               onClick={onBack}
@@ -2173,7 +2173,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
               <p className={`text-sm ${textSecondaryColor}`}>{deal.id}</p>
             </div>
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Listbox
               value={editedDeal.status}
               onChange={handleStatusChange}
@@ -2227,7 +2227,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
 
       {/* Tabs */}
       <div className={`border-b ${borderColor}`}>
-        <nav className="flex space-x-8 px-4 sm:px-6" aria-label="Tabs">
+        <nav className="flex space-x-4 sm:space-x-8 px-4 sm:px-6 overflow-x-auto" aria-label="Tabs">
           {tabs.map(tab => {
             const Icon = tab.icon;
             return (
@@ -2235,7 +2235,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as TabType)}
                 className={`
-                  py-4 px-1 inline-flex items-center border-b-2 font-medium text-sm
+                  py-4 px-1 inline-flex items-center border-b-2 font-medium text-sm whitespace-nowrap
                   ${activeTab === tab.id
                     ? theme === 'dark'
                       ? 'border-purple-500 text-purple-400'
@@ -2270,7 +2270,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
       <div className="p-4 sm:p-6">
         {activeTab === 'overview' && (
           <div>
-            <div className="grid grid-cols-1 gap-6">
+            <div className="grid grid-cols-1  gap-6">
               <div className="space-y-6">
                 <div className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} p-6`}>
                   <div className="flex justify-between items-center mb-4">
@@ -2287,7 +2287,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                       ) : 'Save'}
                     </button>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
                     <div>
                       <label className={`block text-sm font-medium ${textSecondaryColor}`}>
@@ -4900,5 +4900,3 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
 
   );
 }
-
-

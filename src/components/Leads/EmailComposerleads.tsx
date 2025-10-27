@@ -623,7 +623,7 @@ export default function EmailComposerleads({
                                         } disabled:opacity-50 disabled:cursor-not-allowed`}
                                 >
                                     <Sparkles size={16} />
-                                    Generate
+                                    <span className="hidden sm:inline">Generate</span>
                                 </button>
                             )}
                         </div>

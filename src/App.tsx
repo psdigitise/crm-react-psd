@@ -40,6 +40,7 @@ import { registerAuthModalCallback, registerLogoutCallback } from './utils/apiEr
 import PasswordResetPage from './components/ResetPassword';
 import ForgotPasswordPage from './components/ForgotPasswordPage';
 import AccountActivationPage from './components/AccountActivationPage';
+import { UserDetailView } from './components/UserDetailView';
 
 
 function AppContent() {
@@ -78,6 +79,7 @@ function AppContent() {
   const [selectedLead, setSelectedLead] = useState<any>(null);
   const [selectedDeal, setSelectedDeal] = useState<any>(null);
   const [selectedContact, setSelectedContact] = useState<any>(null);
+  const [selectedUsers, setSelectedUsers] = useState<any>(null);
   const [selectedOrganization, setSelectedOrganization] = useState<any>(null);
   const [leads, setLeads] = useState(sampleLeads);
   const [deals, setDeals] = useState(sampleDeals);
@@ -923,6 +925,15 @@ function AppContent() {
         />
       );
     }
+    if (selectedUsers && activeMenuItem === 'users') {
+      return (
+        <UserDetailView
+          user={selectedUsers}
+          onBack={handleDealBack}
+          onSave={handleDealSave}
+        />
+      );
+    }
 
     if (selectedContact && activeMenuItem === 'contacts') {
       return (
@@ -959,7 +970,7 @@ function AppContent() {
 
     switch (activeMenuItem) {
       case 'dashboard':
-        return <Dashboard />;
+        return <Dashboard onMenuToggle={handleSidebarToggle} />;
       case 'leads':
         return (
           <div className="p-4 sm:p-6">
@@ -994,19 +1005,19 @@ function AppContent() {
           </div>
         );
       case 'users':
-        return <UsersPage />;
+        return <UsersPage onMenuToggle={handleSidebarToggle} />;
       case 'reminders':
         return <RemindersPage onCreateReminder={handleCreateReminder} />;
       case 'todos':
         return <TodosPageNew onCreateTodo={handleCreateTodo} />;
       case 'notifications':
-        return <NotificationsPageNew />;
+        return <NotificationsPageNew onMenuToggle={handleSidebarToggle} />;
       case 'notes':
-        return <NotesPage onCreateNote={handleCreateNote} leadName={selectedLead?.name} />;
+        return <NotesPage onCreateNote={handleCreateNote} leadName={selectedLead?.name} onMenuToggle={handleSidebarToggle} />;
       case 'tasks':
-        return <TasksPage onCreateTask={handleCreateTask} leadName={selectedLead?.name} refreshTrigger={taskRefreshTrigger} />;
+        return <TasksPage onCreateTask={handleCreateTask} leadName={selectedLead?.name} refreshTrigger={taskRefreshTrigger} onMenuToggle={handleSidebarToggle} />;
       case 'call-logs':
-        return <CallLogsPage onCreateCallLog={handleCreateCallLog} leadName={selectedLead?.name} refreshTrigger={callsRefreshTrigger} />;
+        return <CallLogsPage onCreateCallLog={handleCreateCallLog} leadName={selectedLead?.name} refreshTrigger={callsRefreshTrigger} onMenuToggle={handleSidebarToggle} />;
       case 'email-templates':
         return <EmailPage onCreateEmail={handleCreateEmail} />;
       default:
@@ -1154,7 +1165,7 @@ function AppContent() {
       />
 
       <div className="flex-1 flex flex-col min-w-0">
-        {showHeader && ['leads', 'deals', 'contacts', 'organizations'].includes(activeMenuItem) && (
+        {showHeader && ['leads', 'deals', 'contacts', 'notes', 'tasks', 'call-logs','organizations'].includes(activeMenuItem) && (
           <Header
             title={getPageTitle()}
             subtitle={getSubtitle()}
