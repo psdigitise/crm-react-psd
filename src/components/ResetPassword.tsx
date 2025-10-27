@@ -220,7 +220,7 @@ export default function PasswordResetPage() {
                 <div className="text-center mb-8">
                     <div className="inline-flex items-center space-x-2">
                         <img
-                            src="./login/assets/images/Erpnextlogo.png"
+                            src="/login/assets/images/Erpnextlogo.png"
                             alt="ERPNext.ai"
                             className="w-[300px] filter invert brightness-0 saturate-100 sepia hue-rotate-[90deg] contrast-125"
                         />
