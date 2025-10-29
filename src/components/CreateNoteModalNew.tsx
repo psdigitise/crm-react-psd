@@ -90,7 +90,7 @@ export function CreateNoteModalNew({
     
     // Validate form before submission
     if (!validateForm()) {
-      showToast('Please fix validation errors', { type: 'error' });
+      showToast('Please fill required fields', { type: 'error' });
       return;
     }
 

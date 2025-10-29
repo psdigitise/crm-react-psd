@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, MoreHorizontal } from 'lucide-react';
+import { MoreHorizontal } from 'lucide-react';
 import { showToast } from '../utils/toast';
 import { Header } from './Header';
 import { useTheme } from './ThemeProvider';
@@ -9,7 +9,7 @@ import { LeadDetailView } from './LeadDetailView';
 import { formatDistanceToNow } from 'date-fns';
 import { AUTH_TOKEN } from '../api/apiUrl';
 import { api } from '../api/apiService';
-import { CreateNoteModalNew } from './CreateNoteModalNew';
+//import { CreateNoteModalNew } from './CreateNoteModalNew';
 import DOMPurify from 'dompurify';
 
 
@@ -94,6 +94,8 @@ interface NotesPageProps {
   onCreateNote: () => void;
   leadName?: string;
   onMenuToggle: () => void;
+  refreshTrigger: number;
+  searchTerm: string;
 }
 
 interface EditModalProps {
@@ -205,9 +207,9 @@ const EditModal: React.FC<EditModalProps> = ({ show, theme, editForm, setEditFor
   );
 };
 
-export function NotesPage({ onCreateNote, leadName, onMenuToggle }: NotesPageProps) {
+export function NotesPage({ onCreateNote, leadName, onMenuToggle, refreshTrigger, searchTerm }: NotesPageProps) {
   const { theme } = useTheme();
-  const [searchTerm, setSearchTerm] = useState('');
+  //const [searchTerm, setSearchTerm] = useState('');
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
@@ -215,9 +217,9 @@ export function NotesPage({ onCreateNote, leadName, onMenuToggle }: NotesPagePro
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
   const [formData, setFormData] = useState<Note | null>(null);
   const [editForm, setEditForm] = useState({ title: '', content: '' });
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
-  // Add state for create modal
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  // const [refreshTrigger, setRefreshTrigger] = useState(0);
+  // // Add state for create modal
+  // const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   // Add state for deal and lead navigation
   const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
@@ -226,10 +228,10 @@ export function NotesPage({ onCreateNote, leadName, onMenuToggle }: NotesPagePro
   // Add state for dropdown menu
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
 
-  const handleNoteCreated = () => {
-    // This will trigger a refresh of the notes list
-    setRefreshTrigger(prev => prev + 1);
-  };
+  // const handleNoteCreated = () => {
+  //   // This will trigger a refresh of the notes list
+  //   setRefreshTrigger(prev => prev + 1);
+  // };
 
   // Update useEffect to include refreshTrigger
   useEffect(() => {
@@ -631,9 +633,9 @@ export function NotesPage({ onCreateNote, leadName, onMenuToggle }: NotesPagePro
   };
 
   // Update the Header props to open create modal
-  const handleCreateNoteClick = () => {
-    setIsCreateModalOpen(true);
-  };
+  // const handleCreateNoteClick = () => {
+  //   setIsCreateModalOpen(true);
+  // };
 
   const filteredNotes = notes.filter(note =>
     Object.values(note).some(value =>
@@ -706,9 +708,9 @@ export function NotesPage({ onCreateNote, leadName, onMenuToggle }: NotesPagePro
           onFilter={() => { }}
           onSort={() => { }}
           onColumns={() => { }}
-          onCreate={handleCreateNoteClick}
+          //onCreate={handleCreateNoteClick}
           searchValue={searchTerm}
-          onSearchChange={setSearchTerm}
+          onSearchChange={() => {}}
           viewMode={viewMode}
           onViewModeChange={setViewMode}
         />
@@ -834,13 +836,13 @@ export function NotesPage({ onCreateNote, leadName, onMenuToggle }: NotesPagePro
       </div>
 
       {/* Create Note Modal */}
-      <CreateNoteModalNew
+      {/* <CreateNoteModalNew
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         onSubmit={(data) => console.log(data)}
         onNoteCreated={handleNoteCreated}
         leadName={leadName}
-      />
+      /> */}
 
       {/* Edit Note Modal */}
       <EditModal

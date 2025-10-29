@@ -67,6 +67,7 @@ interface CallLogsPageProps {
   leadName?: string;
   refreshTrigger?: number;
   onMenuToggle: () => void;
+  searchTerm: string;
 }
 
 interface CallForm {
@@ -350,7 +351,7 @@ const fetchUsers = async (): Promise<User[]> => {
   try {
     const session = getUserSession();
     const sessionCompany = session?.company;
-    
+
     if (!session) {
       showToast('Session expired. Please login again.', { type: 'error' });
       return [];
@@ -393,9 +394,9 @@ const fetchUsers = async (): Promise<User[]> => {
   }
 };
 
-export function CallLogsPage({ onCreateCallLog, leadName, refreshTrigger = 0, onMenuToggle }: CallLogsPageProps) {
+export function CallLogsPage({ onCreateCallLog, leadName, refreshTrigger = 0, onMenuToggle, searchTerm }: CallLogsPageProps) {
   const { theme } = useTheme();
-  const [searchTerm, setSearchTerm] = useState('');
+  //const [searchTerm, setSearchTerm] = useState('');
   const [callLogs, setCallLogs] = useState<CallLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingCallLog, setEditingCallLog] = useState<CallLog | null>(null);
@@ -590,7 +591,7 @@ export function CallLogsPage({ onCreateCallLog, leadName, refreshTrigger = 0, on
     console.log('Receiver value:', callLog.receiver);
     console.log('_caller:', callLog._caller);
     console.log('_receiver:', callLog._receiver);
-    
+
     setCallForm({
       from: callLog.from || '',
       to: callLog.to || '',
@@ -1005,7 +1006,7 @@ export function CallLogsPage({ onCreateCallLog, leadName, refreshTrigger = 0, on
           onColumns={() => { }}
           onCreate={onCreateCallLog}
           searchValue={searchTerm}
-          onSearchChange={setSearchTerm}
+          onSearchChange={() => { }}
           viewMode={viewMode}
           onViewModeChange={setViewMode}
         />

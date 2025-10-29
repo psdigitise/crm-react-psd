@@ -84,6 +84,8 @@ function AppContent() {
   const [leads, setLeads] = useState(sampleLeads);
   const [deals, setDeals] = useState(sampleDeals);
   const [taskRefreshTrigger, setTaskRefreshTrigger] = useState(0);
+  const [userRefreshTrigger, setUserRefreshTrigger] = useState(0);
+  const [noteRefreshTrigger, setNoteRefreshTrigger] = useState(0);
   const handleTaskCreated = () => {
     setTaskRefreshTrigger(prev => prev + 1);
   };
@@ -92,7 +94,11 @@ function AppContent() {
   const handleCallsCreated = () => {
     setcallsRefreshTrigger(prev => prev + 1);
   };
-
+  
+  const handleNoteCreated = () => {
+    setNoteRefreshTrigger(prev => prev + 1);
+    setShowCreateModal(false); // Also close the modal
+  };
   // Add state to track if we're in a nested view (like deal detail from contact)
   const [isInNestedView, setIsInNestedView] = useState(false);
 
@@ -609,6 +615,7 @@ function AppContent() {
       setShowCreateModal(false);
       // You might want to refresh the users list or navigate to the new user
       console.log('User created:', data);
+      setUserRefreshTrigger(prev => prev + 1);
     }
   };
 
@@ -844,7 +851,7 @@ function AppContent() {
           </div>
         );
       case 'users':
-        return <UsersPage onMenuToggle={handleSidebarToggle} onUserClick={handleUserClick} />;
+        return <UsersPage onMenuToggle={handleSidebarToggle} onUserClick={handleUserClick} refreshTrigger={userRefreshTrigger} searchTerm={searchTerm}/>;
       case 'reminders':
         return <RemindersPage onCreateReminder={handleCreateReminder} />;
       case 'todos':
@@ -852,11 +859,11 @@ function AppContent() {
       case 'notifications':
         return <NotificationsPageNew onMenuToggle={handleSidebarToggle} />;
       case 'notes':
-        return <NotesPage onCreateNote={handleCreateNote} leadName={selectedLead?.name} onMenuToggle={handleSidebarToggle} />;
+        return <NotesPage onCreateNote={handleCreateNote} leadName={selectedLead?.name} onMenuToggle={handleSidebarToggle} refreshTrigger={noteRefreshTrigger} searchTerm={searchTerm}/>;
       case 'tasks':
-        return <TasksPage onCreateTask={handleCreateTask} leadName={selectedLead?.name} refreshTrigger={taskRefreshTrigger} onMenuToggle={handleSidebarToggle} />;
+        return <TasksPage onCreateTask={handleCreateTask} leadName={selectedLead?.name} refreshTrigger={taskRefreshTrigger} onMenuToggle={handleSidebarToggle} searchTerm={searchTerm}/>;
       case 'call-logs':
-        return <CallLogsPage onCreateCallLog={handleCreateCallLog} leadName={selectedLead?.name} refreshTrigger={callsRefreshTrigger} onMenuToggle={handleSidebarToggle} />;
+        return <CallLogsPage onCreateCallLog={handleCreateCallLog} leadName={selectedLead?.name} refreshTrigger={callsRefreshTrigger} onMenuToggle={handleSidebarToggle} searchTerm={searchTerm}/>;
       case 'email-templates':
         return <EmailPage onCreateEmail={handleCreateEmail} />;
       default:
@@ -940,6 +947,7 @@ function AppContent() {
             onClose={() => setShowCreateModal(false)}
             onSubmit={handleCreateSubmit}
             leadName={selectedLead?.name}
+            onNoteCreated={handleNoteCreated}
           />
         );
       case 'task':

@@ -20,64 +20,67 @@ interface User {
 
 interface UsersPageProps {
   onMenuToggle: () => void;
+  onUserClick: (user: User) => void;
+  refreshTrigger: number;
+  searchTerm: string;
 }
 
-export function UsersPage({ onMenuToggle }: UsersPageProps) {
+export function UsersPage({ onMenuToggle, onUserClick, refreshTrigger, searchTerm }: UsersPageProps) {
   const { theme } = useTheme();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  //const [searchTerm, setSearchTerm] = useState('');
+  // const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  // const [refreshTrigger, setRefreshTrigger] = useState(0);
+  // const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  // const [showCreateModal, setShowCreateModal] = useState(false);
 
-  const handleUserClick = (user: User) => {
-    setSelectedUser(user);
-  };
+  // const handleUserClick = (user: User) => {
+  //   setSelectedUser(user);
+  // };
 
-  const handleUserBack = () => {
-    setSelectedUser(null);
-  };
+  // const handleUserBack = () => {
+  //   setSelectedUser(null);
+  // };
 
-  const handleUserSave = (updatedUser: User) => {
-    setSelectedUser(updatedUser);
-    setRefreshTrigger(prev => prev + 1);
-  };
+  // const handleUserSave = (updatedUser: User) => {
+  //   setSelectedUser(updatedUser);
+  //   setRefreshTrigger(prev => prev + 1);
+  // };
 
-  const handleCreate = () => {
-    setShowCreateModal(true);
-  };
+  // const handleCreate = () => {
+  //   setShowCreateModal(true);
+  // };
 
-  const handleCreateSubmit = (data: any) => {
-    console.log('User created successfully:', data);
-    setShowCreateModal(false);
-    setRefreshTrigger(prev => prev + 1);
-  };
+  // const handleCreateSubmit = (data: any) => {
+  //   console.log('User created successfully:', data);
+  //   setShowCreateModal(false);
+  //   setRefreshTrigger(prev => prev + 1);
+  // };
 
-  const handleRefresh = () => {
-    console.log('Refreshing users...');
-  };
+  // const handleRefresh = () => {
+  //   console.log('Refreshing users...');
+  // };
 
-  const handleFilter = () => {
-    console.log('Opening filter...');
-  };
+  // const handleFilter = () => {
+  //   console.log('Opening filter...');
+  // };
 
-  const handleSort = () => {
-    console.log('Opening sort...');
-  };
+  // const handleSort = () => {
+  //   console.log('Opening sort...');
+  // };
 
-  const handleColumns = () => {
-    console.log('Opening column settings...');
-  };
+  // const handleColumns = () => {
+  //   console.log('Opening column settings...');
+  // };
 
-  if (selectedUser) {
-    return (
-      <UserDetailView
-        user={selectedUser}
-        onBack={handleUserBack}
-        onSave={handleUserSave}
-      />
-    );
-  }
+  // if (selectedUser) {
+  //   return (
+  //     <UserDetailView
+  //       user={selectedUser}
+  //       onBack={handleUserBack}
+  //       onSave={handleUserSave}
+  //     />
+  //   );
+  // }
 
   return (
     <div className={`min-h-screen ${theme === 'dark'
@@ -116,15 +119,15 @@ export function UsersPage({ onMenuToggle }: UsersPageProps) {
         <UsersTable
           searchTerm={searchTerm}
           refreshTrigger={refreshTrigger}
-          onUserClick={handleUserClick}
+          onUserClick={onUserClick}
         />
       </div>
 
-      <CreateUserModal
+      {/* <CreateUserModal
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
         onSubmit={handleCreateSubmit}
-      />
+      /> */}
     </div>
   );
 }

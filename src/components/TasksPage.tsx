@@ -28,6 +28,7 @@ interface TasksPageProps {
   leadName?: string;
   refreshTrigger?: number;
   onMenuToggle: () => void;
+  searchTerm: string;
 }
 
 interface ContactOption {
@@ -110,9 +111,9 @@ const parseERPNextError = (error: any): string => {
   return 'An unexpected error occurred';
 };
 
-export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0, onMenuToggle }: TasksPageProps) {
+export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0, onMenuToggle , searchTerm}: TasksPageProps) {
   const { theme } = useTheme();
-  const [searchTerm, setSearchTerm] = useState('');
+  //const [searchTerm, setSearchTerm] = useState('');
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -709,7 +710,7 @@ export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0, onMenuTo
           onColumns={() => { }}
           onCreate={onCreateTask}
           searchValue={searchTerm}
-          onSearchChange={setSearchTerm}
+          onSearchChange={() => {}}
           viewMode={viewMode}
           onViewModeChange={setViewMode}
         />

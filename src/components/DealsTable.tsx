@@ -1059,11 +1059,11 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
                     type="checkbox"
                     onChange={handleSelectAll}
                     checked={paginatedData.length > 0 && selectedDeals.length === paginatedData.length}
-                    ref={el => {
-                      if (el) {
-                        el.indeterminate = selectedDeals.length > 0 && selectedDeals.length < paginatedData.length;
-                      }
-                    }}
+                    // ref={el => {
+                    //   if (el) {
+                    //     el.indeterminate = selectedDeals.length > 0 && selectedDeals.length < paginatedData.length;
+                    //   }
+                    // }}
                     className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
                 </th>
