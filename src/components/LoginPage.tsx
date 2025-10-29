@@ -64,7 +64,7 @@ const Toast: React.FC<ToastProps> = ({ message, type, isVisible, onClose }) => {
   if (!isVisible) return null;
 
   return (
-    <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top-2">
+    <div className="fixed top-4 right-4 z-[9999] animate-in slide-in-from-top-2">
       <div className={`flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg border ${type === 'success'
         ? 'bg-green-50 border-green-200 text-green-800'
         : 'bg-red-50 border-red-200 text-red-800'
@@ -74,7 +74,7 @@ const Toast: React.FC<ToastProps> = ({ message, type, isVisible, onClose }) => {
         ) : (
           <X className="w-5 h-5 text-red-600" />
         )}
-        <p className="text-sm font-medium max-w-sm">{message}</p>
+                <p className="text-sm font-medium max-w-xs sm:max-w-sm">{message}</p>
         <button
           onClick={onClose}
           className={`ml-2 ${type === 'success' ? 'text-green-600 hover:text-green-800' : 'text-red-600 hover:text-red-800'
@@ -540,7 +540,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-[#2A2352] to-black flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gradient-to-br from-black via-[#2A2352] to-black flex items-center justify-center p-4">
       {/* Toast Component */}
       <Toast
         message={toast.message}
@@ -549,7 +549,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
         onClose={hideToast}
       />
 
-      <div className="max-w-md w-full">
+      <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="text-center">
@@ -566,7 +566,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
         </div>
 
         {/* Form Container */}
-        <div className="bg-white/10 backdrop-blur-md rounded-lg shadow-sm border border-gray-200 p-8">
+        <div className="bg-white/10 backdrop-blur-md rounded-lg shadow-lg border border-white/20 p-6 sm:p-8">
           {isRegisterMode ? (
             /* Register Form */
             <form onSubmit={handleRegister} className="space-y-6">
@@ -574,7 +574,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                 Create Account
               </h1>
               {/* Error Message */}
-              {error && (
+              {/* {error && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                   <p className="text-red-800 text-sm">{error}</p>
                 </div>
@@ -601,6 +601,27 @@ export function LoginPage({ onLogin }: LoginPageProps) {
               </div>
 
               {/* Email Field */}
+
+              <div>
+                <label className="block text-sm font-medium text-white mb-1">
+                  Full Name <span className="text-red-500">*</span>
+                </label>
+                <div className="relative border border-white rounded-lg">
+                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <input
+                    type="text"
+                    value={registerData.first_name}
+                    onChange={(e) => handleFirstNameChange(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 border border-transparent rounded-lg bg-transparent text-white placeholder-white focus:outline-none"
+                    placeholder="John"
+                    disabled={loading}
+                  />
+                </div>
+                {firstNameError && (
+                  <p className="text-red-400 text-sm mt-1">{firstNameError}</p>
+                )}
+              </div>
+              
               <div>
                 <label className="block text-sm font-medium text-white mb-1">
                   Work Email <span className="text-red-500">*</span>
@@ -692,11 +713,11 @@ export function LoginPage({ onLogin }: LoginPageProps) {
               <button
                 type="submit"
                 disabled={loading || !!passwordError}
-                className="w-full bg-white text-[#2D243C] py-3 rounded-lg font-medium hover:bg-gray-100 transition-colors"
+                className="w-full bg-white text-[#2D243C] py-3 rounded-lg font-medium hover:bg-gray-200 transition-colors flex items-center justify-center"
               >
                 {loading ? (
                   <>
-                    <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                    <Loader2 className="w-5 h-5 animate-spin inline-block mr-2" />
                     Creating Account...
                   </>
                 ) : (
@@ -725,12 +746,12 @@ export function LoginPage({ onLogin }: LoginPageProps) {
               {/* <h1 className="text-[1.7rem] text-center font-[600] text-white">
                 Login to ERPNext.ai
               </h1> */}
-              <div className="text-left mb-4">
+              <div className="text-center sm:text-left mb-4">
                 <h1 className="text-3xl font-bold text-white">Sign in</h1>
                 <p className="text-sm text-gray-300 mt-1 italic">to access CRM</p>
               </div>
               {/* Error Message */}
-              {error && (
+              {/* {error && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                   <p className="text-red-800 text-sm">{error}</p>
                 </div>
@@ -801,11 +822,11 @@ export function LoginPage({ onLogin }: LoginPageProps) {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-white text-[#2D243C] py-3 rounded-lg font-medium hover:bg-gray-100 transition-colors"
+                className="w-full bg-white text-[#2D243C] py-3 rounded-lg font-medium hover:bg-gray-200 transition-colors flex items-center justify-center"
               >
                 {loading ? (
                   <>
-                    Signing in...
+                    <Loader2 className="w-5 h-5 animate-spin inline-block mr-2" /> Signing in...
                   </>
                 ) : (
                   'Login'
@@ -829,7 +850,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                   setIsRegisterMode(true);
                   setError('');
                 }}
-                className="w-full bg-white border border-white text-[#2D243C] py-3 rounded-lg font-medium hover:bg-gray-100 transition-colors"
+                className="w-full bg-transparent border border-white text-white py-3 rounded-lg font-medium hover:bg-white/10 transition-colors"
                 disabled={loading}
               >
                 Create New Account

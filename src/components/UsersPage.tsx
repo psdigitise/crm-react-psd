@@ -84,7 +84,7 @@ export function UsersPage({ onMenuToggle }: UsersPageProps) {
       ? 'bg-gradient-to-br from-dark-primary via-dark-secondary to-dark-tertiary'
       : 'bg-gray-50'
       }`}>
-      <div className='flex items-center space-x-3'>
+      {/* <div className='flex items-center space-x-3'>
         <div className={`p-2 rounded-lg transition-colors lg:hidden ${theme === 'dark' ? 'hover:bg-purple-800/50' : 'hover:bg-gray-100'
           }`}>
           <button
@@ -110,7 +110,7 @@ export function UsersPage({ onMenuToggle }: UsersPageProps) {
           />
 
         </div>
-      </div>
+      </div> */}
 
       <div className="p-4 sm:p-6">
         <UsersTable

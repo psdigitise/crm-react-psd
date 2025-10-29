@@ -283,34 +283,50 @@ export function NotificationsPageNew({ onMenuToggle }: NotificationsPageProps) {
         }`}
     >
       <div className="flex">
-        <div className="p-4 sm:p-6 lg:hidden">
-          <button
-            onClick={onMenuToggle}
-            className={`p-2 rounded-lg transition-colors ${theme === 'dark' ? 'hover:bg-purple-800/50' : 'hover:bg-gray-100'}`}
-          >
-            <Menu className={`w-6 h-6 ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`} />
-          </button>
-        </div>
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center space-x-3 mb-2">
-            <Bell
-              className={`w-8 h-8 ${theme === "dark" ? "text-purple-500" : "text-blue-600"
-                }`}
-            />
-            <h1
-              className={`text-3xl font-bold ${theme === "dark" ? "text-white" : "text-gray-900"
-                }`}
-            >
-              Notifications
-            </h1>
-          </div>
-          <p className={`${theme === "dark" ? "text-white" : "text-gray-600"}`}>
-            Stay updated with your latest CRM activities
-          </p>
-        </div>
+  {/* Header - Made responsive */}
+  <div className="lg:hidden flex items-center justify-between">
+    <button
+      onClick={onMenuToggle}
+      className={`p-2 rounded-lg transition-colors ${
+        theme === 'dark' ? 'hover:bg-purple-800/50' : 'hover:bg-gray-100'
+      }`}
+    >
+      <Menu
+        className={`w-6 h-6 ${
+          theme === 'dark' ? 'text-white' : 'text-gray-600'
+        }`}
+      />
+    </button>
+  </div>
 
-      </div>
+  {/* Notifications Header */}
+  <div>
+    <h1
+      className={`text-2xl sm:text-3xl font-bold flex items-center ${
+        theme === 'dark' ? 'text-white' : 'text-gray-900'
+      }`}
+    >
+      <Bell
+        className={`w-7 h-7 mr-2 ${
+          theme === 'dark' ? 'text-purple-500' : 'text-blue-600'
+        }`}
+      />
+      Notifications
+    </h1>
+  </div>
+</div>
+
+<div className="mb-4">
+  <p
+    className={`mt-1 mb-4 ${
+      theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+    }`}
+  >
+    Stay updated with your latest CRM activities.
+  </p>
+</div>
+
+      
 
       {notifications.length === 0 ? (
         <div className="text-center py-12">

@@ -305,7 +305,7 @@ export function CreateCallLogModal({
               >
                 <option value="Outgoing">Outgoing</option>
                 <option value="Incoming">Incoming</option>
-                <option value="Missed">Missed</option>
+                {/* <option value="Missed">Missed</option> */}
               </select>
               {errors.type && (
                 <p className="text-red-500 text-xs mt-1">{errors.type}</p>

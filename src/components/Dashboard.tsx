@@ -616,7 +616,7 @@ export function Dashboard({ onMenuToggle }: DashboardProps) {
       }`}>
       <div className='flex'>
         {/* Welcome Header - Made responsive */}
-        <div className="lg:hidden flex items-center justify-between mb-4">
+        <div className="lg:hidden flex items-center justify-between">
           <button
             onClick={onMenuToggle}
             className={`p-2 rounded-lg transition-colors ${theme === 'dark' ? 'hover:bg-purple-800/50' : 'hover:bg-gray-100'}`}
@@ -624,28 +624,22 @@ export function Dashboard({ onMenuToggle }: DashboardProps) {
             <Menu className={`w-6 h-6 ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`} />
           </button>
         </div>
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="">
           <div>
             <h1 className={`text-2xl sm:text-3xl font-bold flex items-center ${theme === 'dark' ? 'text-white' : 'text-gray-900'
               }`}>
               <span className="mr-3 text-2xl">👋</span>
               Hello, {sessionUsername}!
             </h1>
-            <p className={`mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Here’s your sales performance snapshot for today.</p>
-          </div>
-          <div className="flex items-center space-x-2">
-            {/* <button
-              className={`p-2 rounded-lg transition-all ${theme === 'dark'
-                ? 'hover:bg-purple-800/50 hover:shadow-sm'
-                : 'hover:bg-white hover:shadow-sm'
-                } ${refreshing ? 'opacity-50 cursor-not-allowed' : ''}`}
-              onClick={refreshDashboard}
-              disabled={refreshing}
-            >
-              <RefreshCw className={`w-5 h-5 ${theme === 'dark' ? 'text-white' : 'text-gray-500'} ${refreshing ? 'animate-spin' : ''}`} />
-            </button> */}
           </div>
         </div>
+      </div>
+      <div className="mb-4 !mt-0">
+        <div>
+
+          <p className={`mt-1 mb-4 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Here’s your sales performance snapshot for today.</p>
+        </div>
+
       </div>
 
       {/* Key Metrics - Adjusted grid for better mobile view */}

@@ -1,6 +1,9 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+@import 'datatables.net-dt/css/jquery.dataTables.css';
+@import 'datatables.net-responsive-dt/css/responsive.dataTables.css';
+
 
 .table-scroll{
     height: 250px;

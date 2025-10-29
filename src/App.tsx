@@ -31,6 +31,7 @@ import { CreateNoteModalNew } from './components/CreateNoteModalNew';
 import { CreateTaskModalNew } from './components/CreateTaskModalNew';
 import { CreateCallLogModal } from './components/CreateCallLogModal';
 import { CreateEmailModal } from './components/CreateEmailModal';
+import { CreateUserModal } from './components/CreateUserModal'; // Add this import
 import { ThemeProvider } from './components/ThemeProvider';
 import { sampleLeads, sampleDeals, sampleContacts, sampleOrganizations } from './data/sampleData';
 import { isUserLoggedIn, getUserSession, clearUserSession } from './utils/session';
@@ -41,7 +42,6 @@ import PasswordResetPage from './components/ResetPassword';
 import ForgotPasswordPage from './components/ForgotPasswordPage';
 import AccountActivationPage from './components/AccountActivationPage';
 import { UserDetailView } from './components/UserDetailView';
-
 
 function AppContent() {
   // Initialize login state from session storage with proper checking
@@ -75,11 +75,11 @@ function AppContent() {
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [showNotifications, setShowNotifications] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [createModalType, setCreateModalType] = useState<'lead' | 'deal' | 'contact' | 'organization' | 'reminder' | 'todo' | 'note' | 'task' | 'calllog' | 'email'>('lead');
+  const [createModalType, setCreateModalType] = useState<'lead' | 'deal' | 'contact' | 'organization' | 'reminder' | 'todo' | 'note' | 'task' | 'calllog' | 'email' | 'user'>('lead'); // Added 'user'
   const [selectedLead, setSelectedLead] = useState<any>(null);
   const [selectedDeal, setSelectedDeal] = useState<any>(null);
   const [selectedContact, setSelectedContact] = useState<any>(null);
-  const [selectedUsers, setSelectedUsers] = useState<any>(null);
+  const [selectedUser, setSelectedUser] = useState<any>(null); // Fixed variable name
   const [selectedOrganization, setSelectedOrganization] = useState<any>(null);
   const [leads, setLeads] = useState(sampleLeads);
   const [deals, setDeals] = useState(sampleDeals);
@@ -96,31 +96,6 @@ function AppContent() {
   // Add state to track if we're in a nested view (like deal detail from contact)
   const [isInNestedView, setIsInNestedView] = useState(false);
 
-  // useEffect(() => {
-  //   const checkSession = async () => {
-  //     try {
-  //       const loggedIn = isUserLoggedIn();
-  //       const session = getUserSession();
-
-  //       console.log('Session check:', { loggedIn, session });
-
-  //       if (loggedIn && session) {
-  //         setIsLoggedIn(true);
-  //         initializeStateFromUrl(); // This should run before setIsLoggedIn(true)
-  //       } else {
-  //         clearUserSession();
-  //         setIsLoggedIn(false);
-  //       }
-  //     } catch (error) {
-  //       console.error('Error checking session:', error);
-  //       clearUserSession();
-  //       setIsLoggedIn(false);
-  //     } finally {
-  //       setIsCheckingSession(false);
-  //     }
-  //   };
-
-
   useEffect(() => {
     const checkSession = async () => {
       try {
@@ -131,7 +106,7 @@ function AppContent() {
 
         if (loggedIn && session) {
           setIsLoggedIn(true);
-          await initializeStateFromUrl(); // Make it async
+          await initializeStateFromUrl();
         } else {
           clearUserSession();
           setIsLoggedIn(false);
@@ -146,73 +121,10 @@ function AppContent() {
     };
 
     checkSession();
-  }, []); // Remove 'leads' dependency
-  //   const initializeStateFromUrl = () => {
-  //     const path = window.location.pathname;
-
-  //     // First check for detail views
-  //     if (path.startsWith('/leads/')) {
-  //       const leadId = path.split('/')[2];
-  //       const lead = leads.find(l => l.id === leadId);
-  //       if (lead) {
-  //         setSelectedLead(lead);
-  //         setActiveMenuItem('leads');
-  //         return;
-  //       }
-  //     }
-
-  //     if (path.startsWith('/deals/')) {
-  //       const dealId = path.split('/')[2];
-  //       const deal = sampleDeals.find(d => d.id === dealId);
-  //       if (deal) {
-  //         setSelectedDeal(deal);
-  //         setActiveMenuItem('deals');
-  //         return;
-  //       }
-  //     }
-
-  //     if (path.startsWith('/contacts/')) {
-  //       const contactId = path.split('/')[2];
-  //       const contact = sampleContacts.find(c => c.id === contactId);
-  //       if (contact) {
-  //         setSelectedContact(contact);
-  //         setActiveMenuItem('contacts');
-  //         return;
-  //       }
-  //     }
-
-  //     if (path.startsWith('/organizations/')) {
-  //       const orgId = path.split('/')[2];
-  //       const org = sampleOrganizations.find(o => o.id === orgId);
-  //       if (org) {
-  //         setSelectedOrganization(org);
-  //         setActiveMenuItem('organizations');
-  //         return;
-  //       }
-  //     }
-
-  //     // Then check for list views
-  //     if (path === '/' || path === '/dashboard') {
-  //       setActiveMenuItem('dashboard');
-  //     } else {
-  //       const menuItem = path.split('/')[1];
-  //       if (menuItem && [
-  //         'leads', 'deals', 'contacts', 'organizations', 'users',
-  //         'reminders', 'todos', 'notifications', 'notes',
-  //         'tasks', 'call-logs', 'email-templates'
-  //       ].includes(menuItem)) {
-  //         setActiveMenuItem(menuItem);
-  //       }
-  //     }
-  //   };
-
-  //   checkSession();
-  // }, [leads]);
-
+  }, []);
 
   const initializeStateFromUrl = async () => {
     const path = window.location.pathname;
-    // Remove the /login base path if present
     const cleanPath = path.replace('/login', '');
 
     // Handle detail views with API fetching
@@ -232,7 +144,6 @@ function AppContent() {
         }
       } catch (error) {
         console.error('Error fetching lead:', error);
-        // Fallback to leads list if lead not found
         setActiveMenuItem('leads');
         window.history.replaceState({}, '', '/login/leads');
         return;
@@ -309,6 +220,28 @@ function AppContent() {
       }
     }
 
+    if (cleanPath.startsWith('/users/')) {
+      const userId = cleanPath.split('/')[2];
+      try {
+        const response = await apiAxios.post("/api/method/frappe.client.get", {
+          doctype: "User",
+          name: userId,
+        });
+
+        if (response.data.message) {
+          const user = { ...response.data.message, id: response.data.message.name };
+          setSelectedUser(user);
+          setActiveMenuItem('users');
+          return;
+        }
+      } catch (error) {
+        console.error('Error fetching user:', error);
+        setActiveMenuItem('users');
+        window.history.replaceState({}, '', '/login/users');
+        return;
+      }
+    }
+
     // Handle list views
     if (cleanPath === '/' || cleanPath === '/dashboard' || cleanPath === '') {
       setActiveMenuItem('dashboard');
@@ -321,38 +254,11 @@ function AppContent() {
       ].includes(menuItem)) {
         setActiveMenuItem(menuItem);
       } else {
-        // Unknown route, redirect to dashboard
         setActiveMenuItem('dashboard');
         window.history.replaceState({}, '', '/login/');
       }
     }
   };
-
-
-
-  // Update URL when state changes
-  // useEffect(() => {
-  //   if (!isLoggedIn) return;
-
-  //   let path = '/';
-
-  //   if (selectedLead) {
-  //     path = `/leads/${selectedLead.id}`;
-  //   } else if (selectedDeal) {
-  //     path = `/deals/${selectedDeal.id}`;
-  //   } else if (selectedContact) {
-  //     path = `/contacts/${selectedContact.id}`;
-  //   } else if (selectedOrganization) {
-  //     path = `/organizations/${selectedOrganization.id}`;
-  //   } else if (activeMenuItem !== 'dashboard') {
-  //     path = `/${activeMenuItem}`;
-  //   }
-
-  //   // Only update if the path has changed
-  //   if (window.location.pathname !== path) {
-  //     window.history.pushState({}, '', path);
-  //   }
-  // }, [activeMenuItem, selectedLead, selectedDeal, selectedContact, selectedOrganization, isLoggedIn]);
 
   useEffect(() => {
     if (!isLoggedIn) return;
@@ -367,6 +273,8 @@ function AppContent() {
       path = `/login/contacts/${selectedContact.id}`;
     } else if (selectedOrganization) {
       path = `/login/organizations/${selectedOrganization.id}`;
+    } else if (selectedUser) {
+      path = `/login/users/${selectedUser.id}`;
     } else if (activeMenuItem !== 'dashboard') {
       path = `/login/${activeMenuItem}`;
     }
@@ -374,7 +282,7 @@ function AppContent() {
     if (window.location.pathname !== path) {
       window.history.pushState({}, '', path);
     }
-  }, [activeMenuItem, selectedLead, selectedDeal, selectedContact, selectedOrganization, isLoggedIn]);
+  }, [activeMenuItem, selectedLead, selectedDeal, selectedContact, selectedOrganization, selectedUser, isLoggedIn]);
 
   // Handle browser navigation (back/forward)
   useEffect(() => {
@@ -427,6 +335,14 @@ function AppContent() {
         }
       }
 
+      // Handle user detail view
+      if (path.startsWith('/users/')) {
+        const userId = path.split('/')[2];
+        // You might want to fetch user data here
+        setActiveMenuItem('users');
+        return;
+      }
+
       // Handle list views
       if (path === '/' || path === '/dashboard') {
         setActiveMenuItem('dashboard');
@@ -446,6 +362,7 @@ function AppContent() {
       setSelectedDeal(null);
       setSelectedContact(null);
       setSelectedOrganization(null);
+      setSelectedUser(null);
     };
 
     window.addEventListener('popstate', handlePopState);
@@ -453,77 +370,14 @@ function AppContent() {
   }, [leads, isLoggedIn]);
 
   const handleLogin = () => {
-    initializeStateFromUrl(); // Add this function call
+    initializeStateFromUrl();
     setIsLoggedIn(true);
   };
-
-  // Add this function to your component
-  // const initializeStateFromUrl = () => {
-  //   const path = window.location.pathname;
-
-  //   // Handle detail views
-  //   if (path.startsWith('/leads/')) {
-  //     const leadId = path.split('/')[2];
-  //     const lead = leads.find(l => l.id === leadId);
-  //     if (lead) {
-  //       setSelectedLead(lead);
-  //       setActiveMenuItem('leads');
-  //       return;
-  //     }
-  //   }
-
-  //   if (path.startsWith('/deals/')) {
-  //     const dealId = path.split('/')[2];
-  //     const deal = sampleDeals.find(d => d.id === dealId);
-  //     if (deal) {
-  //       setSelectedDeal(deal);
-  //       setActiveMenuItem('deals');
-  //       return;
-  //     }
-  //   }
-
-  //   if (path.startsWith('/contacts/')) {
-  //     const contactId = path.split('/')[2];
-  //     const contact = sampleContacts.find(c => c.id === contactId);
-  //     if (contact) {
-  //       setSelectedContact(contact);
-  //       setActiveMenuItem('contacts');
-  //       return;
-  //     }
-  //   }
-
-  //   if (path.startsWith('/organizations/')) {
-  //     const orgId = path.split('/')[2];
-  //     const org = sampleOrganizations.find(o => o.id === orgId);
-  //     if (org) {
-  //       setSelectedOrganization(org);
-  //       setActiveMenuItem('organizations');
-  //       return;
-  //     }
-  //   }
-
-  //   // Handle list views
-  //   if (path === '/' || path === '/dashboard') {
-  //     setActiveMenuItem('dashboard');
-  //   } else {
-  //     const menuItem = path.split('/')[1];
-  //     if (menuItem && [
-  //       'leads', 'deals', 'contacts', 'organizations', 'users',
-  //       'reminders', 'todos', 'notifications', 'notes',
-  //       'tasks', 'call-logs', 'email-templates'
-  //     ].includes(menuItem)) {
-  //       setActiveMenuItem(menuItem);
-  //     }
-  //   }
-  // };
 
   useEffect(() => {
     registerLogoutCallback(handleLogout);
     registerAuthModalCallback((show, message) => {
-      // ✅ ADD THIS LOG
       console.log(`[Debug] Callback received. Setting showAuthErrorModal to: ${show}`);
-
-      // setShowAuthErrorModal(show);
       setShowAuthErrorModal(show);
       if (message) setAuthErrorMessage(message);
     });
@@ -537,6 +391,7 @@ function AppContent() {
     setSelectedDeal(null);
     setSelectedContact(null);
     setSelectedOrganization(null);
+    setSelectedUser(null);
     setIsInNestedView(false);
     setShowAuthErrorModal(false);
     window.history.pushState({}, '', '/');
@@ -553,6 +408,7 @@ function AppContent() {
     setSelectedDeal(null);
     setSelectedContact(null);
     setSelectedOrganization(null);
+    setSelectedUser(null);
     setIsInNestedView(false);
 
     // Update URL
@@ -588,6 +444,12 @@ function AppContent() {
     window.history.pushState({}, '', `/organizations/${organization.id}`);
   };
 
+  const handleUserClick = (user: any) => {
+    setSelectedUser(user);
+    setIsInNestedView(false);
+    window.history.pushState({}, '', `/users/${user.id}`);
+  };
+
   const handleLeadBack = () => {
     setSelectedLead(null);
     setIsInNestedView(false);
@@ -612,14 +474,14 @@ function AppContent() {
     window.history.pushState({}, '', '/organizations');
   };
 
-  // Add handler for deal click from contact view
-  // const handleDealClickFromContact = (dealName: string) => {
-  //   setIsInNestedView(true);
-  //   // You can add additional logic here if needed
-  // };
+  const handleUserBack = () => {
+    setSelectedUser(null);
+    setIsInNestedView(false);
+    window.history.pushState({}, '', '/users');
+  };
+
   const handleDealClickFromContact = async (dealName: string) => {
     try {
-      // Fetch the deal details
       const response = await apiAxios.post("/api/method/frappe.client.get", {
         doctype: "CRM Deal",
         name: dealName,
@@ -628,14 +490,12 @@ function AppContent() {
       const dealData = response.data.message;
 
       if (dealData) {
-        // Create a deal object that matches your Deal interface
         const deal = {
           ...dealData,
           id: dealData.name,
           organization: dealData.organization_name || dealData.organization
         };
 
-        // Clear contact view and set deal view
         setSelectedContact(null);
         setSelectedDeal(deal);
         setActiveMenuItem('deals');
@@ -644,7 +504,6 @@ function AppContent() {
       }
     } catch (error) {
       console.error("Error fetching deal details:", error);
-      // Show error toast or handle error appropriately
     }
   };
 
@@ -674,6 +533,10 @@ function AppContent() {
     setSelectedOrganization(updatedOrganization);
   };
 
+  const handleUserSave = (updatedUser: any) => {
+    setSelectedUser(updatedUser);
+  };
+
   const handleRefresh = () => {
     console.log('Refreshing data...');
   };
@@ -695,7 +558,7 @@ function AppContent() {
     setShowCreateModal(true);
   };
 
-  const handleQuickCreate = (type: 'lead' | 'deal' | 'todo' | 'note' | 'task' | 'calllog' | 'email') => {
+  const handleQuickCreate = (type: 'lead' | 'deal' | 'todo' | 'note' | 'task' | 'calllog' | 'email' | 'user') => {
     setCreateModalType(type);
     setShowCreateModal(true);
   };
@@ -730,45 +593,41 @@ function AppContent() {
     setShowCreateModal(true);
   };
 
+  const handleCreateUser = () => {
+    setCreateModalType('user');
+    setShowCreateModal(true);
+  };
+
   const handleCreateSubmit = (data: any) => {
     console.log(`${createModalType} created successfully:`, data);
-    console.log(leads, "g");
 
     if (createModalType === 'lead' && data) {
       setShowCreateModal(false);
-
-      // The data is already the lead object with name property
-      // No need to extract from data.message
       setSelectedLead(data);
       setActiveMenuItem('leads');
-
-      // Use the lead name (ID) for the URL
-      // window.history.pushState({}, '', `/leads/${data.name}`);
-      // window.history.pushState({}, '', `/leads/${lead.id}`);
+    } else if (createModalType === 'user' && data) {
+      setShowCreateModal(false);
+      // You might want to refresh the users list or navigate to the new user
+      console.log('User created:', data);
     }
   };
+
   const handleCreateLead = (data: any) => {
     console.log(`${createModalType} created successfully:`, data);
-    console.log(leads, "g");
 
     if (createModalType === 'lead' && data) {
       setShowCreateModal(false);
-
       setSelectedLead(data);
       setActiveMenuItem('leads');
-
     }
   };
-
 
   const handleCreateDeal = async (data: any) => {
     console.log("Deal creation response:", data);
 
     if (data && data.message) {
       setShowCreateModal(false);
-
-      // 1. Get the ID of the newly created deal from the response
-      const newDealId = data.message; // This is likely the deal's name, e.g., "CRM-DEAL-2025-00429"
+      const newDealId = data.message;
 
       if (!newDealId) {
         console.error("Deal name/ID was not found in the creation response.");
@@ -776,7 +635,6 @@ function AppContent() {
       }
 
       try {
-        // 2. Fetch the FULL deal data using the new ID
         const response = await apiAxios.post("/api/method/frappe.client.get", {
           doctype: "CRM Deal",
           name: newDealId,
@@ -785,24 +643,19 @@ function AppContent() {
         const fullDealData = response.data.message;
 
         if (fullDealData) {
-          // 3. Update the state with the complete data
           const dealForState = {
             ...fullDealData,
-            id: fullDealData.name, // Ensure 'id' is mapped from 'name'
-            organization: fullDealData.organization_name || fullDealData.organization // Map organization name
+            id: fullDealData.name,
+            organization: fullDealData.organization_name || fullDealData.organization
           };
 
           setSelectedDeal(dealForState);
           setActiveMenuItem("deals");
-
-          // 4. The useEffect hook will now handle the navigation to the correct URL
-          // window.history.pushState({}, "", `/deals/${newDealId}`); // This is handled by useEffect now
         } else {
           throw new Error("Failed to fetch full deal data after creation.");
         }
       } catch (err) {
         console.error("Error fetching full deal details:", err);
-        // Fallback: navigate to the deals list if the fetch fails
         setActiveMenuItem("deals");
       }
     }
@@ -810,7 +663,6 @@ function AppContent() {
 
   const handleConversionSuccess = async (dealId: string) => {
     try {
-      // Fetch the full details of the newly created deal
       const response = await apiAxios.post("/api/method/frappe.client.get", {
         doctype: "CRM Deal",
         name: dealId,
@@ -819,25 +671,21 @@ function AppContent() {
       const fullDealData = response.data.message;
 
       if (fullDealData) {
-        // Set the state to render the DealDetailView
         setSelectedDeal({ ...fullDealData, id: fullDealData.name });
         setActiveMenuItem('deals');
-        setSelectedLead(null); // Clear the lead view
+        setSelectedLead(null);
       } else {
         throw new Error("Could not fetch details for the new deal.");
       }
     } catch (error) {
       console.error("Failed to fetch new deal details:", error);
-      // Fallback: just navigate to the deals list
       setActiveMenuItem('deals');
       setSelectedLead(null);
     }
   };
 
-
-
-
-  const getCreateModalType = (): 'lead' | 'deal' | 'contact' | 'organization' | 'reminder' | 'todo' | 'note' | 'task' | 'calllog' | 'email' => {
+  // Fixed getCreateModalType function
+  const getCreateModalType = (): 'lead' | 'deal' | 'contact' | 'organization' | 'reminder' | 'todo' | 'note' | 'task' | 'calllog' | 'email' | 'user' => {
     switch (activeMenuItem) {
       case 'leads':
         return 'lead';
@@ -847,6 +695,8 @@ function AppContent() {
         return 'contact';
       case 'organizations':
         return 'organization';
+      case 'users':
+        return 'user'; // Fixed: return 'user' for users menu
       case 'reminders':
         return 'reminder';
       case 'todos':
@@ -925,12 +775,13 @@ function AppContent() {
         />
       );
     }
-    if (selectedUsers && activeMenuItem === 'users') {
+
+    if (selectedUser && activeMenuItem === 'users') {
       return (
         <UserDetailView
-          user={selectedUsers}
-          onBack={handleDealBack}
-          onSave={handleDealSave}
+          user={selectedUser}
+          onBack={handleUserBack}
+          onSave={handleUserSave}
         />
       );
     }
@@ -955,18 +806,6 @@ function AppContent() {
         />
       );
     }
-
-    if (selectedContact && activeMenuItem === 'contacts') {
-      return (
-        <ContactDetailView
-          contact={selectedContact}
-          onBack={handleContactBack}
-          onSave={handleContactSave}
-          onDealClick={handleDealClickFromContact} // Add this line
-        />
-      );
-    }
-
 
     switch (activeMenuItem) {
       case 'dashboard':
@@ -1005,7 +844,7 @@ function AppContent() {
           </div>
         );
       case 'users':
-        return <UsersPage onMenuToggle={handleSidebarToggle} />;
+        return <UsersPage onMenuToggle={handleSidebarToggle} onUserClick={handleUserClick} />;
       case 'reminders':
         return <RemindersPage onCreateReminder={handleCreateReminder} />;
       case 'todos':
@@ -1065,6 +904,14 @@ function AppContent() {
       case 'organization':
         return (
           <CreateOrganizationModal
+            isOpen={showCreateModal}
+            onClose={() => setShowCreateModal(false)}
+            onSubmit={handleCreateSubmit}
+          />
+        );
+      case 'user':
+        return (
+          <CreateUserModal
             isOpen={showCreateModal}
             onClose={() => setShowCreateModal(false)}
             onSubmit={handleCreateSubmit}
@@ -1146,12 +993,13 @@ function AppContent() {
     return <LoginPage onLogin={handleLogin} />;
   }
 
-  // Updated header visibility logic to account for nested views
+  // Updated header visibility logic
   const showHeader = activeMenuItem !== 'dashboard' &&
     !selectedLead &&
     !selectedDeal &&
     !selectedContact &&
     !selectedOrganization &&
+    !selectedUser &&
     !isInNestedView;
 
   return (
@@ -1165,7 +1013,7 @@ function AppContent() {
       />
 
       <div className="flex-1 flex flex-col min-w-0">
-        {showHeader && ['leads', 'deals', 'contacts', 'notes', 'tasks', 'call-logs','organizations'].includes(activeMenuItem) && (
+        {showHeader && ['leads', 'deals', 'contacts', 'notes', 'users', 'tasks', 'call-logs', 'organizations'].includes(activeMenuItem) && (
           <Header
             title={getPageTitle()}
             subtitle={getSubtitle()}
@@ -1202,27 +1050,10 @@ function AppContent() {
   );
 }
 
-// function App() {
-//   return (
-//     <ThemeProvider>
-//       <Router>
-//         <Routes>
-//           <Route path="*" element={<AppContent />} />
-//           {/* <Route path="/update-password" element={<PasswordResetPage />} /> */}
-//           <Route path="/update-password" element={<AccountActivationPage />} />
-//           <Route path="/reset-password" element={<PasswordResetPage />} />
-//           <Route path="/ForgotPassword" element={<ForgotPasswordPage />} />
-//         </Routes>
-//       </Router>
-//     </ThemeProvider>
-//   );
-// }
-
-
 function App() {
   return (
     <ThemeProvider>
-      <Router basename="/login">   {/* ✅ tell React Router the base path */}
+      <Router basename="/login">
         <Routes>
           <Route path="/" element={<AppContent />} />
           <Route path="/update-password" element={<AccountActivationPage />} />
@@ -1234,4 +1065,5 @@ function App() {
     </ThemeProvider>
   );
 }
+
 export default App;
