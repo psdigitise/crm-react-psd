@@ -51,7 +51,64 @@ const priorityColors = {
 };
 
 const API_BASE_URL = 'https://api.erpnext.ai';
-// const AUTH_TOKEN = 'token 1b670b800ace83b:f32066fea74d0fe';
+
+// Utility function to parse ERPNext error messages
+// Utility function to parse ERPNext error messages
+const parseERPNextError = (error: any): string => {
+  if (typeof error === 'string') {
+    try {
+      const errorData = JSON.parse(error);
+      return parseERPNextError(errorData);
+    } catch {
+      // If it's a string, try to extract the meaningful part
+      const linkedMatch = error.match(/Cannot delete or cancel because (.*?) is linked with/);
+      if (linkedMatch) {
+        return `Cannot delete or cancel because ${linkedMatch[1]} is linked with CRM Notification`;
+      }
+      return error;
+    }
+  }
+
+  if (error?._server_messages) {
+    try {
+      const serverMessages = JSON.parse(error._server_messages);
+      if (Array.isArray(serverMessages) && serverMessages.length > 0) {
+        const mainMessage = JSON.parse(serverMessages[0]);
+        if (mainMessage.message) {
+          // Extract only the essential part without HTML links
+          const message = mainMessage.message;
+          const simplifiedMessage = message.replace(/<a[^>]*>(.*?)<\/a>/g, '$1');
+          const linkedMatch = simplifiedMessage.match(/Cannot delete or cancel because (.*?) is linked with CRM Notification/);
+          if (linkedMatch) {
+            return `Cannot delete or cancel because CRM Task is linked with CRM Notification`;
+          }
+          return simplifiedMessage;
+        }
+      }
+    } catch (parseError) {
+      console.error('Error parsing server messages:', parseError);
+    }
+  }
+
+  if (error?.exception) {
+    if (error.exception.includes('linked with CRM Notification')) {
+      return 'Cannot delete or cancel because CRM Task is linked with CRM Notification';
+    }
+  }
+
+  if (error?.message) {
+    // Clean up the message by removing HTML links
+    const message = error.message;
+    const simplifiedMessage = message.replace(/<a[^>]*>(.*?)<\/a>/g, '$1');
+    const linkedMatch = simplifiedMessage.match(/Cannot delete or cancel because (.*?) is linked with CRM Notification/);
+    if (linkedMatch) {
+      return `Cannot delete or cancel because CRM Task is linked with CRM Notification`;
+    }
+    return simplifiedMessage;
+  }
+
+  return 'An unexpected error occurred';
+};
 
 export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0, onMenuToggle }: TasksPageProps) {
   const { theme } = useTheme();
@@ -133,22 +190,6 @@ export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0, onMenuTo
         }
       };
 
-      //const apiUrl = `${API_BASE_URL}/api/method/crm.api.doc.get_data`;
-
-      // const response = await fetch(apiUrl, {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //     'Authorization': AUTH_TOKEN
-      //   },
-      //   body: JSON.stringify(requestBody)
-      // });
-
-      // if (!response.ok) {
-      //   throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      // }
-
-      // const result = await response.json();
       const result = await api.post('/api/method/crm.api.doc.get_data', requestBody);
       const tasksData = result.message?.data || [];
       console.log('Tasks fetched:', tasksData.length);
@@ -288,8 +329,20 @@ export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0, onMenuTo
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        let errorMessage = 'Failed to delete task';
+
+        try {
+          // Try to parse the error response
+          const errorData = JSON.parse(errorText);
+          errorMessage = parseERPNextError(errorData);
+        } catch (parseError) {
+          console.error('Error parsing error response:', parseError);
+        }
+
+        throw new Error(errorMessage);
       }
+
+      const result = await response.json();
 
       showToast('Task deleted successfully', { type: 'success' });
       setShowDeleteModal(false);
@@ -297,7 +350,17 @@ export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0, onMenuTo
       refreshTasks();
     } catch (error) {
       console.error('Error deleting task:', error);
-      showToast('Failed to delete task', { type: 'error' });
+
+      // Extract and display meaningful error message
+      let errorMessage = 'Failed to delete task';
+      if (error instanceof Error) {
+        errorMessage = parseERPNextError(error);
+      }
+
+      showToast(errorMessage, {
+        type: 'error',
+        position: 'top-right'  // 👈 add this line
+      });
     }
   };
 
@@ -370,14 +433,21 @@ export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0, onMenuTo
     setTaskToDelete(null);
   };
 
-  const confirmDelete = () => {
-    if (taskToDelete) {
-      handleDelete(taskToDelete);
-    } else if (selectedTasks.length > 0) {
-      selectedTasks.forEach(taskName => {
-        handleDelete(taskName);
-      });
-      setSelectedTasks([]);
+  const confirmDelete = async () => {
+    try {
+      if (taskToDelete) {
+        await handleDelete(taskToDelete);
+      } else if (selectedTasks.length > 0) {
+        // For bulk delete, handle each task individually to show proper errors
+        for (const taskName of selectedTasks) {
+          await handleDelete(taskName);
+        }
+        setSelectedTasks([]);
+      }
+    } catch (error) {
+      // Error is already handled in handleDelete, so we just need to close the modal
+      setShowDeleteModal(false);
+      setTaskToDelete(null);
     }
   };
 
@@ -657,27 +727,7 @@ export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0, onMenuTo
       ? 'bg-gradient-to-br from-dark-primary via-dark-secondary to-dark-tertiary'
       : 'bg-gray-50'
       }`}>
-      {/* <div className="p-4 sm:p-6 lg:hidden">
-        <button
-          onClick={onMenuToggle}
-          className={`p-2 rounded-lg transition-colors ${theme === 'dark' ? 'hover:bg-purple-800/50' : 'hover:bg-gray-100'}`}
-        >
-          <Menu className={`w-6 h-6 ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`} />
-        </button>
-      </div>
-      <Header
-        title="Tasks"
-        subtitle={leadName ? `For Lead: ${leadName}` : undefined}
-        onRefresh={refreshTasks}
-        onFilter={() => { }}
-        onSort={() => { }}
-        onColumns={() => { }}
-        onCreate={onCreateTask}
-        searchValue={searchTerm}
-        onSearchChange={setSearchTerm}
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-      /> */}
+      
 
       <div className="p-4 sm:p-6">
         <div className={`rounded-lg shadow-sm border overflow-hidden ${theme === 'dark'

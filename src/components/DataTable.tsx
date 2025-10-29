@@ -16,7 +16,6 @@ import { api } from '../api/apiService';
 import { ExportPopup } from './LeadsPopup/ExportPopup';
 import axios from 'axios';
 
-
 interface Lead {
   id: string;
   name: string;
@@ -83,7 +82,6 @@ const statusColors = {
   Nurture: ' text-violet-500 dark:bg-violet-900/30 dark:text-violet-500',
 };
 
-
 const defaultColumns: ColumnConfig[] = [
   { key: 'name', label: 'Name', visible: true, sortable: true },
   { key: 'organization', label: 'Organization', visible: true, sortable: true },
@@ -114,7 +112,6 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [totalItems, setTotalItems] = useState(0);
-  // const selectedLeads = data.filter(d => selectedIds.includes(d.id));
   const [filteredData, setFilteredData] = useState<Lead[]>([]);
   const [isConvertToDealPopupOpen, setIsConvertToDealPopupOpen] = useState(false);
   const [isBulkEditPopupOpen, setIsBulkEditPopupOpen] = useState(false);
@@ -133,6 +130,10 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
   const [isExportPopupOpen, setIsExportPopupOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [exportFormat, setExportFormat] = useState<'Excel' | 'CSV'>('Excel');
+  
+  // Mobile dropdown state
+  const [expandedLeads, setExpandedLeads] = useState<Set<string>>(new Set());
+
   // Available filter options
   const [filterOptions, setFilterOptions] = useState({
     status: ['New', 'Contacted', 'Qualified', 'Lost', 'Unqualified', 'Junk', 'Nurture'],
@@ -167,10 +168,6 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
         return;
       }
 
-      // The new API endpoint for the POST request
-      //const apiUrl = 'https://api.erpnext.ai/api/method/crm.api.doc.get_data';
-
-      // The payload (body) for the POST request, as you provided
       const payload = {
         "doctype": "CRM Lead",
         "filters": {
@@ -195,36 +192,12 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
         "page_length_count": 20
       };
 
-      // const response = await fetch(apiUrl, {
-      //   method: 'POST', // Changed method to POST
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //     // Authorization token remains the same
-      //     'Authorization': AUTH_TOKEN
-      //   },
-      //   // Added the body with the JSON payload
-      //   body: JSON.stringify(payload)
-      // });
-
-      // if (!response.ok) {
-      //   // Try to get more specific error info from the response body
-      //   const errorBody = await response.text();
-      //   throw new Error(`HTTP ${response.status}: ${response.statusText}. Body: ${errorBody}`);
-      // }
-
-      // const result = await response.json();
       const result = await api.post('/api/method/crm.api.doc.get_data', payload);
       console.log('API Response:', result);
 
-      // IMPORTANT: The response structure from the new API might be different.
-      // The leads data may be in `result.message` or `result.message.data` instead of `result.data`.
-      // Please inspect the `console.log` output and adjust the line below if necessary.
       const leadsData = result.message?.data || result.data || [];
 
-      // The transformation logic below assumes the field names (e.g., apiLead.first_name) are still correct.
-      // You may need to update these based on the new API's response.
       const transformedLeads: Lead[] = leadsData
-        // The converted filter is now in the payload, but filtering again here is safe.
         .filter((apiLead: any) => apiLead.converted === 0)
         .map((apiLead: any) => ({
           id: apiLead.name || apiLead.idx?.toString() || Math.random().toString(),
@@ -245,15 +218,13 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
           source: '',
           salutation: apiLead.salutation || '',
           converted: apiLead.converted || 0,
-          // Keep original API fields
-          ...apiLead // A simpler way to keep all original fields
+          ...apiLead
         }));
 
       setLeads(transformedLeads);
       setTotalItems(transformedLeads.length);
       setSelectedIds([]);
 
-      // Extract unique values for filter options (this logic remains the same)
       const territories = [...new Set(transformedLeads.map(lead => lead.territory).filter(Boolean))];
       const industries = [...new Set(transformedLeads.map(lead => lead.industry).filter(Boolean))];
       const assignedUsers = [...new Set(transformedLeads.map(lead => lead.assignedTo).filter(Boolean))];
@@ -273,23 +244,13 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
     }
   };
 
-
   const mapApiStatus = (
     apiStatus: string
   ): 'New' | 'Contacted' | 'Qualified' | 'Unqualified' | 'Junk' | 'Nurture' | string => {
     if (!apiStatus) return 'New';
     const status = apiStatus.toLowerCase();
-
-    // if (status.includes('unqualified')) return 'Unqualified';
-    // if (status.includes('qualified')) return 'Qualified';
-    // if (status.includes('contacted')) return 'Contacted';
-    // if (status.includes('nurture')) return 'Nurture';
-    // if (status.includes('junk')) return 'Junk';
-    // if (status.includes('lost')) return 'Lost';
-    // if (status.includes('new')) return 'New';
     return apiStatus;
   };
-
 
   const formatDate = (dateString: string): string => {
     if (!dateString) return 'N/A';
@@ -330,7 +291,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
         ? prev[filterType].filter(item => item !== value)
         : [...prev[filterType], value]
     }));
-    setCurrentPage(1); // Reset to first page when filters change
+    setCurrentPage(1);
   };
 
   const clearFilters = () => {
@@ -370,8 +331,8 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
           throw new Error(`Failed to delete lead ${id}: ${response.statusText}`);
         }
       }
-      setSelectedIds([]); // Clear selection
-      fetchLeads(); // Refresh data
+      setSelectedIds([]);
+      fetchLeads();
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Failed to delete leads');
     } finally {
@@ -381,30 +342,24 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
 
   const getFilteredAndSortedData = () => {
     let filteredData = leads.filter(item => {
-      // Search filter
       const matchesSearch = searchTerm === '' || Object.values(item).some(value =>
         value?.toString().toLowerCase().includes(searchTerm.toLowerCase())
       );
 
-      // Status filter
       const matchesStatus = filters.status.length === 0 || filters.status.includes(item.status);
 
-      // Territory filter
       const matchesTerritory = filters.territory.length === 0 ||
         (item.territory && filters.territory.includes(item.territory));
 
-      // Industry filter
       const matchesIndustry = filters.industry.length === 0 ||
         (item.industry && filters.industry.includes(item.industry));
 
-      // Assigned To filter
       const matchesAssignedTo = filters.assignedTo.length === 0 ||
         filters.assignedTo.includes(item.assignedTo);
 
       return matchesSearch && matchesStatus && matchesTerritory && matchesIndustry && matchesAssignedTo;
     });
 
-    // Sort data
     if (sortField) {
       filteredData.sort((a, b) => {
         const aValue = a[sortField] ?? '';
@@ -432,6 +387,23 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
   };
 
   const getVisibleColumns = () => columns.filter(col => col.visible);
+
+  // Mobile dropdown functions
+  const toggleLeadDetails = (leadId: string) => {
+    setExpandedLeads(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(leadId)) {
+        newSet.delete(leadId);
+      } else {
+        newSet.add(leadId);
+      }
+      return newSet;
+    });
+  };
+
+  const isLeadExpanded = (leadId: string) => {
+    return expandedLeads.has(leadId);
+  };
 
   const SortButton = ({ field, children }: { field: keyof Lead; children: React.ReactNode }) => (
     <button
@@ -520,66 +492,6 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
   console.log("visibleColumns", visibleColumns)
   const filteredDataLength = getFilteredAndSortedData().length;
 
-  // const handleExport = async () => {
-  //   setIsExporting(true);
-
-  //   try {
-  //     const baseUrl =
-  //       "https://api.erpnext.ai/api/method/frappe.desk.reportview.export_query";
-
-  //     // ✅ Prepare request parameters
-  //     const params:any = {
-  //       file_format_type: "Excel",
-  //       title: "CRM Lead",
-  //       doctype: "CRM Lead",
-  //       fields: JSON.stringify(visibleColumns.map(col => col.key)),
-  //       order_by: sortField ? `${sortField} ${sortDirection}` : "modified desc",
-  //       view: "Report",
-  //       with_comment_count: 1,
-  //       page_length: itemsPerPage,
-  //       start: (currentPage - 1) * itemsPerPage,
-  //       filters: JSON.stringify({ ...filters, converted: 0 }),
-  //     };
-
-  //     // Add selected items if any
-  //     if (selectedIds.length > 0) {
-  //       params["selected_items"] = JSON.stringify(selectedIds);
-  //     }
-
-  //     // ✅ Make the GET request via Axios
-  //     const response = await axios.get(baseUrl, {
-  //       params,
-  //       headers: {
-  //         Authorization: AUTH_TOKEN,
-  //       },
-  //       responseType: "blob", // Important for downloading files
-  //     });
-
-  //     // ✅ Convert response to Blob and trigger download
-  //     const blob = new Blob([response.data], {
-  //       type:
-  //         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  //     });
-
-  //     const downloadUrl = window.URL.createObjectURL(blob);
-  //     const a = document.createElement("a");
-  //     a.href = downloadUrl;
-  //     a.download = `leads_export_${new Date()
-  //       .toISOString()
-  //       .split("T")[0]}.xlsx`;
-  //     document.body.appendChild(a);
-  //     a.click();
-  //     document.body.removeChild(a);
-  //     window.URL.revokeObjectURL(downloadUrl);
-
-  //   } catch (error: any) {
-  //     console.error("Export failed:", error);
-  //     alert(`Export failed: ${error.message}`);
-  //   } finally {
-  //     setIsExporting(false);
-  //   }
-  // };
-
   const handleExport = async (exportType: string = 'Excel', exportAll: boolean = true) => {
     setIsExporting(true);
 
@@ -590,13 +502,11 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
       const baseUrl =
         "https://api.erpnext.ai/api/method/frappe.desk.reportview.export_query";
 
-      // Build filters object properly
       const exportFilters: any = {
         company: sessionCompany,
         converted: 0
       };
 
-      // Add active filters with proper Frappe format
       if (filters.status.length > 0) {
         exportFilters['status'] = ['in', filters.status];
       }
@@ -610,7 +520,6 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
         exportFilters['lead_owner'] = ['in', filters.assignedTo];
       }
 
-      // Map visible column keys to actual database field names
       const columnToFieldMap: Record<string, string> = {
         'name': 'name',
         'organization': 'organization',
@@ -627,7 +536,6 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
         'leadId': 'name'
       };
 
-      // Get only visible columns and map them to database field names
       const visibleFields = visibleColumns
         .map(col => columnToFieldMap[col.key] || col.key)
         .filter((field, index, self) => self.indexOf(field) === index)
@@ -636,7 +544,6 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
       console.log('Export format:', exportType);
       console.log('Export all records:', exportAll);
 
-      // Prepare request parameters
       const params: any = {
         file_format_type: exportType,
         title: "CRM Lead",
@@ -650,13 +557,10 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
         with_comment_count: 1
       };
 
-      // Handle export scope
       if (!exportAll && selectedIds.length > 0) {
-        // Export only selected items
         params.selected_items = JSON.stringify(selectedIds);
         console.log('Exporting selected items:', selectedIds);
       } else {
-        // Export all filtered records
         params.page_length = 500;
         params.start = 0;
         console.log('Exporting all filtered records');
@@ -664,7 +568,6 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
 
       console.log('Export params:', params);
 
-      // Make the GET request
       const response = await axios.get(baseUrl, {
         params,
         headers: {
@@ -674,20 +577,17 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
         responseType: "blob"
       });
 
-      // Check if the response is actually an error in JSON format
       if (response.data.type === 'application/json') {
         const text = await response.data.text();
         const errorData = JSON.parse(text);
         throw new Error(errorData.message || errorData.exception || 'Export failed');
       }
 
-      // Determine file extension and MIME type based on export format
       const fileExtension = exportType.toLowerCase() === 'csv' ? 'csv' : 'xlsx';
       const mimeType = exportType.toLowerCase() === 'csv'
         ? 'text/csv'
         : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
-      // Create and download the file
       const blob = new Blob([response.data], {
         type: mimeType
       });
@@ -696,7 +596,6 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
       const a = document.createElement("a");
       a.href = downloadUrl;
 
-      // Create descriptive filename
       const scope = exportAll ? 'all' : 'selected';
       a.download = `leads_${scope}_${new Date().toISOString().split("T")[0]}.${fileExtension}`;
 
@@ -705,10 +604,6 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
       document.body.removeChild(a);
       window.URL.revokeObjectURL(downloadUrl);
 
-      // ✅ SUCCESS: Refresh the table data after successful export
-      console.log('Export completed successfully, refreshing table data...');
-      // Refresh the leads data
-
       setIsExportPopupOpen(false);
       await fetchLeads();
 
@@ -716,7 +611,6 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
       console.error("Export failed:", error);
       console.error("Error response:", error.response?.data);
 
-      // Try to extract error message from blob if it's JSON
       if (error.response?.data instanceof Blob) {
         try {
           const text = await error.response.data.text();
@@ -732,7 +626,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
       setIsExporting(false);
     }
   };
-  // Add format change handler
+
   const handleFormatChange = (format: string) => {
     if (format === 'Excel' || format === 'CSV') {
       setExportFormat(format);
@@ -751,7 +645,6 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
     try {
       const session = getUserSession();
 
-      // Use frappe.desk.reportview.delete_items to delete all selected items
       const deleteApiUrl = `https://api.erpnext.ai/api/method/frappe.desk.reportview.delete_items`;
 
       const deletePayload = {
@@ -772,7 +665,6 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
         throw new Error(`Failed to delete leads: ${deleteResponse.statusText}`);
       }
 
-      // Instead of making a second API call, just refetch the leads using your existing function
       await fetchLeads();
 
       setIsDeletePopupOpen(false);
@@ -787,7 +679,6 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
     }
   };
 
-  // Helper function to transform API data
   const transformApiData = (apiData: any[]): Lead[] => {
     return apiData
       .filter((apiLead: any) => apiLead.converted === 0)
@@ -829,7 +720,6 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
       }));
   };
 
-  // Handler for individual row selection
   const handleRowSelection = (leadId: string) => {
     setSelectedIds(prevSelected =>
       prevSelected.includes(leadId)
@@ -838,7 +728,6 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
     );
   };
 
-  // Handler for the "Select All" checkbox
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
       const currentPageIds = paginatedData.map(d => d.id);
@@ -848,7 +737,6 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
     }
   };
 
-  // Handler to select all filtered results
   const handleSelectAllFiltered = () => {
     const allFilteredIds = getFilteredAndSortedData().map(d => d.id);
     setSelectedIds(allFilteredIds);
@@ -883,15 +771,6 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
             {/* Dropdown menu */}
             {showDropdown && (
               <div className="absolute right-0 bottom-10 bg-white dark:bg-gray-700 shadow-lg rounded-md border dark:border-gray-600 py-1 w-40 z-50">
-                {/* <button
-                  onClick={() => {
-                    setIsBulkEditPopupOpen(true);
-                    setShowDropdown(false);
-                  }}
-                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600"
-                >
-                  Edit
-                </button> */}
                 <button
                   onClick={() => {
                     setIsDeletePopupOpen(true);
@@ -1093,12 +972,9 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
 
         <div className="flex items-center space-x-2">
           <div className="flex items-center space-x-2">
-            {/* Export Excel Button */}
-            {/* Export Excel Button - Renders only if there's data */}
             {filteredDataLength > 0 && (
               <div title="Export Excel">
                 <button
-                  // onClick={() => exportToExcel(getFilteredAndSortedData(), 'Leads')}
                   onClick={() => setIsExportPopupOpen(true)}
                   className={`px-3 py-2 text-sm border rounded-lg transition-colors ${theme === 'dark'
                     ? 'border-purple-500/30 text-white hover:bg-purple-800/50'
@@ -1134,50 +1010,159 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
       </div>
 
       {/* Table */}
-      <div className={`rounded-lg shadow-sm border overflow-hidden ${theme === 'dark'
-        ? 'bg-custom-gradient border-transparent !rounded-none'
-        : 'bg-white border-gray-200'
-        }`}>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className={`border-b ${theme === 'dark' ? 'bg-purplebg border-transparent ' : 'bg-gray-50 border-gray-200'
-              }`}>
-              <tr className="divide-x-[1px]">
-                <th className="px-6 py-3 text-left">
-                  <input
-                    type="checkbox"
-                    checked={paginatedData.length > 0 && selectedIds.length === paginatedData.length}
-                    onChange={handleSelectAll}
-                    ref={el => {
-                      if (el) {
-                        el.indeterminate = selectedIds.length > 0 && selectedIds.length < paginatedData.length;
+      <div
+        className={`rounded-lg shadow-sm border overflow-hidden ${theme === 'dark'
+            ? 'bg-custom-gradient border-transparent !rounded-none'
+            : 'bg-white border-gray-200'
+          }`}
+      >
+        <div className="w-full">
+          {/* ================= Desktop Table View ================= */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full">
+              <thead
+                className={`border-b ${theme === 'dark'
+                    ? 'bg-purplebg border-transparent'
+                    : 'bg-gray-50 border-gray-200'
+                  }`}
+              >
+                <tr className="divide-x-[1px]">
+                  <th className="px-6 py-3 text-left">
+                    <input
+                      type="checkbox"
+                      checked={
+                        paginatedData.length > 0 &&
+                        selectedIds.length === paginatedData.length
                       }
-                    }}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  />
-                </th>
-                {visibleColumns.map(column => (
-                  <th key={column.key} className={`px-6 py-0 text-left text-sm font-semibold uppercase tracking-wider ${theme === 'dark' ? 'text-white' : 'text-gray-500'
-                    }`}>
-                    {column.sortable ? (
-                      <SortButton field={column.key}>{column.label}</SortButton>
-                    ) : (
-                      column.label
-                    )}
+                      onChange={handleSelectAll}
+                      ref={(el) => {
+                        if (el) {
+                          el.indeterminate =
+                            selectedIds.length > 0 &&
+                            selectedIds.length < paginatedData.length;
+                        }
+                      }}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
                   </th>
+                  {visibleColumns.map((column) => (
+                    <th
+                      key={column.key}
+                      className={`px-6 py-3 text-left text-sm font-semibold uppercase tracking-wider ${theme === 'dark' ? 'text-white' : 'text-gray-500'
+                        }`}
+                    >
+                      {column.sortable ? (
+                        <SortButton field={column.key}>{column.label}</SortButton>
+                      ) : (
+                        column.label
+                      )}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+
+              <tbody
+                className={`divide-y ${theme === 'dark' ? 'divide-white' : 'divide-gray-200'
+                  }`}
+              >
+                {paginatedData.map((lead) => (
+                  <tr
+                    key={lead.id}
+                    className={`transition-colors cursor-pointer ${theme === 'dark'
+                        ? 'hover:bg-purple-800/20'
+                        : 'hover:bg-gray-50'
+                      }`}
+                    onClick={() => onLeadClick(lead)}
+                  >
+                    <td
+                      className="px-6 py-4 whitespace-nowrap"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.includes(lead.id)}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          handleRowSelection(lead.id);
+                        }}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                    </td>
+
+                    {/* === Render all columns === */}
+                    {visibleColumns.map((column) => (
+                      <td key={column.key} className="px-6 py-4 whitespace-nowrap">
+                        {column.key === 'name' ? (
+                          <div className="flex items-center">
+                            <div
+                              className={`w-6 h-6 rounded-full flex items-center justify-center mr-3 ${theme === 'dark' ? 'bg-purplebg' : 'bg-gray-200'
+                                }`}
+                            >
+                              <span
+                                className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-700'
+                                  }`}
+                              >
+                                {lead.firstName?.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                            <div
+                              className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                                }`}
+                            >
+                              {lead.name}
+                            </div>
+                          </div>
+                        ) : (
+                          <span
+                            className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-900'
+                              }`}
+                          >
+                            {lead[column.key] || 'N/A'}
+                          </span>
+                        )}
+                      </td>
+                    ))}
+                  </tr>
                 ))}
-              </tr>
-            </thead>
-            <tbody className={`divide-y ${theme === 'dark' ? 'divide-white' : 'divide-gray-200'}`}>
-              {paginatedData.map((lead, index) => (
-                <tr
-                  key={lead.id}
-                  className={`transition-colors cursor-pointer ${theme === 'dark' ? 'hover:bg-purple-800/20' : 'hover:bg-gray-50'
-                    }`}
-                  onClick={() => onLeadClick(lead)}
-                >
-                  {/* Replace the existing checkbox in table rows */}
-                  <td className="px-6 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+              </tbody>
+            </table>
+          </div>
+
+          {/* ================= Mobile Card View ================= */}
+          <div className="block md:hidden space-y-4">
+            {paginatedData.map((lead) => (
+              <div
+                key={lead.id}
+                className={`p-4 rounded-lg border ${theme === 'dark'
+                    ? 'bg-purplebg border-transparent'
+                    : 'bg-white border-gray-200'
+                  } shadow-sm`}
+              >
+                <div className="flex justify-between items-center">
+                  <div 
+                    className="flex items-center flex-1 cursor-pointer"
+                    onClick={() => onLeadClick(lead)}
+                  >
+                    <div
+                      className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 ${theme === 'dark' ? 'bg-purple-700' : 'bg-gray-200'
+                        }`}
+                    >
+                      <span
+                        className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-800'
+                          }`}
+                      >
+                        {lead.firstName?.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                    <h3
+                      className={`text-base font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                        }`}
+                    >
+                      {lead.name}
+                    </h3>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
                     <input
                       type="checkbox"
                       checked={selectedIds.includes(lead.id)}
@@ -1187,74 +1172,73 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
                       }}
                       className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
-                  </td>
-                  {visibleColumns.map(column => (
-                    <td key={column.key} className="px-6 py-4 whitespace-nowrap">
-                      {column.key === 'name' && (
-                        <div className="flex items-center">
-                          <div className={`w-6 h-6 rounded-full flex items-center justify-center mr-3 ${theme === 'dark' ? 'bg-purplebg' : 'bg-gray-200'
-                            }`}>
-                            <span className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-700'
-                              }`}>
-                              {lead.firstName.charAt(0).toUpperCase()}
-                            </span>
-                          </div>
-                          <div className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{lead.name}</div>
+                    
+                    {/* Dropdown arrow */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleLeadDetails(lead.id);
+                      }}
+                      className={`p-1 rounded transition-transform ${
+                        theme === 'dark' ? 'hover:bg-purple-700' : 'hover:bg-gray-100'
+                      }`}
+                    >
+                      <svg 
+                        className={`w-4 h-4 transform transition-transform ${
+                          isLeadExpanded(lead.id) ? 'rotate-180' : ''
+                        } ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}
+                        fill="none" 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Collapsible details section */}
+                {isLeadExpanded(lead.id) && (
+                  <div className="mt-3 pt-3 border-t border-gray-200">
+                    {/* Render all other columns as label:value */}
+                    {visibleColumns.map((column) =>
+                      column.key !== 'name' ? (
+                        <div
+                          key={column.key}
+                          className="flex justify-between text-sm py-1"
+                        >
+                          <span
+                            className={`font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-500'
+                              }`}
+                          >
+                            {column.label}:
+                          </span>
+                          <span
+                            className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                              }`}
+                          >
+                            {lead[column.key] || 'N/A'}
+                          </span>
                         </div>
-                      )}
-                      {column.key === 'organization' && (
-                        <div className="flex items-center">
-                          <div className={`w-6 h-6 rounded flex items-center justify-center mr-2 ${theme === 'dark' ? 'bg-purplebg' : 'bg-blue-100'
-                            }`}>
-                            <span className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-blue-600'
-                              }`}>
-                              {lead.organization.charAt(0).toUpperCase()}
-                            </span>
-                          </div>
-                          <div className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{lead.organization}</div>
-                        </div>
-                      )}
-                      {column.key === 'status' && (
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`}>
-                          <FaCircleDot className={`mr-1 ${statusColors[lead.status as keyof typeof statusColors]}`} />
-                          {lead.status}
-                        </span>
-                      )}
-                      {column.key === 'mobile' && (
-                        <div className={`flex items-center text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                          <Phone className={`w-4 h-4 mr-2 ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`} />
-                          {lead.mobile}
-                        </div>
-                      )}
-                      {column.key === 'assignedTo' && (
-                        <div className="flex items-center">
-                          <div className={`w-6 h-6 rounded-full flex items-center justify-center mr-2 ${theme === 'dark' ? 'bg-purplebg' : 'bg-gray-200'
-                            }`}>
-                            <span className={`text-xs font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-700'
-                              }`}>
-                              {lead.assignedTo.charAt(0).toUpperCase()}
-                            </span>
-                          </div>
-                          <div className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{lead.assignedTo}</div>
-                        </div>
-                      )}
-                      {!['name', 'organization', 'status', 'mobile', 'assignedTo'].includes(column.key) && (
-                        <div className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                          {lead[column.key] || 'N/A'}
-                        </div>
-                      )}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                      ) : null
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
 
+        {/* ================= No Results ================= */}
         {paginatedData.length === 0 && !loading && (
           <div className="text-center py-12">
-            <div className={theme === 'dark' ? 'text-white' : 'text-gray-500'}>No results found</div>
-            <div className={`text-sm mt-1 ${theme === 'dark' ? 'text-gray-500' : 'text-white'}`}>
+            <div className={theme === 'dark' ? 'text-white' : 'text-gray-500'}>
+              No results found
+            </div>
+            <div
+              className={`text-sm mt-1 ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'
+                }`}
+            >
               Please adjust your search criteria or filters
             </div>
           </div>
@@ -1340,7 +1324,6 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
         selectedIds={selectedIds}
         theme={theme}
         onSuccess={() => {
-          // Refresh the leads after successful assignment
           fetchLeads();
           setSelectedIds([]);
         }}
@@ -1351,7 +1334,6 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
         selectedIds={selectedIds}
         theme={theme}
         onSuccess={() => {
-          // Refresh the leads after successful assignment clearing
           fetchLeads();
           setSelectedIds([]);
         }}
@@ -1362,7 +1344,6 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
         selectedIds={selectedIds}
         theme={theme}
         onSuccess={() => {
-          // Refresh the leads after successful bulk edit
           fetchLeads();
           setSelectedIds([]);
         }}
@@ -1373,7 +1354,6 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
         selectedIds={selectedIds}
         theme={theme}
         onSuccess={() => {
-          // Refresh the leads after successful conversion
           fetchLeads();
           setSelectedIds([]);
         }}
