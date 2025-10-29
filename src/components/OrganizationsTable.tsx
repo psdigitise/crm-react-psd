@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ChevronDown, ChevronUp, Globe, Building2, IndianRupee, Users, Loader2, ChevronLeft, ChevronRight, Filter, X, Settings, RefreshCcw, Download } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import { showToast } from '../utils/toast';
-import { exportToCSV, exportToExcel } from '../utils/exportUtils';
+import { exportToExcel } from '../utils/exportUtils';
 import { getUserSession } from '../utils/session';
 import { BsThreeDots } from 'react-icons/bs';
 import { AUTH_TOKEN } from '../api/apiUrl';
@@ -102,6 +102,9 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
   // Delete confirmation state
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
+  // Mobile dropdown state
+  const [expandedOrganizations, setExpandedOrganizations] = useState<Set<string>>(new Set());
+
   // Available filter options
   const [filterOptions, setFilterOptions] = useState({
     industry: [] as string[],
@@ -115,7 +118,6 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
     selectedValue: '',
     fieldOptions: [
       { label: 'Organization Name', value: 'organization_name', fieldtype: 'Data' },
-      // { label: 'No. of Employees', value: 'no_of_employees', fieldtype: 'Int' },
       {
         label: 'No. of Employees',
         value: 'no_of_employees',
@@ -136,7 +138,6 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
   const [industryOptions, setIndustryOptions] = useState<string[]>([]);
   const [territoryOptions, setTerritoryOptions] = useState<string[]>([]);
   const [addressOptions, setAddressOptions] = useState<string[]>([]);
-  const [loadingOptions, setLoadingOptions] = useState(false);
 
   useEffect(() => {
     fetchOrganizations();
@@ -294,8 +295,6 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
         return;
       }
 
-      //const apiUrl = `https://api.erpnext.ai/api/method/crm.api.doc.get_data`;
-
       const requestBody = {
         doctype: "CRM Organization",
         filters: {
@@ -328,21 +327,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
         }
       };
 
-      // const response = await fetch(apiUrl, {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //     'Authorization': AUTH_TOKEN
-      //   },
-      //   body: JSON.stringify(requestBody)
-      // });
-
-      // if (!response.ok) {
-      //   throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      // }
-
-      // const result = await response.json();
-       const result = await api.post('/api/method/crm.api.doc.get_data', requestBody);
+      const result = await api.post('/api/method/crm.api.doc.get_data', requestBody);
 
       // Transform API data to match our Organization interface
       const transformedOrganizations: Organization[] = result.message.data.map((apiOrg: any) => ({
@@ -754,6 +739,45 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
 
   const getVisibleColumns = () => columns.filter(col => col.visible);
 
+  // Mobile dropdown functions
+  const toggleOrganizationDetails = (orgId: string) => {
+    setExpandedOrganizations(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(orgId)) {
+        newSet.delete(orgId);
+      } else {
+        newSet.add(orgId);
+      }
+      return newSet;
+    });
+  };
+
+  const isOrganizationExpanded = (orgId: string) => {
+    return expandedOrganizations.has(orgId);
+  };
+
+  const handleRowSelection = (orgId: string) => {
+    setSelectedIds(prevSelected =>
+      prevSelected.includes(orgId)
+        ? prevSelected.filter(id => id !== orgId)
+        : [...prevSelected, orgId]
+    );
+  };
+
+  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.checked) {
+      const currentPageIds = paginatedData.map(d => d.id);
+      setSelectedIds(currentPageIds);
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleSelectAllFiltered = () => {
+    const allFilteredIds = getFilteredAndSortedData().map(d => d.id);
+    setSelectedIds(allFilteredIds);
+  };
+
   const SortButton = ({ field, children }: { field: keyof Organization; children: React.ReactNode }) => (
     <button
       onClick={() => handleSort(field)}
@@ -843,7 +867,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
   return (
     <div className="">
       {/* Action Bar */}
-      <div className="flex flex-col mb-3  sm:flex-row gap-4 items-start sm:items-center justify-between">
+      <div className="flex flex-col mb-3 sm:flex-row gap-4 items-start sm:items-center justify-between">
         <div className="flex items-center space-x-2">
           <button
             onClick={handleRefresh}
@@ -893,7 +917,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
                     </button>
                     <button
                       onClick={() => setShowFilters(false)}
-                      className={theme === 'dark' ? 'text-white hover:text-white' : 'text-gray-500 hover:text-gray-600'}
+                      className={theme === 'dark' ? 'text-white hover:text-white' : 'text-white hover:text-gray-600'}
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -953,7 +977,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
                   <h3 className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Manage Columns</h3>
                   <button
                     onClick={() => setShowColumnSettings(false)}
-                    className={theme === 'dark' ? 'text-white hover:text-white' : 'text-gray-500 hover:text-gray-600'}
+                    className={theme === 'dark' ? 'text-white hover:text-white' : 'text-white hover:text-gray-600'}
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -979,7 +1003,6 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
 
         <div className="flex items-center space-x-2">
           <div className="flex items-center space-x-2">
-
             {getFilteredAndSortedData().length > 0 && (
               <div title="Export Excel">
                 <button
@@ -1009,7 +1032,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
               : 'border-gray-300'
               }`}
           >
-            <option value={10}>10 per page </option>
+            <option value={10}>10 per page</option>
             <option value={25}>25 per page</option>
             <option value={50}>50 per page</option>
             <option value={100}>100 per page</option>
@@ -1020,12 +1043,12 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
       {/* Floating delete button */}
       {selectedIds.length > 0 && (
         <div className="fixed bottom-20 left-1/2 -translate-x-1/2
-               bg-white dark:bg-gray-800 shadow-2xl rounded-lg
-               border dark:border-gray-700 p-2
-               flex items-center justify-between
-               w-[90%] max-w-md
-               z-50 transition-all duration-300 ease-out">
-          <span className="ml-4 font-semibold text-sm text-gray-800 dark:text-white">
+         bg-white dark:bg-gray-800 shadow-2xl rounded-lg
+         border dark:border-gray-700 p-2
+         flex items-center justify-between
+         w-[90%] max-w-md
+         z-50 transition-all duration-300 ease-out">
+          <span className="text-sm ml-4 text-gray-900 dark:text-white font-medium">
             {selectedIds.length} {selectedIds.length === 1 ? "Row" : "Rows"} selected
           </span>
 
@@ -1043,8 +1066,8 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
               {showMenu && (
                 <div className="absolute right-0 bottom-10 bg-white dark:bg-gray-700 dark:text-white shadow-lg rounded-md border dark:border-gray-600 py-1 w-40 z-50">
                   <button
-                    className="block w-full text-left px-4 py-2 hover:bg-gray-300"
-                    onClick={() => {
+                    className="block w-full text-left px-4 py-2 hover:bg-gray-300 dark:hover:bg-gray-600"
+                    onClick={async () => {
                       openBulkEditModal();
                       setShowMenu(false);
                     }}
@@ -1052,7 +1075,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
                     Edit
                   </button>
                   <button
-                    className="block w-full text-left px-4 py-2 hover:bg-gray-300"
+                    className="block w-full text-left px-4 py-2 hover:bg-gray-300 dark:hover:bg-gray-600"
                     onClick={() => {
                       setShowDeleteConfirm(true);
                       setShowMenu(false);
@@ -1064,67 +1087,49 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
               )}
             </div>
 
-            {/* Select all */}
             <button
-              onClick={() => {
-                const allIds = getFilteredAndSortedData().map((org) => org.id);
-                setSelectedIds(allIds);
-              }}
-              className="text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 font-medium hover:underline"
+              onClick={handleSelectAllFiltered}
+              className="text-sm font-medium text-gray-900 dark:text-white hover:underline"
             >
               Select all
             </button>
 
-            {/* Close */}
             <button
               onClick={() => setSelectedIds([])}
               className="text-gray-400 hover:text-black dark:hover:text-white"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="w-5 mt-1 h-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
+              <X className="w-5 h-5" />
             </button>
           </div>
         </div>
       )}
 
-      {/* Delete Confirmation Popup */}
+      {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className={`rounded-lg p-6 max-w-md w-full mx-4 ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}`}>
-            <h3 className={`text-lg font-semibold mb-4 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md mx-4 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
               Delete Confirmation
             </h3>
-            <p className={`mb-6 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
+            <p className="text-gray-600 dark:text-gray-300 mb-4">
               Are you sure you want to delete {selectedIds.length} item(s)? This action cannot be undone.
             </p>
+
             <div className="flex justify-end space-x-3">
               <button
                 onClick={() => setShowDeleteConfirm(false)}
-                className={`px-4 py-2 rounded-lg transition-colors ${theme === 'dark'
-                  ? 'bg-gray-700 text-white hover:bg-gray-600'
-                  : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
-                  }`}
+                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
               >
                 Cancel
               </button>
               <button
-                onClick={handleDeleteItems}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-                disabled={loading}
+                onClick={() => {
+                  handleDeleteItems();
+                  setShowDeleteConfirm(false);
+                }}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors"
               >
-                {loading ? 'Deleting...' : 'Delete'}
+                Delete
               </button>
             </div>
           </div>
@@ -1136,115 +1141,234 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
         ? 'bg-custom-gradient border-transparent !rounded-none'
         : 'bg-white border-gray-200'
         }`}>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className={`border-b ${theme === 'dark' ? 'bg-purplebg border-b-purplebg' : 'bg-gray-50 border-gray-200'
-              }`}>
-              <tr className="divide-x-[1px]">
-                <th className="px-6 py-3 text-left">
-                  <input
-                    type="checkbox"
-                    checked={paginatedData.length > 0 && paginatedData.every(org => selectedIds.includes(org.id))}
-                    onChange={e => {
-                      if (e.target.checked) {
-                        setSelectedIds([
-                          ...selectedIds,
-                          ...paginatedData
-                            .map(org => org.id)
-                            .filter(id => !selectedIds.includes(id))
-                        ]);
-                      } else {
-                        setSelectedIds(selectedIds.filter(id => !paginatedData.map(org => org.id).includes(id)));
-                      }
-                    }}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  />
-                </th>
-                {visibleColumns.map(column => (
-                  <th key={column.key} className={`px-6 py-3 text-left text-sm font-semibold uppercase tracking-wider ${theme === 'dark' ? 'text-white' : 'text-gray-500'
-                    }`}>
-                    {column.sortable ? (
-                      <SortButton field={column.key}>{column.label}</SortButton>
-                    ) : (
-                      column.label
-                    )}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className={`divide-y ${theme === 'dark' ? 'divide-white' : 'divide-gray-200'}`}>
-              {paginatedData.map((org) => (
-                <tr
-                  key={org.id}
-                  className={`transition-colors cursor-pointer ${theme === 'dark' ? 'hover:bg-purple-800/20' : 'hover:bg-gray-50'
-                    }`}
-                  onClick={() => onOrganizationClick && onOrganizationClick(org)}
-                >
-                  <td className="px-6 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+        <div className="w-full">
+          {/* ================= Desktop Table View ================= */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full">
+              <thead className={`border-b ${theme === 'dark' ? 'bg-purplebg border-transparent' : 'bg-gray-50 border-gray-200'
+                }`}>
+                <tr className="divide-x-[1px]">
+                  <th className="px-6 py-3 text-left">
                     <input
                       type="checkbox"
-                      checked={selectedIds.includes(org.id)}
-                      onChange={e => {
-                        e.stopPropagation();
-                        if (e.target.checked) {
-                          setSelectedIds([...selectedIds, org.id]);
-                        } else {
-                          setSelectedIds(selectedIds.filter(id => id !== org.id));
+                      checked={paginatedData.length > 0 && selectedIds.length === paginatedData.length}
+                      onChange={handleSelectAll}
+                      ref={(el) => {
+                        if (el) {
+                          el.indeterminate =
+                            selectedIds.length > 0 &&
+                            selectedIds.length < paginatedData.length;
                         }
                       }}
                       className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
-                  </td>
+                  </th>
                   {visibleColumns.map(column => (
-                    <td key={column.key} className="px-6 py-4 whitespace-nowrap">
-                      {column.key === 'name' && (
-                        <div className="flex items-center">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 ${theme === 'dark' ? 'bg-purplebg' : 'bg-blue-100'
-                            }`}>
-                            <Building2 className={`w-4 h-4 ${theme === 'dark' ? 'text-white' : 'text-blue-600'}`} />
-                          </div>
-                          <div className={`text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{org.name}</div>
-                        </div>
+                    <th key={column.key} className={`px-6 py-3 text-left text-sm font-semibold uppercase tracking-wider ${theme === 'dark' ? 'text-white' : 'text-gray-500'
+                      }`}>
+                      {column.sortable ? (
+                        <SortButton field={column.key}>{column.label}</SortButton>
+                      ) : (
+                        column.label
                       )}
-                      {column.key === 'website' && (
-                        <div className={`flex items-center text-sm hover:text-blue-800 ${theme === 'dark' ? 'text-purple-400 hover:text-purple-300' : 'text-blue-600'
-                          }`}>
-                          <Globe className="w-4 h-4 mr-2" />
-                          <a href={`https://${org.website}`} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
-                            {org.website}
-                          </a>
-                        </div>
-                      )}
-                      {column.key === 'industry' && (
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-800'
-                          }`}>
-                          {org.industry}
-                        </span>
-                      )}
-                      {column.key === 'annual_revenue' && (
-                        <div className={`flex items-center text-sm font-semibold ${theme === 'dark' ? 'text-green-400' : 'text-green-600'
-                          }`}>
-                          <IndianRupee className="w-4 h-4 mr-1" />
-                          {org.annual_revenue}
-                        </div>
-                      )}
-                      {column.key === 'no_of_employees' && (
-                        <div className={`flex items-center text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                          <Users className={`w-4 h-4 mr-2 ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`} />
-                          {org.no_of_employees}
-                        </div>
-                      )}
-                      {!['name', 'website', 'industry', 'annual_revenue', 'no_of_employees'].includes(column.key) && (
-                        <div className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                          {org[column.key] || 'N/A'}
-                        </div>
-                      )}
-                    </td>
+                    </th>
                   ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className={`divide-y ${theme === 'dark' ? 'divide-white' : 'divide-gray-200'}`}>
+                {paginatedData.map((org) => (
+                  <tr
+                    key={org.id}
+                    className={`transition-colors cursor-pointer ${theme === 'dark' ? 'hover:bg-purple-800/20' : 'hover:bg-gray-50'
+                      }`}
+                    onClick={() => onOrganizationClick && onOrganizationClick(org)}
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.includes(org.id)}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          handleRowSelection(org.id);
+                        }}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                    </td>
+                    {visibleColumns.map(column => (
+                      <td key={column.key} className="px-6 py-4 whitespace-nowrap">
+                        {column.key === 'name' && (
+                          <div className="flex items-center">
+                            <div className={`w-6 h-6 rounded-full flex items-center justify-center mr-3 ${theme === 'dark' ? 'bg-purplebg' : 'bg-gray-200'
+                              }`}>
+                              <span className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-700'
+                                }`}>
+                                {org.name.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                            <div className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{org.name}</div>
+                          </div>
+                        )}
+                        {column.key === 'website' && (
+                          <div className={`flex items-center text-sm hover:text-blue-800 ${theme === 'dark' ? 'text-purple-400 hover:text-purple-300' : 'text-blue-600'
+                            }`}>
+                            <Globe className="w-4 h-4 mr-2" />
+                            <a href={`https://${org.website}`} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
+                              {org.website}
+                            </a>
+                          </div>
+                        )}
+                        {column.key === 'industry' && (
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-800'
+                            }`}>
+                            {org.industry}
+                          </span>
+                        )}
+                        {column.key === 'annual_revenue' && (
+                          <div className={`flex items-center text-sm font-semibold ${theme === 'dark' ? 'text-green-400' : 'text-green-600'
+                            }`}>
+                            <IndianRupee className="w-4 h-4 mr-1" />
+                            {org.annual_revenue}
+                          </div>
+                        )}
+                        {column.key === 'no_of_employees' && (
+                          <div className={`flex items-center text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                            <Users className={`w-4 h-4 mr-2 ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`} />
+                            {org.no_of_employees}
+                          </div>
+                        )}
+                        {!['name', 'website', 'industry', 'annual_revenue', 'no_of_employees'].includes(column.key) && (
+                          <div className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                            {org[column.key] || 'N/A'}
+                          </div>
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* ================= Mobile Card View ================= */}
+          <div className="block md:hidden space-y-4">
+            {paginatedData.map((org) => (
+              <div
+                key={org.id}
+                className={`p-4 rounded-lg border ${theme === 'dark'
+                  ? 'bg-purplebg border-transparent'
+                  : 'bg-white border-gray-200'
+                  } shadow-sm`}
+              >
+                <div className="flex justify-between items-center">
+                  <div 
+                    className="flex items-center flex-1 cursor-pointer"
+                    onClick={() => onOrganizationClick && onOrganizationClick(org)}
+                  >
+                    <div
+                      className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 ${theme === 'dark' ? 'bg-purple-700' : 'bg-gray-200'
+                        }`}
+                    >
+                      <span
+                        className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-800'
+                          }`}
+                      >
+                        {org.name.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                    <h3
+                      className={`text-base font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                        }`}
+                    >
+                      {org.name}
+                    </h3>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.includes(org.id)}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        handleRowSelection(org.id);
+                      }}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    
+                    {/* Dropdown arrow */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleOrganizationDetails(org.id);
+                      }}
+                      className={`p-1 rounded transition-transform ${
+                        theme === 'dark' ? 'hover:bg-purple-700' : 'hover:bg-gray-100'
+                      }`}
+                    >
+                      <svg 
+                        className={`w-4 h-4 transform transition-transform ${
+                          isOrganizationExpanded(org.id) ? 'rotate-180' : ''
+                        } ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}
+                        fill="none" 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Collapsible details section */}
+                {isOrganizationExpanded(org.id) && (
+                  <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
+                    {visibleColumns.map((column) =>
+                      column.key !== 'name' ? (
+                        <div
+                          key={column.key}
+                          className="flex justify-between items-center py-2"
+                        >
+                          <span
+                            className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-500'
+                              }`}
+                          >
+                            {column.label}:
+                          </span>
+                          <span
+                            className={`text-sm font-semibold text-right ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                              }`}
+                          >
+                            {column.key === 'website' ? (
+                              <div className="flex items-center justify-end">
+                                <Globe className={`w-3 h-3 mr-1 ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`} />
+                                {org[column.key] || 'N/A'}
+                              </div>
+                            ) : column.key === 'industry' ? (
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs ${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-800'
+                                }`}>
+                                {org[column.key] || 'N/A'}
+                              </span>
+                            ) : column.key === 'annual_revenue' ? (
+                              <div className="flex items-center justify-end">
+                                <IndianRupee className={`w-3 h-3 mr-1 ${theme === 'dark' ? 'text-green-400' : 'text-green-600'}`} />
+                                {org[column.key] || 'N/A'}
+                              </div>
+                            ) : column.key === 'no_of_employees' ? (
+                              <div className="flex items-center justify-end">
+                                <Users className={`w-3 h-3 mr-1 ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`} />
+                                {org[column.key] || 'N/A'}
+                              </div>
+                            ) : (
+                              org[column.key] || 'N/A'
+                            )}
+                          </span>
+                        </div>
+                      ) : null
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
 
         {paginatedData.length === 0 && !loading && (
@@ -1322,6 +1446,8 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
           </div>
         </div>
       )}
+
+      {/* Bulk Edit Modal */}
       {bulkEdit.showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className={`rounded-lg p-6 max-w-md w-full mx-4 ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}`}>

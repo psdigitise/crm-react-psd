@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, MoreHorizontal, Edit, Trash2, Phone, Clock, X, Timer } from 'lucide-react';
+import { Menu, MoreHorizontal, Edit, Trash2, Phone, Clock, X, Timer, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Filter, Settings, RefreshCcw, Download } from 'lucide-react';
 import { SlCallIn, SlCallOut } from 'react-icons/sl';
 import { BsCheckCircle, BsThreeDots } from 'react-icons/bs';
 import { showToast } from '../utils/toast';
@@ -86,17 +86,24 @@ interface User {
   label: string;
 }
 
+interface ColumnConfig {
+  key: string;
+  label: string;
+  visible: boolean;
+  sortable: boolean;
+}
+
 const statusColors = {
-  'Ringing': 'bg-yellow-100 !text-yellow-500 dark:bg-yellow-900/30 dark:text-yellow-300',
-  'Answered': 'bg-green-100 !text-green-500 dark:bg-green-900/30 dark:text-green-300',
-  'Completed': 'bg-green-100 !text-green-500 dark:bg-green-900/30 dark:text-green-300',
-  'Busy': 'bg-red-100 !text-red-500 dark:bg-red-900/30 dark:text-red-300',
-  'No Answer': 'bg-gray-100 !text-gray-500 dark:bg-gray-900/30 dark:text-white',
-  'Failed': 'bg-red-100 !text-red-500 dark:bg-red-900/30 dark:text-red-300',
-  'Queued': 'bg-blue-100 !text-blue-500 dark:bg-blue-900/30 dark:text-blue-300',
-  'Initiated': 'bg-purple-100 !text-purple-500 dark:bg-purple-900/30 dark:text-purple-300',
-  'In Progress': 'bg-orange-100 !text-orange-500 dark:bg-orange-900/30 dark:text-orange-300',
-  'Canceled': 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-white'
+  'Ringing': '!text-yellow-500 dark:bg-yellow-900/30 dark:text-yellow-300',
+  'Answered': '!text-green-500 dark:bg-green-900/30 dark:text-green-300',
+  'Completed': '!text-green-500 dark:bg-green-900/30 dark:text-green-300',
+  'Busy': '!text-red-500 dark:bg-red-900/30 dark:text-red-300',
+  'No Answer': '!text-gray-500 dark:bg-gray-900/30 dark:text-white',
+  'Failed': '!text-red-500 dark:bg-red-900/30 dark:text-red-300',
+  'Queued': '!text-blue-500 dark:bg-blue-900/30 dark:text-blue-300',
+  'Initiated': '!text-purple-500 dark:bg-purple-900/30 dark:text-purple-300',
+  'In Progress': '!text-orange-500 dark:bg-orange-900/30 dark:text-orange-300',
+  'Canceled': 'text-gray-800 dark:bg-gray-900/30 dark:text-white'
 };
 
 const typeColors = {
@@ -105,6 +112,15 @@ const typeColors = {
   'Outgoing': 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
   'Missed': 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
 };
+
+const defaultColumns: ColumnConfig[] = [
+  { key: 'type', label: 'Type', visible: true, sortable: true },
+  { key: 'from', label: 'From', visible: true, sortable: true },
+  { key: 'to', label: 'To', visible: true, sortable: true },
+  { key: 'status', label: 'Status', visible: true, sortable: true },
+  { key: 'duration', label: 'Duration', visible: true, sortable: true },
+  { key: 'date', label: 'Date', visible: true, sortable: true },
+];
 
 // Edit Call Modal Component
 interface EditCallModalProps {
@@ -396,7 +412,6 @@ const fetchUsers = async (): Promise<User[]> => {
 
 export function CallLogsPage({ onCreateCallLog, leadName, refreshTrigger = 0, onMenuToggle, searchTerm }: CallLogsPageProps) {
   const { theme } = useTheme();
-  //const [searchTerm, setSearchTerm] = useState('');
   const [callLogs, setCallLogs] = useState<CallLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingCallLog, setEditingCallLog] = useState<CallLog | null>(null);
@@ -435,6 +450,17 @@ export function CallLogsPage({ onCreateCallLog, leadName, refreshTrigger = 0, on
   // Users state
   const [users, setUsers] = useState<User[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
+
+  // Column management
+  const [columns, setColumns] = useState<ColumnConfig[]>(defaultColumns);
+  const [showColumnSettings, setShowColumnSettings] = useState(false);
+
+  // Sorting state
+  const [sortField, setSortField] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
+  // Mobile dropdown state
+  const [expandedCallLogs, setExpandedCallLogs] = useState<Set<string>>(new Set());
 
   // Theme-based styling classes
   const textColor = theme === 'dark' ? 'text-white' : 'text-gray-900';
@@ -961,6 +987,57 @@ export function CallLogsPage({ onCreateCallLog, leadName, refreshTrigger = 0, on
     }
   };
 
+  // Sorting function
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  // Toggle column visibility
+  const toggleColumn = (columnKey: string) => {
+    setColumns(prev => prev.map(col =>
+      col.key === columnKey ? { ...col, visible: !col.visible } : col
+    ));
+  };
+
+  // Mobile dropdown functions
+  const toggleCallLogDetails = (callLogName: string) => {
+    setExpandedCallLogs(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(callLogName)) {
+        newSet.delete(callLogName);
+      } else {
+        newSet.add(callLogName);
+      }
+      return newSet;
+    });
+  };
+
+  const isCallLogExpanded = (callLogName: string) => {
+    return expandedCallLogs.has(callLogName);
+  };
+
+  const getVisibleColumns = () => columns.filter(col => col.visible);
+
+  const SortButton = ({ field, children }: { field: string; children: React.ReactNode }) => (
+    <button
+      onClick={() => handleSort(field)}
+      className={`flex items-center space-x-1 text-left font-medium hover:text-gray-700 ${theme === 'dark' ? 'text-white hover:text-white' : 'text-gray-900'
+        }`}
+    >
+      <span>{children}</span>
+      {sortField === field && (
+        sortDirection === 'asc'
+          ? <ChevronUp className="w-4 h-4" />
+          : <ChevronDown className="w-4 h-4" />
+      )}
+    </button>
+  );
+
   // If a deal is selected, show DealDetailView
   if (selectedDeal) {
     return (
@@ -1019,98 +1096,254 @@ export function CallLogsPage({ onCreateCallLog, leadName, refreshTrigger = 0, on
     );
   }
 
+  const visibleColumns = getVisibleColumns();
+
   return (
     <div className={`min-h-screen ${theme === 'dark'
       ? 'bg-gradient-to-br from-dark-primary via-dark-secondary to-dark-tertiary'
       : 'bg-gray-50'
       }`}>
-      {/* <div className="p-4 sm:p-6 lg:hidden">
-        <button
-          onClick={onMenuToggle}
-          className={`p-2 rounded-lg transition-colors ${theme === 'dark' ? 'hover:bg-purple-800/50' : 'hover:bg-gray-100'}`}
-        >
-          <Menu className={`w-6 h-6 ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`} />
-        </button>
-      </div>
-      <Header
-        title="Call Logs"
-        subtitle={leadName ? `For Lead: ${leadName}` : undefined}
-        onRefresh={fetchCallLogs}
-        onFilter={() => { }}
-        onSort={() => { }}
-        onColumns={() => { }}
-        onCreate={onCreateCallLog}
-        searchValue={searchTerm}
-        onSearchChange={setSearchTerm}
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-      /> */}
-
       <div className="p-4 sm:p-6">
-        {/* Call Logs Table */}
-        <div className={`rounded-lg shadow-sm border overflow-hidden ${theme === 'dark'
-          ? 'bg-custom-gradient border-transparent !rounded-none'
-          : 'bg-white border-gray-200'
-          }`}>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className={`border-b ${theme === 'dark' ? 'bg-purplebg border-transparent divide-x-2' : 'bg-gray-50 border-gray-200'
-                }`}>
-                <tr className="">
-                  <th className={`px-6 py-3 text-left text-sm font-semibold tracking-wider ${theme === 'dark' ? 'text-white' : 'text-gray-500'
-                    }`}>
-                    <input
-                      type="checkbox"
-                      checked={selectedCallLogs.length === filteredCallLogs.length && filteredCallLogs.length > 0}
-                      onChange={handleSelectAll}
-                      className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                    />
-                  </th>
-                  <th className={`px-6 py-3 text-left text-sm font-semibold tracking-wider ${theme === 'dark' ? 'text-white' : 'text-gray-500'
-                    }`}>
-                    Type
-                  </th>
-                  <th className={`px-6 py-3 text-left text-sm font-semibold tracking-wider ${theme === 'dark' ? 'text-white' : 'text-gray-500'
-                    }`}>
-                    From
-                  </th>
-                  <th className={`px-6 py-3 text-left text-sm font-semibold tracking-wider ${theme === 'dark' ? 'text-white' : 'text-gray-500'
-                    }`}>
-                    To
-                  </th>
-                  <th className={`px-6 py-3 text-left text-sm font-semibold tracking-wider ${theme === 'dark' ? 'text-white' : 'text-gray-500'
-                    }`}>
-                    Status
-                  </th>
-                  <th className={`px-6 py-3 text-left text-sm font-semibold tracking-wider ${theme === 'dark' ? 'text-white' : 'text-gray-500'
-                    }`}>
-                    Duration
-                  </th>
-                  <th className={`px-6 py-3 text-left text-sm font-semibold tracking-wider ${theme === 'dark' ? 'text-white' : 'text-gray-500'
-                    }`}>
-                    Date
-                  </th>
-                </tr>
-              </thead>
-              <tbody
-                className={`divide-y ${theme === 'dark' ? 'divide-white' : 'divide-gray-200'}`}
+        {/* Action Bar */}
+        <div className="flex flex-col mb-3 sm:flex-row gap-4 items-start sm:items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={fetchCallLogs}
+              className={`px-3 py-2 text-sm border rounded-lg transition-colors ${theme === 'dark'
+                ? 'border-purple-500/30 text-white hover:bg-purple-800/50'
+                : 'border-gray-300 hover:bg-gray-50'
+                }`}
+            >
+              <RefreshCcw className="w-4 h-4" />
+            </button>
+
+            <div className="relative">
+              <button
+                onClick={() => setShowColumnSettings(!showColumnSettings)}
+                className={`px-3 py-2 text-sm border rounded-lg transition-colors flex items-center space-x-1 ${theme === 'dark'
+                  ? 'border-purple-500/30 text-white hover:bg-purple-800/50'
+                  : 'border-gray-300 hover:bg-gray-50'
+                  }`}
               >
-                {filteredCallLogs.map((callLog) => (
-                  <tr
-                    key={callLog.name}
-                    className={`transition-colors cursor-pointer ${theme === 'dark' ? 'hover:bg-purple-800/20' : 'hover:bg-gray-50'
-                      }`}
-                    onClick={() => handleRowClick(callLog)} // open popup when row clicked
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                <Settings className="w-4 h-4" />
+                <span>Columns</span>
+              </button>
+
+              {showColumnSettings && (
+                <div className={`absolute top-full left-0 mt-2 w-64 rounded-lg shadow-lg z-10 p-4 ${theme === 'dark'
+                  ? 'bg-dark-accent border border-purple-500/30'
+                  : 'bg-white border border-gray-200'
+                  }`}>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Manage Columns</h3>
+                    <button
+                      onClick={() => setShowColumnSettings(false)}
+                      className={theme === 'dark' ? 'text-white hover:text-white' : 'text-white hover:text-gray-600'}
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <div className="space-y-2">
+                    {columns.map(column => (
+                      <label key={column.key} className="flex items-center space-x-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={column.visible}
+                          onChange={() => toggleColumn(column.key)}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className={theme === 'dark' ? 'text-white' : 'text-gray-700'}>{column.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <span className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>
+              Showing {filteredCallLogs.length} results
+            </span>
+          </div>
+        </div>
+
+        {/* Call Logs Table */}
+        <div
+          className={`rounded-lg shadow-sm border overflow-hidden ${theme === 'dark'
+            ? 'bg-custom-gradient border-transparent !rounded-none'
+            : 'bg-white border-gray-200'
+            }`}
+        >
+          <div className="w-full">
+            {/* ================= Desktop Table View ================= */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full">
+                <thead
+                  className={`border-b ${theme === 'dark'
+                    ? 'bg-purplebg border-transparent'
+                    : 'bg-gray-50 border-gray-200'
+                    }`}
+                >
+                  <tr className="divide-x-[1px]">
+                    <th className="px-6 py-3 text-left">
                       <input
                         type="checkbox"
-                        checked={selectedCallLogs.includes(callLog.name)}
-                        onChange={() => toggleCallLogSelection(callLog.name)}
-                        className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                        checked={
+                          filteredCallLogs.length > 0 &&
+                          selectedCallLogs.length === filteredCallLogs.length
+                        }
+                        onChange={handleSelectAll}
+                        ref={(el) => {
+                          if (el) {
+                            el.indeterminate =
+                              selectedCallLogs.length > 0 &&
+                              selectedCallLogs.length < filteredCallLogs.length;
+                          }
+                        }}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                       />
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    </th>
+                    {visibleColumns.map((column) => (
+                      <th
+                        key={column.key}
+                        className={`px-6 py-3 text-left text-sm font-semibold uppercase tracking-wider ${theme === 'dark' ? 'text-white' : 'text-gray-500'
+                          }`}
+                      >
+                        {column.sortable ? (
+                          <SortButton field={column.key}>{column.label}</SortButton>
+                        ) : (
+                          column.label
+                        )}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+
+                <tbody
+                  className={`divide-y ${theme === 'dark' ? 'divide-white' : 'divide-gray-200'
+                    }`}
+                >
+                  {filteredCallLogs.map((callLog) => (
+                    <tr
+                      key={callLog.name}
+                      className={`transition-colors cursor-pointer ${theme === 'dark'
+                        ? 'hover:bg-purple-800/20'
+                        : 'hover:bg-gray-50'
+                        }`}
+                      onClick={() => handleRowClick(callLog)}
+                    >
+                      <td
+                        className="px-6 py-4 whitespace-nowrap"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedCallLogs.includes(callLog.name)}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            toggleCallLogSelection(callLog.name);
+                          }}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                      </td>
+
+                      {/* === Render all columns === */}
+                      {visibleColumns.map((column) => (
+                        <td key={column.key} className="px-6 py-4 whitespace-nowrap">
+                          {column.key === 'type' ? (
+                            <div className="flex items-center">
+                              <Phone
+                                className={`w-4 h-4 mr-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}
+                              />
+                              <span
+                                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${typeColors[callLog.type]
+                                  }`}
+                              >
+                                {callLog.type}
+                              </span>
+                            </div>
+                          ) : column.key === 'from' ? (
+                            <span
+                              className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                                }`}
+                            >
+                              {callLog.from || 'N/A'}
+                            </span>
+                          ) : column.key === 'to' ? (
+                            <span
+                              className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                                }`}
+                            >
+                              {callLog.to || 'N/A'}
+                            </span>
+                          ) : column.key === 'status' ? (
+                            <span
+                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs text-white font-semibold ${statusColors[callLog.status]
+                                }`}
+                            >
+                              {callLog.status}
+                            </span>
+                          ) : column.key === 'duration' ? (
+                            callLog.duration ? (
+                              <div className="flex items-center space-x-1">
+                                <Clock className="w-4 h-4 text-black dark:text-white" />
+                                <span className={`text-sm font-semibold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
+                                  {formatDuration(callLog.duration)}
+                                </span>
+                              </div>
+                            ) : (
+                              <div className="w-4 h-4 text-black dark:text-white" >
+                                N/A
+                              </div>
+                            )
+                          ) : column.key === 'date' ? (
+                            <span
+                              className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                                }`}
+                            >
+                              {callLog.creation
+                                ? new Date(callLog.creation).toLocaleString("en-GB", {
+                                  day: "2-digit",
+                                  month: "short",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                  hour12: true,
+                                })
+                                : "N/A"}
+                            </span>
+                          ) : (
+                            <span
+                              className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-900'
+                                }`}
+                            >
+                              {callLog[column.key as keyof CallLog] || 'N/A'}
+                            </span>
+                          )}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* ================= Mobile Card View ================= */}
+            <div className="block md:hidden space-y-4">
+              {filteredCallLogs.map((callLog) => (
+                <div
+                  key={callLog.name}
+                  className={`p-4 rounded-lg border ${theme === 'dark'
+                    ? 'bg-purplebg border-transparent'
+                    : 'bg-white border-gray-200'
+                    } shadow-sm`}
+                >
+                  <div className="flex justify-between items-center">
+                    <div
+                      className="flex items-center flex-1 cursor-pointer"
+                      onClick={() => handleRowClick(callLog)}
+                    >
                       <div className="flex items-center">
                         <Phone
                           className={`w-4 h-4 mr-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}
@@ -1122,73 +1355,116 @@ export function CallLogsPage({ onCreateCallLog, leadName, refreshTrigger = 0, on
                           {callLog.type}
                         </span>
                       </div>
-                    </td>
-                    <td
-                      className={`px-6 py-4 whitespace-nowrap text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'
-                        }`}
-                    >
-                      {callLog.from || 'N/A'}
-                    </td>
-                    <td
-                      className={`px-6 py-4 whitespace-nowrap text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'
-                        }`}
-                    >
-                      {callLog.to || 'N/A'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs text-white font-semibold ${statusColors[callLog.status]
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={selectedCallLogs.includes(callLog.name)}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          toggleCallLogSelection(callLog.name);
+                        }}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+
+                      {/* Dropdown arrow */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleCallLogDetails(callLog.name);
+                        }}
+                        className={`p-1 rounded transition-transform ${theme === 'dark' ? 'hover:bg-purple-700' : 'hover:bg-gray-100'
                           }`}
                       >
-                        {callLog.status}
-                      </span>
-                    </td>
-                    <td
-                      className={`px-6 py-4 whitespace-nowrap text-sm font-semibold ${theme === "dark" ? "text-white" : "text-gray-900"
-                        }`}
-                    >
-                      {callLog.duration ? (
-                        <div className="flex items-center space-x-1">
-                          <Clock className="w-4 h-4 text-black dark:text-white " />
-                          <span>{formatDuration(callLog.duration)}</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center space-x-1">
-                          N/A
-                        </div>
+                        <svg
+                          className={`w-4 h-4 transform transition-transform ${isCallLogExpanded(callLog.name) ? 'rotate-180' : ''
+                            } ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
 
+                  {/* Collapsible details section */}
+                  {isCallLogExpanded(callLog.name) && (
+                    <div className="mt-3 pt-3 border-t border-gray-200">
+                      {/* Render all other columns as label:value */}
+                      {visibleColumns.map((column) =>
+                        column.key !== 'type' ? (
+                          <div
+                            key={column.key}
+                            className="flex justify-between text-sm py-1"
+                          >
+                            <span
+                              className={`font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-500'
+                                }`}
+                            >
+                              {column.label}:
+                            </span>
+                            <span
+                              className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                                }`}
+                            >
+                              {column.key === 'status' ? (
+                                <span
+                                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs text-white font-semibold ${statusColors[callLog.status]
+                                    }`}
+                                >
+                                  {callLog.status}
+                                </span>
+                              ) : column.key === 'duration' ? (
+                                callLog.duration ? (
+                                  <div className="flex items-center space-x-1">
+                                    <Clock className="w-3 h-3 text-black dark:text-white" />
+                                    <span>{formatDuration(callLog.duration)}</span>
+                                  </div>
+                                ) : (
+                                  'N/A'
+                                )
+                              ) : column.key === 'date' ? (
+                                callLog.creation
+                                  ? new Date(callLog.creation).toLocaleString("en-GB", {
+                                    day: "2-digit",
+                                    month: "short",
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                    hour12: true,
+                                  })
+                                  : "N/A"
+                              ) : (
+                                callLog[column.key as keyof CallLog] || 'N/A'
+                              )}
+                            </span>
+                          </div>
+                        ) : null
                       )}
-                    </td>
-                    <td
-                      className={`px-6 py-4 whitespace-nowrap text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'
-                        }`}
-                    >
-                      {callLog.creation
-                        ? new Date(callLog.creation).toLocaleString("en-GB", {
-                          day: "2-digit",
-                          month: "short",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                          hour12: true,
-                        })
-                        : "N/A"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-
-            </table>
-          </div>
-        </div>
-
-        {filteredCallLogs.length === 0 && (
-          <div className="text-center py-12">
-            <div className={theme === 'dark' ? 'text-white' : 'text-gray-500'}>No call logs found</div>
-            <div className={`text-sm mt-1 ${theme === 'dark' ? 'text-gray-500' : 'text-white'}`}>
-              {leadName ? 'No call logs for this lead' : 'Create your first call log to get started'}
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
-        )}
+
+          {/* ================= No Results ================= */}
+          {filteredCallLogs.length === 0 && !loading && (
+            <div className="text-center py-12">
+              <div className={theme === 'dark' ? 'text-white' : 'text-gray-500'}>
+                No call logs found
+              </div>
+              <div
+                className={`text-sm mt-1 ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'
+                  }`}
+              >
+                {leadName ? 'No call logs for this lead' : 'Create your first call log to get started'}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Selection Popup - Appears at bottom when call logs are selected */}

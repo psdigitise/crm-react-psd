@@ -57,22 +57,19 @@ interface DealsTableProps {
   onDealClick?: (deal: Deal) => void;
 }
 
-// const statusColors = {
-//   Qualification: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
-//   // Demo/Making: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
-//   // Proposal/Quotation: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
-//   Negotiation: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-// };
-// const statusColors = {
-//   Qualification: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
-//   Demo: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
-//   Proposal: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
-//   Won: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
-//   Lost: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-800',
-//   ReadytoClose: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-500',
-//   Junk: 'bg-transparent text-black dark:bg-transparent dark:text-black',
-//   Negotiation: 'bg-violet-500 text-violet-800 dark:bg-violet-900/30 dark:text-violet-500',
-// };
+interface ColumnConfig {
+  key: keyof Deal;
+  label: string;
+  visible: boolean;
+  sortable: boolean;
+}
+
+interface FilterState {
+  status: string[];
+  territory: string[];
+  industry: string[];
+  assignedTo: string[];
+}
 
 const statusColors = {
   Qualification: ' !text-yellow-500 dark:bg-yellow-900/30 dark:text-yellow-300',
@@ -85,20 +82,19 @@ const statusColors = {
   Junk: 'bg-transparent text-black dark:bg-transparent dark:text-black',
 };
 
-const defaultColumns = [
-  { key: 'organization', label: 'Organization', visible: true },
-  // { key: 'first_name', label: 'First Name', visible: true },
-  { key: 'name', label: 'Name', visible: false },
-  { key: 'annualRevenue', label: 'Annual Revenue', visible: true },
-  { key: 'status', label: 'Status', visible: true },
-  { key: 'email', label: 'Email', visible: true },
-  { key: 'mobileNo', label: 'Mobile No', visible: true },
-  { key: 'assignedTo', label: 'Assigned To', visible: true },
-  { key: 'lastModified', label: 'Last Modified', visible: true },
-  { key: 'closeDate', label: 'Close Date', visible: true },
-  { key: 'territory', label: 'Territory', visible: false },
-  { key: 'industry', label: 'Industry', visible: false },
-  { key: 'website', label: 'Website', visible: false }
+const defaultColumns: ColumnConfig[] = [
+  { key: 'organization', label: 'Organization', visible: true, sortable: true },
+  { key: 'name', label: 'Name', visible: false, sortable: true },
+  { key: 'annualRevenue', label: 'Annual Revenue', visible: true, sortable: true },
+  { key: 'status', label: 'Status', visible: true, sortable: true },
+  { key: 'email', label: 'Email', visible: true, sortable: true },
+  { key: 'mobileNo', label: 'Mobile No', visible: true, sortable: true },
+  { key: 'assignedTo', label: 'Assigned To', visible: true, sortable: true },
+  { key: 'lastModified', label: 'Last Modified', visible: true, sortable: true },
+  { key: 'closeDate', label: 'Close Date', visible: true, sortable: true },
+  { key: 'territory', label: 'Territory', visible: false, sortable: true },
+  { key: 'industry', label: 'Industry', visible: false, sortable: true },
+  { key: 'website', label: 'Website', visible: false, sortable: true }
 ];
 
 export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
@@ -106,13 +102,13 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
   const [deals, setDeals] = useState<Deal[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [sortField, setSortField] = useState<string | null>(null);
+  const [sortField, setSortField] = useState<keyof Deal | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [showFilters, setShowFilters] = useState(false);
   const [showColumnSettings, setShowColumnSettings] = useState(false);
-  const [columns, setColumns] = useState(defaultColumns);
+  const [columns, setColumns] = useState<ColumnConfig[]>(defaultColumns);
   const [selectedDeals, setSelectedDeals] = useState<string[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [isEditPopupOpen, setIsEditPopupOpen] = useState(false);
@@ -126,12 +122,14 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
   const [isExportPopupOpen, setIsExportPopupOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [exportFormat, setExportFormat] = useState<'Excel' | 'CSV'>('Excel');
+  const [expandedDeals, setExpandedDeals] = useState<Set<string>>(new Set());
+
   // Filter state
-  const [filters, setFilters] = useState({
-    status: [] as string[],
-    territory: [] as string[],
-    industry: [] as string[],
-    assignedTo: [] as string[]
+  const [filters, setFilters] = useState<FilterState>({
+    status: [],
+    territory: [],
+    industry: [],
+    assignedTo: []
   });
 
   // Filter options
@@ -182,23 +180,8 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
         "page_length_count": 20
       };
 
-      // const response = await fetch("https://api.erpnext.ai/api/method/crm.api.doc.get_data", {
-      //   method: "POST",
-      //   headers: {
-      //     "Content-Type": "application/json",
-      //     "Authorization": AUTH_TOKEN
-      //   },
-      //   body: JSON.stringify(requestData)
-      // });
-
-      // if (!response.ok) {
-      //   throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      // }
-
-      //const result = await response.json();
       const result = await api.post('/api/method/crm.api.doc.get_data', requestData);
 
-      // Transform the API response to match your Deal interface
       const transformedDeals: Deal[] = result.message.data.map((apiDeal: any) => ({
         id: apiDeal.name || Math.random().toString(),
         organization: apiDeal.organization || 'N/A',
@@ -224,7 +207,6 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
         status: Array.from(new Set(transformedDeals.map(d => d.status).filter(Boolean))),
         territory: Array.from(new Set(transformedDeals.map(d => d.territory).filter(Boolean))),
         industry: Array.from(new Set(transformedDeals.map(d => d.industry).filter(Boolean))),
-        // assignedTo: Array.from(new Set(transformedDeals.map(d => d.assignedTo).filter(Boolean)))
         assignedTo: Array.from(new Set(
           transformedDeals.flatMap(d => {
             let names: string[] = [];
@@ -241,7 +223,6 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
             return names.map(name => name.trim()).filter(name => name !== "");
           })
         ))
-
       });
 
     } catch (error) {
@@ -288,7 +269,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
   // Handler for the "Select All" checkbox
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
-      const currentPageIds = paginatedData.map(d => d.id);
+      const currentPageIds = getPaginatedData().map(d => d.id);
       setSelectedDeals(currentPageIds);
     } else {
       setSelectedDeals([]);
@@ -297,36 +278,52 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
 
   // Handler to select all filtered results
   const handleSelectAllFiltered = () => {
-    const allFilteredIds = sortedData.map(d => d.id);
+    const allFilteredIds = getFilteredAndSortedData().map(d => d.id);
     setSelectedDeals(allFilteredIds);
   };
 
   // Filtering, sorting, and pagination
-  const filteredData = deals.filter(item => {
-    const matchesSearch = searchTerm === '' || Object.values(item).some(value =>
-      value?.toString().toLowerCase().includes(searchTerm.toLowerCase())
-    );
-    const matchesStatus = filters.status.length === 0 || filters.status.includes(item.status);
-    const matchesTerritory = filters.territory.length === 0 || (item.territory && filters.territory.includes(item.territory));
-    const matchesIndustry = filters.industry.length === 0 || (item.industry && filters.industry.includes(item.industry));
-    const matchesAssignedTo = filters.assignedTo.length === 0 || filters.assignedTo.includes(item.assignedTo);
-    return matchesSearch && matchesStatus && matchesTerritory && matchesIndustry && matchesAssignedTo;
-  });
+  const getFilteredAndSortedData = () => {
+    let filteredData = deals.filter(item => {
+      const matchesSearch = searchTerm === '' || Object.values(item).some(value =>
+        value?.toString().toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      const matchesStatus = filters.status.length === 0 || filters.status.includes(item.status);
+      const matchesTerritory = filters.territory.length === 0 || (item.territory && filters.territory.includes(item.territory));
+      const matchesIndustry = filters.industry.length === 0 || (item.industry && filters.industry.includes(item.industry));
+      const matchesAssignedTo = filters.assignedTo.length === 0 || filters.assignedTo.includes(item.assignedTo);
+      return matchesSearch && matchesStatus && matchesTerritory && matchesIndustry && matchesAssignedTo;
+    });
 
-  const sortedData = [...filteredData].sort((a, b) => {
-    if (!sortField) return 0;
-    const aValue = a[sortField as keyof Deal]?.toString() || '';
-    const bValue = b[sortField as keyof Deal]?.toString() || '';
-    if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
-    if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
-    return 0;
-  });
+    if (sortField) {
+      filteredData.sort((a, b) => {
+        const aValue = a[sortField]?.toString() || '';
+        const bValue = b[sortField]?.toString() || '';
+        if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+        if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
 
-  const totalPages = Math.ceil(sortedData.length / itemsPerPage);
-  const paginatedData = sortedData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+    return filteredData;
+  };
+
+  const getPaginatedData = () => {
+    const filteredData = getFilteredAndSortedData();
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredData.slice(startIndex, endIndex);
+  };
+
+  const getTotalPages = () => {
+    const filteredData = getFilteredAndSortedData();
+    return Math.ceil(filteredData.length / itemsPerPage);
+  };
+
+  const getVisibleColumns = () => columns.filter(col => col.visible);
 
   // Column management
-  const toggleColumn = (columnKey: string) => {
+  const toggleColumn = (columnKey: keyof Deal) => {
     setColumns(prev =>
       prev.map(col =>
         col.key === columnKey ? { ...col, visible: !col.visible } : col
@@ -335,7 +332,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
   };
 
   // Sorting
-  const handleSort = (field: string) => {
+  const handleSort = (field: keyof Deal) => {
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
@@ -391,8 +388,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
       };
 
       // Get visible columns and map to database fields
-      const visibleFields = columns
-        .filter(col => col.visible)
+      const visibleFields = getVisibleColumns()
         .map(col => columnToFieldMap[col.key] || col.key)
         .filter((field, index, self) => self.indexOf(field) === index)
         .map(field => `\`tabCRM Deal\`.\`${field}\``);
@@ -646,6 +642,39 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
     }
   };
 
+  // Mobile dropdown functions
+  const toggleDealDetails = (dealId: string) => {
+    setExpandedDeals(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(dealId)) {
+        newSet.delete(dealId);
+      } else {
+        newSet.add(dealId);
+      }
+      return newSet;
+    });
+  };
+
+  const isDealExpanded = (dealId: string) => {
+    return expandedDeals.has(dealId);
+  };
+
+  // Sort Button Component
+  const SortButton = ({ field, children }: { field: keyof Deal; children: React.ReactNode }) => (
+    <button
+      onClick={() => handleSort(field)}
+      className={`flex items-center space-x-1 text-left font-medium hover:text-gray-700 ${theme === 'dark' ? 'text-white hover:text-white' : 'text-gray-900'
+        }`}
+    >
+      <span>{children}</span>
+      {sortField === field && (
+        sortDirection === 'asc'
+          ? <ChevronUp className="w-4 h-4" />
+          : <ChevronDown className="w-4 h-4" />
+      )}
+    </button>
+  );
+
   // Render cell function with updated assignedTo logic
   const renderCell = (deal: Deal, key: keyof Deal, theme: string) => {
     switch (key) {
@@ -689,8 +718,8 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
         );
       case 'status':
         return (
-          <span className={` inline-flex text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-            <FaCircleDot className={`mr-2 flex items-center text-white ${statusColors[deal.status as keyof typeof statusColors]}`} />
+          <span className={`inline-flex items-center text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+            <FaCircleDot className={`mr-2 ${statusColors[deal.status as keyof typeof statusColors]}`} />
             {deal.status}
           </span>
         );
@@ -706,20 +735,16 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
         let assignedNames: string[] = [];
 
         if (Array.isArray(deal.assignedTo)) {
-          // If it's already an array, use it directly
           assignedNames = deal.assignedTo.map(name => name.trim()).filter(name => name);
         } else if (typeof deal.assignedTo === 'string') {
-          // If it's a string, try to parse it as JSON array first
           try {
             const parsed = JSON.parse(deal.assignedTo);
             if (Array.isArray(parsed)) {
               assignedNames = parsed.map(name => name.trim()).filter(name => name);
             } else {
-              // If not a JSON array, split by commas
               assignedNames = deal.assignedTo.split(',').map(name => name.trim()).filter(name => name);
             }
           } catch {
-            // If JSON parsing fails, split by commas
             assignedNames = deal.assignedTo.split(',').map(name => name.trim()).filter(name => name);
           }
         }
@@ -731,7 +756,6 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
             </div>
           );
         } else if (assignedNames.length === 1) {
-          // Single name - show as before
           return (
             <div className="flex items-center">
               <div className={`w-6 h-6 rounded-full flex items-center justify-center mr-2 ${theme === 'dark' ? 'bg-purplebg' : 'bg-gray-200'
@@ -747,7 +771,6 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
             </div>
           );
         } else {
-          // Multiple names - show in the format from your image
           return (
             <div className="flex items-center">
               {assignedNames.slice(0, 3).map((name, index) => (
@@ -756,8 +779,8 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
                   className={`w-6 h-6 rounded-full flex items-center justify-center border-2 ${theme === "dark" ? "bg-purplebg border-purplebg" : "bg-gray-200 border-white"
                     }`}
                   style={{
-                    marginLeft: index === 0 ? "0px" : "-8px", // overlap effect
-                    zIndex: 10 - index, // keep order visible
+                    marginLeft: index === 0 ? "0px" : "-8px",
+                    zIndex: 10 - index,
                   }}
                 >
                   <span
@@ -768,7 +791,6 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
                   </span>
                 </div>
               ))}
-
               {assignedNames.length > 3 && (
                 <div
                   className={`w-6 h-6 rounded-full flex items-center justify-center border-2 ${theme === "dark" ? "bg-purplebg border-purplebg" : "bg-gray-200 border-white"
@@ -853,10 +875,15 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
     );
   }
 
+  const paginatedData = getPaginatedData();
+  const totalPages = getTotalPages();
+  const visibleColumns = getVisibleColumns();
+  const filteredDataLength = getFilteredAndSortedData().length;
+
   return (
-    <div className=" max-h-[100vh]  pr-3">
+    <div className="">
       {/* Action Bar */}
-      <div className="flex flex-col mb-3  sm:flex-row gap-4 items-start sm:items-center justify-between">
+      <div className="flex flex-col mb-3 sm:flex-row gap-4 items-start sm:items-center justify-between">
         <div className="flex items-center space-x-2">
           <button
             onClick={fetchDeals}
@@ -1010,7 +1037,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
         </div>
         <div className="flex items-center space-x-2">
           {/* Only show download button when there's data */}
-          {sortedData.length > 0 && (
+          {filteredDataLength > 0 && (
             <button
               onClick={() => setIsExportPopupOpen(true)}
               title="Export to Excel"
@@ -1023,7 +1050,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
             </button>
           )}
           <span className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>
-            Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, sortedData.length)} of {sortedData.length} results
+            Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredDataLength)} of {filteredDataLength} results
           </span>
           <select
             value={itemsPerPage}
@@ -1044,74 +1071,173 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
           </select>
         </div>
       </div>
+
       {/* Table */}
       <div className={`rounded-lg shadow-sm border overflow-hidden ${theme === 'dark'
         ? 'bg-custom-gradient border-transparent !rounded-none'
         : 'bg-white border-gray-200'
         }`}>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className={`border-b ${theme === 'dark' ? 'bg-purplebg border-transparent ' : 'bg-gray-50 border-gray-200'
-              }`}>
-              <tr className="divide-x-[1px]">
-                <th className="p-3.5">
-                  <input
-                    type="checkbox"
-                    onChange={handleSelectAll}
-                    checked={paginatedData.length > 0 && selectedDeals.length === paginatedData.length}
-                    // ref={el => {
-                    //   if (el) {
-                    //     el.indeterminate = selectedDeals.length > 0 && selectedDeals.length < paginatedData.length;
-                    //   }
-                    // }}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  />
-                </th>
-                {columns.filter(col => col.visible).map(column => (
-                  <th key={column.key} className={`p-3.5 text-left text-sm font-semibold uppercase tracking-wider ${theme === 'dark' ? 'text-white' : 'text-gray-500'
-                    }`}>
-                    <button
-                      onClick={() => handleSort(column.key)}
-                      className="flex items-center space-x-1 text-left font-medium hover:text-gray-700"
-                    >
-                      <span>{column.label}</span>
-                      {sortField === column.key && (
-                        sortDirection === 'asc'
-                          ? <ChevronUp className="w-4 h-4" />
-                          : <ChevronDown className="w-4 h-4" />
-                      )}
-                    </button>
+        <div className="w-full">
+          {/* ================= Desktop Table View ================= */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full">
+              <thead className={`border-b ${theme === 'dark' ? 'bg-purplebg border-transparent ' : 'bg-gray-50 border-gray-200'
+                }`}>
+                <tr className="divide-x-[1px]">
+                  <th className="px-6 py-3 text-left">
+                    <input
+                      type="checkbox"
+                      onChange={handleSelectAll}
+                      checked={paginatedData.length > 0 && selectedDeals.length === paginatedData.length}
+                      // ref={el => {
+                      //   if (el) {
+                      //     el.indeterminate = selectedDeals.length > 0 && selectedDeals.length < paginatedData.length;
+                      //   }
+                      // }}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
                   </th>
+                  {visibleColumns.map(column => (
+                    <th key={column.key} className={`px-6 py-3 text-left text-sm font-semibold uppercase tracking-wider ${theme === 'dark' ? 'text-white' : 'text-gray-500'
+                      }`}>
+                      {column.sortable ? (
+                        <SortButton field={column.key}>{column.label}</SortButton>
+                      ) : (
+                        column.label
+                      )}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className={`divide-y ${theme === 'dark' ? 'divide-white' : 'divide-gray-200'}`}>
+                {paginatedData.map((deal) => (
+                  <tr
+                    key={deal.id}
+                    className={`transition-colors cursor-pointer ${theme === 'dark' ? 'hover:bg-purple-800/20' : 'hover:bg-gray-50'
+                      }`}
+                    onClick={() => onDealClick?.(deal)}
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={selectedDeals.includes(deal.id)}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          handleRowSelection(deal.id);
+                        }}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                    </td>
+                    {visibleColumns.map(column => (
+                      <td key={column.key} className="px-6 py-4 whitespace-nowrap">
+                        {renderCell(deal, column.key, theme)}
+                      </td>
+                    ))}
+                  </tr>
                 ))}
-              </tr>
-            </thead>
-            <tbody className={`divide-y ${theme === 'dark' ? 'divide-white' : 'divide-gray-200'}`}>
-              {paginatedData.map((deal) => (
-                <tr
-                  key={deal.id}
-                  className={`transition-colors cursor-pointer ${theme === 'dark' ? 'hover:bg-purple-800/20' : 'hover:bg-gray-50'
-                    }`}
-                  onClick={() => onDealClick?.(deal)}
-                >
-                  <td className="px-6 py-4 whitespace-nowrap flex justify-center">
+              </tbody>
+            </table>
+          </div>
+
+          {/* ================= Mobile Card View ================= */}
+          <div className="block md:hidden space-y-4">
+            {paginatedData.map((deal) => (
+              <div
+                key={deal.id}
+                className={`p-4 rounded-lg border ${theme === 'dark'
+                  ? 'bg-purplebg border-transparent'
+                  : 'bg-white border-gray-200'
+                  } shadow-sm`}
+              >
+                <div className="flex justify-between items-center">
+                  <div
+                    className="flex items-center flex-1 cursor-pointer"
+                    onClick={() => onDealClick?.(deal)}
+                  >
+                    <div
+                      className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 ${theme === 'dark' ? 'bg-purple-700' : 'bg-gray-200'
+                        }`}
+                    >
+                      <span
+                        className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-800'
+                          }`}
+                      >
+                        {deal.name.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                    <h3
+                      className={`text-base font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                        }`}
+                    >
+                      {deal.name}
+                    </h3>
+                  </div>
+
+                  <div className="flex items-center gap-2">
                     <input
                       type="checkbox"
                       checked={selectedDeals.includes(deal.id)}
-                      onChange={() => handleRowSelection(deal.id)}
-                      onClick={(e) => e.stopPropagation()}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        handleRowSelection(deal.id);
+                      }}
                       className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
-                  </td>
-                  {columns.filter(col => col.visible).map(column => (
-                    <td key={column.key} className="px-6 py-4 whitespace-nowrap">
-                      {renderCell(deal, column.key as keyof Deal, theme)}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+
+                    {/* Dropdown arrow */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleDealDetails(deal.id);
+                      }}
+                      className={`p-1 rounded transition-transform ${theme === 'dark' ? 'hover:bg-purple-700' : 'hover:bg-gray-100'
+                        }`}
+                    >
+                      <svg
+                        className={`w-4 h-4 transform transition-transform ${isDealExpanded(deal.id) ? 'rotate-180' : ''
+                          } ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Collapsible details section */}
+                {isDealExpanded(deal.id) && (
+                  <div className="mt-3 pt-3 border-t border-gray-200">
+                    {/* Render all other columns as label:value */}
+                    {visibleColumns.map((column) =>
+                      column.key !== 'name' ? (
+                        <div
+                          key={column.key}
+                          className="flex justify-between text-sm py-1"
+                        >
+                          <span
+                            className={`font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-500'
+                              }`}
+                          >
+                            {column.label}:
+                          </span>
+                          <span
+                            className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                              }`}
+                          >
+                            {deal[column.key] || 'N/A'}
+                          </span>
+                        </div>
+                      ) : null
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
+
         {paginatedData.length === 0 && !loading && (
           <div className="text-center py-12">
             <div className={theme === 'dark' ? 'text-white' : 'text-gray-500'}>No results found</div>
@@ -1121,6 +1247,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
           </div>
         )}
       </div>
+
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -1210,20 +1337,6 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
             {/* Dropdown menu */}
             {showDropdown && (
               <div className="absolute right-0 bottom-10 bg-white dark:bg-gray-700 shadow-lg rounded-md border dark:border-gray-600 py-1 w-40 z-50">
-                {/* <button
-                  onClick={() => {
-                    // Remove the single selection restriction
-                    setIsEditPopupOpen(true);
-                    setShowDropdown(false);
-                  }}
-                  className={`block w-full text-left px-4 py-2 text-sm ${selectedDeals.length === 0
-                    ? 'text-gray-400 cursor-not-allowed'
-                    : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600'
-                    }`}
-                  disabled={selectedDeals.length === 0}
-                >
-                  Edit
-                </button> */}
                 <button
                   onClick={() => {
                     setIsDeletePopupOpen(true);
@@ -1311,7 +1424,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
         isOpen={isExportPopupOpen}
         onClose={() => setIsExportPopupOpen(false)}
         onConfirm={handleExport}
-        recordCount={sortedData.length}
+        recordCount={filteredDataLength}
         selectedCount={selectedDeals.length}
         theme={theme}
         isLoading={isExporting}

@@ -59,6 +59,13 @@ interface FieldOption {
   fieldtype: string;
 }
 
+const statusColors = {
+  Open: 'text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
+  Closed: 'text-green-800 dark:bg-green-900/30 dark:text-green-300',
+  Replied: 'text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
+  'Not Replied': 'text-gray-500 dark:bg-gray-900/30 dark:text-gray-500',
+};
+
 const defaultColumns: ColumnConfig[] = [
   { key: 'name', label: 'Name', visible: true, sortable: true },
   { key: 'email', label: 'Email', visible: true, sortable: true },
@@ -107,6 +114,9 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
   const [fieldValue, setFieldValue] = useState<string>('');
   const [updating, setUpdating] = useState(false);
 
+  // Mobile dropdown state
+  const [expandedContacts, setExpandedContacts] = useState<Set<string>>(new Set());
+
   const userSession = getUserSession();
   const Company = userSession?.company;
 
@@ -141,7 +151,7 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
         clearInterval(intervalRef.current);
       }
     };
-  }, []); // Empty dependency array
+  }, []);
 
   useEffect(() => {
     // Reset to first page when search term changes
@@ -162,8 +172,6 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
         setLoading(false);
         return;
       }
-
-     const apiUrl = 'https://api.erpnext.ai/api/method/crm.api.doc.get_data';
 
       const requestBody = {
         doctype: "Contact",
@@ -193,20 +201,7 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
         }
       };
 
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
-        },
-        body: JSON.stringify(requestBody)
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const result = await response.json();
+      const result = await api.post('/api/method/crm.api.doc.get_data', requestBody);
 
       // Transform the API response data
       const transformedContacts: Contact[] = result.message.data.map((apiContact: any) => ({
@@ -284,7 +279,6 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
     }
   };
 
-  // Update the fetchFieldOptions function to also fetch addresses
   const fetchFieldOptions = async () => {
     try {
       const session = getUserSession();
@@ -317,8 +311,6 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
       }));
 
       setFieldOptions(options);
-
-      // Also fetch addresses when opening bulk edit
       await fetchAddresses();
     } catch (error) {
       console.error('Error fetching field options:', error);
@@ -326,7 +318,6 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
     }
   };
 
-  // Soft refresh function - fetches data without showing loading state
   const softRefreshContacts = async () => {
     try {
       const session = getUserSession();
@@ -334,8 +325,6 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
       if (!session) {
         return;
       }
-
-      //const apiUrl = 'https://api.erpnext.ai/api/method/crm.api.doc.get_data';
 
       const requestBody = {
         doctype: "Contact",
@@ -365,24 +354,8 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
         }
       };
 
-      // const response = await fetch(apiUrl, {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //     'Authorization': AUTH_TOKEN
-      //   },
-      //   body: JSON.stringify(requestBody)
-      // });
+      const result = await api.post('/api/method/crm.api.doc.get_data', requestBody);
 
-      // if (!response.ok) {
-      //   console.error('Soft refresh failed:', response.status, response.statusText);
-      //   return;
-      // }
-
-      // const result = await response.json();
-       const result = await api.post('/api/method/crm.api.doc.get_data', requestBody);
-
-      // Transform the API response data
       const transformedContacts: Contact[] = result.message.data.map((apiContact: any) => ({
         id: apiContact.name || Math.random().toString(),
         name: apiContact.full_name || apiContact.first_name || 'Unknown',
@@ -395,7 +368,6 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
         position: apiContact.designation || 'N/A',
         lastContact: formatDate(apiContact.modified),
         assignedTo: apiContact.owner || 'N/A',
-        // Keep original API fields
         middle_name: apiContact.middle_name,
         last_name: apiContact.last_name,
         user: apiContact.user,
@@ -410,11 +382,9 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
         owner: apiContact.owner
       }));
 
-      // Update contacts silently
       setContacts(transformedContacts);
     } catch (error) {
       console.error('Soft refresh error:', error);
-      // Silently fail - don't show error toast for soft refresh failures
     }
   };
 
@@ -457,7 +427,7 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
         ? prev[filterType].filter(item => item !== value)
         : [...prev[filterType], value]
     }));
-    setCurrentPage(1); // Reset to first page when filters change
+    setCurrentPage(1);
   };
 
   const clearFilters = () => {
@@ -469,11 +439,6 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
     setCurrentPage(1);
   };
 
-
-
-
-
-  // Handle bulk update
   const handleBulkUpdate = async () => {
     if (!selectedField || !fieldValue || selectedIds.length === 0) {
       showToast('Please select a field and enter a value', { type: 'error' });
@@ -510,12 +475,10 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
       const result = await response.json();
 
       if (!response.ok) {
-        // Try to get error message from response
         const errorMsg = result.message || result.exc || `HTTP ${response.status}: ${response.statusText}`;
         throw new Error(errorMsg);
       }
 
-      // Handle different success response formats
       if (response.status === 200 &&
         (result.message === "success" ||
           (Array.isArray(result.message) && result.message.length === 0) ||
@@ -524,9 +487,8 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
         setShowBulkEdit(false);
         setSelectedField('');
         setFieldValue('');
-        fetchContacts(); // Refresh the data
+        fetchContacts();
       } else {
-        // Log the actual response for debugging
         console.log('API Response:', result);
         throw new Error('Update failed with unknown response format');
       }
@@ -545,15 +507,13 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
   };
 
   const handleDeleteSelected = async () => {
-    // if (!window.confirm(`Delete ${selectedIds.length} selected contact(s)?`)) return;
-
     setLoading(true);
     setError(null);
 
     try {
       const apiUrl = `https://api.erpnext.ai/api/method/frappe.desk.reportview.delete_items`;
       const payload = {
-        items: JSON.stringify(selectedIds), // Stringify all selected IDs
+        items: JSON.stringify(selectedIds),
         doctype: "Contact"
       };
 
@@ -570,8 +530,8 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
         throw new Error(`Failed to delete contacts: ${response.statusText}`);
       }
 
-      setSelectedIds([]); // Clear selection
-      fetchContacts(); // Refresh data
+      setSelectedIds([]);
+      fetchContacts();
       showToast('Contacts deleted successfully', { type: 'success' });
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Failed to delete contacts');
@@ -583,27 +543,22 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
 
   const getFilteredAndSortedData = () => {
     let filteredData = contacts.filter(item => {
-      // Search filter
       const matchesSearch = searchTerm === '' || Object.values(item).some(value =>
         value?.toString().toLowerCase().includes(searchTerm.toLowerCase())
       );
 
-      // Status filter
       const matchesStatus = filters.status.length === 0 ||
         (item.status && filters.status.includes(item.status));
 
-      // Company filter
       const matchesCompany = filters.company_name.length === 0 ||
         (item.company_name && filters.company_name.includes(item.company_name));
 
-      // Owner filter
       const matchesOwner = filters.owner.length === 0 ||
         (item.assignedTo && filters.owner.includes(item.assignedTo));
 
       return matchesSearch && matchesStatus && matchesCompany && matchesOwner;
     });
 
-    // Sort data
     if (sortField) {
       filteredData.sort((a, b) => {
         const aValue = a[sortField] ?? '';
@@ -631,6 +586,45 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
   };
 
   const getVisibleColumns = () => columns.filter(col => col.visible);
+
+  // Mobile dropdown functions
+  const toggleContactDetails = (contactId: string) => {
+    setExpandedContacts(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(contactId)) {
+        newSet.delete(contactId);
+      } else {
+        newSet.add(contactId);
+      }
+      return newSet;
+    });
+  };
+
+  const isContactExpanded = (contactId: string) => {
+    return expandedContacts.has(contactId);
+  };
+
+  const handleRowSelection = (contactId: string) => {
+    setSelectedIds(prevSelected =>
+      prevSelected.includes(contactId)
+        ? prevSelected.filter(id => id !== contactId)
+        : [...prevSelected, contactId]
+    );
+  };
+
+  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.checked) {
+      const currentPageIds = paginatedData.map(d => d.id);
+      setSelectedIds(currentPageIds);
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleSelectAllFiltered = () => {
+    const allFilteredIds = getFilteredAndSortedData().map(d => d.id);
+    setSelectedIds(allFilteredIds);
+  };
 
   const SortButton = ({ field, children }: { field: keyof Contact; children: React.ReactNode }) => (
     <button
@@ -721,7 +715,7 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
   return (
     <div className="">
       {/* Action Bar */}
-      <div className="flex flex-col mb-3  sm:flex-row gap-4 items-start sm:items-center justify-between">
+      <div className="flex flex-col mb-3 sm:flex-row gap-4 items-start sm:items-center justify-between">
         <div className="flex items-center space-x-2">
           <button
             onClick={handleRefresh}
@@ -857,7 +851,6 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
 
         <div className="flex items-center space-x-2">
           <div className="flex items-center space-x-2">
-            {/* Export Excel Button */}
             {getFilteredAndSortedData().length > 0 && (
               <div title="Export Excel">
                 <button
@@ -894,6 +887,7 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
           </select>
         </div>
       </div>
+
       {/* Floating delete button */}
       {selectedIds.length > 0 && (
         <div className="fixed bottom-20 left-1/2 -translate-x-1/2
@@ -942,42 +936,23 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
               )}
             </div>
 
-
-
-            {/* Select all */}
             <button
-              onClick={() => {
-                const allIds = getFilteredAndSortedData().map((org) => org.id);
-                setSelectedIds(allIds);
-              }}
+              onClick={handleSelectAllFiltered}
               className="text-sm font-medium text-gray-900 dark:text-white hover:underline"
             >
               Select all
             </button>
 
-            {/* Close */}
             <button
               onClick={() => setSelectedIds([])}
               className="text-gray-400 hover:text-black dark:hover:text-white"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="w-5 mt-1 h-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
+              <X className="w-5 h-5" />
             </button>
           </div>
         </div>
       )}
+
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -988,8 +963,6 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
             <p className="text-gray-600 dark:text-gray-300 mb-4">
               Are you sure you want to delete {selectedIds.length} item(s)? This action cannot be undone.
             </p>
-
-            {/* <div className="h-px bg-gray-200 dark:bg-gray-700 my-4"></div> */}
 
             <div className="flex justify-end space-x-3">
               <button
@@ -1012,126 +985,226 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
         </div>
       )}
 
-
       {/* Table */}
       <div className={`rounded-lg shadow-sm border overflow-hidden ${theme === 'dark'
         ? 'bg-custom-gradient border-transparent !rounded-none'
         : 'bg-white border-gray-200'
         }`}>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className={`border-b ${theme === 'dark' ? 'bg-purplebg border-b-purplebg' : 'bg-gray-50 border-gray-200'
-              }`}>
-              <tr className="divide-x-[1px]">
-                <th className="px-6 py-3 text-left">
-                  <input
-                    type="checkbox"
-                    checked={paginatedData.length > 0 && paginatedData.every(contact => selectedIds.includes(contact.id))}
-                    onChange={e => {
-                      if (e.target.checked) {
-                        setSelectedIds([
-                          ...selectedIds,
-                          ...paginatedData
-                            .map(contact => contact.id)
-                            .filter(id => !selectedIds.includes(id))
-                        ]);
-                      } else {
-                        setSelectedIds(selectedIds.filter(id => !paginatedData.map(contact => contact.id).includes(id)));
-                      }
-                    }}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  />
-                </th>
-                {visibleColumns.map(column => (
-                  <th key={column.key} className={`px-6 py-3 text-left text-sm font-semibold uppercase tracking-wider ${theme === 'dark' ? 'text-white' : 'text-gray-500'
-                    }`}>
-                    {column.sortable ? (
-                      <SortButton field={column.key}>{column.label}</SortButton>
-                    ) : (
-                      column.label
-                    )}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className={`divide-y ${theme === 'dark' ? 'divide-white' : 'divide-gray-200'}`}>
-              {paginatedData.map((contact) => (
-                <tr
-                  key={contact.id}
-                  className={`transition-colors cursor-pointer ${theme === 'dark' ? 'hover:bg-purple-800/20' : 'hover:bg-gray-50'
-                    }`}
-                  onClick={() => onContactClick && onContactClick(contact)}
-                >
-                  <td className="px-6 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+        <div className="w-full">
+          {/* ================= Desktop Table View ================= */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full">
+              <thead className={`border-b ${theme === 'dark' ? 'bg-purplebg border-b-purplebg' : 'bg-gray-50 border-gray-200'
+                }`}>
+                <tr className="divide-x-[1px]">
+                  <th className="px-6 py-3 text-left">
                     <input
                       type="checkbox"
-                      checked={selectedIds.includes(contact.id)}
-                      onChange={e => {
-                        e.stopPropagation();
-                        if (e.target.checked) {
-                          setSelectedIds([...selectedIds, contact.id]);
-                        } else {
-                          setSelectedIds(selectedIds.filter(id => id !== contact.id));
+                      checked={paginatedData.length > 0 && selectedIds.length === paginatedData.length}
+                      onChange={handleSelectAll}
+                      ref={(el) => {
+                        if (el) {
+                          el.indeterminate =
+                            selectedIds.length > 0 &&
+                            selectedIds.length < paginatedData.length;
                         }
                       }}
                       className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
-                  </td>
+                  </th>
                   {visibleColumns.map(column => (
-                    <td key={column.key} className="px-6 py-4 whitespace-nowrap">
-                      {column.key === 'name' && (
-                        <div className="flex items-center">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 ${theme === 'dark' ? 'bg-purplebg' : 'bg-gray-200'
-                            }`}>
-                            <span className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-700'
-                              }`}>
-                              {contact.name.charAt(0).toUpperCase()}
-                            </span>
-                          </div>
-                          <div className={`text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{contact.name}</div>
-                        </div>
+                    <th key={column.key} className={`px-6 py-3 text-left text-sm font-semibold uppercase tracking-wider ${theme === 'dark' ? 'text-white' : 'text-gray-500'
+                      }`}>
+                      {column.sortable ? (
+                        <SortButton field={column.key}>{column.label}</SortButton>
+                      ) : (
+                        column.label
                       )}
-                      {column.key === 'email' && (
-                        <div className={`flex items-center text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                          <Mail className={`w-4 h-4 mr-2 ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`} />
-                          {contact.email}
-                        </div>
-                      )}
-                      {column.key === 'phone' && (
-                        <div className={`flex items-center text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                          <Phone className={`w-4 h-4 mr-2 ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`} />
-                          {contact.phone}
-                        </div>
-                      )}
-                      {column.key === 'company_name' && (
-                        <div className="flex items-center">
-                          <Building2 className={`w-4 h-4 mr-2 ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`} />
-                          <div className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{contact.company_name}</div>
-                        </div>
-                      )}
-                      {column.key === 'status' && (
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-800'
-                          }`}>
-                          {contact.status}
-                        </span>
-                      )}
-                      {!['name', 'email', 'phone', 'company_name', 'status'].includes(column.key) && (
-                        <div className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                          {contact[column.key] || 'N/A'}
-                        </div>
-                      )}
-                    </td>
+                    </th>
                   ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className={`divide-y ${theme === 'dark' ? 'divide-white' : 'divide-gray-200'}`}>
+                {paginatedData.map((contact) => (
+                  <tr
+                    key={contact.id}
+                    className={`transition-colors cursor-pointer ${theme === 'dark' ? 'hover:bg-purple-800/20' : 'hover:bg-gray-50'
+                      }`}
+                    onClick={() => onContactClick && onContactClick(contact)}
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.includes(contact.id)}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          handleRowSelection(contact.id);
+                        }}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                    </td>
+                    {visibleColumns.map(column => (
+                      <td key={column.key} className="px-6 py-4 whitespace-nowrap">
+                        {column.key === 'name' && (
+                          <div className="flex items-center">
+                            <div className={`w-6 h-6 rounded-full flex items-center justify-center mr-3 ${theme === 'dark' ? 'bg-purplebg' : 'bg-gray-200'
+                              }`}>
+                              <span className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-700'
+                                }`}>
+                                {contact.name.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                            <div className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{contact.name}</div>
+                          </div>
+                        )}
+                        {column.key === 'email' && (
+                          <div className={`flex items-center text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                            <Mail className={`w-4 h-4 mr-2 ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`} />
+                            {contact.email}
+                          </div>
+                        )}
+                        {column.key === 'phone' && (
+                          <div className={`flex items-center text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                            <Phone className={`w-4 h-4 mr-2 ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`} />
+                            {contact.phone}
+                          </div>
+                        )}
+                        {column.key === 'company_name' && (
+                          <div className="flex items-center">
+                            <Building2 className={`w-4 h-4 mr-2 ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`} />
+                            <div className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{contact.company_name}</div>
+                          </div>
+                        )}
+                        {column.key === 'status' && (
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${statusColors[contact.status as keyof typeof statusColors] || 'bg-gray-100 text-gray-800'
+                            }`}>
+                            {contact.status}
+                          </span>
+                        )}
+                        {!['name', 'email', 'phone', 'company_name', 'status'].includes(column.key) && (
+                          <div className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                            {contact[column.key] || 'N/A'}
+                          </div>
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* ================= Mobile Card View ================= */}
+          <div className="block md:hidden space-y-4">
+            {paginatedData.map((contact) => (
+              <div
+                key={contact.id}
+                className={`p-4 rounded-lg border ${theme === 'dark'
+                  ? 'bg-purplebg border-transparent'
+                  : 'bg-white border-gray-200'
+                  } shadow-sm`}
+              >
+                <div className="flex justify-between items-center">
+                  <div 
+                    className="flex items-center flex-1 cursor-pointer"
+                    onClick={() => onContactClick && onContactClick(contact)}
+                  >
+                    <div
+                      className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 ${theme === 'dark' ? 'bg-purple-700' : 'bg-gray-200'
+                        }`}
+                    >
+                      <span
+                        className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-800'
+                          }`}
+                      >
+                        {contact.name.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                    <h3
+                      className={`text-base font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                        }`}
+                    >
+                      {contact.name}
+                    </h3>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.includes(contact.id)}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        handleRowSelection(contact.id);
+                      }}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    
+                    {/* Dropdown arrow */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleContactDetails(contact.id);
+                      }}
+                      className={`p-1 rounded transition-transform ${
+                        theme === 'dark' ? 'hover:bg-purple-700' : 'hover:bg-gray-100'
+                      }`}
+                    >
+                      <svg 
+                        className={`w-4 h-4 transform transition-transform ${
+                          isContactExpanded(contact.id) ? 'rotate-180' : ''
+                        } ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}
+                        fill="none" 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Collapsible details section */}
+                {isContactExpanded(contact.id) && (
+                  <div className="mt-3 pt-3 border-t border-gray-200">
+                    {visibleColumns.map((column) =>
+                      column.key !== 'name' ? (
+                        <div
+                          key={column.key}
+                          className="flex justify-between text-sm py-1"
+                        >
+                          <span
+                            className={`font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-500'
+                              }`}
+                          >
+                            {column.label}:
+                          </span>
+                          <span
+                            className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                              }`}
+                          >
+                            {column.key === 'status' ? (
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs ${statusColors[contact.status as keyof typeof statusColors] || 'bg-gray-100 text-gray-800'
+                                }`}>
+                                {contact[column.key] || 'N/A'}
+                              </span>
+                            ) : (
+                              contact[column.key] || 'N/A'
+                            )}
+                          </span>
+                        </div>
+                      ) : null
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
 
         {paginatedData.length === 0 && !loading && (
           <div className="text-center py-12">
             <div className={theme === 'dark' ? 'text-white' : 'text-gray-500'}>No results found</div>
-            <div className={`text-sm mt-1 ${theme === 'dark' ? 'text-gray-500' : 'text-white-400'}`}>
+            <div className={`text-sm mt-1 ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}`}>
               Please adjust your search criteria or filters
             </div>
           </div>
@@ -1203,6 +1276,8 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
           </div>
         </div>
       )}
+
+      {/* Bulk Edit Modal */}
       {showBulkEdit && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className={`rounded-lg p-6 max-w-md w-full mx-4 ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}`}>
@@ -1211,7 +1286,6 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
             </h3>
 
             <div className="space-y-4 mb-6">
-              {/* Field Dropdown */}
               <div>
                 <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>
                   Field
@@ -1331,7 +1405,6 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
                 </div>
               )}
 
-              {/* Selected Records Info */}
               <div className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
                 Update {selectedIds.length} Record{selectedIds.length !== 1 ? 's' : ''}
               </div>
@@ -1369,8 +1442,6 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
           </div>
         </div>
       )}
-
     </div>
   );
 }
-

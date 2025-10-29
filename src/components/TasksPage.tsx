@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { ChevronDown, ChevronUp, Loader2, ChevronLeft, ChevronRight, Filter, X, Settings, RefreshCcw } from 'lucide-react';
 import { showToast } from '../utils/toast';
 import { Menu } from 'lucide-react';
 import { Header } from './Header';
@@ -36,6 +37,13 @@ interface ContactOption {
   description: string;
 }
 
+interface ColumnConfig {
+  key: keyof Task;
+  label: string;
+  visible: boolean;
+  sortable: boolean;
+}
+
 const statusColors = {
   'Open': '!bg-white !text-black-800 dark:bg-white dark:text-black',
   'Backlog': '!bg-gray-100 !text-gray-800 dark:bg-gray-900/30 dark:text-white',
@@ -53,7 +61,16 @@ const priorityColors = {
 
 const API_BASE_URL = 'https://api.erpnext.ai';
 
-// Utility function to parse ERPNext error messages
+const defaultColumns: ColumnConfig[] = [
+  { key: 'title', label: 'Title', visible: true, sortable: true },
+  { key: 'assigned_to', label: 'Assigned To', visible: true, sortable: true },
+  { key: 'priority', label: 'Priority', visible: true, sortable: true },
+  { key: 'status', label: 'Status', visible: true, sortable: true },
+  { key: 'due_date', label: 'Due Date', visible: true, sortable: true },
+  { key: 'description', label: 'Description', visible: false, sortable: true },
+  { key: 'start_date', label: 'Start Date', visible: false, sortable: true },
+];
+
 // Utility function to parse ERPNext error messages
 const parseERPNextError = (error: any): string => {
   if (typeof error === 'string') {
@@ -61,7 +78,6 @@ const parseERPNextError = (error: any): string => {
       const errorData = JSON.parse(error);
       return parseERPNextError(errorData);
     } catch {
-      // If it's a string, try to extract the meaningful part
       const linkedMatch = error.match(/Cannot delete or cancel because (.*?) is linked with/);
       if (linkedMatch) {
         return `Cannot delete or cancel because ${linkedMatch[1]} is linked with CRM Notification`;
@@ -76,7 +92,6 @@ const parseERPNextError = (error: any): string => {
       if (Array.isArray(serverMessages) && serverMessages.length > 0) {
         const mainMessage = JSON.parse(serverMessages[0]);
         if (mainMessage.message) {
-          // Extract only the essential part without HTML links
           const message = mainMessage.message;
           const simplifiedMessage = message.replace(/<a[^>]*>(.*?)<\/a>/g, '$1');
           const linkedMatch = simplifiedMessage.match(/Cannot delete or cancel because (.*?) is linked with CRM Notification/);
@@ -98,7 +113,6 @@ const parseERPNextError = (error: any): string => {
   }
 
   if (error?.message) {
-    // Clean up the message by removing HTML links
     const message = error.message;
     const simplifiedMessage = message.replace(/<a[^>]*>(.*?)<\/a>/g, '$1');
     const linkedMatch = simplifiedMessage.match(/Cannot delete or cancel because (.*?) is linked with CRM Notification/);
@@ -111,14 +125,12 @@ const parseERPNextError = (error: any): string => {
   return 'An unexpected error occurred';
 };
 
-export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0, onMenuToggle , searchTerm}: TasksPageProps) {
+export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0, onMenuToggle, searchTerm }: TasksPageProps) {
   const { theme } = useTheme();
-  //const [searchTerm, setSearchTerm] = useState('');
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
@@ -126,6 +138,15 @@ export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0, onMenuTo
   const [contactOptions, setContactOptions] = useState<ContactOption[]>([]);
   const [isLoadingContacts, setIsLoadingContacts] = useState(false);
   const [internalRefreshTrigger, setInternalRefreshTrigger] = useState(0);
+  
+  // New state for responsive features
+  const [sortField, setSortField] = useState<keyof Task | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [columns, setColumns] = useState<ColumnConfig[]>(defaultColumns);
+  const [showColumnSettings, setShowColumnSettings] = useState(false);
+  const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
 
   // Combine external and internal refresh triggers
   useEffect(() => {
@@ -204,7 +225,6 @@ export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0, onMenuTo
     }
   };
 
-  // Add this function to manually refresh tasks
   const refreshTasks = () => {
     console.log('Manual refresh triggered');
     setInternalRefreshTrigger(prev => prev + 1);
@@ -242,10 +262,9 @@ export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0, onMenuTo
       if (response.ok) {
         const result = await response.json();
         if (result.message && Array.isArray(result.message)) {
-          // Store both value and description for display
           const userOptions = result.message.map((item: any) => ({
-            value: item.value, // This will be passed to the API (email)
-            description: item.description || item.value // Full name for display
+            value: item.value,
+            description: item.description || item.value
           }));
           setContactOptions(userOptions);
         }
@@ -333,7 +352,6 @@ export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0, onMenuTo
         let errorMessage = 'Failed to delete task';
 
         try {
-          // Try to parse the error response
           const errorData = JSON.parse(errorText);
           errorMessage = parseERPNextError(errorData);
         } catch (parseError) {
@@ -343,42 +361,28 @@ export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0, onMenuTo
         throw new Error(errorMessage);
       }
 
-      const result = await response.json();
-
       showToast('Task deleted successfully', { type: 'success' });
       setShowDeleteModal(false);
       setTaskToDelete(null);
       refreshTasks();
     } catch (error) {
       console.error('Error deleting task:', error);
-
-      // Extract and display meaningful error message
       let errorMessage = 'Failed to delete task';
       if (error instanceof Error) {
         errorMessage = parseERPNextError(error);
       }
-
-      showToast(errorMessage, {
-        type: 'error',
-        position: 'top-right'  // 👈 add this line
-      });
+      showToast(errorMessage, { type: 'error', position: 'top-right' });
     }
   };
 
   const formatDateForInput = (dateString: string) => {
     if (!dateString) return '';
-
     try {
       const date = new Date(dateString);
-
-      if (isNaN(date.getTime())) {
-        return '';
-      }
-
+      if (isNaN(date.getTime())) return '';
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, '0');
       const day = String(date.getDate()).padStart(2, '0');
-
       return `${year}-${month}-${day}`;
     } catch (error) {
       console.error('Error formatting date for input:', error);
@@ -389,24 +393,81 @@ export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0, onMenuTo
 
   const formatDateForDisplay = (dateString: string) => {
     if (!dateString) return 'N/A';
-
     try {
       const datePart = dateString.split('T')[0];
       const [year, month, day] = datePart.split('-');
-
       if (!year || !month || !day) return 'Invalid Date';
-
       const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-
-      if (isNaN(date.getTime())) {
-        return 'Invalid Date';
-      }
-
+      if (isNaN(date.getTime())) return 'Invalid Date';
       return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
     } catch (error) {
       return 'Invalid Date';
     }
   };
+
+  // New responsive functions
+  const handleSort = (field: keyof Task) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  const toggleColumn = (columnKey: keyof Task) => {
+    setColumns(prev => prev.map(col =>
+      col.key === columnKey ? { ...col, visible: !col.visible } : col
+    ));
+  };
+
+  const getFilteredAndSortedData = () => {
+    let filteredData = tasks.filter(task =>
+      Object.values(task).some(value =>
+        value?.toString().toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    );
+
+    if (sortField) {
+      filteredData.sort((a, b) => {
+        const aValue = a[sortField] ?? '';
+        const bValue = b[sortField] ?? '';
+        if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+        if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
+    return filteredData;
+  };
+
+  const getPaginatedData = () => {
+    const filteredData = getFilteredAndSortedData();
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredData.slice(startIndex, endIndex);
+  };
+
+  const getTotalPages = () => {
+    const filteredData = getFilteredAndSortedData();
+    return Math.ceil(filteredData.length / itemsPerPage);
+  };
+
+  const getVisibleColumns = () => columns.filter(col => col.visible);
+
+  const toggleTaskDetails = (taskId: string) => {
+    setExpandedTasks(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(taskId)) {
+        newSet.delete(taskId);
+      } else {
+        newSet.add(taskId);
+      }
+      return newSet;
+    });
+  };
+
+  const isTaskExpanded = (taskId: string) => expandedTasks.has(taskId);
 
   const handleRowClick = (task: Task) => {
     handleEdit(task);
@@ -421,11 +482,17 @@ export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0, onMenuTo
   };
 
   const handleSelectAll = () => {
-    if (selectedTasks.length === filteredTasks.length) {
+    const paginatedData = getPaginatedData();
+    if (selectedTasks.length === paginatedData.length) {
       setSelectedTasks([]);
     } else {
-      setSelectedTasks(filteredTasks.map(task => task.name));
+      setSelectedTasks(paginatedData.map(task => task.name));
     }
+  };
+
+  const handleSelectAllFiltered = () => {
+    const allFilteredIds = getFilteredAndSortedData().map(task => task.name);
+    setSelectedTasks(allFilteredIds);
   };
 
   const handleBulkDelete = () => {
@@ -439,24 +506,36 @@ export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0, onMenuTo
       if (taskToDelete) {
         await handleDelete(taskToDelete);
       } else if (selectedTasks.length > 0) {
-        // For bulk delete, handle each task individually to show proper errors
         for (const taskName of selectedTasks) {
           await handleDelete(taskName);
         }
         setSelectedTasks([]);
       }
     } catch (error) {
-      // Error is already handled in handleDelete, so we just need to close the modal
       setShowDeleteModal(false);
       setTaskToDelete(null);
     }
   };
 
-  const filteredTasks = tasks.filter(task =>
-    Object.values(task).some(value =>
-      value?.toString().toLowerCase().includes(searchTerm.toLowerCase())
-    )
+  const SortButton = ({ field, children }: { field: keyof Task; children: React.ReactNode }) => (
+    <button
+      onClick={() => handleSort(field)}
+      className={`flex items-center space-x-1 text-left font-medium hover:text-gray-700 ${theme === 'dark' ? 'text-white hover:text-white' : 'text-gray-900'
+        }`}
+    >
+      <span>{children}</span>
+      {sortField === field && (
+        sortDirection === 'asc'
+          ? <ChevronUp className="w-4 h-4" />
+          : <ChevronDown className="w-4 h-4" />
+      )}
+    </button>
   );
+
+  const filteredDataLength = getFilteredAndSortedData().length;
+  const paginatedData = getPaginatedData();
+  const totalPages = getTotalPages();
+  const visibleColumns = getVisibleColumns();
 
   const EditModal = () => {
     const [editForm, setEditForm] = useState<Task | null>(null);
@@ -620,7 +699,7 @@ export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0, onMenuTo
                             backgroundColor: theme === 'dark' ? '#1f2937' : 'white',
                           }}
                         >
-                          {contact.description} {/* Display the full name */}
+                          {contact.description}
                         </option>
                       ))
                     )}
@@ -705,18 +784,20 @@ export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0, onMenuTo
           title="Tasks"
           subtitle={leadName ? `For Lead: ${leadName}` : undefined}
           onRefresh={refreshTasks}
+          
           onFilter={() => { }}
           onSort={() => { }}
           onColumns={() => { }}
           onCreate={onCreateTask}
           searchValue={searchTerm}
-          onSearchChange={() => {}}
-          viewMode={viewMode}
-          onViewModeChange={setViewMode}
+          onSearchChange={() => { }}
+          viewMode={'list'}
+          onViewModeChange={() => { }}
         />
         <div className="p-4 sm:p-6">
           <div className="flex items-center justify-center">
-            <div className={theme === 'dark' ? 'text-white' : 'text-gray-600'}>Loading tasks...</div>
+            <Loader2 className={`w-8 h-8 animate-spin ${theme === 'dark' ? 'text-purplebg' : 'text-blue-600'}`} />
+            <span className={`ml-2 ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>Loading tasks...</span>
           </div>
         </div>
       </div>
@@ -728,108 +809,412 @@ export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0, onMenuTo
       ? 'bg-gradient-to-br from-dark-primary via-dark-secondary to-dark-tertiary'
       : 'bg-gray-50'
       }`}>
-      
 
       <div className="p-4 sm:p-6">
-        <div className={`rounded-lg shadow-sm border overflow-hidden ${theme === 'dark'
-          ? 'bg-custom-gradient border-transparent !rounded-none'
-          : 'bg-white border-gray-200'
-          }`}>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className={`border-b ${theme === 'dark' ? 'bg-purplebg border-transparent divide-x-2' : 'bg-gray-50 border-gray-200'
-                }`}>
-                <tr className="divide-x-[1px]">
-                  <th className="px-4 py-3 text-left text-sm font-semibold tracking-wider">
-                    <input
-                      type="checkbox"
-                      checked={selectedTasks.length === filteredTasks.length && filteredTasks.length > 0}
-                      onChange={handleSelectAll}
-                      className={`rounded ${theme === 'dark' ? 'text-purple-500' : 'text-blue-600'}`}
-                    />
-                  </th>
-                  <th className={`px-6 py-3 text-left text-sm font-semibold tracking-wider ${theme === 'dark' ? 'text-white' : 'text-gray-500'
-                    }`}>
-                    Title
-                  </th>
-                  <th className={`px-6 py-3 text-left text-sm font-semibold tracking-wider ${theme === 'dark' ? 'text-white' : 'text-gray-500'
-                    }`}>
-                    Assigned To
-                  </th>
-                  <th className={`px-6 py-3 text-left text-sm font-semibold tracking-wider ${theme === 'dark' ? 'text-white' : 'text-gray-500'
-                    }`}>
-                    Priority
-                  </th>
-                  <th className={`px-6 py-3 text-left text-sm font-semibold tracking-wider ${theme === 'dark' ? 'text-white' : 'text-gray-500'
-                    }`}>
-                    Status
-                  </th>
-                  <th className={`px-6 py-3 text-left text-sm font-semibold tracking-wider ${theme === 'dark' ? 'text-white' : 'text-gray-500'
-                    }`}>
-                    Due Date
-                  </th>
-                </tr>
-              </thead>
-              <tbody className={`divide-y ${theme === 'dark' ? 'divide-white' : 'divide-gray-200'
-                }`}>
-                {filteredTasks.map((task) => (
-                  <tr
-                    key={task.name}
-                    className={`transition-colors cursor-pointer ${theme === 'dark' ? 'hover:bg-purple-800/20' : 'hover:bg-gray-50'
-                      }`}
-                    onClick={() => handleRowClick(task)}
-                  >
-                    <td className="px-4 py-4" onClick={(e) => e.stopPropagation()}>
-                      <input
-                        type="checkbox"
-                        checked={selectedTasks.includes(task.name)}
-                        onChange={() => handleCheckboxChange(task.name)}
-                        className={`rounded ${theme === 'dark' ? 'text-purple-500' : 'text-blue-600'}`}
-                      />
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className={`text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                        {task.title}
-                      </div>
-                      {task.description && (
-                        <div className={`text-sm truncate max-w-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
-                          {task.description}
-                        </div>
-                      )}
-                    </td>
-                    <td className={`px-6 py-4 whitespace-nowrap text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                      {task.assigned_to || 'Unassigned'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${priorityColors[task.priority]}`}>
-                        {task.priority}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${statusColors[task.status]}`}>
-                        {task.status}
-                      </span>
-                    </td>
-                    <td className={`px-6 py-4 whitespace-nowrap text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                      {task.due_date ? formatDateForDisplay(task.due_date) : 'N/A'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        {/* Action Bar */}
+        <div className="flex flex-col mb-3 sm:flex-row gap-4 items-start sm:items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={refreshTasks}
+              className={`px-3 py-2 text-sm border rounded-lg transition-colors ${theme === 'dark'
+                ? 'border-purple-500/30 text-white hover:bg-purple-800/50'
+                : 'border-gray-300 hover:bg-gray-50'
+                }`}
+            >
+              <RefreshCcw className="w-4 h-4" />
+            </button>
+
+            <div className="relative">
+              <button
+                onClick={() => setShowColumnSettings(!showColumnSettings)}
+                className={`px-3 py-2 text-sm border rounded-lg transition-colors flex items-center space-x-1 ${theme === 'dark'
+                  ? 'border-purple-500/30 text-white hover:bg-purple-800/50'
+                  : 'border-gray-300 hover:bg-gray-50'
+                  }`}
+              >
+                <Settings className="w-4 h-4" />
+                <span>Columns</span>
+              </button>
+
+              {showColumnSettings && (
+                <div className={`absolute top-full left-0 mt-2 w-64 rounded-lg shadow-lg z-10 p-4 ${theme === 'dark'
+                  ? 'bg-dark-accent border border-purple-500/30'
+                  : 'bg-white border border-gray-200'
+                  }`}>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Manage Columns</h3>
+                    <button
+                      onClick={() => setShowColumnSettings(false)}
+                      className={theme === 'dark' ? 'text-white hover:text-white' : 'text-white hover:text-gray-600'}
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <div className="space-y-2">
+                    {columns.map(column => (
+                      <label key={column.key} className="flex items-center space-x-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={column.visible}
+                          onChange={() => toggleColumn(column.key)}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className={theme === 'dark' ? 'text-white' : 'text-gray-700'}>{column.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <span className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>
+              Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredDataLength)} of {filteredDataLength} results
+            </span>
+            <select
+              value={itemsPerPage}
+              onChange={(e) => {
+                setItemsPerPage(Number(e.target.value));
+                setCurrentPage(1);
+              }}
+              className={`text-sm border rounded px-2 py-1 ${theme === 'dark'
+                ? 'bg-white-31 border-white text-white'
+                : 'border-gray-300'
+                }`}
+            >
+              <option value={10}>10 per page</option>
+              <option value={25}>25 per page</option>
+              <option value={50}>50 per page</option>
+              <option value={100}>100 per page</option>
+            </select>
           </div>
         </div>
 
-        {filteredTasks.length === 0 && (
-          <div className="text-center py-12">
-            <div className={theme === 'dark' ? 'text-white' : 'text-gray-500'}>No tasks found</div>
-            <div className={`text-sm mt-1 ${theme === 'dark' ? 'text-gray-500' : 'text-white'}`}>
-              {leadName ? 'No tasks for this lead' : 'Create your first task to get started'}
+        {/* Table */}
+        <div
+          className={`rounded-lg shadow-sm border overflow-hidden ${theme === 'dark'
+            ? 'bg-custom-gradient border-transparent !rounded-none'
+            : 'bg-white border-gray-200'
+            }`}
+        >
+          <div className="w-full">
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full">
+                <thead
+                  className={`border-b ${theme === 'dark'
+                    ? 'bg-purplebg border-transparent'
+                    : 'bg-gray-50 border-gray-200'
+                    }`}
+                >
+                  <tr className="divide-x-[1px]">
+                    <th className="px-6 py-3 text-left">
+                      <input
+                        type="checkbox"
+                        checked={
+                          paginatedData.length > 0 &&
+                          selectedTasks.length === paginatedData.length
+                        }
+                        onChange={handleSelectAll}
+                        ref={(el) => {
+                          if (el) {
+                            el.indeterminate =
+                              selectedTasks.length > 0 &&
+                              selectedTasks.length < paginatedData.length;
+                          }
+                        }}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                    </th>
+                    {visibleColumns.map((column) => (
+                      <th
+                        key={column.key}
+                        className={`px-6 py-3 text-left text-sm font-semibold uppercase tracking-wider ${theme === 'dark' ? 'text-white' : 'text-gray-500'
+                          }`}
+                      >
+                        {column.sortable ? (
+                          <SortButton field={column.key}>{column.label}</SortButton>
+                        ) : (
+                          column.label
+                        )}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+
+                <tbody
+                  className={`divide-y ${theme === 'dark' ? 'divide-white' : 'divide-gray-200'
+                    }`}
+                >
+                  {paginatedData.map((task) => (
+                    <tr
+                      key={task.name}
+                      className={`transition-colors cursor-pointer ${theme === 'dark'
+                        ? 'hover:bg-purple-800/20'
+                        : 'hover:bg-gray-50'
+                        }`}
+                      onClick={() => handleRowClick(task)}
+                    >
+                      <td
+                        className="px-6 py-4 whitespace-nowrap"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedTasks.includes(task.name)}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            handleCheckboxChange(task.name);
+                          }}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                      </td>
+
+                      {visibleColumns.map((column) => (
+                        <td key={column.key} className="px-6 py-4 whitespace-nowrap">
+                          {column.key === 'title' ? (
+                            <div className="flex items-center">
+                              <div
+                                className={`w-6 h-6 rounded-full flex items-center justify-center mr-3 ${theme === 'dark' ? 'bg-purplebg' : 'bg-gray-200'
+                                  }`}
+                              >
+                                <span
+                                  className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-700'
+                                    }`}
+                                >
+                                  {task.title?.charAt(0).toUpperCase()}
+                                </span>
+                              </div>
+                              <div>
+                                <div
+                                  className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                                    }`}
+                                >
+                                  {task.title}
+                                </div>
+                                {task.description && (
+                                  <div className={`text-sm truncate max-w-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
+                                    {task.description}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ) : column.key === 'status' ? (
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${statusColors[task.status]}`}>
+                              {task.status}
+                            </span>
+                          ) : column.key === 'priority' ? (
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${priorityColors[task.priority]}`}>
+                              {task.priority}
+                            </span>
+                          ) : column.key === 'due_date' ? (
+                            <span className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                              {task.due_date ? formatDateForDisplay(task.due_date) : 'N/A'}
+                            </span>
+                          ) : (
+                            <span
+                              className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-900'
+                                }`}
+                            >
+                              {task[column.key] || 'N/A'}
+                            </span>
+                          )}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Card View */}
+            <div className="block md:hidden space-y-4">
+              {paginatedData.map((task) => (
+                <div
+                  key={task.name}
+                  className={`p-4 rounded-lg border ${theme === 'dark'
+                    ? 'bg-purplebg border-transparent'
+                    : 'bg-white border-gray-200'
+                    } shadow-sm`}
+                >
+                  <div className="flex justify-between items-center">
+                    <div
+                      className="flex items-center flex-1 cursor-pointer"
+                      onClick={() => handleRowClick(task)}
+                    >
+                      <div
+                        className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 ${theme === 'dark' ? 'bg-purple-700' : 'bg-gray-200'
+                          }`}
+                      >
+                        <span
+                          className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-800'
+                            }`}
+                        >
+                          {task.title?.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                      <h3
+                        className={`text-base font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                          }`}
+                      >
+                        {task.title}
+                      </h3>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={selectedTasks.includes(task.name)}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          handleCheckboxChange(task.name);
+                        }}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleTaskDetails(task.name);
+                        }}
+                        className={`p-1 rounded transition-transform ${theme === 'dark' ? 'hover:bg-purple-700' : 'hover:bg-gray-100'
+                          }`}
+                      >
+                        <svg
+                          className={`w-4 h-4 transform transition-transform ${isTaskExpanded(task.name) ? 'rotate-180' : ''
+                            } ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Collapsible details section */}
+                  {isTaskExpanded(task.name) && (
+                    <div className="mt-3 pt-3 border-t border-gray-200">
+                      {visibleColumns.map((column) =>
+                        column.key !== 'title' ? (
+                          <div
+                            key={column.key}
+                            className="flex justify-between text-sm py-1"
+                          >
+                            <span
+                              className={`font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-500'
+                                }`}
+                            >
+                              {column.label}:
+                            </span>
+                            <span
+                              className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                                }`}
+                            >
+                              {column.key === 'status' ? (
+                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${statusColors[task.status]}`}>
+                                  {task.status}
+                                </span>
+                              ) : column.key === 'priority' ? (
+                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${priorityColors[task.priority]}`}>
+                                  {task.priority}
+                                </span>
+                              ) : column.key === 'due_date' ? (
+                                task.due_date ? formatDateForDisplay(task.due_date) : 'N/A'
+                              ) : (
+                                task[column.key] || 'N/A'
+                              )}
+                            </span>
+                          </div>
+                        ) : null
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {paginatedData.length === 0 && !loading && (
+            <div className="text-center py-12">
+              <div className={theme === 'dark' ? 'text-white' : 'text-gray-500'}>No tasks found</div>
+              <div className={`text-sm mt-1 ${theme === 'dark' ? 'text-gray-500' : 'text-white'}`}>
+                {leadName ? 'No tasks for this lead' : 'Create your first task to get started'}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-4">
+            <div className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>
+              Page {currentPage} of {totalPages}
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                disabled={currentPage === 1}
+                className={`p-2 border rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${theme === 'dark'
+                  ? 'border-purple-500/30 text-white hover:bg-purple-800/50'
+                  : 'border-gray-300 hover:bg-gray-50'
+                  }`}
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+
+              <div className="flex items-center space-x-1">
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
+
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => setCurrentPage(pageNum)}
+                      className={`px-3 py-1 text-sm border rounded transition-colors ${currentPage === pageNum
+                        ? theme === 'dark'
+                          ? 'border-purple-500 bg-purplebg/30 text-purple-300'
+                          : 'border-blue-500 bg-blue-50 text-blue-700'
+                        : theme === 'dark'
+                          ? 'border-purple-500/30 text-white hover:bg-purple-800/50'
+                          : 'border-gray-300 hover:bg-gray-50'
+                        }`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                disabled={currentPage === totalPages}
+                className={`p-2 border rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${theme === 'dark'
+                  ? 'border-purple-500/30 text-white hover:bg-purple-800/50'
+                  : 'border-gray-300 hover:bg-gray-50'
+                  }`}
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
             </div>
           </div>
         )}
       </div>
 
+      {/* Selection Action Bar */}
       {selectedTasks.length > 0 && (
         <div className="fixed bottom-20 left-1/2 -translate-x-1/2
          bg-white dark:bg-gray-800 shadow-2xl rounded-lg
@@ -866,7 +1251,7 @@ export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0, onMenuTo
             </div>
 
             <button
-              onClick={handleSelectAll}
+              onClick={handleSelectAllFiltered}
               className="text-sm font-medium text-gray-800 dark:text-white hover:underline"
             >
               Select all
