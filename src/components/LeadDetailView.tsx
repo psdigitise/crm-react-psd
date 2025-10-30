@@ -3744,7 +3744,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
 
                         return (
                           <div key={emailData.id} className="flex items-start w-full">
-                            <div className={`w-8 h-8 flex items-center justify-center rounded-full ${theme === 'dark' ? 'bg-blue-600' : 'bg-blue-100'} text-sm font-semibold text-white`}>
+                            <div className={`w-8 h-8 flex flex-shrink-0 items-center justify-center rounded-full ${theme === 'dark' ? 'bg-blue-600' : 'bg-blue-100'} text-sm font-semibold text-white`}>
                               {emailData.user?.charAt(0).toUpperCase() || "E"}
                             </div>
                             <div className={`flex-1 border ${borderColor} rounded-lg p-4 hover:shadow-md transition-shadow ml-3`}>
@@ -3938,7 +3938,12 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
             {/* Sticky Composer */}
             <div
               ref={composerRef}
-              className={`${cardBgColor} border-t ${borderColor} w-[-webkit-fill-available] pt-4 absolute bottom-0  overflow-hidden`}
+              // className={`${cardBgColor} border-t ${borderColor} w-[-webkit-fill-available] pt-4 absolute bottom-0  overflow-hidden`}
+              className={`
+                ${cardBgColor} border-t ${borderColor} overflow-hidden z-50
+                fixed bottom-0 left-0 w-full
+                sm:absolute sm:w-[-webkit-fill-available] sm:pt-4 sm:left-auto
+              `}
             >
               {!showEmailModal && (
                 <div className={` border-t flex gap-4 ${borderColor} ${theme === 'dark' ? 'bg-dark-secondary' : 'bg-white'} p-4 z-50 shadow-lg`}>
@@ -4303,7 +4308,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
                         </div>
 
                         {/* All three in one line */}
-                        <div className="flex items-start justify-start mt-2 gap-4">
+                        <div className="flex flex-wrap items-start justify-start mt-2 gap-4">
                           <p className={`text-sm ${textSecondaryColor} flex items-center`}>
                             <IoIosCalendar className="mr-1" />
                             {formatDateRelative(call.creation)}
@@ -4326,19 +4331,17 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
                         </div>
 
                         {/* Circle floated to the right, vertically centered */}
-                        <div className="absolute right-4 top-1/2 -translate-y-1/2 flex -space-x-4">
+                       <div className="absolute right-4 top-4 flex -space-x-3 sm:top-1/2 sm:-translate-y-1/2 sm:-space-x-4">
                           {/* Caller */}
                           <div
-                            className="p-2 rounded-full flex items-center justify-center bg-gray-400 text-gray-700 font-medium"
-                            style={{ width: '32px', height: '32px' }}
+                            className="p-2 rounded-full flex items-center justify-center bg-gray-400 text-gray-700 font-medium w-6 h-6 text-xs sm:w-8 sm:h-8"
                           >
                             {(call._caller?.label?.charAt(0) || call.from?.charAt(0) || "").toUpperCase()}
                           </div>
 
                           {/* Receiver */}
                           <div
-                            className="p-2 rounded-full flex items-center justify-center bg-gray-400 text-gray-700 font-medium"
-                            style={{ width: '32px', height: '32px' }}
+                            className="p-2 rounded-full flex items-center justify-center bg-gray-400 text-gray-700 font-medium w-6 h-6 text-xs sm:w-8 sm:h-8"
                           >
                             {(call._receiver?.label?.charAt(0) || call.to?.charAt(0) || "").toUpperCase()}
                           </div>
@@ -4709,7 +4712,12 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
             {/* Composer fixed at bottom */}
             <div
               ref={composerRef}
-              className={`${cardBgColor} border-t ${borderColor} w-[-webkit-fill-available] pt-4 absolute bottom-0  overflow-hidden`}
+              //  className={`${cardBgColor} border-t ${borderColor} w-[-webkit-fill-available] pt-4 absolute bottom-0  overflow-hidden`}
+              className={`
+                ${cardBgColor} border-t ${borderColor} overflow-hidden z-50
+                fixed bottom-0 left-0 w-full
+                sm:absolute sm:w-[-webkit-fill-available] sm:pt-4 sm:left-auto
+              `}
             >
               {!showEmailModal && (
                 <div className={` border-t flex gap-4 ${borderColor} ${theme === 'dark' ? 'bg-dark-secondary' : 'bg-white'} p-4 z-50 shadow-lg`}>
@@ -5458,7 +5466,12 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
             {/* Sticky Composer */}
             <div
               ref={composerRef}
-              className={`${cardBgColor} border-t ${borderColor} w-[-webkit-fill-available] pt-4 absolute bottom-0  overflow-hidden`}
+              //className={`${cardBgColor} border-t ${borderColor} w-[-webkit-fill-available] pt-4 absolute bottom-0  overflow-hidden`}
+              className={`
+                ${cardBgColor} border-t ${borderColor} overflow-hidden z-50
+                fixed bottom-0 left-0 w-full
+                sm:absolute sm:w-[-webkit-fill-available] sm:pt-4 sm:left-auto
+              `}
             >
               {!showEmailModal && (
                 <div className={` border-t flex gap-4 ${borderColor} ${theme === 'dark' ? 'bg-dark-secondary' : 'bg-white'} p-4 z-50 shadow-lg`}>

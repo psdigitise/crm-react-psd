@@ -3039,7 +3039,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                         </div>
 
                         {/* All three in one line */}
-                        <div className="flex items-start justify-start mt-2 gap-4">
+                        <div className="flex  flex-wrap items-start justify-start mt-2 gap-4">
                           <p className={`text-sm ${textSecondaryColor} flex items-center`}>
                             <IoIosCalendar className="mr-1" />
                             {formatDateRelative(call.creation)}
@@ -3062,14 +3062,11 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                         </div>
 
                         {/* Circle floated to the right, vertically centered */}
-                        <div
-                          className="absolute right-4 top-1/2 -translate-y-1/2 flex -space-x-4"
-                        >
+                        <div className="absolute right-4 top-4 flex -space-x-3 sm:top-1/2 sm:-translate-y-1/2 sm:-space-x-4">
                           {/* Caller */}
                           <div
                             onClick={() => handleLabelClick(call)}
-                            className="p-2 rounded-full flex items-center justify-center bg-gray-400 text-gray-700 font-medium"
-                            style={{ width: '32px', height: '32px' }}
+                            className="p-2 rounded-full flex items-center justify-center bg-gray-400 text-gray-700 font-medium w-6 h-6 text-xs sm:w-8 sm:h-8"
                           >
                             {call._caller?.label?.charAt(0).toUpperCase() || ""}
                           </div>
@@ -3077,9 +3074,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                           {/* Receiver */}
                           <div
                             onClick={() => handleLabelClick(call)}
-                            className="p-2 rounded-full flex items-center justify-center bg-gray-400 text-gray-700 font-medium"
-                            style={{ width: '32px', height: '32px' }}
-                          >
+                            className="p-2 rounded-full flex items-center justify-center bg-gray-400 text-gray-700 font-medium w-6 h-6 text-xs sm:w-8 sm:h-8">
                             {call._receiver?.label?.charAt(0).toUpperCase() || ""}
                           </div>
                         </div>
@@ -3417,9 +3412,16 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
             </div>
 
             {/* Composer */}
-            <div ref={composerRef} className={`${cardBgColor} border-t ${borderColor} w-[-webkit-fill-available] pt-4 pb-4 absolute bottom-0 overflow-hidden`}>
+            <div ref={composerRef}
+              //  className={`${cardBgColor} border-t ${borderColor} w-[-webkit-fill-available] pt-4 pb-4 absolute bottom-0 overflow-hidden`}
+              className={`
+                ${cardBgColor} border-t ${borderColor} overflow-hidden z-50
+                fixed bottom-0 left-0 w-full px-4 py-3
+                sm:absolute sm:w-[-webkit-fill-available] sm:pt-4 sm:left-auto sm:px-0 sm:py-0
+              `}
+            >
               {!showEmailModalComments ? (
-                <div className="flex gap-4 mt-4">
+                <div className="flex gap-4">
                   <button
                     className={`flex items-center gap-1 ${theme === "dark" ? "text-white" : "text-gray-600"}`}
                     onClick={() => {
@@ -4066,7 +4068,12 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
 
             <div
               ref={composerRef}
-              className={`${cardBgColor} border-t ${borderColor} w-[-webkit-fill-available] pt-4 pb-4 absolute bottom-0 overflow-hidden`}
+              // className={`${cardBgColor} border-t ${borderColor} w-[-webkit-fill-available] pt-4 pb-4 absolute bottom-0 overflow-hidden`}
+              className={`
+                ${cardBgColor} border-t ${borderColor} overflow-hidden z-50
+                fixed bottom-0 left-0 w-full px-4 py-3
+                sm:absolute sm:w-[-webkit-fill-available] sm:pt-4 sm:left-auto sm:px-0 sm:py-0
+              `}
             >
               {!showEmailModalEmails ? (
                 <div className="flex gap-4">
@@ -4406,7 +4413,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                         return (
                           <div key={emailData.id} className="flex items-start w-full">
                             {/* Avatar Circle */}
-                            <div className={`w-8 h-8 flex items-center justify-center rounded-full ${theme === 'dark' ? 'bg-gray-400' : 'bg-gray-200'} text-sm font-semibold`}>
+                            <div className={`w-8 h-8 flex flex-shrink-0 items-center justify-center rounded-full ${theme === 'dark' ? 'bg-gray-400' : 'bg-gray-200'} text-sm font-semibold`}>
                               {emailData.fromName?.charAt(0).toUpperCase() || "?"}
                             </div>
 
@@ -4693,7 +4700,12 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
             {/* Sticky Action Footer */}
             <div
               ref={composerRef}
-              className={`${cardBgColor} border-t ${borderColor} w-[-webkit-fill-available] pt-4 pb-4 absolute bottom-0 overflow-hidden`}
+              // className={`${cardBgColor} border-t ${borderColor} w-[-webkit-fill-available] pt-4 pb-4 absolute bottom-0 overflow-hidden`}
+              className={`
+                ${cardBgColor} border-t ${borderColor} overflow-hidden z-50
+                fixed bottom-0 left-0 w-full px-4 py-3
+                sm:absolute sm:w-[-webkit-fill-available] sm:pt-4 sm:left-auto sm:px-0 sm:py-0
+              `}
             >
               {!showEmailModalActivity ? (
                 <div className="flex gap-4">
