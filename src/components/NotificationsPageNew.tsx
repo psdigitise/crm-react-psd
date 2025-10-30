@@ -318,7 +318,7 @@ export function NotificationsPageNew({ onMenuToggle }: NotificationsPageProps) {
 
 <div className="mb-4">
   <p
-    className={`mt-1 mb-4 ${
+    className={`mt-4 mb-4 ${
       theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
     }`}
   >

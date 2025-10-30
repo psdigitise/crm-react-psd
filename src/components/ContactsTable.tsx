@@ -1002,13 +1002,13 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
                       type="checkbox"
                       checked={paginatedData.length > 0 && selectedIds.length === paginatedData.length}
                       onChange={handleSelectAll}
-                      ref={(el) => {
-                        if (el) {
-                          el.indeterminate =
-                            selectedIds.length > 0 &&
-                            selectedIds.length < paginatedData.length;
-                        }
-                      }}
+                      // ref={(el) => {
+                      //   if (el) {
+                      //     el.indeterminate =
+                      //       selectedIds.length > 0 &&
+                      //       selectedIds.length < paginatedData.length;
+                      //   }
+                      // }}
                       className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
                   </th>

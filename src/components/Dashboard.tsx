@@ -88,16 +88,30 @@ function ChartCard({ title, children, action }: ChartCardProps) {
   const { theme } = useTheme();
 
   return (
-    <div className={`rounded-xl shadow-sm border-none p-6 ${theme === 'dark'
-      ? ' '
-      : 'bg-white border-gray-100'
-      }`}>
+    <div
+      className={`rounded-xl shadow-sm border-none p-6 ${
+        theme === 'dark' ? 'bg-[#1c1c1c]' : 'bg-white border-gray-100'
+      }`}
+    >
       <div className="flex items-center justify-between mb-6">
-        <h3 className={`text-lg font-semibold ${theme === 'dark' ? 'text-black' : 'text-gray-900'}`}>{title}</h3>
+        <h3
+          className={`text-lg font-semibold ${
+            theme === 'dark' ? 'text-white' : 'text-gray-900'
+          }`}
+        >
+          {title}
+        </h3>
         {action || (
-          <button className={`p-1 rounded-lg transition-colors ${theme === 'dark' ? 'hover:bg-purple-800/50' : 'hover:bg-gray-100'
-            }`}>
-            <MoreHorizontal className={`w-5 h-5 ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`} />
+          <button
+            className={`p-1 rounded-lg transition-colors ${
+              theme === 'dark' ? 'hover:bg-purple-800/50' : 'hover:bg-gray-100'
+            }`}
+          >
+            {/* <MoreHorizontal
+              className={`w-5 h-5 ${
+                theme === 'dark' ? 'text-gray-300' : 'text-gray-500'
+              }`}
+            /> */}
           </button>
         )}
       </div>
@@ -105,6 +119,7 @@ function ChartCard({ title, children, action }: ChartCardProps) {
     </div>
   );
 }
+
 
 interface ActivityItemProps {
   icon: React.ReactNode;
@@ -637,7 +652,7 @@ export function Dashboard({ onMenuToggle }: DashboardProps) {
       <div className="mb-4 !mt-0">
         <div>
 
-          <p className={`mt-1 mb-4 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Here’s your sales performance snapshot for today.</p>
+          <p className={`mt-4 mb-4 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Here’s your sales performance snapshot for today.</p>
         </div>
 
       </div>
@@ -689,7 +704,7 @@ export function Dashboard({ onMenuToggle }: DashboardProps) {
       <div className={`grid grid-cols-1 lg:grid-cols-2 gap-6 rounded-lg ${theme === 'dark' ? 'bg-gray-900/50' : 'bg-white'}`}>
         <div className=''>
           <ChartCard title="Lead Conversion Funnel">
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer  width="100%" height={300}>
               <PieChart>
                 <Pie
                   data={conversionData}
@@ -734,7 +749,7 @@ export function Dashboard({ onMenuToggle }: DashboardProps) {
         <div className="grid grid-cols-1 relative lg:border-l lg:border-gray-200 dark:lg:border-gray-700 lg:pl-6">
           <div className='before:absolute before:content-[""] before:w-[2px] before:h-[70%] before:bg-black before:top-[20%]'></div>
 
-          <ChartCard title="Quick Actions">
+          <ChartCard  title="Quick Actions">
             <div className="space-y-6">
               <button className={`w-full p-3 text-left rounded-lg transition-colors group ${theme === 'dark'
                 ? 'bg-[#076eff4f] hover:bg-blue-300'
@@ -753,8 +768,8 @@ export function Dashboard({ onMenuToggle }: DashboardProps) {
                     <Users className="w-4 h-4 text-white " />
                   </div>
                   <div >
-                    <p className={`font-medium ${theme === 'dark' ? 'text-black' : 'text-gray-900'}`} >Add New Lead</p>
-                    <p className={`text-sm ${theme === 'dark' ? 'text-black' : 'text-gray-600'}`}>Create a new lead entry</p>
+                    <p className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`} >Add New Lead</p>
+                    <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Create a new lead entry</p>
                   </div>
                 </div>
               </button>
@@ -774,8 +789,8 @@ export function Dashboard({ onMenuToggle }: DashboardProps) {
                     <Target className="w-4 h-4 text-white" />
                   </div>
                   <div>
-                    <p className={`font-medium ${theme === 'dark' ? 'text-black' : 'text-gray-900'}`}>Create Deal</p>
-                    <p className={`text-sm ${theme === 'dark' ? 'text-black' : 'text-gray-600'}`}>Start a new deal</p>
+                    <p className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>Create Deal</p>
+                    <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Start a new deal</p>
                   </div>
                 </div>
               </button>
@@ -789,8 +804,8 @@ export function Dashboard({ onMenuToggle }: DashboardProps) {
                     <Calendar className="w-4 h-4 text-white" />
                   </div>
                   <div>
-                    <p className={`font-medium ${theme === 'dark' ? 'text-black' : 'text-gray-900'}`}>Schedule Meeting</p>
-                    <p className={`text-sm ${theme === 'dark' ? 'text-black' : 'text-gray-600'}`}>Book a new meeting</p>
+                    <p  className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>Schedule Meeting</p>
+                    <p  className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Book a new meeting</p>
                   </div>
                 </div>
               </button>
@@ -804,8 +819,8 @@ export function Dashboard({ onMenuToggle }: DashboardProps) {
                     <Activity className="w-4 h-4 text-white" />
                   </div>
                   <div>
-                    <p className={`font-medium ${theme === 'dark' ? 'text-black' : 'text-gray-900'}`}>View Reports</p>
-                    <p className={`text-sm ${theme === 'dark' ? 'text-black' : 'text-gray-600'}`}>Check analytics</p>
+                    <p className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>View Reports</p>
+                    <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Check analytics</p>
                   </div>
                 </div>
               </button>

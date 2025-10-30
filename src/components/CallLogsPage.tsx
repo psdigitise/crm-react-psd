@@ -1195,13 +1195,13 @@ export function CallLogsPage({ onCreateCallLog, leadName, refreshTrigger = 0, on
                           selectedCallLogs.length === filteredCallLogs.length
                         }
                         onChange={handleSelectAll}
-                        ref={(el) => {
-                          if (el) {
-                            el.indeterminate =
-                              selectedCallLogs.length > 0 &&
-                              selectedCallLogs.length < filteredCallLogs.length;
-                          }
-                        }}
+                        // ref={(el) => {
+                        //   if (el) {
+                        //     el.indeterminate =
+                        //       selectedCallLogs.length > 0 &&
+                        //       selectedCallLogs.length < filteredCallLogs.length;
+                        //   }
+                        // }}
                         className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                       />
                     </th>
