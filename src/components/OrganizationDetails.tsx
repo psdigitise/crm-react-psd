@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Trash2, Zap, User2, Loader2, X } from "lucide-react";
+import { Trash2, Zap, User2, Loader2, X, Mail, Phone, Building2 } from "lucide-react";
 import { useTheme } from './ThemeProvider';
 import { showToast } from '../utils/toast';
 import { getUserSession } from '../utils/session';
@@ -8,20 +8,17 @@ import { ContactDetailView } from './ContactDetailView';
 import { AUTH_TOKEN } from '../api/apiUrl';
 
 // Helper function to convert relative image paths to full URLs
-const getFullImageUrl = (imagePath) => {
+const getFullImageUrl = (imagePath: string | null) => {
   if (!imagePath) return null;
   
-  // If it's already a full URL, return as is
   if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
     return imagePath;
   }
   
-  // If it starts with /, prepend the base URL (this is your case)
   if (imagePath.startsWith('/')) {
     return `https://api.erpnext.ai${imagePath}`;
   }
   
-  // Fallback: assume it needs /files/ prefix
   return `https://api.erpnext.ai/files/${imagePath}`;
 };
 
@@ -82,7 +79,6 @@ interface Contact {
   mobile_no: string;
   company_name: string;
   modified: string;
-  // Add additional fields to match ContactDetailView interface
   id: string;
   salutation?: string;
   first_name: string;
@@ -107,7 +103,6 @@ interface OrganizationDetailsProps {
   onDetailViewNavigation?: (showingDetail: boolean) => void;
 }
 
-// Dropdown options
 const EMPLOYEE_OPTIONS = [
   '1-10',
   '11-50',
@@ -137,7 +132,7 @@ export default function OrganizationDetails({
   const selectRef = useRef<HTMLSelectElement>(null);
   const isDark = theme === "dark";
   const [uploadingImage, setUploadingImage] = useState(false);
-  const [imagePreview, setImagePreview] = useState(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [currencyOptions, setCurrencyOptions] = useState<string[]>([]);
   const [loadingCurrencies, setLoadingCurrencies] = useState(false);
@@ -148,15 +143,42 @@ export default function OrganizationDetails({
   const [loadingIndustries, setLoadingIndustries] = useState(false);
   const [loadingAddresses, setLoadingAddresses] = useState(false);
 
-  // Add state for deal detail view
   const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
-  // Add state for contact detail view
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [selectedTab, setSelectedTab] = useState<'deals' | 'contacts'>('deals');
-  // Add state for delete confirmation popup
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [expandedDeals, setExpandedDeals] = useState<Set<string>>(new Set());
+  const [expandedContacts, setExpandedContacts] = useState<Set<string>>(new Set());
 
   const API_BASE = 'https://api.erpnext.ai/api/method';
+
+  // Mobile dropdown functions
+  const toggleDealDetails = (dealId: string) => {
+    setExpandedDeals(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(dealId)) {
+        newSet.delete(dealId);
+      } else {
+        newSet.add(dealId);
+      }
+      return newSet;
+    });
+  };
+
+  const toggleContactDetails = (contactId: string) => {
+    setExpandedContacts(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(contactId)) {
+        newSet.delete(contactId);
+      } else {
+        newSet.add(contactId);
+      }
+      return newSet;
+    });
+  };
+
+  const isDealExpanded = (dealId: string) => expandedDeals.has(dealId);
+  const isContactExpanded = (contactId: string) => expandedContacts.has(contactId);
 
   // Fetch address options from API
   const fetchAddressOptions = async () => {
@@ -165,7 +187,6 @@ export default function OrganizationDetails({
       const sessionCompany = session?.company;
       setLoadingAddresses(true);
       
-      // const session = getUserSession();
       if (!session) {
         showToast('Session not found', { type: 'error' });
         return;
@@ -189,16 +210,12 @@ export default function OrganizationDetails({
       }
 
       const data = await response.json();
-      
-      // Extract address values from the response
       const addresses = data.message.map((item: any) => item.value);
       setAddressOptions(addresses);
       
     } catch (error) {
       console.error('Error fetching address options:', error);
       showToast('Failed to load address options', { type: 'error' });
-      
-      // Fallback to some common addresses if API fails
       setAddressOptions([
         '123 Main St, New York, NY 10001',
         '456 Oak Ave, Los Angeles, CA 90001',
@@ -240,16 +257,12 @@ export default function OrganizationDetails({
       }
 
       const data = await response.json();
-      
-      // Extract territory values from the response
       const territories = data.message.map((item: any) => item.value);
       setTerritoryOptions(territories);
       
     } catch (error) {
       console.error('Error fetching territory options:', error);
       showToast('Failed to load territory options', { type: 'error' });
-      
-      // Fallback to some common territories if API fails
       setTerritoryOptions(['India', 'US', 'UK', 'Canada', 'Australia']);
     } finally {
       setLoadingTerritories(false);
@@ -285,16 +298,12 @@ export default function OrganizationDetails({
       }
 
       const data = await response.json();
-      
-      // Extract industry values from the response
       const industries = data.message.map((item: any) => item.value);
       setIndustryOptions(industries);
       
     } catch (error) {
       console.error('Error fetching industry options:', error);
       showToast('Failed to load industry options', { type: 'error' });
-      
-      // Fallback to some common industries if API fails
       setIndustryOptions([
         'Technology', 'Healthcare', 'Finance', 'Manufacturing', 'Retail', 
         'Education', 'Real Estate', 'Construction', 'Automotive', 'Energy'
@@ -333,16 +342,12 @@ export default function OrganizationDetails({
       }
 
       const data = await response.json();
-      
-      // Extract currency values from the response
       const currencies = data.message.map((item: any) => item.value);
       setCurrencyOptions(currencies);
       
     } catch (error) {
       console.error('Error fetching currency options:', error);
       showToast('Failed to load currency options', { type: 'error' });
-      
-      // Fallback to some common currencies if API fails
       setCurrencyOptions(['INR', 'USD', 'EUR', 'GBP', 'AUD', 'CAD', 'JPY', 'SGD', 'AED']);
     } finally {
       setLoadingCurrencies(false);
@@ -363,19 +368,17 @@ export default function OrganizationDetails({
     }
   };
 
-  const handleImageChange = async (event) => {
-    const file = event.target.files[0];
+  const handleImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
     if (!allowedTypes.includes(file.type)) {
       showToast('Please select a valid image file (JPEG, PNG, or GIF)', { type: 'error' });
       return;
     }
 
-    // Validate file size (e.g., 5MB limit)
-    const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+    const maxSize = 5 * 1024 * 1024;
     if (file.size > maxSize) {
       showToast('Image size should be less than 5MB', { type: 'error' });
       return;
@@ -390,17 +393,14 @@ export default function OrganizationDetails({
         return;
       }
 
-      // Create preview URL for immediate display
       const previewUrl = URL.createObjectURL(file);
       setImagePreview(previewUrl);
 
-      // Step 1: Upload file
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('is_private', '0'); // Public file
+      formData.append('is_private', '0');
       formData.append('folder', 'Home/Attachments');
 
-      console.log('🔄 Step 1: Uploading file...');
       const uploadResponse = await fetch('https://api.erpnext.ai/api/method/upload_file', {
         method: 'POST',
         headers: {
@@ -420,10 +420,6 @@ export default function OrganizationDetails({
         throw new Error('Upload successful but no file URL returned');
       }
 
-      console.log('✅ Step 1 complete - File uploaded:', fileData.file_url);
-
-      // Step 2: Update organization logo field
-      console.log('🔄 Step 2: Updating organization logo field...');
       const updateResponse = await fetch(`${API_BASE}/frappe.client.set_value`, {
         method: 'POST',
         headers: {
@@ -432,9 +428,9 @@ export default function OrganizationDetails({
         },
         body: JSON.stringify({
           doctype: "CRM Organization",
-          name: organization.name,
+          name: organization!.name,
           fieldname: "organization_logo",
-          value: fileData.file_url // This will be something like "/files/filename.jpg"
+          value: fileData.file_url
         })
       });
 
@@ -443,32 +439,23 @@ export default function OrganizationDetails({
       }
 
       const updateResult = await updateResponse.json();
-      console.log('✅ Step 2 complete - Logo field updated:', updateResult);
-
-      // Step 3: Update local state
-      console.log('🔄 Step 3: Updating local state...');
       const updatedOrganization = {
-        ...organization,
-        organization_logo: fileData.file_url, // Store the relative path
-        modified: updateResult.message?.modified || organization.modified
+        ...organization!,
+        organization_logo: fileData.file_url,
+        modified: updateResult.message?.modified || organization!.modified
       };
 
       setOrganization(updatedOrganization);
       if (onSave) onSave(updatedOrganization);
 
-      // Clean up preview URL
       URL.revokeObjectURL(previewUrl);
       setImagePreview(null);
 
-      console.log('✅ Step 3 complete - Local state updated');
-      console.log('🖼️ Final image URL will be:', getFullImageUrl(fileData.file_url));
-
       showToast('Organization logo updated successfully', { type: 'success' });
 
-    } catch (error) {
-      console.error('❌ Error during image upload process:', error);
+    } catch (error: any) {
+      console.error('Error during image upload process:', error);
 
-      // Clean up preview on error
       if (imagePreview) {
         URL.revokeObjectURL(imagePreview);
         setImagePreview(null);
@@ -477,14 +464,12 @@ export default function OrganizationDetails({
       showToast(`Failed to upload logo: ${error.message}`, { type: 'error' });
     } finally {
       setUploadingImage(false);
-      // Reset file input
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
     }
   };
 
-  // Add remove image function
   const handleRemoveImage = async () => {
     if (!organization?.organization_logo) return;
 
@@ -501,7 +486,6 @@ export default function OrganizationDetails({
         return;
       }
 
-      // Set logo field to empty
       const response = await fetch(`${API_BASE}/frappe.client.set_value`, {
         method: 'POST',
         headers: {
@@ -520,7 +504,6 @@ export default function OrganizationDetails({
         throw new Error(`Remove failed: ${response.status} ${response.statusText}`);
       }
 
-      // Update local state
       const updatedOrganization = {
         ...organization,
         organization_logo: null
@@ -531,7 +514,7 @@ export default function OrganizationDetails({
 
       showToast('Organization logo removed successfully', { type: 'success' });
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error removing logo:', error);
       showToast(`Failed to remove logo: ${error.message}`, { type: 'error' });
     } finally {
@@ -541,14 +524,8 @@ export default function OrganizationDetails({
 
   // Image Display Component
   const ImageDisplay = () => {
-    const imageUrl = imagePreview || (organization.organization_logo ? getFullImageUrl(organization.organization_logo) : null);
+    const imageUrl = imagePreview || (organization?.organization_logo ? getFullImageUrl(organization.organization_logo) : null);
     
-    console.log('Rendering image:', {
-      originalPath: organization.organization_logo,
-      fullUrl: imageUrl,
-      hasPreview: !!imagePreview
-    });
-
     return (
       <div
         onClick={handleImageClick}
@@ -565,13 +542,10 @@ export default function OrganizationDetails({
                 src={imageUrl}
                 alt="Organization Logo"
                 className="w-10 h-10 rounded-full object-cover"
-                onLoad={() => console.log('Image loaded successfully:', imageUrl)}
                 onError={(e) => {
-                  console.error('Image failed to load:', imageUrl);
-                  console.error('Original path:', organization.organization_logo);
-                  // Hide broken image and show fallback
-                  e.target.style.display = 'none';
-                  const fallback = e.target.parentNode.querySelector('.fallback-initials');
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                  const fallback = target.parentNode?.querySelector('.fallback-initials') as HTMLElement;
                   if (fallback) {
                     fallback.style.display = 'flex';
                     fallback.style.position = 'absolute';
@@ -581,14 +555,12 @@ export default function OrganizationDetails({
               />
             ) : null}
             
-            {/* Fallback initials */}
             <div 
               className={`fallback-initials ${imageUrl ? 'hidden' : 'flex'} w-full h-full items-center justify-center ${isDark ? "text-white" : "text-gray-600"}`}
             >
-              {organization.organization_name?.[0]?.toUpperCase() || 'O'}
+              {organization?.organization_name?.[0]?.toUpperCase() || 'O'}
             </div>
 
-            {/* Upload overlay on hover */}
             <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-full z-10">
               <span className="text-white text-xs font-medium">Upload</span>
             </div>
@@ -651,17 +623,7 @@ export default function OrganizationDetails({
         if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
 
         const data = await response.json();
-        console.log('Fetched organization data:', data.message);
         setOrganization(data.message);
-        
-        // Debug the image URL after setting organization
-        setTimeout(() => {
-          if (data.message?.organization_logo) {
-            console.log('🔍 Debugging image URL...');
-            console.log('Original path:', data.message.organization_logo);
-            console.log('Constructed URL:', getFullImageUrl(data.message.organization_logo));
-          }
-        }, 100);
         
       } catch (error) {
         console.error('Error fetching organization:', error);
@@ -717,11 +679,9 @@ export default function OrganizationDetails({
         if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
 
         const data = await response.json();
-
-        // Transform deals to match DealDetailView interface
         const transformedDeals = (data.message || []).map((deal: any) => ({
           ...deal,
-          id: deal.name, // Use name as id
+          id: deal.name,
           mobileNo: deal.mobile_no,
           assignedTo: deal.deal_owner,
           lastModified: deal.modified,
@@ -787,11 +747,9 @@ export default function OrganizationDetails({
         if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
 
         const data = await response.json();
-
-        // Transform contacts to match ContactDetailView interface
         const transformedContacts = (data.message || []).map((contact: any) => ({
           ...contact,
-          id: contact.name, // Use name as id
+          id: contact.name,
           email: contact.email_id,
           phone: contact.mobile_no,
           status: contact.status || 'Active'
@@ -827,7 +785,6 @@ export default function OrganizationDetails({
         return;
       }
 
-      // Ensure we have the name field
       if (!organization.name) {
         console.error('Organization name is missing:', organization);
         showToast('Organization name is missing', { type: 'error' });
@@ -840,8 +797,6 @@ export default function OrganizationDetails({
         fieldname: field,
         value: value
       };
-
-      console.log('Updating field:', requestBody);
 
       const response = await fetch(`${API_BASE}/frappe.client.set_value`, {
         method: 'POST',
@@ -862,11 +817,9 @@ export default function OrganizationDetails({
       const updatedOrgData = result.message;
 
       if (updatedOrgData) {
-        // Update the organization with the response data
         const updatedOrganization = {
           ...organization,
           [field]: value,
-          // Update other fields from the response if available
           modified: updatedOrgData.modified || organization.modified,
         };
 
@@ -876,7 +829,7 @@ export default function OrganizationDetails({
       }
 
       setEditingField(null);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating organization:', error);
       showToast(`Failed to update organization: ${error.message}`, { type: 'error' });
       setEditingField(null);
@@ -928,7 +881,7 @@ export default function OrganizationDetails({
 
       showToast('Organization deleted successfully', { type: 'success' });
       if (onBack) onBack();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting organization:', error);
       showToast('Failed to delete organization', { type: 'error' });
     } finally {
@@ -937,12 +890,10 @@ export default function OrganizationDetails({
     }
   };
 
-  // Show delete confirmation popup
   const handleDeleteClick = () => {
     setShowDeleteConfirm(true);
   };
 
-  // Cancel delete operation
   const handleCancelDelete = () => {
     setShowDeleteConfirm(false);
   };
@@ -1015,10 +966,7 @@ export default function OrganizationDetails({
                     } focus:outline-none`}
                   disabled={loading}
                 >
-                  <option  className={`w-full px-2 py-1 border rounded ${isDark
-                    ? 'bg-dark-secondary text-white border-white/20 focus:border-purple-400'
-                    : 'bg-white text-gray-800 border-gray-300 focus:border-blue-400'
-                    } focus:outline-none`} value="">Select {label.toLowerCase()}...</option>
+                  <option value="">Select {label.toLowerCase()}...</option>
                   {getDropdownOptions(field as string).map((option) => (
                     <option
                       key={option}
@@ -1223,7 +1171,7 @@ export default function OrganizationDetails({
 
   return (
     <>
-      <div className={`min-h-screen overflow-x-auto flex-col sm:flex-row   flex ${theme === "dark" ? "bg-transparent text-white" : "bg-white text-gray-800"}`}>
+      <div className={`min-h-screen overflow-x-auto flex-col sm:flex-row flex ${theme === "dark" ? "bg-transparent text-white" : "bg-white text-gray-800"}`}>
         {fetchLoading && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white dark:bg-gray-800 p-4 rounded-lg flex items-center gap-3">
@@ -1233,7 +1181,6 @@ export default function OrganizationDetails({
           </div>
         )}
 
-        {/* Delete Confirmation Popup */}
         <DeleteConfirmationPopup />
 
         {/* Sidebar */}
@@ -1306,70 +1253,222 @@ export default function OrganizationDetails({
           <div className="p-6 overflow-x-auto">
             {selectedTab === 'deals' ? (
               deals.length > 0 ? (
-                <table className="min-w-full text-sm border-collapse">
-                  <thead>
-                    <tr className={`${isDark ? "bg-white/10" : "bg-gray-100"} text-left`}>
-                      {/* <th className="p-3 font-medium">Deal Name</th> */}
-                      <th className="p-3 font-medium">Organization</th>
-                      <th className="p-3 font-medium">Amount</th>
-                      <th className="p-3 font-medium">Status</th>
-                      <th className="p-3 font-medium">Email</th>
-                      <th className="p-3 font-medium">Mobile No</th>
-                      <th className="p-3 font-medium">Deal Owner</th>
-                      <th className="p-3 font-medium">Last Modified</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+                <div>
+                  {/* Desktop Table View */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <table className="min-w-full text-sm border-collapse">
+                      <thead>
+                        <tr className={`${isDark ? "bg-white/10" : "bg-gray-100"} text-left`}>
+                          <th className="p-3 font-medium">Organization</th>
+                          <th className="p-3 font-medium">Amount</th>
+                          <th className="p-3 font-medium">Status</th>
+                          <th className="p-3 font-medium">Email</th>
+                          <th className="p-3 font-medium">Mobile No</th>
+                          <th className="p-3 font-medium">Deal Owner</th>
+                          <th className="p-3 font-medium">Last Modified</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {deals.map((deal, idx) => (
+                          <tr
+                            key={idx}
+                            className={`border-t ${isDark ? 'border-white/10' : 'border-gray-200'} hover:bg-opacity-50 ${isDark ? 'hover:bg-white/5' : 'hover:bg-gray-50'} cursor-pointer transition-colors`}
+                            onClick={() => handleDealClick(deal)}
+                          >
+                            <td className="p-3">{deal.organization}</td>
+                            <td className="p-3">
+                              <span className="font-medium">{deal.currency} {deal.annual_revenue?.toLocaleString() || '0.00'}</span>
+                            </td>
+                            <td className="p-3">
+                              <div className="flex items-center gap-2">
+                                <div className={`w-3 h-3 rounded-full ${deal.status === 'Qualification' ? 'bg-blue-500' :
+                                  deal.status === 'Demo/Making' ? 'bg-yellow-500' :
+                                    deal.status === 'Proposal/Quotation' ? 'bg-orange-500' :
+                                      deal.status === 'Negotiation' ? 'bg-purple-500' :
+                                        deal.status === 'Won' ? 'bg-green-500' :
+                                          deal.status === 'Lost' ? 'bg-red-500' :
+                                            'bg-gray-500'
+                                  }`}></div>
+                                <span className="text-sm">{deal.status || 'Qualification'}</span>
+                              </div>
+                            </td>
+                            <td className="p-3">
+                              <div className="flex items-center gap-2">
+                                <Mail size={14} className="text-blue-500" />
+                                <span className={`text-sm ${deal.email !== 'N/A' ? 'text-blue-500' : 'text-gray-400'}`}>
+                                  {deal.email || 'N/A'}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="p-3">
+                              <div className="flex items-center gap-2">
+                                <Phone size={14} className="text-green-500" />
+                                <span className="text-sm">{deal.mobile_no || 'N/A'}</span>
+                              </div>
+                            </td>
+                            <td className="p-3">
+                              <div className="flex items-center gap-2">
+                                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${isDark ? 'bg-gray-600' : 'bg-gray-400'} text-white`}>
+                                  {deal.deal_owner?.[0]?.toUpperCase() || 'U'}
+                                </div>
+                                <span className="text-sm">{deal.deal_owner || 'Unassigned'}</span>
+                              </div>
+                            </td>
+                            <td className="p-3">
+                              <span className="text-sm text-gray-500">
+                                {formatDate(deal.modified)}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Mobile Card View */}
+                  <div className="block md:hidden space-y-4">
                     {deals.map((deal, idx) => (
-                      <tr
+                      <div
                         key={idx}
-                        className={`border-t ${isDark ? 'border-white/10' : 'border-gray-200'} hover:bg-opacity-50 ${isDark ? 'hover:bg-white/5' : 'hover:bg-gray-50'} cursor-pointer transition-colors`}
-                        onClick={() => handleDealClick(deal)}
+                        className={`p-4 rounded-lg border ${isDark
+                            ? 'bg-purplebg border-transparent'
+                            : 'bg-white border-gray-200'
+                          } shadow-sm`}
                       >
-                        {/* <td className="p-3">
-                          <div className="flex items-center gap-2">
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${isDark ? 'bg-purple-600' : 'bg-gray-300'} text-white`}>
-                              {deal.name?.[0]?.toUpperCase() || 'D'}
+                        <div className="flex justify-between items-center">
+                          <div 
+                            className="flex items-center flex-1 cursor-pointer"
+                            onClick={() => handleDealClick(deal)}
+                          >
+                            <div
+                              className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 ${isDark ? 'bg-purple-600' : 'bg-gray-300'
+                                }`}
+                            >
+                              <span
+                                className={`text-sm font-semibold ${isDark ? 'text-white' : 'text-gray-700'
+                                  }`}
+                              >
+                                {deal.organization?.[0]?.toUpperCase() || 'O'}
+                              </span>
                             </div>
-                            <span className="font-medium">{deal.name}</span>
-                          </div>
-                        </td> */}
-                        <td className="p-3">{deal.organization}</td>
-                        <td className="p-3">
-                          <span className="font-medium">{deal.currency} {deal.annual_revenue?.toLocaleString() || '0.00'}</span>
-                        </td>
-                        <td className="p-3">
-                          <div className="flex items-center gap-2">
-                            <div className={`w-3 h-3 rounded-full ${deal.status === 'Qualification' ? 'bg-blue-500' :
-                              deal.status === 'Demo/Making' ? 'bg-yellow-500' :
-                                deal.status === 'Proposal/Quotation' ? 'bg-orange-500' :
-                                  deal.status === 'Negotiation' ? 'bg-purple-500' :
-                                    deal.status === 'Won' ? 'bg-green-500' :
-                                      deal.status === 'Lost' ? 'bg-red-500' :
-                                        'bg-gray-500'
-                              }`}></div>
-                            <span className="text-sm">{deal.status || 'Qualification'}</span>
-                          </div>
-                        </td>
-                        <td className="p-3">{deal.email || 'N/A'}</td>
-                        <td className="p-3">{deal.mobile_no || 'N/A'}</td>
-                        <td className="p-3">
-                          <div className="flex items-center gap-2">
-                            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${isDark ? 'bg-gray-600' : 'bg-gray-400'} text-white`}>
-                              {deal.deal_owner?.[0]?.toUpperCase() || 'U'}
+                            <div>
+                              <h3
+                                className={`text-base font-semibold ${isDark ? 'text-white' : 'text-gray-700'
+                                  }`}
+                              >
+                                {deal.organization}
+                              </h3>
+                              <p className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-500'
+                                  }`}>{deal.name}</p>
                             </div>
-                            <span className="text-sm">{deal.deal_owner || 'Unassigned'}</span>
                           </div>
-                        </td>
-                        <td className="p-3">
-                          <span className="text-sm text-gray-500">
-                            {formatDate(deal.modified)}
-                          </span>
-                        </td>
-                      </tr>
+                          
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleDealDetails(deal.id);
+                            }}
+                            className={`p-1 rounded transition-transform ${isDark ? 'hover:bg-purple-700' : 'hover:bg-gray-100'
+                              }`}
+                          >
+                            <svg 
+                              className={`w-4 h-4 transform transition-transform ${isDealExpanded(deal.id) ? 'rotate-180' : ''
+                                } ${isDark ? 'text-white' : 'text-gray-600'}`}
+                              fill="none" 
+                              stroke="currentColor" 
+                              viewBox="0 0 24 24"
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </button>
+                        </div>
+
+                        {/* Collapsible details section */}
+                        {isDealExpanded(deal.id) && (
+                          <div className="mt-3 pt-3 border-t border-gray-200 space-y-2">
+                            <div className="flex justify-between text-sm">
+                              <span className={`font-medium ${isDark ? 'text-gray-300' : 'text-gray-500'}`}>
+                                Amount:
+                              </span>
+                              <span className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                                {deal.currency} {deal.annual_revenue?.toLocaleString() || '0.00'}
+                              </span>
+                            </div>
+                            
+                            <div className="flex justify-between text-sm">
+                              <span className={`font-medium ${isDark ? 'text-gray-300' : 'text-gray-500'}`}>
+                                Status:
+                              </span>
+                              <div className="flex items-center gap-2">
+                                <div className={`w-2 h-2 rounded-full ${deal.status === 'Qualification' ? 'bg-blue-500' :
+                                  deal.status === 'Demo/Making' ? 'bg-yellow-500' :
+                                    deal.status === 'Proposal/Quotation' ? 'bg-orange-500' :
+                                      deal.status === 'Negotiation' ? 'bg-purple-500' :
+                                        deal.status === 'Won' ? 'bg-green-500' :
+                                          deal.status === 'Lost' ? 'bg-red-500' :
+                                            'bg-gray-500'
+                                  }`}></div>
+                                <span className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                                  {deal.status || 'Qualification'}
+                                </span>
+                              </div>
+                            </div>
+                            
+                            <div className="flex justify-between text-sm">
+                              <span className={`font-medium ${isDark ? 'text-gray-300' : 'text-gray-500'}`}>
+                                Email:
+                              </span>
+                              <div className="flex items-center gap-2">
+                                <Mail size={12} className="text-blue-500" />
+                                <span className={`font-semibold ${deal.email !== 'N/A' ? 'text-blue-500' : 'text-gray-400'}`}>
+                                  {deal.email || 'N/A'}
+                                </span>
+                              </div>
+                            </div>
+                            
+                            <div className="flex justify-between text-sm">
+                              <span className={`font-medium ${isDark ? 'text-gray-300' : 'text-gray-500'}`}>
+                                Mobile No:
+                              </span>
+                              <div className="flex items-center gap-2">
+                                <Phone size={12} className="text-green-500" />
+                                <span className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                                  {deal.mobile_no || 'N/A'}
+                                </span>
+                              </div>
+                            </div>
+                            
+                            <div className="flex justify-between text-sm">
+                              <span className={`font-medium ${isDark ? 'text-gray-300' : 'text-gray-500'}`}>
+                                Deal Owner:
+                              </span>
+                              <div className="flex items-center gap-2">
+                                <div
+                                  className={`w-4 h-4 rounded-full flex items-center justify-center text-xs font-bold ${isDark ? 'bg-gray-600' : 'bg-gray-400'
+                                    } text-white`}
+                                >
+                                  {deal.deal_owner?.[0]?.toUpperCase() || 'U'}
+                                </div>
+                                <span className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                                  {deal.deal_owner || 'Unassigned'}
+                                </span>
+                              </div>
+                            </div>
+                            
+                            <div className="flex justify-between text-sm">
+                              <span className={`font-medium ${isDark ? 'text-gray-300' : 'text-gray-500'}`}>
+                                Last Modified:
+                              </span>
+                              <span className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                                {formatDate(deal.modified)}
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     ))}
-                  </tbody>
-                </table>
+                  </div>
+                </div>
               ) : (
                 <div className="flex items-center justify-center min-h-[calc(100vh-250px)]">
                   <div className="flex flex-col items-center gap-2 p-8 text-gray-500">
@@ -1380,56 +1479,204 @@ export default function OrganizationDetails({
               )
             ) : (
               contacts.length > 0 ? (
-                <table className="min-w-full text-sm border-collapse">
-                  <thead>
-                    <tr className={`${isDark ? "bg-white/10" : "bg-gray-100"} text-left`}>
-                      <th className="p-3 font-medium">Name</th>
-                      <th className="p-3 font-medium">Full Name</th>
-                      <th className="p-3 font-medium">Email</th>
-                      <th className="p-3 font-medium">Phone</th>
-                      <th className="p-3 font-medium">Company</th>
-                      <th className="p-3 font-medium">Last Modified</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+                <div>
+                  {/* Desktop Table View */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <table className="min-w-full text-sm border-collapse">
+                      <thead>
+                        <tr className={`${isDark ? "bg-white/10" : "bg-gray-100"} text-left`}>
+                          <th className="p-3 font-medium">Name</th>
+                          <th className="p-3 font-medium">Full Name</th>
+                          <th className="p-3 font-medium">Email</th>
+                          <th className="p-3 font-medium">Phone</th>
+                          <th className="p-3 font-medium">Company</th>
+                          <th className="p-3 font-medium">Last Modified</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {contacts.map((contact, idx) => (
+                          <tr
+                            key={idx}
+                            className={`border-t ${isDark ? 'border-white/10' : 'border-gray-200'} hover:bg-opacity-50 ${isDark ? 'hover:bg-white/5' : 'hover:bg-gray-50'} cursor-pointer transition-colors`}
+                            onClick={() => handleContactClick(contact)}
+                          >
+                            <td className="p-3">
+                              <div className="flex items-center gap-2">
+                                {contact.image ? (
+                                  <img 
+                                    src={getFullImageUrl(contact.image)} 
+                                    alt="Contact" 
+                                    className="w-8 h-8 rounded-full object-cover"
+                                    onError={(e) => {
+                                      const target = e.target as HTMLImageElement;
+                                      target.style.display = 'none';
+                                      const fallback = target.nextElementSibling as HTMLElement;
+                                      if (fallback) fallback.style.display = 'flex';
+                                    }}
+                                  />
+                                ) : null}
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${isDark ? 'bg-purple-600' : 'bg-gray-300'} text-white ${contact.image ? 'hidden' : 'flex'}`}>
+                                  {contact.name?.[0]?.toUpperCase() || 'C'}
+                                </div>
+                                <span className="font-medium">{contact.name}</span>
+                              </div>
+                            </td>
+                            <td className="p-3">{contact.full_name}</td>
+                            <td className="p-3">
+                              <div className="flex items-center gap-2">
+                                <Mail size={14} className="text-blue-500" />
+                                <span className={`text-sm ${contact.email_id ? 'text-blue-500' : 'text-gray-400'}`}>
+                                  {contact.email_id || 'N/A'}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="p-3">
+                              <div className="flex items-center gap-2">
+                                <Phone size={14} className="text-green-500" />
+                                <span className="text-sm">{contact.mobile_no || 'N/A'}</span>
+                              </div>
+                            </td>
+                            <td className="p-3">{contact.company_name}</td>
+                            <td className="p-3">
+                              <span className="text-sm text-gray-500">
+                                {formatDate(contact.modified)}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Mobile Card View */}
+                  <div className="block md:hidden space-y-4">
                     {contacts.map((contact, idx) => (
-                      <tr
+                      <div
                         key={idx}
-                        className={`border-t ${isDark ? 'border-white/10' : 'border-gray-200'} hover:bg-opacity-50 ${isDark ? 'hover:bg-white/5' : 'hover:bg-gray-50'} cursor-pointer transition-colors`}
-                        onClick={() => handleContactClick(contact)}
+                        className={`p-4 rounded-lg border ${isDark
+                            ? 'bg-purplebg border-transparent'
+                            : 'bg-white border-gray-200'
+                          } shadow-sm`}
                       >
-                        <td className="p-3">
-                          <div className="flex items-center gap-2">
+                        <div className="flex justify-between items-center">
+                          <div 
+                            className="flex items-center flex-1 cursor-pointer"
+                            onClick={() => handleContactClick(contact)}
+                          >
                             {contact.image ? (
                               <img 
                                 src={getFullImageUrl(contact.image)} 
                                 alt="Contact" 
-                                className="w-8 h-8 rounded-full object-cover"
+                                className="w-8 h-8 rounded-full object-cover mr-3"
                                 onError={(e) => {
-                                  e.target.style.display = 'none';
-                                  e.target.nextElementSibling.style.display = 'flex';
+                                  const target = e.target as HTMLImageElement;
+                                  target.style.display = 'none';
+                                  const fallback = target.nextElementSibling as HTMLElement;
+                                  if (fallback) fallback.style.display = 'flex';
                                 }}
                               />
                             ) : null}
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${isDark ? 'bg-purple-600' : 'bg-gray-300'} text-white ${contact.image ? 'hidden' : 'flex'}`}>
-                              {contact.name?.[0]?.toUpperCase() || 'C'}
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 ${isDark ? 'bg-purple-600' : 'bg-gray-300'
+                                } ${contact.image ? 'hidden' : 'flex'}`}
+                            >
+                              <span
+                                className={`text-sm font-semibold ${isDark ? 'text-white' : 'text-gray-700'
+                                  }`}
+                              >
+                                {contact.name?.[0]?.toUpperCase() || 'C'}
+                              </span>
                             </div>
-                            <span className="font-medium">{contact.name}</span>
+                            <div>
+                              <h3
+                                className={`text-base font-semibold ${isDark ? 'text-white' : 'text-gray-700'
+                                  }`}
+                              >
+                                {contact.name}
+                              </h3>
+                              <p className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-500'
+                                  }`}>{contact.full_name}</p>
+                            </div>
                           </div>
-                        </td>
-                        <td className="p-3">{contact.full_name}</td>
-                        <td className="p-3">{contact.email_id}</td>
-                        <td className="p-3">{contact.mobile_no || 'N/A'}</td>
-                        <td className="p-3">{contact.company_name}</td>
-                        <td className="p-3">
-                          <span className="text-sm text-gray-500">
-                            {formatDate(contact.modified)}
-                          </span>
-                        </td>
-                      </tr>
+                          
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleContactDetails(contact.id);
+                            }}
+                            className={`p-1 rounded transition-transform ${isDark ? 'hover:bg-purple-700' : 'hover:bg-gray-100'
+                              }`}
+                          >
+                            <svg 
+                              className={`w-4 h-4 transform transition-transform ${isContactExpanded(contact.id) ? 'rotate-180' : ''
+                                } ${isDark ? 'text-white' : 'text-gray-600'}`}
+                              fill="none" 
+                              stroke="currentColor" 
+                              viewBox="0 0 24 24"
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </button>
+                        </div>
+
+                        {/* Collapsible details section */}
+                        {isContactExpanded(contact.id) && (
+                          <div className="mt-3 pt-3 border-t border-gray-200 space-y-2">
+                            <div className="flex justify-between text-sm">
+                              <span className={`font-medium ${isDark ? 'text-gray-300' : 'text-gray-500'}`}>
+                                Full Name:
+                              </span>
+                              <span className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                                {contact.full_name}
+                              </span>
+                            </div>
+                            
+                            <div className="flex justify-between text-sm">
+                              <span className={`font-medium ${isDark ? 'text-gray-300' : 'text-gray-500'}`}>
+                                Email:
+                              </span>
+                              <div className="flex items-center gap-2">
+                                <Mail size={12} className="text-blue-500" />
+                                <span className={`font-semibold ${contact.email_id ? 'text-blue-500' : 'text-gray-400'}`}>
+                                  {contact.email_id || 'N/A'}
+                                </span>
+                              </div>
+                            </div>
+                            
+                            <div className="flex justify-between text-sm">
+                              <span className={`font-medium ${isDark ? 'text-gray-300' : 'text-gray-500'}`}>
+                                Phone:
+                              </span>
+                              <div className="flex items-center gap-2">
+                                <Phone size={12} className="text-green-500" />
+                                <span className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                                  {contact.mobile_no || 'N/A'}
+                                </span>
+                              </div>
+                            </div>
+                            
+                            <div className="flex justify-between text-sm">
+                              <span className={`font-medium ${isDark ? 'text-gray-300' : 'text-gray-500'}`}>
+                                Company:
+                              </span>
+                              <span className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                                {contact.company_name}
+                              </span>
+                            </div>
+                            
+                            <div className="flex justify-between text-sm">
+                              <span className={`font-medium ${isDark ? 'text-gray-300' : 'text-gray-500'}`}>
+                                Last Modified:
+                              </span>
+                              <span className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                                {formatDate(contact.modified)}
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     ))}
-                  </tbody>
-                </table>
+                  </div>
+                </div>
               ) : (
                 <div className="flex items-center justify-center min-h-[calc(100vh-250px)]">
                   <div className="flex flex-col items-center gap-2 p-8 text-gray-500">
