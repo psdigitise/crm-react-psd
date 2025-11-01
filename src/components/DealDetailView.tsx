@@ -2272,7 +2272,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
           <div>
             <div className="grid grid-cols-1  gap-6">
               <div className="space-y-6">
-                <div className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} p-6`}>
+                <div className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} max-sm:p-3 p-6`}>
                   <div className="flex justify-between items-center mb-4">
                     <h3 className={`text-lg font-semibold ${textColor}`}>Data</h3>
                     <button
@@ -2709,7 +2709,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
             {/* Add Note Form */}
             <div>
               {/* <h3 className={`text-lg font-semibold ${textColor} mb-4`}>Add Note</h3> */}
-              <div className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} p-6`}>
+              <div className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} max-sm:p-3 p-6`}>
                 <div className='flex justify-between items-center gap-5 mb-6'>
 
                   <h3 className={`text-lg font-semibold ${textColor} mb-0`}>Notes</h3>
@@ -2739,7 +2739,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                     >Create Note </span>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-3 gap-5">
+                  <div className="grid grid-cols-3 max-sm:grid-cols-1 gap-5">
                     {/* Notes list */}
                     {notes.map((note) => (
                       <div
@@ -2935,7 +2935,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
           <div className="space-y-6">
             {/* Add Call Form */}
             {/* <h3 className={`text-lg font-semibold ${textColor} mb-4`}>Add Call Log</h3> */}
-            <div className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} p-6`}>
+            <div className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} max-sm:p-3 p-6`}>
               <div className='flex justify-between items-center gap-5 mb-6'>
 
                 <h3 className={`text-lg font-semibold ${textColor} mb-0`}>Calls</h3>
@@ -3030,7 +3030,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                       <div
                         onClick={() => handleLabelClick(call)}
                         key={call.name}
-                        className={`relative border ${borderColor} rounded-lg ml-12 p-4 flex flex-col`}
+                        className={`relative border ${borderColor} rounded-lg max-sm:ml-0 ml-12 p-4 flex flex-col`}
                       >
                         <div className="flex items-center justify-between mb-2">
                           <p className={`text-lg font-medium ${textColor}`}>
@@ -3302,7 +3302,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
 
         {activeTab === 'comments' && (
           <div className="">
-            <div className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} p-6`}>
+            <div className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} max-sm:p-3 p-6`}>
               <div className="flex justify-between items-center gap-5 mb-6">
                 <h3 className={`text-lg font-semibold ${textColor} mb-2`}>Comments</h3>
                 <button
@@ -3496,7 +3496,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
             {/* Add Task Form */}
             {/* <div className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} p-6`}> */}
             {/* <h3 className={`text-lg font-semibold ${textColor} mb-4`}>Add Task</h3> */}
-            <div className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} p-6`}>
+            <div className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} max-sm:p-3 p-6`}>
               <div className='flex justify-between items-center gap-5 mb-6'>
                 <h3 className={`text-lg font-semibold ${textColor} mb-0`}> Tasks</h3>
                 <button
@@ -3907,7 +3907,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
 
         {activeTab === 'emails' && (
           <div className="">
-            <div className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} p-6`}>
+            <div className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} max-sm:p-3 p-6`}>
               <div className='flex items-center justify-between gap-5 mb-6'>
                 <h3 className={`text-lg font-semibold ${textColor} mb-0`}>Emails</h3>
                 <button
@@ -3954,7 +3954,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                   {emails.map((email) => (
                     <div key={email.id} className="flex items-start w-full">
                       {/* Avatar Circle */}
-                      <div className=" mt-2 relative z-10 w-8 h-8 flex items-center justify-center rounded-full bg-gray-500 text-white text-sm font-semibold mr-4">
+                      <div className=" mt-2 relative flex-shrink-0 z-10 w-8 h-8 flex items-center justify-center rounded-full bg-gray-500 text-white text-sm font-semibold mr-4">
                         {email.fromName?.charAt(0).toUpperCase() || "?"}
                       </div>
 
@@ -3967,7 +3967,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
 
                           {/* Right-side controls */}
                           <div className="flex items-center gap-3 ml-auto">
-                            <span className="text-xs text-white">
+                            <span className="text-xs w-max text-white">
                               {getRelativeTime(email.creation)}
                             </span>
                             <button
@@ -4161,11 +4161,11 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                                 >
                                   {(callData._caller?.label || callData.from)?.charAt(0).toUpperCase() || "U"}
                                 </div>
-                                <span className={`ml-2 text-sm ${textColor}`}>
+                                <span className={`ml-2  text-sm ${textColor}`}>
                                   {callData._caller?.label || callData.from} has reached out
                                 </span>
                               </div>
-                              <p className={`text-xs ${textSecondaryColor}`}>
+                              <p className={`text-xs w-max d-flex flex-none ${textSecondaryColor}`}>
                                 {getRelativeTime(activity.timestamp)}
                               </p>
                             </div>
@@ -4173,7 +4173,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                             {/* Card body with call details */}
                             <div
                               onClick={() => handleLabelClick(callData, true)}
-                              className={`relative border ${borderColor} rounded-lg ml-12 p-4 flex flex-col`}>
+                              className={`relative w-auto border ${borderColor} rounded-lg ml-12 p-4 flex flex-col`}>
                               <div className="flex items-center justify-between mb-2">
                                 <p className={`text-lg font-medium ${textColor}`}>
                                   {callData.type} Call
@@ -4199,7 +4199,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                                 </span>
                               </div>
                               {/* Overlapping avatars for caller/receiver */}
-                              <div className="absolute right-4 top-1/2 -translate-y-1/2 flex -space-x-4">
+                              <div className="absolute right-4 top-1/2 max-sm:top-[25%] -translate-y-1/2 flex -space-x-4">
                                 <div
                                   onClick={() => handleLabelClick(callData)}
                                   className={`p-2 rounded-full flex items-center justify-center cursor-pointer ${theme === 'dark' ? 'bg-gray-600 text-gray-100' : 'bg-gray-400 text-gray-800'} font-medium`}
@@ -4362,7 +4362,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                               {/* Attachment preview */}
                               <div className={`mt-2 border ${borderColor} rounded-lg p-3`}>
                                 <div className="flex items-center justify-between">
-                                  <div className="flex items-center">
+                                  <div className="flex max-sm:w-min items-center">
                                     {isImageFile(attachmentData.file_name) ? (
                                       <img
                                         src={`https://api.erpnext.ai${attachmentData.file_url}`}
@@ -4419,7 +4419,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
 
                             {/* Email Card */}
                             <div className={`flex-1 border ${borderColor} rounded-lg p-4 hover:shadow-md transition-shadow`}>
-                              <div className="flex justify-between items-start mb-2">
+                              <div className="flex flex-col justify-between items-start mb-2">
                                 <h4 className={`font-medium ${textColor}`}>
                                   {emailData.fromName} &lt;{emailData.from}&gt;
                                 </h4>
@@ -4752,7 +4752,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
 
         {activeTab === 'attachments' && (
           <div className="space-y-6">
-            <div className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} p-6`}>
+            <div className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} max-sm:p-3 p-6`}>
               <div className='flex items-center justify-between gap-5 mb-6'>
                 <h3 className={`text-lg font-semibold ${textColor} mb-0`}>Attachments</h3>
                 <button
@@ -4803,7 +4803,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                         </div>
                       </div>
                       <div className="flex flex-col items-end space-y-2">
-                        <p className={`text-sm ${textSecondaryColor}`}> {getRelativeTime(attachment.creation ?? '')}</p>
+                        <p className={`text-sm w-max ${textSecondaryColor}`}> {getRelativeTime(attachment.creation ?? '')}</p>
                         <div
                           onClick={(e) => {
                             e.stopPropagation();

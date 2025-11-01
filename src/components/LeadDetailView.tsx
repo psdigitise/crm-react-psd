@@ -2717,7 +2717,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
               {/* <p className={`text-sm ${textSecondaryColor}`}>{lead.leadId}</p> */}
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-2 self-start sm:self-center">
+          <div className="flex flex-nowrap items-center gap-2 self-start sm:self-center">
             <div>
               <button
                 onClick={() => setShowPopup(true)}
@@ -2974,7 +2974,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
 
 
                 {/* Organization Details Section */}
-                <div className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} p-6`}>
+                <div className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor}  max-sm:p-3 p-6`}>
                   <div className="flex justify-between items-center mb-4">
                     <h3 className={`text-lg font-semibold ${textColor}`}>Data</h3>
                     <button
@@ -3530,7 +3530,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
 
         {activeTab === 'activity' && (
           <div className="h-full">
-            <div className={`relative h-full rounded-lg shadow-sm border p-4 sm:p-6 pb-5  ${theme === 'dark' ? `bg-gray-900 border-gray-700` : 'bg-white border-gray-200'}`}>
+            <div className={`relative h-full rounded-lg shadow-sm border p-4 max-sm:p-3 pb-5  ${theme === 'dark' ? `bg-gray-900 border-gray-700` : 'bg-white border-gray-200'}`}>
               <h3 className={`text-lg font-semibold mb-6 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Activity</h3>
 
               {activityLoading ? (
@@ -3599,7 +3599,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
                               </div>
 
                               {/* Caller + Receiver Avatars */}
-                              <div className="absolute right-4 top-1/2 -translate-y-1/2 flex -space-x-4">
+                              <div className="absolute max-sm:top-[30%] right-4 top-1/2 -translate-y-1/2 flex -space-x-4">
                                 <div
                                   className={`p-2 rounded-full flex items-center justify-center cursor-pointer 
                 ${theme === 'dark' ? 'bg-gray-600 text-gray-100' : 'bg-gray-400 text-gray-800'} font-medium`}
@@ -3998,7 +3998,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
 
         {activeTab === 'notes' && (
           <div className="space-y-6">
-            <div className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} p-6`}>
+            <div className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} max-sm:p-3 p-6`}>
               <div className='flex justify-between items-center gap-5 mb-6'>
                 <h3 className={`text-lg font-semibold ${textColor} mb-0`}>Notes</h3>
                 <button
@@ -4036,7 +4036,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
                   >Create Note</span>
                 </div>
               ) : (
-                <div className="grid grid-cols-3 gap-5">
+                <div className="grid grid-cols-3 max-sm:grid-cols-1 gap-5">
                   {notes.map((note) => (
                     <div
                       key={note.name}
@@ -4219,7 +4219,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
         {activeTab === 'calls' && (
           <div className="space-y-6">
             {/* Add Call Form */}
-            <div className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} p-6`}>
+            <div className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} max-sm:p-3 p-6`}>
               <div className='flex justify-between items-center gap-5 mb-6'>
                 <h3 className={`text-lg font-semibold ${textColor} mb-0`}>Calls</h3>
                 <button
@@ -4299,7 +4299,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
                       <div
                         onClick={() => handleLabelClick(call)}
                         key={call.name}
-                        className={`relative border ${borderColor} rounded-lg ml-12 p-4 flex flex-col cursor-pointer`}
+                        className={`relative border ${borderColor} rounded-lg max-sm:ml-0 ml-12 p-4 flex flex-col cursor-pointer`}
                       >
                         <div className="flex items-center justify-between mb-2">
                           <p className={`text-lg font-medium ${textColor}`}>
@@ -4562,7 +4562,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
 
         {activeTab === 'comments' && (
           <div className="">
-            <div className={`${cardBgColor} p-6 border ${borderColor}`}>
+            <div className={`${cardBgColor} max-sm:p-3 p-6 border ${borderColor}`}>
               <div className="flex justify-between items-center gap-4">
                 <h3 className={`text-2xl font-semibold mb-0 ${textColor} mb-4`}>Comments</h3>
                 <button
@@ -4598,7 +4598,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
                       <div className={`border w-full rounded-lg p-4 ${theme === 'dark' ? 'border-purple-500/30 hover:bg-purple-800/30' : 'border-gray-200 hover:bg-gray-50'} transition-colors`}>
                         <div className="flex items-start space-x-3">
                           <div className="flex-1">
-                            <div className="flex items-center justify-between">
+                            <div className="flex items-center max-sm:flex-wrap justify-between">
                               <div>
                                 <span className={`font-medium px-2 py-1 rounded-full bg-slate-500 ${textColor}`}>
                                   {comment.owner.charAt(0).toUpperCase()}
@@ -4768,7 +4768,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
         {activeTab === 'tasks' && (
           <div className="space-y-6">
             {/* Tasks Section */}
-            <div className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} p-6`}>
+            <div className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} max-sm:p-3 p-6`}>
               <div className='flex justify-between items-center gap-5 mb-6'>
                 <h3 className={`text-lg font-semibold ${textColor} mb-0`}>Tasks</h3>
                 <button
@@ -5139,7 +5139,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
 
         {activeTab === 'files' && (
           <div className="">
-            <div className={`${cardBgColor} p-6 border ${borderColor}`}>
+            <div className={`${cardBgColor} max-sm:p-3 p-6 border ${borderColor}`}>
               <div className='flex justify-between items-center gap-5 mb-6'>
                 <h3 className={`text-lg font-semibold mb-0 ${textColor}`}>Attachments </h3>
                 <button
