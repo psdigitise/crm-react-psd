@@ -1137,7 +1137,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
       )}
 
       {/* Table */}
-      <div className={`rounded-lg shadow-sm border overflow-hidden ${theme === 'dark'
+      <div className={`rounded-lg max-sm:bg-none shadow-sm border overflow-hidden ${theme === 'dark'
         ? 'bg-custom-gradient border-transparent !rounded-none'
         : 'bg-white border-gray-200'
         }`}>
@@ -1260,6 +1260,15 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
                   } shadow-sm`}
               >
                 <div className="flex justify-between items-center">
+                  <input
+                      type="checkbox"
+                      checked={selectedIds.includes(org.id)}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        handleRowSelection(org.id);
+                      }}
+                      className="rounded mr-4 border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
                   <div 
                     className="flex items-center flex-1 cursor-pointer"
                     onClick={() => onOrganizationClick && onOrganizationClick(org)}
@@ -1284,15 +1293,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
                   </div>
                   
                   <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={selectedIds.includes(org.id)}
-                      onChange={(e) => {
-                        e.stopPropagation();
-                        handleRowSelection(org.id);
-                      }}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
+                    
                     
                     {/* Dropdown arrow */}
                     <button

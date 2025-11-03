@@ -73,13 +73,18 @@ interface ColumnConfig {
   sortable: boolean;
 }
 
-const statusColors = {
+const statusColors: Record<string, string> = {
   New: '!text-yellow-500 dark:bg-yellow-900/30 dark:text-yellow-300',
   Contacted: ' text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
   Qualified: ' text-green-800 dark:bg-green-900/30 dark:text-green-300',
   Unqualified: ' text-gray-500 dark:bg-gray-900/30 dark:text-gray-500',
   Junk: 'bg-transparent text-black dark:bg-transparent dark:text-black',
   Nurture: ' text-violet-500 dark:bg-violet-900/30 dark:text-violet-500',
+};
+
+// Helper function to get status color
+const getStatusColor = (status: string) => {
+  return statusColors[status] || 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
 };
 
 const defaultColumns: ColumnConfig[] = [
@@ -130,7 +135,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
   const [isExportPopupOpen, setIsExportPopupOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [exportFormat, setExportFormat] = useState<'Excel' | 'CSV'>('Excel');
-  
+
   // Mobile dropdown state
   const [expandedLeads, setExpandedLeads] = useState<Set<string>>(new Set());
 
@@ -1011,9 +1016,9 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
 
       {/* Table */}
       <div
-        className={`rounded-lg shadow-sm border overflow-hidden ${theme === 'dark'
-            ? 'bg-custom-gradient border-transparent !rounded-none'
-            : 'bg-white border-gray-200'
+        className={`rounded-lg shadow-sm max-sm:bg-none border overflow-hidden ${theme === 'dark'
+          ? '  bg-custom-gradient border-transparent !rounded-none'
+          : 'bg-white border-gray-200'
           }`}
       >
         <div className="w-full">
@@ -1022,8 +1027,8 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
             <table className="w-full">
               <thead
                 className={`border-b ${theme === 'dark'
-                    ? 'bg-purplebg border-transparent'
-                    : 'bg-gray-50 border-gray-200'
+                  ? 'bg-purplebg border-transparent'
+                  : 'bg-gray-50 border-gray-200'
                   }`}
               >
                 <tr className="divide-x-[1px]">
@@ -1035,13 +1040,6 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
                         selectedIds.length === paginatedData.length
                       }
                       onChange={handleSelectAll}
-                      // ref={(el) => {
-                      //   if (el) {
-                      //     el.indeterminate =
-                      //       selectedIds.length > 0 &&
-                      //       selectedIds.length < paginatedData.length;
-                      //   }
-                      // }}
                       className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
                   </th>
@@ -1069,8 +1067,8 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
                   <tr
                     key={lead.id}
                     className={`transition-colors cursor-pointer ${theme === 'dark'
-                        ? 'hover:bg-purple-800/20'
-                        : 'hover:bg-gray-50'
+                      ? 'hover:bg-purple-800/20'
+                      : 'hover:bg-gray-50'
                       }`}
                     onClick={() => onLeadClick(lead)}
                   >
@@ -1112,9 +1110,17 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
                               {lead.name}
                             </div>
                           </div>
+                        ) : column.key === 'status' ? (
+                          // Special rendering for status with colors
+                          <span
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(lead.status)}`}
+                          >
+                            <FaCircleDot className="w-2 h-2 mr-1" />
+                            {lead.status}
+                          </span>
                         ) : (
                           <span
-                            className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-900'
+                            className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-900'
                               }`}
                           >
                             {lead[column.key] || 'N/A'}
@@ -1134,15 +1140,26 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
               <div
                 key={lead.id}
                 className={`p-4 rounded-lg border ${theme === 'dark'
-                    ? 'bg-purplebg border-transparent'
-                    : 'bg-white border-gray-200'
+                  ? 'bg-purplebg border-transparent'
+                  : 'bg-white border-gray-200'
                   } shadow-sm`}
               >
                 <div className="flex justify-between items-center">
-                  <div 
+
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.includes(lead.id)}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      handleRowSelection(lead.id);
+                    }}
+                    className="rounded mr-4 border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <div
                     className="flex items-center flex-1 cursor-pointer"
                     onClick={() => onLeadClick(lead)}
                   >
+
                     <div
                       className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 ${theme === 'dark' ? 'bg-purple-700' : 'bg-gray-200'
                         }`}
@@ -1161,34 +1178,30 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
                       {lead.name}
                     </h3>
                   </div>
-                  
+
                   <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={selectedIds.includes(lead.id)}
-                      onChange={(e) => {
-                        e.stopPropagation();
-                        handleRowSelection(lead.id);
-                      }}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    
+                    {/* Status badge for mobile */}
+                    <span
+                      className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(lead.status)}`}
+                    >
+                      <FaCircleDot className="w-2 h-2 mr-1" />
+                      {lead.status}
+                    </span>
+
                     {/* Dropdown arrow */}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         toggleLeadDetails(lead.id);
                       }}
-                      className={`p-1 rounded transition-transform ${
-                        theme === 'dark' ? 'hover:bg-purple-700' : 'hover:bg-gray-100'
-                      }`}
+                      className={`p-1 rounded transition-transform ${theme === 'dark' ? 'hover:bg-purple-700' : 'hover:bg-gray-100'
+                        }`}
                     >
-                      <svg 
-                        className={`w-4 h-4 transform transition-transform ${
-                          isLeadExpanded(lead.id) ? 'rotate-180' : ''
-                        } ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}
-                        fill="none" 
-                        stroke="currentColor" 
+                      <svg
+                        className={`w-4 h-4 transform transition-transform ${isLeadExpanded(lead.id) ? 'rotate-180' : ''
+                          } ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}
+                        fill="none"
+                        stroke="currentColor"
                         viewBox="0 0 24 24"
                       >
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -1202,7 +1215,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
                   <div className="mt-3 pt-3 border-t border-gray-200">
                     {/* Render all other columns as label:value */}
                     {visibleColumns.map((column) =>
-                      column.key !== 'name' ? (
+                      column.key !== 'name' && column.key !== 'status' ? (
                         <div
                           key={column.key}
                           className="flex justify-between text-sm py-1"

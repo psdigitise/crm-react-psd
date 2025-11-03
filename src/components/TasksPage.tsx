@@ -894,7 +894,7 @@ export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0, onMenuTo
 
         {/* Table */}
         <div
-          className={`rounded-lg shadow-sm border overflow-hidden ${theme === 'dark'
+          className={`rounded-lg max-sm:bg-none shadow-sm border overflow-hidden ${theme === 'dark'
             ? 'bg-custom-gradient border-transparent !rounded-none'
             : 'bg-white border-gray-200'
             }`}
@@ -1040,6 +1040,15 @@ export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0, onMenuTo
                     } shadow-sm`}
                 >
                   <div className="flex justify-between items-center">
+                    <input
+                        type="checkbox"
+                        checked={selectedTasks.includes(task.name)}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          handleCheckboxChange(task.name);
+                        }}
+                        className="rounded mr-4 border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
                     <div
                       className="flex items-center flex-1 cursor-pointer"
                       onClick={() => handleRowClick(task)}
@@ -1064,15 +1073,7 @@ export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0, onMenuTo
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={selectedTasks.includes(task.name)}
-                        onChange={(e) => {
-                          e.stopPropagation();
-                          handleCheckboxChange(task.name);
-                        }}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      />
+                      
 
                       <button
                         onClick={(e) => {
