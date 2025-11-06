@@ -14,7 +14,7 @@ const Toast: React.FC<ToastProps> = ({ message, type, isVisible, onClose }) => {
     if (!isVisible) return null;
 
     return (
-        <div className="fixed top-4 right-4 z-[9999] animate-in slide-in-from-top-2">
+        <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top-2">
             <div className={`flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg border ${type === 'success'
                 ? 'bg-green-50 border-green-200 text-green-800'
                 : 'bg-red-50 border-red-200 text-red-800'
@@ -24,7 +24,7 @@ const Toast: React.FC<ToastProps> = ({ message, type, isVisible, onClose }) => {
                 ) : (
                     <X className="w-5 h-5 text-red-600" />
                 )}
-                <p className="text-sm font-medium max-w-xs sm:max-w-sm">{message}</p>
+                <p className="text-sm font-medium max-w-sm">{message}</p>
                 <button
                     onClick={onClose}
                     className={`ml-2 ${type === 'success' ? 'text-green-600 hover:text-green-800' : 'text-red-600 hover:text-red-800'
@@ -207,7 +207,7 @@ export default function PasswordResetPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-black via-[#2A2352] to-black flex items-center justify-center p-4 sm:p-6">
+        <div className="min-h-screen bg-gradient-to-br from-black via-[#2A2352] to-black flex items-center justify-center p-4">
             <Toast
                 message={toast.message}
                 type={toast.type}
@@ -215,19 +215,19 @@ export default function PasswordResetPage() {
                 onClose={hideToast}
             />
 
-            <div className="w-full max-w-md mx-auto">
+            <div className="w-full max-w-md">
                 {/* Logo */}
                 <div className="text-center mb-8">
                     <div className="inline-flex items-center space-x-2">
                         <img
-                            src="/login/assets/images/Erpnextlogo.png"
+                            src="../../login/public/assets/images/Erpnextlogo.png"
                             alt="ERPNext.ai"
                             className="w-[300px] filter invert brightness-0 saturate-100 sepia hue-rotate-[90deg] contrast-125"
                         />
                     </div>
                 </div>
 
-                <div className="bg-white/10 backdrop-blur-md rounded-lg shadow-lg border border-white/20 p-6 sm:p-8">
+                <div className="bg-white/10 backdrop-blur-md rounded-lg shadow-sm border border-gray-200 p-8">
                     <div className="text-center mb-8">
                         <h1 className="text-[1.7rem] font-[600] text-white mb-2">
                             {isFromActivation ? "Set Your Password" : "Reset Password"}
@@ -340,12 +340,11 @@ export default function PasswordResetPage() {
                             onClick={handleSubmit}
                             disabled={!canSubmit || loading}
                             className={`w-full py-3 rounded-lg font-medium transition-colors ${canSubmit && !loading
-                                ? 'bg-white text-[#2D243C] hover:bg-gray-200'
+                                ? 'bg-white text-[#2D243C] hover:bg-gray-100'
                                 : 'bg-gray-400 text-gray-700 cursor-not-allowed'
-                                } flex items-center justify-center`}
+                                }`}
                         >
-                            {loading && <Loader2 className="w-5 h-5 animate-spin mr-2" />}
-                            {loading ? "Updating..." : "Reset Password"}
+                            {loading ? "Updating Password..." : "Reset Password"}
                         </button>
 
                         {/* Additional redirect option at the bottom */}
