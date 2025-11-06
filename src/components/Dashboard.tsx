@@ -13,10 +13,13 @@ import {
   CheckCircle,
   AlertCircle,
   Phone,
-  Menu,
   Mail,
+  Menu,
 } from 'lucide-react';
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
+import { 
+  PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Legend, ScatterChart, Scatter, ZAxis
+} from 'recharts';
 import { dashboardStats, todayTasks, openDeals, todayLeads, dealsClosingThisMonth, todaytasks } from '../data/sampleData';
 import { useTheme } from './ThemeProvider';
 import axios from 'axios';
@@ -46,7 +49,7 @@ interface StatusCounts {
   Won: number;
   'Demo/Making': number;
   'Ready to Close': number;
-  'Negotiation': number;
+  Negotiation: number;
   'Proposal/Quotation': number
 }
 
@@ -80,46 +83,42 @@ function MetricCard({ title, value, change, icon, trend, color }: MetricCardProp
 
 interface ChartCardProps {
   title: string;
+  description?: string;
   children: React.ReactNode;
   action?: React.ReactNode;
 }
 
-function ChartCard({ title, children, action }: ChartCardProps) {
+function ChartCard({ title, description, children, action }: ChartCardProps) {
   const { theme } = useTheme();
 
   return (
     <div
-      className={`rounded-xl shadow-sm border-none p-6 ${
-        theme === 'dark' ? 'bg-[#1c1c1c]' : 'bg-white border-gray-100'
+      className={`rounded-xl shadow-sm border-white  p-6 ${
+        theme === 'dark' ? 'bg-custom-gradient border ' : 'bg-white border-gray-100'
       }`}
     >
-      <div className="flex items-center justify-between mb-6">
+      <div className="mb-6">
         <h3
-          className={`text-lg font-semibold ${
+          className={`text-xl font-bold ${
             theme === 'dark' ? 'text-white' : 'text-gray-900'
           }`}
         >
           {title}
         </h3>
-        {action || (
-          <button
-            className={`p-1 rounded-lg transition-colors ${
-              theme === 'dark' ? 'hover:bg-purple-800/50' : 'hover:bg-gray-100'
+        {description && (
+          <p
+            className={`text-sm mt-1 ${
+              theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
             }`}
           >
-            {/* <MoreHorizontal
-              className={`w-5 h-5 ${
-                theme === 'dark' ? 'text-gray-300' : 'text-gray-500'
-              }`}
-            /> */}
-          </button>
+            {description}
+          </p>
         )}
       </div>
       {children}
     </div>
   );
 }
-
 
 interface ActivityItemProps {
   icon: React.ReactNode;
@@ -251,6 +250,22 @@ function TaskTable({ title, data, compact = false }: TaskTableProps) {
   );
 }
 
+// Interface for Sales Trend data
+interface SalesTrendData {
+  date: string;
+  leads: number;
+  deals: number;
+  won_deals: number;
+}
+
+// Interface for Forecasted Revenue data
+interface ForecastedRevenueData {
+  date: string;
+  time?: string;
+  forecasted: number;
+  actual: number;
+}
+
 interface DashboardProps {
   onMenuToggle: () => void;
 }
@@ -275,26 +290,137 @@ export function Dashboard({ onMenuToggle }: DashboardProps) {
   const [contactCount, setContactCount] = useState(0);
   const [organizationCount, setOrganizationCount] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
+  
+  // New state for charts
+  const [salesTrendData, setSalesTrendData] = useState<SalesTrendData[]>([]);
+  const [forecastedRevenueData, setForecastedRevenueData] = useState<ForecastedRevenueData[]>([]);
+  const [loadingCharts, setLoadingCharts] = useState(false);
+
   const userSession = getUserSession();
   const sessionfullname = userSession?.full_name;
   const sessionUsername = userSession?.username || sessionfullname;
+
+  // Function to fetch sales trend data
+  const fetchSalesTrendData = async () => {
+    try {
+      setLoadingCharts(true);
+      const userSession = getUserSession();
+      const Company = userSession?.company;
+      
+      // Calculate date range (last 30 days)
+      const toDate = new Date();
+      const fromDate = new Date();
+      fromDate.setDate(fromDate.getDate() - 30);
+      
+      const formattedFromDate = fromDate.toISOString().split('T')[0];
+      const formattedToDate = toDate.toISOString().split('T')[0];
+
+      const response = await api.get(
+        '/api/method/customcrm.overrides.custom_crm_dashboard.get_sales_trend',
+        {
+          params: {
+            from_date: formattedFromDate,
+            to_date: formattedToDate,
+            company: Company
+          }
+        }
+      );
+
+      console.log('Sales Trend API Response:', response.data);
+
+      if (response.data && response.data.message && Array.isArray(response.data.message)) {
+        setSalesTrendData(response.data.message);
+      } else {
+        // Fallback sample data
+        console.log('Using fallback sales trend data');
+        setSalesTrendData([
+          { date: '25', leads: 8, deals: 6, won_deals: 2 },
+          { date: '27', leads: 10, deals: 7, won_deals: 3 },
+          { date: '29', leads: 12, deals: 8, won_deals: 4 },
+          { date: '31', leads: 9, deals: 9, won_deals: 5 },
+          { date: 'Nov 3', leads: 11, deals: 10, won_deals: 6 },
+        ]);
+      }
+    } catch (error) {
+      console.error('Error fetching sales trend data:', error);
+      // Fallback sample data
+      setSalesTrendData([
+        { date: '25', leads: 8, deals: 6, won_deals: 2 },
+        { date: '27', leads: 10, deals: 7, won_deals: 3 },
+        { date: '29', leads: 12, deals: 8, won_deals: 4 },
+        { date: '31', leads: 9, deals: 9, won_deals: 5 },
+        { date: 'Nov 3', leads: 11, deals: 10, won_deals: 6 },
+      ]);
+    } finally {
+      setLoadingCharts(false);
+    }
+  };
+
+  // Function to fetch forecasted revenue data
+  const fetchForecastedRevenueData = async () => {
+    try {
+      setLoadingCharts(true);
+      const userSession = getUserSession();
+      const Company = userSession?.company;
+      
+      // Calculate date range (last 7 days with time segments)
+      const toDate = new Date();
+      const fromDate = new Date();
+      fromDate.setDate(fromDate.getDate() - 7);
+      
+      const formattedFromDate = fromDate.toISOString().split('T')[0];
+      const formattedToDate = toDate.toISOString().split('T')[0];
+
+      const response = await api.get(
+        '/api/method/customcrm.overrides.custom_crm_dashboard.get_forecasted_revenue',
+        {
+          params: {
+            from_date: formattedFromDate,
+            to_date: formattedToDate,
+            company: Company
+          }
+        }
+      );
+
+      console.log('Forecasted Revenue API Response:', response.data);
+
+      if (response.data && response.data.message && Array.isArray(response.data.message)) {
+        setForecastedRevenueData(response.data.message);
+      } else {
+        // Fallback sample data
+        console.log('Using fallback forecasted revenue data');
+        setForecastedRevenueData([
+          { date: '31', time: '06:00', forecasted: 8, actual: 6 },
+          { date: '31', time: '12:00', forecasted: 12, actual: 10 },
+          { date: '31', time: '18:00', forecasted: 15, actual: 14 },
+          { date: 'Nov', time: '06:00', forecasted: 18, actual: 16 },
+          { date: 'Nov', time: '12:00', forecasted: 22, actual: 20 },
+          { date: 'Nov', time: '18:00', forecasted: 25, actual: 23 },
+          { date: '2', time: '06:00', forecasted: 28, actual: 26 },
+        ]);
+      }
+    } catch (error) {
+      console.error('Error fetching forecasted revenue data:', error);
+      // Fallback sample data
+      setForecastedRevenueData([
+        { date: '31', time: '06:00', forecasted: 8, actual: 6 },
+        { date: '31', time: '12:00', forecasted: 12, actual: 10 },
+        { date: '31', time: '18:00', forecasted: 15, actual: 14 },
+        { date: 'Nov', time: '06:00', forecasted: 18, actual: 16 },
+        { date: 'Nov', time: '12:00', forecasted: 22, actual: 20 },
+        { date: 'Nov', time: '18:00', forecasted: 25, actual: 23 },
+        { date: '2', time: '06:00', forecasted: 28, actual: 26 },
+      ]);
+    } finally {
+      setLoadingCharts(false);
+    }
+  };
+
   // Function to fetch deals data
   const fetchDealsData = async () => {
     try {
       const userSession = getUserSession();
       const Company = userSession?.company;
-      // const response = await axios.get(
-      //   'https://api.erpnext.ai/api/v2/document/CRM Deal',
-      //   {
-      //     headers: {
-      //       Authorization: AUTH_TOKEN,
-      //     },
-      //     params: {
-      //       fields: JSON.stringify(["name", "status"]),
-      //       filters: JSON.stringify({ company: Company }),
-      //     },
-      //   }
-      // );
       const response = await api.get('api/v2/document/CRM Deal', {
         fields: JSON.stringify(["name", "status"]),
         filters: JSON.stringify({ company: Company }),
@@ -331,27 +457,11 @@ export function Dashboard({ onMenuToggle }: DashboardProps) {
     try {
       const userSession = getUserSession();
       const Company = userSession?.company;
-      // const response = await axios.get(
-      //   'https://api.erpnext.ai/api/v2/document/Contact',
-      //   {
-      //     headers: {
-      //       Authorization: AUTH_TOKEN,
-      //     },
-      //     params: {
-      //       fields: JSON.stringify(["name"]),
-      //       filters: JSON.stringify({ company: Company }),
-      //     }
-      //   }
-      // );
       const response = await api.get('api/v2/document/Contact', {
         fields: JSON.stringify(["name"]),
         filters: JSON.stringify({ company: Company }),
       });
 
-
-      // if (response.data && response.data.data) {
-      //   setContactCount(response.data.data.length || 0);
-      // }
       if (response.data) {
         setContactCount(response.data.length || 0);
       }
@@ -366,26 +476,11 @@ export function Dashboard({ onMenuToggle }: DashboardProps) {
     try {
       const userSession = getUserSession();
       const Company = userSession?.company;
-      // const response = await axios.get(
-      //   'https://api.erpnext.ai/api/v2/document/CRM Organization',
-      //   {
-      //     headers: {
-      //       Authorization: AUTH_TOKEN,
-      //     },
-      //     params: {
-      //       fields: JSON.stringify(["name"]),
-      //       filters: JSON.stringify({ company: Company }),
-      //     }
-      //   }
-      // );
-
       const response = await api.get('api/v2/document/CRM Organization', {
         fields: JSON.stringify(["name"]),
         filters: JSON.stringify({ company: Company }),
       });
-      // if (response.data && response.data.data) {
-      //   setOrganizationCount(response.data.data.length || 0);
-      // }
+      
       if (response.data) {
         setOrganizationCount(response.data.length || 0);
       }
@@ -400,14 +495,6 @@ export function Dashboard({ onMenuToggle }: DashboardProps) {
     try {
       const userSession = getUserSession();
       const Company = userSession?.company;
-      // const response = await axios.get('https://api.erpnext.ai/api/v2/document/CRM Lead/', {
-      //   headers: {
-      //     Authorization: AUTH_TOKEN,
-      //   },
-      //   params: {
-      //     filters: JSON.stringify({ company: Company, converted: 0 }),
-      //   },
-      // });
       const response = await api.get('api/v2/document/CRM Lead', {
         filters: JSON.stringify({ company: Company, converted: 0 }),
       });
@@ -424,18 +511,6 @@ export function Dashboard({ onMenuToggle }: DashboardProps) {
     try {
       const userSession = getUserSession();
       const Company = userSession?.company;
-      // const response = await apiAxios.get(
-      //   '/api/v2/document/CRM Task',
-      //   {
-      //     headers: {
-      //       Authorization: AUTH_TOKEN,
-      //     },
-      //     params: {
-      //       fields: JSON.stringify(["description", "start_date", "due_date", "priority"]),
-      //       filters: JSON.stringify({ company: Company }),
-      //     },
-      //   }
-      // );
       const response = await api.get('/api/v2/document/CRM Task', {
         fields: JSON.stringify(["description", "start_date", "due_date", "priority"]),
         filters: JSON.stringify({ company: Company }),
@@ -462,17 +537,6 @@ export function Dashboard({ onMenuToggle }: DashboardProps) {
     try {
       const userSession = getUserSession();
       const Company = userSession?.company;
-      // const response = await apiAxios.get('/api/v2/document/CRM Lead', {
-      //   headers: {
-      //     Authorization: AUTH_TOKEN,
-      //   },
-      //   params: {
-      //     fields: JSON.stringify(["lead_name", "status"]),
-      //     filters: JSON.stringify({ company: Company, converted: 0 }),
-
-      //   },
-      // });
-
       const response = await api.get('/api/v2/document/CRM Lead', {
         fields: JSON.stringify(["lead_name", "status"]),
         filters: JSON.stringify({ company: Company, converted: 0 }),
@@ -490,36 +554,22 @@ export function Dashboard({ onMenuToggle }: DashboardProps) {
     }
   };
 
-
   const fetchDealsTableData = async () => {
     try {
       const userSession = getUserSession();
       const Company = userSession?.company;
-
-      // const response = await apiAxios.get('/api/v2/document/CRM Deal', {
-      //   headers: {
-      //     Authorization: AUTH_TOKEN,
-      //   },
-      //   params: {
-      //     fields: JSON.stringify(["organization", "status", "close_date"]),
-      //     filters: JSON.stringify({ company: Company }),
-      //   },
-      // });
       const response = await api.get('/api/v2/document/CRM Deal', {
         fields: JSON.stringify(["organization", "status", "close_date"]),
         filters: JSON.stringify({ company: Company }),
       });
 
       const data = response?.data;
-
-      // Filter deals closing this month on client side
       const now = new Date();
       const currentMonth = now.getMonth();
       const currentYear = now.getFullYear();
 
       const dealsThisMonth = data.filter((item: any) => {
         if (!item.close_date) return false;
-
         const closeDate = new Date(item.close_date);
         return closeDate.getMonth() === currentMonth &&
           closeDate.getFullYear() === currentYear;
@@ -539,28 +589,13 @@ export function Dashboard({ onMenuToggle }: DashboardProps) {
     }
   };
 
-  // Function to fetch today's leads data with better error handling
+  // Function to fetch today's leads data
   const fetchTodayLeadsData = async () => {
     try {
       const userSession = getUserSession();
       const Company = userSession?.company;
-
-      // Get today's date in YYYY-MM-DD format
       const today = new Date().toISOString().split('T')[0];
 
-      // const response = await apiAxios.get('/api/v2/document/CRM Lead', {
-      //   headers: {
-      //     Authorization: AUTH_TOKEN,
-      //   },
-      //   params: {
-      //     fields: JSON.stringify(["lead_name", "status", "creation", "name"]),
-      //     filters: JSON.stringify({
-      //       company: Company,
-      //       creation: ['>=', today], // If your API supports this syntax
-      //       converted: 0
-      //     }),
-      //   },
-      // });
       const response = await api.get('/api/v2/document/CRM Lead', {
         fields: JSON.stringify(["lead_name", "status", "creation", "name"]),
         filters: JSON.stringify({
@@ -571,7 +606,6 @@ export function Dashboard({ onMenuToggle }: DashboardProps) {
       });
 
       const data = response?.data || [];
-
       const formattedLeads = data.map((item: any, index: number) => ({
         id: item.name || `${index}`,
         lead_name: item.lead_name || 'Unnamed Lead',
@@ -591,7 +625,6 @@ export function Dashboard({ onMenuToggle }: DashboardProps) {
   const refreshDashboard = async () => {
     setRefreshing(true);
     try {
-      // Execute all API calls in parallel for better performance
       await Promise.all([
         fetchDealsData(),
         fetchContactCount(),
@@ -600,7 +633,9 @@ export function Dashboard({ onMenuToggle }: DashboardProps) {
         fetchTasksData(),
         fetchLeadTableData(),
         fetchDealsTableData(),
-        fetchTodayLeadsData()
+        fetchTodayLeadsData(),
+        fetchSalesTrendData(),
+        fetchForecastedRevenueData()
       ]);
     } catch (error) {
       console.error('Error refreshing dashboard:', error);
@@ -651,13 +686,11 @@ export function Dashboard({ onMenuToggle }: DashboardProps) {
       </div>
       <div className="mb-4 !mt-0">
         <div>
-
-          <p className={`mt-4 mb-4 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Here’s your sales performance snapshot for today.</p>
+          <p className={`mt-4 mb-4 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Here's your sales performance snapshot for today.</p>
         </div>
-
       </div>
 
-      {/* Key Metrics - Adjusted grid for better mobile view */}
+      {/* Key Metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6">
         <MetricCard
           title="Total Contacts"
@@ -693,18 +726,214 @@ export function Dashboard({ onMenuToggle }: DashboardProps) {
         />
       </div>
 
+      {/* Charts Section - Sales Trend and Forecasted Revenue */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Sales Trend Chart */}
+        <ChartCard 
+          title="Sales trend" 
+          description="Daily performance of leads, deals, and wins"
+        >
+          <div className=" rounded-lg p-4">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Count</span>
+                <div className="flex items-center space-x-4">
+                  <div className="flex items-center space-x-1">
+                    <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                    <span className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Leads</span>
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
+                    <span className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Deals</span>
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                    <span className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Won Deals</span>
+                  </div>
+                </div>
+              </div>
+              
+              {loadingCharts ? (
+                <div className="flex items-center justify-center h-64">
+                  <div className="text-center">
+                    <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-2 text-purple-500" />
+                    <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Loading chart data...</p>
+                  </div>
+                </div>
+              ) : salesTrendData.length === 0 ? (
+                <div className="flex items-center justify-center h-64">
+                  <div className="text-center">
+                    <AlertCircle className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                    <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>No data available</p>
+                  </div>
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height={250}>
+                  <LineChart 
+                    data={salesTrendData} 
+                    margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                  >
+                    <CartesianGrid 
+                      strokeDasharray="3 3" 
+                      stroke={theme === 'dark' ? '#374151' : '#e5e7eb'} 
+                    />
+                    <XAxis 
+                      dataKey="date" 
+                      stroke={theme === 'dark' ? '#9ca3af' : '#6b7280'}
+                      fontSize={12}
+                    />
+                    <YAxis 
+                      stroke={theme === 'dark' ? '#9ca3af' : '#6b7280'}
+                      fontSize={12}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
+                        border: theme === 'dark' ? '1px solid #4b5563' : '1px solid #e5e7eb',
+                        borderRadius: '8px',
+                        color: theme === 'dark' ? '#f3f4f6' : '#374151'
+                      }}
+                      formatter={(value: any) => [value, 'Count']}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="leads" 
+                      stroke="#3b82f6" 
+                      strokeWidth={2}
+                      dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
+                      activeDot={{ r: 6, fill: '#3b82f6' }}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="deals" 
+                      stroke="#8b5cf6" 
+                      strokeWidth={2}
+                      dot={{ fill: '#8b5cf6', strokeWidth: 2, r: 4 }}
+                      activeDot={{ r: 6, fill: '#8b5cf6' }}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="won_deals" 
+                      stroke="#10b981" 
+                      strokeWidth={2}
+                      dot={{ fill: '#10b981', strokeWidth: 2, r: 4 }}
+                      activeDot={{ r: 6, fill: '#10b981' }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          </div>
+        </ChartCard>
+
+        {/* Forecasted Revenue Chart */}
+        <ChartCard
+          title="Forecasted revenue" 
+          description="Projected vs actual revenue based on deal probability"
+
+        >
+          <div className=" rounded-lg p-4 forecast-chart">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Revenue ($)</span>
+                <div className="flex items-center space-x-4">
+                  <div className="flex items-center space-x-1">
+                    <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
+                    <span className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Forecasted</span>
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                    <span className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Actual</span>
+                  </div>
+                </div>
+              </div>
+              
+              {loadingCharts ? (
+                <div className="flex items-center justify-center h-64">
+                  <div className="text-center">
+                    <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-2 text-purple-500" />
+                    <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Loading chart data...</p>
+                  </div>
+                </div>
+              ) : forecastedRevenueData.length === 0 ? (
+                <div className="flex items-center justify-center h-64">
+                  <div className="text-center">
+                    <AlertCircle className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                    <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>No data available</p>
+                  </div>
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height={250}>
+                  <ScatterChart 
+                    data={forecastedRevenueData} 
+                    margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                  >
+                    <CartesianGrid 
+                      strokeDasharray="3 3" 
+                      stroke={theme === 'dark' ? '#374151' : '#e5e7eb'} 
+                    />
+                    <XAxis 
+                      dataKey="date" 
+                      stroke={theme === 'dark' ? '#9ca3af' : '#6b7280'}
+                      fontSize={12}
+                      tickFormatter={(value) => {
+                        const item = forecastedRevenueData.find(d => d.date === value);
+                        return item && item.time ? `${value} ${item.time}` : value;
+                      }}
+                    />
+                    <YAxis 
+                      stroke={theme === 'dark' ? '#9ca3af' : '#6b7280'}
+                      fontSize={12}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
+                        border: theme === 'dark' ? '1px solid #4b5563' : '1px solid #e5e7eb',
+                        borderRadius: '8px',
+                         color: theme === 'dark' ? '#ffffff' : '#374151' 
+                      }}
+                      formatter={(value: any, name: any) => {
+                        const label = name === 'forecasted' ? 'Forecasted' : 'Actual';
+                        return [`$${value}`, label];
+                      }}
+                      labelFormatter={(label) => {
+                        const item = forecastedRevenueData.find(d => d.date === label);
+                        return item && item.time ? `Date: ${label} ${item.time}` : `Date: ${label}`;
+                      }}
+                    />
+                    <Scatter 
+                      name="forecasted"
+                      dataKey="forecasted" 
+                      fill="#f97316" 
+                      shape="circle"
+                      r={6}
+                    />
+                    <Scatter 
+                      name="actual"
+                      dataKey="actual" 
+                      fill="#3b82f6" 
+                      shape="circle"
+                      r={6}
+                    />
+                  </ScatterChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          </div>
+        </ChartCard>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <TaskTable title="Today Task" data={taskData} compact={false} />
-        {/* <LeadTable title="Leads" data={leadTableData} /> */}
         <TodayLeadstable title="Today Leads" data={TodayLeadsData} />
         <Dealstable title="Deals Closing This Month" data={DealsTableData} />
       </div>
 
-      {/* Charts Section - Adjusted grid and background */}
+      {/* Charts Section - Conversion Funnel and Quick Actions */}
       <div className={`grid grid-cols-1 lg:grid-cols-2 gap-6 rounded-lg ${theme === 'dark' ? 'bg-gray-900/50' : 'bg-white'}`}>
         <div className=''>
           <ChartCard title="Lead Conversion Funnel">
-            <ResponsiveContainer  width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
                   data={conversionData}
@@ -749,7 +978,7 @@ export function Dashboard({ onMenuToggle }: DashboardProps) {
         <div className="grid grid-cols-1 relative lg:border-l lg:border-gray-200 dark:lg:border-gray-700 lg:pl-6">
           <div className='before:absolute before:content-[""] before:w-[2px] before:h-[70%] before:bg-black before:top-[20%]'></div>
 
-          <ChartCard  title="Quick Actions">
+          <ChartCard title="Quick Actions">
             <div className="space-y-6">
               <button className={`w-full p-3 text-left rounded-lg transition-colors group ${theme === 'dark'
                 ? 'bg-[#076eff4f] hover:bg-blue-300'

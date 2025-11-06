@@ -60,3 +60,10 @@ body {
     font-family: sans-serif;
 }
 
+.recharts-wrapper{
+  transform: translateX(-37px) !important;
+}
+
+.forecast-chart .recharts-tooltip-item{
+  color: #fff !important;
+}

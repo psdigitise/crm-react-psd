@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronDown, ChevronUp, User, Mail, Loader2, ChevronLeft, ChevronRight, Filter, X, Settings, RefreshCcw, Download } from 'lucide-react';
+import { ChevronDown, ChevronUp, User, Mail, Loader2, ChevronLeft, ChevronRight, Filter, X, Settings, RefreshCcw, Download, Upload } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import { showToast } from '../utils/toast';
 import { getUserSession } from '../utils/session';
@@ -440,7 +440,7 @@ export function UsersTable({ searchTerm, onUserClick, refreshTrigger }: UsersTab
                     : 'border-gray-300 hover:bg-gray-50'
                     }`}
                 >
-                  <Download className="w-4 h-4" />
+                  <Upload  className="w-4 h-4" />
                 </button>
               </div>
             )}

@@ -555,17 +555,25 @@ export function CreateOrganizationModal({ isOpen, onClose, onSubmit }: CreateOrg
     }
   };
 
-  const handleAddressCreated = (newAddress: any) => {
-    // Add the new address to the list and select it
-    const addressName = newAddress.data?.name || newAddress.name;
-    const addressTitle = newAddress.data?.address_title || newAddress.address_title;
+  const handleAddressCreated = async (newAddress: any) => {
+    try {
+      // First, immediately refetch addresses to get the latest data
+      await fetchAddresses();
 
-    setAddresses(prev => [...prev, {
-      name: addressName,
-      address_title: addressTitle
-    }]);
-    setFormData(prev => ({ ...prev, address: addressName }));
-    setShowAddressModal(false);
+      // The API response might have the address data in different formats
+      const createdAddress = newAddress.data || newAddress.message || newAddress;
+
+      if (createdAddress && createdAddress.name) {
+        // Select the newly created address after a short delay to ensure fetch is complete
+        setTimeout(() => {
+          setFormData(prev => ({ ...prev, address: createdAddress.name }));
+        }, 300);
+      }
+    } catch (error) {
+      console.error('Error handling created address:', error);
+    } finally {
+      setShowAddressModal(false);
+    }
   };
 
   if (!isOpen) return null;

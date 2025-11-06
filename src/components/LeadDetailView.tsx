@@ -319,6 +319,8 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [showCreateIndustryModal, setShowCreateIndustryModal] = useState(false);
   const [industrySearch, setIndustrySearch] = useState('');
+  const [expectedDealValue, setExpectedDealValue] = useState('');
+  const [expectedClosureDate, setExpectedClosureDate] = useState('');
   const [organizationInfo, setOrganizationInfo] = useState<any>(null);
   const [generatingInfo, setGeneratingInfo] = useState(false);
   const [showFileModal, setShowFileModal] = useState(false);
@@ -1539,8 +1541,14 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
         existing_organization
       } = params;
 
+      // Include the expected_deal_value and expected_closure_date in the deal data
+      const dealWithValues = {
+        ...dealData,
+        expected_deal_value: dealData.expected_deal_value,
+        expected_closure_date: dealData.expected_closure_date
+      };
+
       // --- 1. First API Call: Convert the Lead to a Deal ---
-      // This part remains the same. It sends the conversion request.
       const leadResponse = await fetch(`${API_BASE_URL}/method/crm.fcrm.doctype.crm_lead.crm_lead.convert_to_deal`, {
         method: 'POST',
         headers: {
@@ -1549,12 +1557,8 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
         },
         body: JSON.stringify({
           lead: leadName,
-          deal: {},
+          deal: dealWithValues, // Use the updated deal data with the new fields
           company: sessionCompany,
-          // filters: {
-          //   company: sessionCompany   // ✅ Add filters here
-          // },
-          //value: "New",
           existing_contact,
           existing_organization
         })
@@ -1629,6 +1633,10 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
       setLoading(false);
     }
   };
+
+
+
+
   // Usage example:
   // handleConvert({
   //   lead: "CRM-LEAD-2025-00001", 
@@ -2819,10 +2827,48 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
                       )}
                     </div>
 
+                    {/* New Deal Value Field */}
+                    <div className="mb-4">
+                      <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                        Expected Deal Value <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="number"
+                        value={expectedDealValue}
+                        onChange={(e) => setExpectedDealValue(e.target.value)}
+                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
+                          ? 'bg-gray-800 border-gray-600 text-white'
+                          : 'bg-white border-gray-300 text-gray-900'
+                          }`}
+                        placeholder="Enter expected deal value"
+                        required
+                      />
+                    </div>
+
+                    {/* New Closure Date Field */}
+                    <div className="mb-6">
+                      <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                        Expected Closure Date <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="date"
+                        value={expectedClosureDate}
+                        onChange={(e) => setExpectedClosureDate(e.target.value)}
+                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
+                          ? 'bg-gray-800 border-gray-600 text-white'
+                          : 'bg-white border-gray-300 text-gray-900'
+                          }`}
+                        required
+                      />
+                    </div>
+
                     <button
                       onClick={() => handleConvert({
                         lead: lead.name,
-                        deal: {},
+                        deal: {
+                          expected_deal_value: expectedDealValue,
+                          expected_closure_date: expectedClosureDate
+                        },
                         existing_contact: selectedContact,
                         existing_organization: orgToggle ? selectedOrganization : undefined
                       })}
@@ -2830,7 +2876,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
                         ? 'bg-purple-600 hover:bg-purple-700 text-white'
                         : 'bg-blue-600 hover:bg-blue-700 text-white'
                         } disabled:opacity-50`}
-                      disabled={loading}
+                      disabled={loading || !expectedDealValue || !expectedClosureDate}
                     >
                       {loading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Convert'}
                     </button>
@@ -4331,7 +4377,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
                         </div>
 
                         {/* Circle floated to the right, vertically centered */}
-                       <div className="absolute right-4 top-4 flex -space-x-3 sm:top-1/2 sm:-translate-y-1/2 sm:-space-x-4">
+                        <div className="absolute right-4 top-4 flex -space-x-3 sm:top-1/2 sm:-translate-y-1/2 sm:-space-x-4">
                           {/* Caller */}
                           <div
                             className="p-2 rounded-full flex items-center justify-center bg-gray-400 text-gray-700 font-medium w-6 h-6 text-xs sm:w-8 sm:h-8"

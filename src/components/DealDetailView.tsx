@@ -73,6 +73,9 @@ export interface Deal {
   probability?: string;
   next_step?: string;
   deal_name?: string;
+  // NEW FIELDS
+  expected_deal_value?: string;
+  expected_closure_date?: string;
 }
 
 interface Note {
@@ -1785,8 +1788,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
       // Update the editedDeal state with the fetched data
       setEditedDeal(prev => ({
         ...prev,
-        organization: dealData.organization || dealData.organization_name || '', // Add this fallback
-        organization_name: dealData.organization_name || dealData.organization || '', // Add this fallback
+        organization: dealData.organization || dealData.organization_name || '',
+        organization_name: dealData.organization_name || dealData.organization || '',
         website: dealData.website || '',
         no_of_employees: dealData.no_of_employees || '',
         territory: dealData.territory || '',
@@ -1802,7 +1805,10 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         next_step: dealData.next_step || '',
         probability: dealData.probability?.toString() || '0',
         status: dealData.status || 'Qualification',
-        close_date: dealData.close_date || ''
+        close_date: dealData.close_date || '',
+        // NEW FIELDS
+        expected_deal_value: dealData.expected_deal_value?.toString() || '',
+        expected_closure_date: dealData.expected_closure_date || '',
       }));
 
     } catch (error) {
@@ -1854,15 +1860,19 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
 
     const newErrors: { [key: string]: string } = {};
 
+    // NEW: Validate mandatory fields
+    if (!editedDeal.expected_deal_value?.trim()) {
+      newErrors.expected_deal_value = 'Expected Deal Value is required';
+    }
+
+    if (!editedDeal.expected_closure_date?.trim()) {
+      newErrors.expected_closure_date = 'Expected Closure Date is required';
+    }
+
     // Website validation
     if (editedDeal.website && !isValidUrl(editedDeal.website)) {
       newErrors.website = 'Please enter a valid website URL (e.g., example.com or https://example.com)';
     }
-
-    // Add other validations here if needed
-    // if (!editedDeal.organization_name) {
-    //   newErrors.organization_name = 'Organization name is required';
-    // }
 
     // If validation errors found, stop submission
     if (Object.keys(newErrors).length > 0) {
@@ -1875,7 +1885,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
     try {
       const payload = {
         doctype: "CRM Deal",
-        name: editedDeal.name, // ensure this is available
+        name: editedDeal.name,
         fieldname: {
           organization: editedDeal.organization,
           organization_name: editedDeal.organization_name,
@@ -1886,7 +1896,10 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
           probability: editedDeal.probability,
           next_step: editedDeal.next_step,
           deal_owner: editedDeal.deal_owner,
-          status: editedDeal.status, // include if needed
+          status: editedDeal.status,
+          // NEW FIELDS
+          expected_deal_value: editedDeal.expected_deal_value,
+          expected_closure_date: editedDeal.expected_closure_date,
         },
       };
 
@@ -1903,10 +1916,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
 
       showToast('Deal updated successfully!', { type: 'success' });
       console.log("Save successful:", response.data.message);
-      // Optionally show success message or reload
     } catch (error) {
       console.error("Save failed:", error);
-      // Optionally show error message
     } finally {
       setLoading(false);
     }
@@ -2270,7 +2281,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
       <div className="p-4 sm:p-6">
         {activeTab === 'overview' && (
           <div>
-            <div className="grid grid-cols-1  gap-6">
+            <div className="grid grid-cols-1 gap-6">
               <div className="space-y-6">
                 <div className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} max-sm:p-3 p-6`}>
                   <div className="flex justify-between items-center mb-4">
@@ -2469,6 +2480,64 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                       />
                     </div>
 
+                    {/* NEW: Expected Deal Value (₹) - Mandatory */}
+                    <div>
+                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>
+                        Expected Deal Value (₹) <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="number"
+                        value={editedDeal.expected_deal_value || ''}
+                        onChange={(e) => {
+                          handleInputChange('expected_deal_value', e.target.value);
+                          // Clear error when user starts typing
+                          if (errors.expected_deal_value) {
+                            setErrors(prev => ({ ...prev, expected_deal_value: '' }));
+                          }
+                        }}
+                        className={`p-[2px] pl-2 mt-1 border block w-full rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor} ${errors.expected_deal_value ? 'border-red-500' : ''}`}
+                        placeholder="Enter expected deal value"
+                      />
+                      {errors.expected_deal_value && (
+                        <p className="text-sm text-red-500 mt-1">{errors.expected_deal_value}</p>
+                      )}
+                    </div>
+
+                    {/* NEW: Expected Closure Date - Mandatory */}
+                    <div>
+                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>
+                        Expected Closure Date <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="date"
+                        value={editedDeal.expected_closure_date?.split(' ')[0] || ''}
+                        onChange={(e) => {
+                          handleInputChange('expected_closure_date', e.target.value);
+                          // Clear error when user starts typing
+                          if (errors.expected_closure_date) {
+                            setErrors(prev => ({ ...prev, expected_closure_date: '' }));
+                          }
+                        }}
+                        className={`p-[2px] pl-2 mt-1 border block w-full rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor} ${errors.expected_closure_date ? 'border-red-500' : ''}`}
+                      />
+                      {errors.expected_closure_date && (
+                        <p className="text-sm text-red-500 mt-1">{errors.expected_closure_date}</p>
+                      )}
+                    </div>
+
+                    {/* UPDATED: Probability - Read-only */}
+                    <div>
+                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>
+                        Probability
+                      </label>
+                      <input
+                        type="number"
+                        value={editedDeal.probability || ''}
+                        readOnly
+                        className={`p-[2px] pl-2 mt-1 block w-full border rounded-md ${borderColor} shadow-sm sm:text-sm ${theme === 'dark' ? 'bg-gray-700 text-gray-400' : 'bg-gray-100 text-gray-500'} cursor-not-allowed`}
+                      />
+                      <p className="text-xs text-gray-500 mt-1">This field is automatically calculated</p>
+                    </div>
 
                     <div>
                       <label className={`block text-sm font-medium ${textSecondaryColor}`}>Website</label>
@@ -2482,29 +2551,15 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                             setErrors(prev => ({ ...prev, website: '' }));
                           }
                         }}
-                        className={`p-[2px] pl-2  placeholder-gray-200 mt-1 border block w-full rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
+                        className={`p-[2px] pl-2 placeholder-gray-200 mt-1 border block w-full rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
                       />
                       {errors.website && (
                         <p className="text-sm text-red-500 mt-1">{errors.website}</p>
                       )}
                     </div>
+
                     <div>
                       <label className={`block text-sm font-medium ${textSecondaryColor}`}>Territory</label>
-                      {/* <Select
-                        value={TerritoryOptions.find(
-                          (option) => option.value === editedDeal.territory
-                        )}
-                        onChange={(selectedOption) =>
-                          handleInputChange('territory', selectedOption ? selectedOption.value : '')
-                        }
-                        options={TerritoryOptions}
-                        isClearable
-                        isSearchable
-                        placeholder="Search or select Territory..."
-                        className="mt-1 w-full"
-                        classNamePrefix="org-select"
-                        styles={darkSelectStyles}
-                      /> */}
                       <Listbox
                         value={editedDeal.territory || ""}
                         onChange={(value) => handleInputChange("territory", value)}
@@ -2526,13 +2581,13 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                                   <path
                                     fillRule="evenodd"
                                     d="M10 3a1 1 0 01.707.293l3 3a1 1 
-                                       0 01-1.414 1.414L10 5.414 7.707 
-                                       7.707a1 1 0 01-1.414-1.414l3-3A1 
-                                       1 0 0110 3zm-3.707 9.293a1 1 
-                                       0 011.414 0L10 14.586l2.293-2.293a1 
-                                       1 0 011.414 1.414l-3 3a1 1 
-                                       0 01-1.414 0l-3-3a1 1 
-                                      0 010-1.414z"
+                               0 01-1.414 1.414L10 5.414 7.707 
+                               7.707a1 1 0 01-1.414-1.414l3-3A1 
+                               1 0 0110 3zm-3.707 9.293a1 1 
+                               0 011.414 0L10 14.586l2.293-2.293a1 
+                               1 0 011.414 1.414l-3 3a1 1 
+                               0 01-1.414 0l-3-3a1 1 
+                              0 010-1.414z"
                                     clipRule="evenodd"
                                   />
                                 </svg>
@@ -2561,7 +2616,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                                       strokeLinejoin="round"
                                       strokeWidth="2"
                                       d="M21 21l-6-6m2-5a7 7 
-                                    0 11-14 0 7 7 0 0114 0z"
+                            0 11-14 0 7 7 0 0114 0z"
                                     ></path>
                                   </svg>
                                   <button
@@ -2605,20 +2660,6 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                                   </Listbox.Option>
                                 ))}
 
-                              {/* Create New */}
-                              {/* <div className="sticky top-[44px] z-10 bg-white border-b">
-                                <button
-                                  type="button"
-                                  className="flex items-center w-full px-3 py-2 text-sm text-blue-600 hover:bg-gray-100"
-                                  onClick={() => {
-                                    setShowCreateTerritoryModal(true);
-                                    //close();
-                                  }}
-                                >
-                                  + Create New
-                                </button>
-                              </div> */}
-
                               {/* Clear */}
                               <div className="sticky top-[88px] z-10 bg-white border-b">
                                 <button
@@ -2643,6 +2684,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                         theme="dark"
                       />
                     </div>
+
                     <div>
                       <label className={`block text-sm font-medium ${textSecondaryColor}`}>Annual Revenue</label>
                       <input
@@ -2652,24 +2694,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                         className={`p-[2px] pl-2 mt-1 block w-full border rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
                       />
                     </div>
-                    <div>
-                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>Close Date</label>
-                      <input
-                        type="date"
-                        value={editedDeal.close_date?.split(' ')[0] || ''}
-                        onChange={(e) => handleInputChange('close_date', e.target.value)}
-                        className={`p-[2px] pl-2 mt-1 block w-full border rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
-                      />
-                    </div>
-                    <div>
-                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>Probability</label>
-                      <input
-                        type="number"
-                        value={editedDeal.probability || ''}
-                        onChange={(e) => handleInputChange('probability', e.target.value)}
-                        className={`p-[2px] pl-2 mt-1 block w-full border rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
-                      />
-                    </div>
+
                     <div>
                       <label className={`block text-sm font-medium ${textSecondaryColor}`}>Next Step</label>
                       <input
@@ -2679,6 +2704,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                         className={`p-[2px] pl-2 mt-1 block w-full border rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
                       />
                     </div>
+
                     <div>
                       <label className={`block text-sm font-medium ${textSecondaryColor}`}>Deal Owner</label>
                       <Select

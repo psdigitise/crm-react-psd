@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { ChevronDown, ChevronUp, Phone, Loader2, Filter, Settings, X, ChevronLeft, ChevronRight, RefreshCcw, Download } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { ChevronDown, ChevronUp, Phone, Loader2, Filter, Settings, X, ChevronLeft, ChevronRight, RefreshCcw, Download, Upload } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import { getUserSession } from '../utils/session';
 import { FaCircleDot } from 'react-icons/fa6';
@@ -71,6 +71,11 @@ interface FilterState {
   assignedTo: string[];
 }
 
+interface UnmappedColumn {
+  column_name: string;
+  suggested_field: string | null;
+}
+
 const statusColors = {
   Qualification: ' !text-yellow-500 dark:bg-yellow-900/30 dark:text-yellow-300',
   'Demo/Making': ' !text-blue-800 dark:bg-blue-900/30 dark:text-blue-500',
@@ -96,6 +101,33 @@ const defaultColumns: ColumnConfig[] = [
   { key: 'industry', label: 'Industry', visible: false, sortable: true },
   { key: 'website', label: 'Website', visible: false, sortable: true }
 ];
+
+// Add toast notification component
+const Toast = ({ message, type = 'error', onClose }: { message: string; type?: 'error' | 'success'; onClose: () => void }) => {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      onClose();
+    }, 5000);
+
+    return () => clearTimeout(timer);
+  }, [onClose]);
+
+  return (
+    <div className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg max-w-sm ${
+      type === 'error' ? 'bg-red-500 text-white' : 'bg-green-500 text-white'
+    }`}>
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-medium">{message}</span>
+        <button
+          onClick={onClose}
+          className="ml-4 text-white hover:text-gray-200"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  );
+};
 
 export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
   const { theme } = useTheme();
@@ -124,6 +156,21 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
   const [exportFormat, setExportFormat] = useState<'Excel' | 'CSV'>('Excel');
   const [expandedDeals, setExpandedDeals] = useState<Set<string>>(new Set());
 
+  // Import state
+  const [isImporting, setIsImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState(0);
+  const [importStatus, setImportStatus] = useState<string>('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  // Column mapping state
+  const [unmappedColumns, setUnmappedColumns] = useState<UnmappedColumn[]>([]);
+  const [manualMappings, setManualMappings] = useState<Record<string, string>>({});
+  const [showMappingPopup, setShowMappingPopup] = useState(false);
+
+  // Toast state
+  const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
+
   // Filter state
   const [filters, setFilters] = useState<FilterState>({
     status: [],
@@ -139,6 +186,14 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
     industry: [] as string[],
     assignedTo: [] as string[]
   });
+
+  const showToast = (message: string, type: 'error' | 'success' = 'error') => {
+    setToast({ message, type });
+  };
+
+  const hideToast = () => {
+    setToast(null);
+  };
 
   useEffect(() => {
     fetchDeals();
@@ -230,6 +285,365 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Extract the import continuation logic into a separate function
+  const continueImportProcess = async (dataImportName: string) => {
+    try {
+      setImportProgress(60);
+      setImportStatus('Starting data import...');
+
+      // Start the actual import process
+      const startImportPayload: any = {
+        data_import: dataImportName
+      };
+
+      const startImportResponse = await fetch(
+        `https://api.erpnext.ai/api/method/frappe.core.doctype.data_import.data_import.form_start_import`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': AUTH_TOKEN,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(startImportPayload)
+        }
+      );
+
+      if (!startImportResponse.ok) {
+        throw new Error(`Start import API failed: ${startImportResponse.statusText}`);
+      }
+
+      const startImportResult = await startImportResponse.json();
+      console.log('Start Import API Response:', startImportResult);
+
+      setImportProgress(100);
+      setImportStatus('Import completed successfully!');
+
+      // Show success toast
+      showToast('Deals imported successfully!', 'success');
+
+      // Refresh the deals data after successful import
+      setTimeout(() => {
+        fetchDeals();
+        setIsImporting(false);
+        setImportProgress(0);
+        setImportStatus('');
+        setSelectedFile(null); // Clear the file after successful import
+      }, 1000);
+
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  // Import functionality
+  const handleImportClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Check if file is CSV
+    if (!file.name.toLowerCase().endsWith('.csv')) {
+      showToast('Please select a CSV file');
+      return;
+    }
+
+    // Store the file in state
+    setSelectedFile(file);
+    
+    await handleBulkImport(file);
+    
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleBulkImport = async (file: File) => {
+    try {
+      setIsImporting(true);
+      setImportProgress(0);
+      setImportStatus('Starting import process...');
+
+      const session = getUserSession();
+      const sessionCompany = session?.company;
+
+      if (!session?.api_key || !session?.api_secret) {
+        throw new Error("User session or API credentials not found.");
+      }
+
+      setImportProgress(20);
+      setImportStatus('Uploading CSV file...');
+
+      // Step 1: Import deals with company
+      const formData = new FormData();
+      formData.append('reference_doctype', 'CRM Deal');
+      formData.append('import_type', 'Insert New Records');
+      formData.append('company', sessionCompany || '');
+      formData.append('filedata', file);
+
+      const importResponse = await fetch(
+        'https://api.erpnext.ai/api/method/customcrm.email.import.import_leads_with_company',
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': AUTH_TOKEN,
+          },
+          body: formData
+        }
+      );
+
+      if (!importResponse.ok) {
+        throw new Error(`Import API failed: ${importResponse.statusText}`);
+      }
+
+      const importResult = await importResponse.json();
+      console.log('Initial Import API Response:', importResult);
+
+      // Check for unmapped columns in the response
+      if (importResult.message?.unmapped_columns && importResult.message.unmapped_columns.length > 0) {
+        const unmappedColumns = importResult.message.unmapped_columns;
+        
+        setImportProgress(0);
+        setImportStatus('');
+        setIsImporting(false);
+        
+        // Store unmapped columns and show mapping popup
+        setUnmappedColumns(unmappedColumns);
+        setManualMappings({});
+        setShowMappingPopup(true);
+        return; // Stop the import process until user maps columns
+      }
+
+      // If no unmapped columns, continue directly with the import process
+      const dataImportName = importResult.message?.name || importResult.message?.data_import_name;
+      
+      if (!dataImportName) {
+        throw new Error('Could not get import reference from response');
+      }
+
+      // Continue with the import process
+      await continueImportProcess(dataImportName);
+
+    } catch (error) {
+      console.error('Import failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to import deals';
+      setError(errorMessage);
+      setIsImporting(false);
+      setImportProgress(0);
+      setImportStatus('');
+      showToast(`Import failed: ${errorMessage}`);
+      // Clear the file on error
+      setSelectedFile(null);
+    }
+  };
+
+  // Function to handle mapping submission
+  const handleMappingSubmit = async () => {
+    if (Object.keys(manualMappings).length !== unmappedColumns.length) {
+      showToast('Please map all unmapped columns before continuing');
+      return;
+    }
+
+    if (!selectedFile) {
+      showToast('File not found. Please select the file again.');
+      return;
+    }
+
+    setShowMappingPopup(false);
+    setIsImporting(true);
+    setImportProgress(40);
+    setImportStatus('Applying column mappings...');
+
+    try {
+      const session = getUserSession();
+      const sessionCompany = session?.company;
+
+      // Re-upload the file with manual mappings using the stored file
+      const formData = new FormData();
+      formData.append('reference_doctype', 'CRM Deal');
+      formData.append('import_type', 'Insert New Records');
+      formData.append('company', sessionCompany || '');
+      formData.append('filedata', selectedFile);
+      
+      // Convert manual mappings to JSON string
+      const manualMappingsJson = JSON.stringify(manualMappings);
+      formData.append('manual_mappings', manualMappingsJson);
+
+      console.log('Sending manual mappings:', manualMappings);
+      console.log('Manual mappings JSON:', manualMappingsJson);
+
+      const importResponse = await fetch(
+        'https://api.erpnext.ai/api/method/customcrm.email.import.import_leads_with_company',
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': AUTH_TOKEN,
+          },
+          body: formData
+        }
+      );
+
+      if (!importResponse.ok) {
+        throw new Error(`Import API failed: ${importResponse.statusText}`);
+      }
+
+      const importResult = await importResponse.json();
+      console.log('Second Import API Response with mappings:', importResult);
+
+      // Check if there are still unmapped columns
+      if (importResult.message?.unmapped_columns && importResult.message.unmapped_columns.length > 0) {
+        // Show mapping popup again with remaining unmapped columns
+        setUnmappedColumns(importResult.message.unmapped_columns);
+        setManualMappings({});
+        setShowMappingPopup(true);
+        setIsImporting(false);
+        setImportProgress(0);
+        setImportStatus('');
+        showToast('Some columns still need mapping');
+        return;
+      }
+
+      // If no more unmapped columns, continue with the import process
+      const dataImportName = importResult.message?.name || importResult.message?.data_import_name;
+      
+      if (!dataImportName) {
+        throw new Error('Could not get import reference from response');
+      }
+
+      // Continue with the import process using the same function
+      await continueImportProcess(dataImportName);
+
+    } catch (error) {
+      console.error('Mapping submission failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to apply mappings';
+      showToast(`Import failed: ${errorMessage}`);
+      setIsImporting(false);
+      setImportProgress(0);
+      setImportStatus('');
+      setUnmappedColumns([]);
+      setManualMappings({});
+      setSelectedFile(null); // Clear file on error
+    }
+  };
+
+  // Column Mapping Popup Component
+  const ColumnMappingPopup = () => {
+    // Available CRM Deal fields for mapping
+    const crmDealFields = [
+      'name', 'organization', 'annual_revenue', 'status', 'email', 
+      'mobile_no', 'deal_owner', 'close_date', 'territory', 'industry',
+      'website', 'first_name', 'last_name', 'salutation', 'no_of_employees',
+      'description', 'probability', 'expected_value', 'next_step'
+    ];
+
+    const handleMappingChange = (columnName: string, field: string) => {
+      setManualMappings(prev => ({
+        ...prev,
+        [columnName]: field
+      }));
+    };
+
+    const handleCancel = () => {
+      setShowMappingPopup(false);
+      setUnmappedColumns([]);
+      setManualMappings({});
+      setIsImporting(false);
+      setImportProgress(0);
+      setImportStatus('');
+      setSelectedFile(null); // Clear the file on cancel
+    };
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className={`p-6 rounded-lg shadow-lg max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto ${
+          theme === 'dark' ? 'bg-gray-800' : 'bg-white'
+        }`}>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className={`text-lg font-semibold ${
+              theme === 'dark' ? 'text-white' : 'text-gray-900'
+            }`}>
+              Map CSV Columns
+            </h3>
+          </div>
+          
+          <div className="mb-4">
+            <p className={`text-sm ${
+              theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+            }`}>
+              The following columns in your CSV file could not be automatically mapped. 
+              Please select the appropriate CRM Deal field for each column.
+            </p>
+            <p className={`text-xs mt-1 ${
+              theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+            }`}>
+              File: {selectedFile?.name}
+            </p>
+          </div>
+
+          <div className="space-y-4 mb-6">
+            {unmappedColumns.map((column) => (
+              <div key={column.column_name} className="flex items-center justify-between">
+                <span className={`font-medium ${
+                  theme === 'dark' ? 'text-white' : 'text-gray-700'
+                }`}>
+                  {column.column_name}
+                </span>
+                
+                <select
+                  value={manualMappings[column.column_name] || ''}
+                  onChange={(e) => handleMappingChange(column.column_name, e.target.value)}
+                  className={`ml-4 px-3 py-2 border rounded ${
+                    theme === 'dark' 
+                      ? 'bg-gray-700 border-gray-600 text-white' 
+                      : 'bg-white border-gray-300 text-gray-900'
+                  }`}
+                >
+                  <option value="">Select Field</option>
+                  {crmDealFields.map(field => (
+                    <option key={field} value={field}>
+                      {field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex justify-end space-x-3">
+            <button
+              onClick={handleCancel}
+              className={`px-4 py-2 border rounded-lg transition-colors ${
+                theme === 'dark'
+                  ? 'border-gray-600 text-white hover:bg-gray-700'
+                  : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              Cancel Import
+            </button>
+            <button
+              onClick={handleMappingSubmit}
+              disabled={Object.keys(manualMappings).length !== unmappedColumns.length}
+              className={`px-4 py-2 rounded-lg transition-colors ${
+                Object.keys(manualMappings).length !== unmappedColumns.length
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : theme === 'dark'
+                    ? 'bg-purple-600 text-white hover:bg-purple-700'
+                    : 'bg-purple-600 text-white hover:bg-purple-700'
+              }`}
+            >
+              Continue Import
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   const formatDate = (dateString?: string): string => {
@@ -476,12 +890,12 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
         try {
           const text = await error.response.data.text();
           const errorData = JSON.parse(text);
-          alert(`Export failed: ${errorData.message || errorData.exception || 'Unknown error'}`);
+          showToast(`Export failed: ${errorData.message || errorData.exception || 'Unknown error'}`);
         } catch {
-          alert(`Export failed: ${error.message}`);
+          showToast(`Export failed: ${error.message}`);
         }
       } else {
-        alert(`Export failed: ${error.response?.data?.message || error.message}`);
+        showToast(`Export failed: ${error.response?.data?.message || error.message}`);
       }
     } finally {
       setIsExporting(false);
@@ -882,6 +1296,52 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
 
   return (
     <div className="">
+      {/* Toast Notification */}
+      {toast && (
+        <Toast 
+          message={toast.message} 
+          type={toast.type} 
+          onClose={hideToast} 
+        />
+      )}
+
+      {/* Column Mapping Popup */}
+      {showMappingPopup && <ColumnMappingPopup />}
+
+      {/* Hidden file input for import */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileSelect}
+        accept=".csv"
+        style={{ display: 'none' }}
+      />
+
+      {/* Import Progress Overlay */}
+      {isImporting && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className={`p-6 rounded-lg shadow-lg max-w-md w-full mx-4 ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}`}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className={`text-lg font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                Importing Deals
+              </h3>
+              <div className="text-sm font-medium">{importProgress}%</div>
+            </div>
+            
+            <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
+              <div 
+                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                style={{ width: `${importProgress}%` }}
+              ></div>
+            </div>
+            
+            <p className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
+              {importStatus}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Action Bar */}
       <div className="flex flex-col mb-3 sm:flex-row gap-4 items-start sm:items-center justify-between">
         <div className="flex items-center space-x-2">
@@ -893,6 +1353,18 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
               }`}
           >
             <RefreshCcw className="w-4 h-4" />
+          </button>
+
+          {/* Import Button */}
+          <button
+            onClick={handleImportClick}
+            className={`px-3 py-2 text-sm border rounded-lg transition-colors flex items-center space-x-1 ${theme === 'dark'
+              ? 'border-purple-500/30 text-white hover:bg-purple-800/50'
+              : 'border-gray-300 hover:bg-gray-50'
+              }`}
+          >
+            <Download className="w-4 h-4" />
+            <span>Import</span>
           </button>
 
           <div className="relative">
@@ -1046,7 +1518,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
                 : 'border-gray-300 hover:bg-gray-50'
                 }`}
             >
-              <Download className="w-4 h-4" />
+              <Upload  className="w-4 h-4" />
             </button>
           )}
           <span className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>
@@ -1072,6 +1544,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
         </div>
       </div>
 
+      {/* Rest of the component remains the same... */}
       {/* Table */}
       <div className={`rounded-lg shadow-sm max-sm:bg-none border overflow-hidden ${theme === 'dark'
         ? ' bg-custom-gradient border-transparent !rounded-none'
@@ -1089,11 +1562,6 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
                       type="checkbox"
                       onChange={handleSelectAll}
                       checked={paginatedData.length > 0 && selectedDeals.length === paginatedData.length}
-                      // ref={el => {
-                      //   if (el) {
-                      //     el.indeterminate = selectedDeals.length > 0 && selectedDeals.length < paginatedData.length;
-                      //   }
-                      // }}
                       className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
                   </th>

@@ -22,6 +22,8 @@ interface Deal {
   deal_owner: string;
   organization_id?: string;
   contact_id?: string;
+  expected_deal_value: string;
+  expected_closure_date: string;
 }
 
 interface CreateDealModalProps {
@@ -53,6 +55,8 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
     deal_owner: 'Administrator',
     organization_id: '',
     contact_id: '',
+    expected_deal_value: '',
+    expected_closure_date: '',
   });
 
   const [isLoading, setIsLoading] = useState(false);
@@ -352,6 +356,7 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
 
     return true;
   };
+
   // Add validation function
   const validateForm = (): boolean => {
     const newErrors: { [key: string]: string } = {};
@@ -375,6 +380,26 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
     // Deal Owner validation
     if (!formData.deal_owner) {
       newErrors.deal_owner = 'Deal owner is required';
+    }
+
+    // Expected Deal Value validation
+    if (!formData.expected_deal_value) {
+      newErrors.expected_deal_value = 'Expected deal value is required';
+    } else if (isNaN(Number(formData.expected_deal_value)) || Number(formData.expected_deal_value) <= 0) {
+      newErrors.expected_deal_value = 'Please enter a valid positive number';
+    }
+
+    // Expected Closure Date validation
+    if (!formData.expected_closure_date) {
+      newErrors.expected_closure_date = 'Expected closure date is required';
+    } else {
+      const selectedDate = new Date(formData.expected_closure_date);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      if (selectedDate < today) {
+        newErrors.expected_closure_date = 'Closure date cannot be in the past';
+      }
     }
 
     if (formData.website && !isValidUrl(formData.website)) {
@@ -425,7 +450,6 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
       // Prepare the payload according to the API requirements
       const apiPayload = {
         args: {
-          //organization: sessionCompany, // Using company from session
           organization_name: formData.organization_name,
           website: formData.website,
           no_of_employees: formData.no_of_employees,
@@ -443,6 +467,8 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
           deal_owner: formData.deal_owner,
           company: sessionCompany,
           organization_id: useExistingOrganization ? formData.organization_id : null,
+          expected_deal_value: formData.expected_deal_value,
+          expected_closure_date: formData.expected_closure_date,
         }
       };
 
@@ -469,7 +495,7 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
       onSubmit(result);
 
       if (result.message) {
-        setSuccess('Dead created successfully!');
+        setSuccess('Deal created successfully!');
         const createdDeal = result.message.deal || result.message.data || result.message;
         onSubmit(createdDeal);
 
@@ -493,6 +519,8 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
             deal_owner: 'Administrator',
             organization_id: '',
             contact_id: '',
+            expected_deal_value: '',
+            expected_closure_date: '',
           });
           setUseExistingOrganization(false);
           setUseExistingContact(false);
@@ -514,13 +542,6 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
     }
   };
 
-  // const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-  //   const { name, value } = e.target;
-  //   setFormData(prev => ({
-  //     ...prev,
-  //     [name]: value
-  //   }));
-  // };
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
 
@@ -694,7 +715,6 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
             </div>
             <div className='border-b mb-4'></div>
 
-
             <div className="grid grid-cols-1 mb-4 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {/* Organization Fields */}
               {useExistingOrganization ? (
@@ -733,7 +753,6 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
                       value={formData.organization_name}
                       onChange={handleChange}
                       placeholder="Organization Name"
-
                       disabled={isLoading}
                       className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
                         ? 'bg-white-31 border-white text-white placeholder-gray-400'
@@ -987,18 +1006,60 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
                       <option value="Transgender">Transgender</option>
                       <option value="Other">Other</option>
                       <option value="Prefer Not to say">Prefer Not to say</option>
-                      {/* {genderOptions.map(gender => (
-                        <option key={gender} value={gender}>{gender}</option>
-                      ))} */}
                     </select>
                   </div>
                 </>
               )}
-
             </div>
+
+            {/* New Deal Value and Closure Date Fields */}
+            <div className="grid grid-cols-1 mb-4 md:grid-cols-2 gap-4 sm:gap-6">
+              <div>
+                <label className={`block text-md font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>
+                  Expected Deal Value <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  name="expected_deal_value"
+                  value={formData.expected_deal_value}
+                  onChange={handleChange}
+                  placeholder="Enter expected deal value"
+                  disabled={isLoading}
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
+                    ? 'bg-white-31 border-white text-white placeholder-gray-400'
+                    : 'bg-white/80 border-gray-300 placeholder-gray-500'
+                    }`}
+                  min="0"
+                  step="0.01"
+                />
+                {errors.expected_deal_value && (
+                  <p className="text-sm text-red-500 mt-1">{errors.expected_deal_value}</p>
+                )}
+              </div>
+
+              <div>
+                <label className={`block text-md font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>
+                  Expected Closure Date <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="date"
+                  name="expected_closure_date"
+                  value={formData.expected_closure_date}
+                  onChange={handleChange}
+                  disabled={isLoading}
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
+                    ? 'bg-white-31 border-white text-white'
+                    : 'bg-white/80 border-gray-300'
+                    }`}
+                />
+                {errors.expected_closure_date && (
+                  <p className="text-sm text-red-500 mt-1">{errors.expected_closure_date}</p>
+                )}
+              </div>
+            </div>
+
             <div className='border-b mb-4'></div>
             <div className="grid grid-cols-1  md:grid-cols-2 lg:grid-cols-2 gap-4 sm:gap-6">
-
               {/* Row 5 - Status and Deal Owner */}
               <div>
                 <label className={`block text-md font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>
@@ -1049,6 +1110,7 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
                 </select>
               </div>
             </div>
+
             {/* Footer */}
             <div className="flex justify-end mt-6 sm:mt-8">
               <button

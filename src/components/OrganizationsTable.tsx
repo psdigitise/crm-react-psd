@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronDown, ChevronUp, Globe, Building2, IndianRupee, Users, Loader2, ChevronLeft, ChevronRight, Filter, X, Settings, RefreshCcw, Download } from 'lucide-react';
+import { ChevronDown, ChevronUp, Globe, Building2, IndianRupee, Users, Loader2, ChevronLeft, ChevronRight, Filter, X, Settings, RefreshCcw, Download, Upload } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import { showToast } from '../utils/toast';
 import { exportToExcel } from '../utils/exportUtils';
@@ -1012,7 +1012,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
                     : 'border-gray-300 hover:bg-gray-50'
                     }`}
                 >
-                  <Download className="w-4 h-4" />
+                  <Upload  className="w-4 h-4" />
                 </button>
               </div>
             )}

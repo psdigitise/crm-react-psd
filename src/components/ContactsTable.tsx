@@ -1,12 +1,40 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { ChevronDown, ChevronUp, Mail, Phone, Building2, Loader2, ChevronLeft, ChevronRight, Filter, X, Settings, RefreshCcw, Download } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { ChevronDown, ChevronUp, Mail, Phone, Building2, Loader2, ChevronLeft, ChevronRight, Filter, X, Settings, RefreshCcw, Download, Upload } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import { showToast } from '../utils/toast';
 import { exportToExcel } from '../utils/exportUtils';
 import { getUserSession } from '../utils/session';
 import { BsThreeDots } from 'react-icons/bs';
-import { apiUrl, AUTH_TOKEN } from '../api/apiUrl';
+import { AUTH_TOKEN } from '../api/apiUrl';
 import { api } from '../api/apiService';
+import axios from 'axios';
+
+// Add toast notification component
+const Toast = ({ message, type = 'error', onClose }: { message: string; type?: 'error' | 'success'; onClose: () => void }) => {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      onClose();
+    }, 5000);
+
+    return () => clearTimeout(timer);
+  }, [onClose]);
+
+  return (
+    <div className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg max-w-sm ${
+      type === 'error' ? 'bg-red-500 text-white' : 'bg-green-500 text-white'
+    }`}>
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-medium">{message}</span>
+        <button
+          onClick={onClose}
+          className="ml-4 text-white hover:text-gray-200"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  );
+};
 
 interface Contact {
   id: string;
@@ -57,6 +85,11 @@ interface FieldOption {
   label: string;
   value: string;
   fieldtype: string;
+}
+
+interface UnmappedColumn {
+  column_name: string;
+  suggested_field: string | null;
 }
 
 const statusColors = {
@@ -117,6 +150,21 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
   // Mobile dropdown state
   const [expandedContacts, setExpandedContacts] = useState<Set<string>>(new Set());
 
+  // Import state
+  const [isImporting, setIsImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState(0);
+  const [importStatus, setImportStatus] = useState<string>('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  // Column mapping state
+  const [unmappedColumns, setUnmappedColumns] = useState<UnmappedColumn[]>([]);
+  const [manualMappings, setManualMappings] = useState<Record<string, string>>({});
+  const [showMappingPopup, setShowMappingPopup] = useState(false);
+
+  // Toast state
+  const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
+
   const userSession = getUserSession();
   const Company = userSession?.company;
 
@@ -127,40 +175,16 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
     owner: [] as string[]
   });
 
-  useEffect(() => {
-    let isMounted = true;
+  const showToastMessage = (message: string, type: 'error' | 'success' = 'error') => {
+    setToast({ message, type });
+  };
 
-    const fetchData = async () => {
-      if (!isMounted) return;
-      await fetchContacts();
-    };
+  const hideToast = () => {
+    setToast(null);
+  };
 
-    fetchData();
-
-    // Start the soft refresh interval (every 1 second)
-    intervalRef.current = setInterval(() => {
-      if (isMounted) {
-        softRefreshContacts();
-      }
-    }, 1000);
-
-    // Cleanup interval on unmount
-    return () => {
-      isMounted = false;
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    // Reset to first page when search term changes
-    if (searchTerm) {
-      setCurrentPage(1);
-    }
-  }, [searchTerm]);
-
-  const fetchContacts = async () => {
+  // Memoized fetchContacts function
+  const fetchContacts = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -247,78 +271,14 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
     } catch (error) {
       console.error('Error fetching contacts:', error);
       setError(error instanceof Error ? error.message : 'Failed to fetch contacts');
-      showToast('Failed to fetch contacts', { type: 'error' });
+      showToastMessage('Failed to fetch contacts', 'error');
     } finally {
       setLoading(false);
     }
-  };
+  }, [Company]);
 
-  const fetchAddresses = async () => {
-    try {
-      const session = getUserSession();
-      if (!session) return;
-
-      const apiUrl = 'https://api.erpnext.ai/api/v2/document/Address';
-
-      const response = await fetch(apiUrl, {
-        method: 'GET',
-        headers: {
-          'Authorization': AUTH_TOKEN
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const result = await response.json();
-      setAddressOptions(result.data || []);
-    } catch (error) {
-      console.error('Error fetching addresses:', error);
-      showToast('Failed to fetch addresses', { type: 'error' });
-    }
-  };
-
-  const fetchFieldOptions = async () => {
-    try {
-      const session = getUserSession();
-      if (!session) return;
-
-      const apiUrl = 'https://api.erpnext.ai/api/method/crm.api.doc.get_fields';
-
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
-        },
-        body: JSON.stringify({
-          doctype: "Contact"
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const result = await response.json();
-
-      // Transform the field options to a simpler format
-      const options: FieldOption[] = result.message.map((field: any) => ({
-        label: field.label || field.fieldname,
-        value: field.fieldname,
-        fieldtype: field.fieldtype
-      }));
-
-      setFieldOptions(options);
-      await fetchAddresses();
-    } catch (error) {
-      console.error('Error fetching field options:', error);
-      showToast('Failed to fetch field options', { type: 'error' });
-    }
-  };
-
-  const softRefreshContacts = async () => {
+  // Memoized softRefreshContacts function
+  const softRefreshContacts = useCallback(async () => {
     try {
       const session = getUserSession();
 
@@ -386,6 +346,472 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
     } catch (error) {
       console.error('Soft refresh error:', error);
     }
+  }, [Company]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchData = async () => {
+      if (!isMounted) return;
+      await fetchContacts();
+    };
+
+    fetchData();
+
+    // Start the soft refresh interval (every 30 seconds instead of 1 second)
+    intervalRef.current = setInterval(() => {
+      if (isMounted) {
+        softRefreshContacts();
+      }
+    }, 30000); // 30 seconds
+
+    // Cleanup interval on unmount
+    return () => {
+      isMounted = false;
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+  }, [fetchContacts, softRefreshContacts]); // Added dependencies
+
+  useEffect(() => {
+    // Reset to first page when search term changes
+    if (searchTerm) {
+      setCurrentPage(1);
+    }
+  }, [searchTerm]);
+
+  const fetchAddresses = async () => {
+    try {
+      const session = getUserSession();
+      if (!session) return;
+
+      const Company = session?.company; // Get the company from session
+      const apiUrl = 'https://api.erpnext.ai/api/v2/document/Address';
+
+      // Add filters (convert to JSON string)
+      const params = new URLSearchParams({
+        filters: JSON.stringify({ company: Company })
+      });
+
+      const response = await fetch(`${apiUrl}?${params.toString()}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': AUTH_TOKEN,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      setAddressOptions(result.data || []);
+    } catch (error) {
+      console.error('Error fetching addresses:', error);
+      showToastMessage('Failed to fetch addresses', 'error');
+    }
+  };
+
+  const fetchFieldOptions = async () => {
+    try {
+      const session = getUserSession();
+      if (!session) return;
+
+      const apiUrl = 'https://api.erpnext.ai/api/method/crm.api.doc.get_fields';
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': AUTH_TOKEN
+        },
+        body: JSON.stringify({
+          doctype: "Contact"
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+
+      // Transform the field options to a simpler format
+      const options: FieldOption[] = result.message.map((field: any) => ({
+        label: field.label || field.fieldname,
+        value: field.fieldname,
+        fieldtype: field.fieldtype
+      }));
+
+      setFieldOptions(options);
+      await fetchAddresses();
+    } catch (error) {
+      console.error('Error fetching field options:', error);
+      showToastMessage('Failed to fetch field options', 'error');
+    }
+  };
+
+  // Extract the import continuation logic into a separate function
+  const continueImportProcess = async (dataImportName: string) => {
+    try {
+      setImportProgress(60);
+      setImportStatus('Starting data import...');
+
+      // Start the actual import process
+      const startImportPayload: any = {
+        data_import: dataImportName
+      };
+
+      const startImportResponse = await fetch(
+        `https://api.erpnext.ai/api/method/frappe.core.doctype.data_import.data_import.form_start_import`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': AUTH_TOKEN,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(startImportPayload)
+        }
+      );
+
+      if (!startImportResponse.ok) {
+        throw new Error(`Start import API failed: ${startImportResponse.statusText}`);
+      }
+
+      const startImportResult = await startImportResponse.json();
+      console.log('Start Import API Response:', startImportResult);
+
+      setImportProgress(100);
+      setImportStatus('Import completed successfully!');
+
+      // Show success toast
+      showToastMessage('Contacts imported successfully!', 'success');
+
+      // Refresh the contacts data after successful import
+      setTimeout(() => {
+        fetchContacts();
+        setIsImporting(false);
+        setImportProgress(0);
+        setImportStatus('');
+        setSelectedFile(null); // Clear the file after successful import
+      }, 1000);
+
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  // Import functionality
+  const handleImportClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Check if file is CSV
+    if (!file.name.toLowerCase().endsWith('.csv')) {
+      showToastMessage('Please select a CSV file');
+      return;
+    }
+
+    // Store the file in state
+    setSelectedFile(file);
+    
+    await handleBulkImport(file);
+    
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleBulkImport = async (file: File) => {
+    try {
+      setIsImporting(true);
+      setImportProgress(0);
+      setImportStatus('Starting import process...');
+
+      const session = getUserSession();
+      const sessionCompany = session?.company;
+
+      if (!session?.api_key || !session?.api_secret) {
+        throw new Error("User session or API credentials not found.");
+      }
+
+      setImportProgress(20);
+      setImportStatus('Uploading CSV file...');
+
+      // Step 1: Import contacts with company - UPDATED FOR CONTACT
+      const formData = new FormData();
+      formData.append('reference_doctype', 'Contact'); // Changed from CRM Lead to Contact
+      formData.append('import_type', 'Insert New Records');
+      formData.append('company', sessionCompany || '');
+      formData.append('filedata', file);
+
+      const importResponse = await fetch(
+        'https://api.erpnext.ai/api/method/customcrm.email.import.import_leads_with_company',
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': AUTH_TOKEN,
+          },
+          body: formData
+        }
+      );
+
+      if (!importResponse.ok) {
+        throw new Error(`Import API failed: ${importResponse.statusText}`);
+      }
+
+      const importResult = await importResponse.json();
+      console.log('Initial Import API Response:', importResult);
+
+      // Check for unmapped columns in the response
+      if (importResult.message?.unmapped_columns && importResult.message.unmapped_columns.length > 0) {
+        const unmappedColumns = importResult.message.unmapped_columns;
+        
+        setImportProgress(0);
+        setImportStatus('');
+        setIsImporting(false);
+        
+        // Store unmapped columns and show mapping popup
+        setUnmappedColumns(unmappedColumns);
+        setManualMappings({});
+        setShowMappingPopup(true);
+        return; // Stop the import process until user maps columns
+      }
+
+      // If no unmapped columns, continue directly with the import process
+      const dataImportName = importResult.message?.name || importResult.message?.data_import_name;
+      
+      if (!dataImportName) {
+        throw new Error('Could not get import reference from response');
+      }
+
+      // Continue with the import process
+      await continueImportProcess(dataImportName);
+
+    } catch (error) {
+      console.error('Import failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to import contacts';
+      setError(errorMessage);
+      setIsImporting(false);
+      setImportProgress(0);
+      setImportStatus('');
+      showToastMessage(`Import failed: ${errorMessage}`);
+      // Clear the file on error
+      setSelectedFile(null);
+    }
+  };
+
+  // Function to handle mapping submission
+  const handleMappingSubmit = async () => {
+    if (Object.keys(manualMappings).length !== unmappedColumns.length) {
+      showToastMessage('Please map all unmapped columns before continuing');
+      return;
+    }
+
+    if (!selectedFile) {
+      showToastMessage('File not found. Please select the file again.');
+      return;
+    }
+
+    setShowMappingPopup(false);
+    setIsImporting(true);
+    setImportProgress(40);
+    setImportStatus('Applying column mappings...');
+
+    try {
+      const session = getUserSession();
+      const sessionCompany = session?.company;
+
+      // Re-upload the file with manual mappings using the stored file
+      const formData = new FormData();
+      formData.append('reference_doctype', 'Contact'); // Changed from CRM Lead to Contact
+      formData.append('import_type', 'Insert New Records');
+      formData.append('company', sessionCompany || '');
+      formData.append('filedata', selectedFile);
+      
+      // Convert manual mappings to JSON string
+      const manualMappingsJson = JSON.stringify(manualMappings);
+      formData.append('manual_mappings', manualMappingsJson);
+
+      console.log('Sending manual mappings:', manualMappings);
+      console.log('Manual mappings JSON:', manualMappingsJson);
+
+      const importResponse = await fetch(
+        'https://api.erpnext.ai/api/method/customcrm.email.import.import_leads_with_company',
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': AUTH_TOKEN,
+          },
+          body: formData
+        }
+      );
+
+      if (!importResponse.ok) {
+        throw new Error(`Import API failed: ${importResponse.statusText}`);
+      }
+
+      const importResult = await importResponse.json();
+      console.log('Second Import API Response with mappings:', importResult);
+
+      // Check if there are still unmapped columns
+      if (importResult.message?.unmapped_columns && importResult.message.unmapped_columns.length > 0) {
+        // Show mapping popup again with remaining unmapped columns
+        setUnmappedColumns(importResult.message.unmapped_columns);
+        setManualMappings({});
+        setShowMappingPopup(true);
+        setIsImporting(false);
+        setImportProgress(0);
+        setImportStatus('');
+        showToastMessage('Some columns still need mapping');
+        return;
+      }
+
+      // If no more unmapped columns, continue with the import process
+      const dataImportName = importResult.message?.name || importResult.message?.data_import_name;
+      
+      if (!dataImportName) {
+        throw new Error('Could not get import reference from response');
+      }
+
+      // Continue with the import process using the same function
+      await continueImportProcess(dataImportName);
+
+    } catch (error) {
+      console.error('Mapping submission failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to apply mappings';
+      showToastMessage(`Import failed: ${errorMessage}`);
+      setIsImporting(false);
+      setImportProgress(0);
+      setImportStatus('');
+      setUnmappedColumns([]);
+      setManualMappings({});
+      setSelectedFile(null); // Clear file on error
+    }
+  };
+
+  // Column Mapping Popup Component
+  const ColumnMappingPopup = () => {
+    // Available Contact fields for mapping
+    const contactFields = [
+      'first_name', 'last_name', 'full_name', 'company_name', 'status', 
+      'email_id', 'mobile_no', 'designation', 'gender', 'salutation',
+      'address', 'city', 'state', 'country', 'pincode',
+      'phone', 'website', 'is_primary_contact', 'is_billing_contact',
+      'department', 'unsubscribed', 'user', 'owner'
+    ];
+
+    const handleMappingChange = (columnName: string, field: string) => {
+      setManualMappings(prev => ({
+        ...prev,
+        [columnName]: field
+      }));
+    };
+
+    const handleCancel = () => {
+      setShowMappingPopup(false);
+      setUnmappedColumns([]);
+      setManualMappings({});
+      setIsImporting(false);
+      setImportProgress(0);
+      setImportStatus('');
+      setSelectedFile(null); // Clear the file on cancel
+    };
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className={`p-6 rounded-lg shadow-lg max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto ${
+          theme === 'dark' ? 'bg-gray-800' : 'bg-white'
+        }`}>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className={`text-lg font-semibold ${
+              theme === 'dark' ? 'text-white' : 'text-gray-900'
+            }`}>
+              Map CSV Columns
+            </h3>
+          </div>
+          
+          <div className="mb-4">
+            <p className={`text-sm ${
+              theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+            }`}>
+              The following columns in your CSV file could not be automatically mapped. 
+              Please select the appropriate Contact field for each column.
+            </p>
+            <p className={`text-xs mt-1 ${
+              theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+            }`}>
+              File: {selectedFile?.name}
+            </p>
+          </div>
+
+          <div className="space-y-4 mb-6">
+            {unmappedColumns.map((column) => (
+              <div key={column.column_name} className="flex items-center justify-between">
+                <span className={`font-medium ${
+                  theme === 'dark' ? 'text-white' : 'text-gray-700'
+                }`}>
+                  {column.column_name}
+                </span>
+                
+                <select
+                  value={manualMappings[column.column_name] || ''}
+                  onChange={(e) => handleMappingChange(column.column_name, e.target.value)}
+                  className={`ml-4 px-3 py-2 border rounded ${
+                    theme === 'dark' 
+                      ? 'bg-gray-700 border-gray-600 text-white' 
+                      : 'bg-white border-gray-300 text-gray-900'
+                  }`}
+                >
+                  <option value="">Select Field</option>
+                  {contactFields.map(field => (
+                    <option key={field} value={field}>
+                      {field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex justify-end space-x-3">
+            <button
+              onClick={handleCancel}
+              className={`px-4 py-2 border rounded-lg transition-colors ${
+                theme === 'dark'
+                  ? 'border-gray-600 text-white hover:bg-gray-700'
+                  : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              Cancel Import
+            </button>
+            <button
+              onClick={handleMappingSubmit}
+              disabled={Object.keys(manualMappings).length !== unmappedColumns.length}
+              className={`px-4 py-2 rounded-lg transition-colors ${
+                Object.keys(manualMappings).length !== unmappedColumns.length
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : theme === 'dark'
+                    ? 'bg-purple-600 text-white hover:bg-purple-700'
+                    : 'bg-purple-600 text-white hover:bg-purple-700'
+              }`}
+            >
+              Continue Import
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   const formatDate = (dateString: string): string => {
@@ -441,7 +867,7 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
 
   const handleBulkUpdate = async () => {
     if (!selectedField || !fieldValue || selectedIds.length === 0) {
-      showToast('Please select a field and enter a value', { type: 'error' });
+      showToastMessage('Please select a field and enter a value', 'error');
       return;
     }
 
@@ -483,7 +909,7 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
         (result.message === "success" ||
           (Array.isArray(result.message) && result.message.length === 0) ||
           (result.message && result.message.status === "success"))) {
-        showToast(`Updated ${selectedIds.length} record(s) successfully`, { type: 'success' });
+        showToastMessage(`Updated ${selectedIds.length} record(s) successfully`, 'success');
         setShowBulkEdit(false);
         setSelectedField('');
         setFieldValue('');
@@ -494,7 +920,7 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
       }
     } catch (error) {
       console.error('Error updating contacts:', error);
-      showToast(error.message || 'Failed to update contacts', { type: 'error' });
+      showToastMessage(error.message || 'Failed to update contacts', 'error');
     } finally {
       setUpdating(false);
     }
@@ -532,10 +958,10 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
 
       setSelectedIds([]);
       fetchContacts();
-      showToast('Contacts deleted successfully', { type: 'success' });
+      showToastMessage('Contacts deleted successfully', 'success');
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Failed to delete contacts');
-      showToast('Failed to delete contacts', { type: 'error' });
+      showToastMessage('Failed to delete contacts', 'error');
     } finally {
       setLoading(false);
     }
@@ -714,6 +1140,52 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
 
   return (
     <div className="">
+      {/* Toast Notification */}
+      {toast && (
+        <Toast 
+          message={toast.message} 
+          type={toast.type} 
+          onClose={hideToast} 
+        />
+      )}
+
+      {/* Column Mapping Popup */}
+      {showMappingPopup && <ColumnMappingPopup />}
+
+      {/* Hidden file input for import */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileSelect}
+        accept=".csv"
+        style={{ display: 'none' }}
+      />
+
+      {/* Import Progress Overlay */}
+      {isImporting && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className={`p-6 rounded-lg shadow-lg max-w-md w-full mx-4 ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}`}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className={`text-lg font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                Importing Contacts
+              </h3>
+              <div className="text-sm font-medium">{importProgress}%</div>
+            </div>
+            
+            <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
+              <div 
+                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                style={{ width: `${importProgress}%` }}
+              ></div>
+            </div>
+            
+            <p className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
+              {importStatus}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Action Bar */}
       <div className="flex flex-col mb-3 sm:flex-row gap-4 items-start sm:items-center justify-between">
         <div className="flex items-center space-x-2">
@@ -725,6 +1197,18 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
               }`}
           >
             <RefreshCcw className="w-4 h-4" />
+          </button>
+
+          {/* Import Button */}
+          <button
+            onClick={handleImportClick}
+            className={`px-3 py-2 text-sm border rounded-lg transition-colors flex items-center space-x-1 ${theme === 'dark'
+              ? 'border-purple-500/30 text-white hover:bg-purple-800/50'
+              : 'border-gray-300 hover:bg-gray-50'
+              }`}
+          >
+            < Download className="w-4 h-4" />
+            <span>Import</span>
           </button>
 
           <div className="relative">
@@ -860,7 +1344,7 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
                     : 'border-gray-300 hover:bg-gray-50'
                     }`}
                 >
-                  <Download className="w-4 h-4" />
+                  <Upload className="w-4 h-4" />
                 </button>
               </div>
             )}
@@ -1002,13 +1486,6 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
                       type="checkbox"
                       checked={paginatedData.length > 0 && selectedIds.length === paginatedData.length}
                       onChange={handleSelectAll}
-                      // ref={(el) => {
-                      //   if (el) {
-                      //     el.indeterminate =
-                      //       selectedIds.length > 0 &&
-                      //       selectedIds.length < paginatedData.length;
-                      //   }
-                      // }}
                       className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
                   </th>
@@ -1447,3 +1924,957 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
     </div>
   );
 }
+
+// New Address Modal Component
+interface CreateAddressModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (address: any) => void;
+}
+
+function CreateAddressModal({ isOpen, onClose, onSubmit }: CreateAddressModalProps) {
+  const { theme } = useTheme();
+  const [formData, setFormData] = useState({
+    address_title: '',
+    address_type: 'Billing',
+    address_line1: '',
+    city: '',
+    country: 'India'
+  });
+  const [errors, setErrors] = useState({
+    address_title: '',
+    address_line1: '',
+    city: '',
+    country: ''
+  });
+  const [loading, setLoading] = useState(false);
+
+  if (!isOpen) return null;
+
+  const validateField = (name: string, value: string) => {
+    let error = '';
+    
+    switch (name) {
+      case 'address_title':
+        if (!value.trim()) {
+          error = 'Address title is required';
+        } else if (value.trim().length < 2) {
+          error = 'Address title must be at least 2 characters long';
+        }
+        break;
+      case 'address_line1':
+        if (!value.trim()) {
+          error = 'Address is required';
+        } else if (value.trim().length < 5) {
+          error = 'Address must be at least 5 characters long';
+        }
+        break;
+      case 'city':
+        if (!value.trim()) {
+          error = 'City is required';
+        } else if (value.trim().length < 2) {
+          error = 'City must be at least 2 characters long';
+        }
+        break;
+      case 'country':
+        if (!value.trim()) {
+          error = 'Country is required';
+        }
+        break;
+      default:
+        break;
+    }
+    
+    return error;
+  };
+
+  const validateForm = () => {
+    const newErrors = {
+      address_title: validateField('address_title', formData.address_title),
+      address_line1: validateField('address_line1', formData.address_line1),
+      city: validateField('city', formData.city),
+      country: validateField('country', formData.country)
+    };
+    
+    setErrors(newErrors);
+    
+    return !Object.values(newErrors).some(error => error !== '');
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateForm()) {
+      showToast('Please fix the validation errors', { type: 'error' });
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const session = getUserSession();
+      const sessionCompany = session?.company || '';
+      if (!session) {
+        showToast('Session not found', { type: 'error' });
+        return;
+      }
+
+      const apiUrl = 'https://api.erpnext.ai/api/v2/document/Address';
+
+      // Include company in the payload
+      const payload = {
+        ...formData,
+        company: sessionCompany
+      };
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': AUTH_TOKEN
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
+      }
+
+      const result = await response.json();
+      console.log('Address creation response:', result);
+      
+      showToast('Address created successfully', { type: 'success' });
+      
+      // Pass the complete result to the parent component
+      onSubmit(result);
+      onClose();
+
+      // Reset form after success
+      setFormData({
+        address_title: '',
+        address_type: 'Billing',
+        address_line1: '',
+        city: '',
+        country: 'India'
+      });
+      setErrors({
+        address_title: '',
+        address_line1: '',
+        city: '',
+        country: ''
+      });
+
+    } catch (error) {
+      console.error('Error creating address:', error);
+      showToast('Failed to create address', { type: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    
+    setFormData({
+      ...formData,
+      [name]: value
+    });
+
+    // Validate the field on change
+    const error = validateField(name, value);
+    setErrors(prev => ({
+      ...prev,
+      [name]: error
+    }));
+  };
+
+  return (
+    <div className="fixed inset-0 z-[60] overflow-y-auto">
+      <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+        <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" onClick={onClose} />
+
+        <div className={`inline-block align-bottom rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full backdrop-blur-md ${theme === 'dark'
+          ? 'bg-custom-gradient border-transparent'
+          : 'bg-white/90 border border-gray-200'
+          }`}>
+          <div className={`flex items-center justify-between px-6 py-4 border-b ${theme === 'dark' ? 'border-purple-500/30' : 'border-gray-200'
+            }`}>
+            <h3 className={`text-lg font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+              Create Address
+            </h3>
+            <button
+              onClick={onClose}
+              className={`p-1 rounded transition-colors ${theme === 'dark' ? 'hover:bg-purple-800/50' : 'hover:bg-gray-100'
+                }`}
+            >
+              <X className={`w-4 h-4 ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`} />
+            </button>
+          </div>
+
+          <form onSubmit={handleSubmit} className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Address Title */}
+              <div className="md:col-span-2">
+                <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
+                  }`}>
+                  Address Title
+                </label>
+                <input
+                  type="text"
+                  name="address_title"
+                  value={formData.address_title}
+                  onChange={handleChange}
+                  placeholder="Address Title"
+                  disabled={loading}
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
+                    ? 'bg-white-31 text-white placeholder-gray-400'
+                    : 'bg-white/80 border-gray-300 placeholder-gray-500'
+                    } ${errors.address_title ? 'border-red-500' : ''}`}
+                />
+                {errors.address_title && (
+                  <p className="text-red-500 text-xs mt-1">{errors.address_title}</p>
+                )}
+              </div>
+
+              {/* Address Type */}
+              <div>
+                <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
+                  }`}>
+                  Address Type
+                </label>
+                <select
+                  name="address_type"
+                  value={formData.address_type}
+                  onChange={handleChange}
+                  disabled={loading}
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
+                    ? 'bg-white-31 text-white'
+                    : 'bg-gray-50/80 border-gray-300'
+                    }`}
+                >
+                  <option value="Billing">Billing</option>
+                  <option value="Shipping">Shipping</option>
+                  <option value="Office">Office</option>
+                  <option value="Personal">Personal</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
+              {/* Country */}
+              <div>
+                <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
+                  }`}>
+                  Country
+                </label>
+                <input
+                  type="text"
+                  name="country"
+                  value={formData.country}
+                  onChange={handleChange}
+                  placeholder="Country"
+                  disabled={loading}
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
+                    ? 'bg-white-31 text-white placeholder-gray-400'
+                    : 'bg-white/80 border-gray-300 placeholder-gray-500'
+                    } ${errors.country ? 'border-red-500' : ''}`}
+                />
+                {errors.country && (
+                  <p className="text-red-500 text-xs mt-1">{errors.country}</p>
+                )}
+              </div>
+
+              {/* Address Line 1 */}
+              <div className="md:col-span-2">
+                <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
+                  }`}>
+                  Address
+                </label>
+                <input
+                  type="text"
+                  name="address_line1"
+                  value={formData.address_line1}
+                  onChange={handleChange}
+                  placeholder="Address Line 1"
+                  disabled={loading}
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
+                    ? 'bg-white-31 text-white placeholder-gray-400'
+                    : 'bg-white/80 border-gray-300 placeholder-gray-500'
+                    } ${errors.address_line1 ? 'border-red-500' : ''}`}
+                />
+                {errors.address_line1 && (
+                  <p className="text-red-500 text-xs mt-1">{errors.address_line1}</p>
+                )}
+              </div>
+
+              {/* City */}
+              <div className="md:col-span-2">
+                <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
+                  }`}>
+                  City
+                </label>
+                <input
+                  type="text"
+                  name="city"
+                  value={formData.city}
+                  onChange={handleChange}
+                  placeholder="City"
+                  disabled={loading}
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
+                    ? 'bg-white-31 text-white placeholder-gray-400'
+                    : 'bg-white/80 border-gray-300 placeholder-gray-500'
+                    } ${errors.city ? 'border-red-500' : ''}`}
+                />
+                {errors.city && (
+                  <p className="text-red-500 text-xs mt-1">{errors.city}</p>
+                )}
+              </div>
+            </div>
+
+            {/* Submit Buttons */}
+            <div className="flex justify-end mt-6">
+              <button
+                type="button"
+                onClick={onClose}
+                disabled={loading}
+                className={`mr-3 px-4 py-2 rounded-lg transition-colors disabled:opacity-50 ${theme === 'dark'
+                  ? 'text-white border border-gray-600 hover:bg-gray-700'
+                  : 'text-gray-700 border border-gray-300 hover:bg-gray-50'
+                  }`}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className={`px-4 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${theme === 'dark'
+                  ? 'bg-purplebg hover:bg-purple-700 text-white'
+                  : 'bg-gray-900 hover:bg-gray-800 text-white'
+                  }`}
+              >
+                {loading ? 'Creating...' : 'Create Address'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Updated Contact Modal Interface
+interface CreateContactModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (data: any) => void;
+}
+
+export function CreateContactModal({ isOpen, onClose, onSubmit }: CreateContactModalProps) {
+  const { theme } = useTheme();
+  const [formData, setFormData] = useState({
+    salutation: '',
+    first_name: '',
+    middle_name: '',
+    last_name: '',
+    gender: '',
+    company_name: '',
+    designation: '',
+    email_id: '',
+    phone: '',
+    address: ''
+  });
+  const [errors, setErrors] = useState({
+    first_name: '',
+    email_id: '',
+    phone: '',
+    company_name: '',
+    designation: ''
+  });
+  const [loading, setLoading] = useState(false);
+  const [addresses, setAddresses] = useState([]);
+  const [loadingAddresses, setLoadingAddresses] = useState(false);
+  const [showAddressModal, setShowAddressModal] = useState(false);
+
+  // Fetch addresses on component mount and when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      fetchAddresses();
+    }
+  }, [isOpen]);
+
+  const validateField = (name: string, value: string) => {
+    let error = '';
+    
+    switch (name) {
+      case 'first_name':
+        if (!value.trim()) {
+          error = 'First name is required';
+        } else if (value.trim().length < 2) {
+          error = 'First name must be at least 2 characters long';
+        } else if (!/^[a-zA-Z\s]*$/.test(value)) {
+          error = 'First name can only contain letters and spaces';
+        }
+        break;
+      case 'email_id':
+        if (value.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())) {
+          error = 'Please enter a valid email address';
+        }
+        break;
+      case 'phone':
+        if (value.trim() && !/^[\+]?[0-9\s\-\(\)]{10,}$/.test(value.trim())) {
+          error = 'Please enter a valid phone number';
+        }
+        break;
+      case 'company_name':
+        if (value.trim() && value.trim().length < 2) {
+          error = 'Company name must be at least 2 characters long';
+        }
+        break;
+      case 'designation':
+        if (value.trim() && value.trim().length < 2) {
+          error = 'Designation must be at least 2 characters long';
+        }
+        break;
+      default:
+        break;
+    }
+    
+    return error;
+  };
+
+  const validateForm = () => {
+    const newErrors = {
+      first_name: validateField('first_name', formData.first_name),
+      email_id: validateField('email_id', formData.email_id),
+      phone: validateField('phone', formData.phone),
+      company_name: validateField('company_name', formData.company_name),
+      designation: validateField('designation', formData.designation)
+    };
+    
+    setErrors(newErrors);
+    
+    return !Object.values(newErrors).some(error => error !== '');
+  };
+
+  const fetchAddresses = async () => {
+    setLoadingAddresses(true);
+    try {
+      const session = getUserSession();
+      if (!session) {
+        showToast('Session not found', { type: 'error' });
+        return;
+      }
+
+      const sessionCompany = session?.company;
+
+      let apiUrl = 'https://api.erpnext.ai/api/v2/document/Address';
+
+      if (sessionCompany) {
+        const params = new URLSearchParams({
+          filters: JSON.stringify({ company: sessionCompany })
+        });
+        apiUrl += `?${params.toString()}`;
+      }
+
+      console.log('Fetching addresses from:', apiUrl);
+
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': AUTH_TOKEN,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      console.log('Address API response:', result);
+      
+      // Handle different response formats more reliably
+      let addressesArray = [];
+      
+      if (Array.isArray(result.data)) {
+        addressesArray = result.data;
+      } else if (Array.isArray(result)) {
+        addressesArray = result;
+      } else if (result.data && typeof result.data === 'object') {
+        // If data is an object, convert to array
+        addressesArray = Object.values(result.data);
+      } else if (result.message && Array.isArray(result.message)) {
+        addressesArray = result.message;
+      } else if (result && Array.isArray(result)) {
+        addressesArray = result;
+      }
+      
+      console.log('Processed addresses:', addressesArray);
+      setAddresses(addressesArray);
+      
+    } catch (error) {
+      console.error('Error fetching addresses:', error);
+      showToast('Failed to fetch addresses', { type: 'error' });
+      setAddresses([]); // Reset to empty array on error
+    } finally {
+      setLoadingAddresses(false);
+    }
+  };
+
+  // FIXED: Enhanced handleAddressCreated function to immediately update dropdown
+  const handleAddressCreated = async (newAddress: any) => {
+    try {
+      // First, immediately refetch addresses to get the latest data
+      await fetchAddresses();
+      
+      // The API response might have the address data in different formats
+      const createdAddress = newAddress.data || newAddress.message || newAddress;
+      
+      if (createdAddress && createdAddress.name) {
+        // Select the newly created address after a short delay to ensure fetch is complete
+        setTimeout(() => {
+          setFormData(prev => ({ ...prev, address: createdAddress.name }));
+        }, 300);
+      } else {
+        // If the response format is unexpected, try to find by title
+        console.warn('Unexpected address response format, selecting by title...');
+        if (newAddress.address_title) {
+          setTimeout(() => {
+            setFormData(prev => ({ ...prev, address: newAddress.address_title }));
+          }, 500);
+        }
+      }
+    } catch (error) {
+      console.error('Error handling created address:', error);
+      // Final fallback: refetch addresses
+      await fetchAddresses();
+    } finally {
+      setShowAddressModal(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateForm()) {
+      showToast('Please fix the validation errors', { type: 'error' });
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const session = getUserSession();
+      const sessionCompany = session?.company || '';
+      if (!session) {
+        showToast('Session not found', { type: 'error' });
+        return;
+      }
+      const doc = {
+        doctype: "Contact",
+        salutation: formData.salutation,
+        first_name: formData.first_name,
+        last_name: formData.last_name,
+        gender: formData.gender,
+        company: sessionCompany,
+        company_name: formData.company_name,
+        designation: formData.designation,
+        ...(formData.middle_name && { middle_name: formData.middle_name }),
+        ...(formData.email_id && {
+          email_ids: [{ email_id: formData.email_id }]
+        }),
+        ...(formData.phone && {
+          phone_nos: [{ phone: formData.phone }]
+        }),
+        ...(formData.address && {
+          address: formData.address
+        })
+      };
+
+      const payload = { doc };
+
+      const apiUrl = 'https://api.erpnext.ai/api/method/frappe.client.insert';
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': AUTH_TOKEN
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
+      }
+
+      const result = await response.json();
+      showToast('Contact created successfully', { type: 'success' });
+      onSubmit(result);
+      onClose();
+
+      // Reset form
+      setFormData({
+        salutation: '',
+        first_name: '',
+        middle_name: '',
+        last_name: '',
+        gender: '',
+        company_name: '',
+        designation: '',
+        email_id: '',
+        phone: '',
+        address: ''
+      });
+      setErrors({
+        first_name: '',
+        email_id: '',
+        phone: '',
+        company_name: '',
+        designation: ''
+      });
+    } catch (error) {
+      console.error('Error creating contact:', error);
+      showToast('Failed to create contact', { type: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    
+    setFormData({
+      ...formData,
+      [name]: value
+    });
+
+    // Validate the field on change
+    const error = validateField(name, value);
+    setErrors(prev => ({
+      ...prev,
+      [name]: error
+    }));
+  };
+
+  const handleAddressChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    if (e.target.value === 'create_new') {
+      setShowAddressModal(true);
+      // Reset the select to the previous value
+      e.target.value = formData.address;
+    } else {
+      handleChange(e);
+    }
+  };
+
+  return (
+    <>
+      <div className="fixed inset-0 z-50 overflow-y-auto">
+        <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+          <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" onClick={onClose} />
+
+          <div className={`inline-block align-bottom rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full backdrop-blur-md ${theme === 'dark'
+            ? 'bg-custom-gradient border-transparent'
+            : 'bg-white/90 border border-gray-200'
+            }`}>
+            <div className={`flex items-center justify-between px-6 py-4 border-b ${theme === 'dark' ? 'border-purple-500/30' : 'border-gray-200'
+              }`}>
+              <h3 className={`text-lg font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                New Contact
+              </h3>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={onClose}
+                  className={`p-1 rounded transition-colors ${theme === 'dark' ? 'hover:bg-purple-800/50' : 'hover:bg-gray-100'
+                    }`}
+                >
+                  <X className={`w-4 h-4 ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`} />
+                </button>
+              </div>
+            </div>
+
+            <form onSubmit={handleSubmit} className="p-6">
+              <div className="space-y-4">
+                {/* Salutation */}
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
+                    }`}>
+                    Salutation
+                  </label>
+                  <select
+                    name="salutation"
+                    value={formData.salutation}
+                    onChange={handleChange}
+                    disabled={loading}
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
+                      ? 'bg-white-31 text-white'
+                      : 'bg-gray-50/80 border-gray-300'
+                      }`}
+                  >
+                    <option value="">Salutation</option>
+                    <option value="Mr">Mr</option>
+                    <option value="Ms">Ms</option>
+                    <option value="Mrs">Mrs</option>
+                    <option value="Dr">Dr</option>
+                    <option value="Prof">Prof</option>
+                  </select>
+                </div>
+
+                {/* First Name and Last Name */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
+                      }`}>
+                      First Name
+                    </label>
+                    <input
+                      type="text"
+                      name="first_name"
+                      value={formData.first_name}
+                      onChange={handleChange}
+                      placeholder="First Name"
+                      disabled={loading}
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
+                        ? 'bg-white-31 text-white placeholder-gray-400'
+                        : 'bg-white/80 border-gray-300 placeholder-gray-500'
+                        } ${errors.first_name ? 'border-red-500' : ''}`}
+                    />
+                    {errors.first_name && (
+                      <p className="text-red-500 text-xs mt-1">{errors.first_name}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
+                      }`}>
+                      Last Name
+                    </label>
+                    <input
+                      type="text"
+                      name="last_name"
+                      value={formData.last_name}
+                      onChange={handleChange}
+                      placeholder="Last Name"
+                      disabled={loading}
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
+                        ? 'bg-white-31 text-white placeholder-gray-400'
+                        : 'bg-white/80 border-gray-300 placeholder-gray-500'
+                        }`}
+                    />
+                  </div>
+                </div>
+
+                {/* Email Address */}
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
+                    }`}>
+                    Email Address
+                  </label>
+                    <input
+                      type="email"
+                      name="email_id"
+                      value={formData.email_id}
+                      onChange={handleChange}
+                      placeholder="Email Address"
+                      disabled={loading}
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
+                        ? 'bg-white-31 text-white placeholder-gray-400'
+                        : 'bg-white/80 border-gray-300 placeholder-gray-500'
+                        } ${errors.email_id ? 'border-red-500' : ''}`}
+                    />
+                    {errors.email_id && (
+                      <p className="text-red-500 text-xs mt-1">{errors.email_id}</p>
+                    )}
+                </div>
+
+                {/* Mobile No and Gender */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
+                      }`}>
+                      Mobile No
+                    </label>
+                    <input
+                      type="tel"
+                      name="phone"
+                      value={formData.phone}
+                      onChange={handleChange}
+                      placeholder="Mobile No"
+                      disabled={loading}
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
+                        ? 'bg-white-31 text-white placeholder-gray-400'
+                        : 'bg-white/80 border-gray-300 placeholder-gray-500'
+                        } ${errors.phone ? 'border-red-500' : ''}`}
+                    />
+                    {errors.phone && (
+                      <p className="text-red-500 text-xs mt-1">{errors.phone}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
+                      }`}>
+                      Gender
+                    </label>
+                    <select
+                      name="gender"
+                      value={formData.gender}
+                      onChange={handleChange}
+                      disabled={loading}
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
+                        ? 'bg-white-31 text-white'
+                        : 'bg-gray-50/80 border-gray-300'
+                        }`}
+                    >
+                      <option value="">Select Gender</option>
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Transgender">Transgender</option>
+                      <option value="Other">Other</option>
+                      <option value="Prefer Not to say">Prefer Not to say</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Company Name */}
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
+                    }`}>
+                    Company Name
+                  </label>
+                  <input
+                    type="text"
+                    name="company_name"
+                    value={formData.company_name}
+                    onChange={handleChange}
+                    placeholder="Company Name"
+                    disabled={loading}
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
+                      ? 'bg-white-31 text-white placeholder-gray-400'
+                      : 'bg-white/80 border-gray-300 placeholder-gray-500'
+                      } ${errors.company_name ? 'border-red-500' : ''}`}
+                  />
+                  {errors.company_name && (
+                    <p className="text-red-500 text-xs mt-1">{errors.company_name}</p>
+                  )}
+                </div>
+
+                {/* Designation */}
+                <div>
+                  <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
+                    }`}>
+                    Designation
+                  </label>
+                  <input
+                    type="text"
+                    name="designation"
+                    value={formData.designation}
+                    onChange={handleChange}
+                    placeholder="Designation"
+                    disabled={loading}
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
+                      ? 'bg-white-31 text-white placeholder-gray-400'
+                      : 'bg-white/80 border-gray-300 placeholder-gray-500'
+                      } ${errors.designation ? 'border-red-500' : ''}`}
+                  />
+                  {errors.designation && (
+                    <p className="text-red-500 text-xs mt-1">{errors.designation}</p>
+                  )}
+                </div>
+
+                {/* Address with custom dropdown and refresh button */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className={`block text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>
+                      Address
+                    </label>
+                    <button
+                      type="button"
+                      onClick={fetchAddresses}
+                      disabled={loadingAddresses}
+                      className={`text-xs px-2 py-1 rounded transition-colors ${theme === 'dark'
+                        ? 'bg-gray-700 text-white hover:bg-gray-600'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                        }`}
+                    >
+                      {loadingAddresses ? 'Refreshing...' : 'Refresh'}
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <select
+                      name="address"
+                      value={formData.address}
+                      onChange={handleAddressChange}
+                      disabled={loading || loadingAddresses}
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm appearance-none ${theme === 'dark'
+                        ? 'bg-white-31 text-white'
+                        : 'bg-gray-50/80 border-gray-300'
+                        }`}
+                    >
+                      {loadingAddresses ? (
+                        <option value="">Loading addresses...</option>
+                      ) : (
+                        <>
+                          <option value="">Select Address</option>
+                          {addresses.map((address: any) => (
+                            <option key={address.name} value={address.name}>
+                              {address.address_title || address.name}
+                            </option>
+                          ))}
+                          <option
+                            value="create_new"
+                            className="font-medium"
+                            style={{
+                              borderTop: '1px solid #e5e7eb',
+                              paddingTop: '8px',
+                              marginTop: '4px'
+                            }}
+                          >
+                            + Create New Address
+                          </option>
+                        </>
+                      )}
+                    </select>
+
+                    {/* Custom dropdown arrow */}
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
+                      <svg className={`fill-current h-4 w-4 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                        <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Submit Button */}
+              <div className="flex justify-center mt-8">
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 sm:text-sm ${theme === 'dark'
+                    ? 'bg-purple-600 text-white hover:bg-purple-700 focus:ring-purple-500'
+                    : 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500'
+                    }`}
+                >
+                  {loading ? 'Creating...' : 'Create'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      {/* Address Modal */}
+      <CreateAddressModal
+        isOpen={showAddressModal}
+        onClose={() => setShowAddressModal(false)}
+        onSubmit={handleAddressCreated}
+      />
+    </>
+  );
+}
+
+export default CreateContactModal;
