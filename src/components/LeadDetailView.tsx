@@ -78,6 +78,17 @@ export interface Lead {
   last_name?: string;
   lead_owner?: string;
   converted?: string;
+  // Change from organization_info to company_details
+  company_details?: {
+    company_name?: string;
+    industry?: string;
+    description?: string;
+    website?: string;
+    address?: string;
+    employees?: string;
+    revenue?: string;
+    [key: string]: any;
+  };
 }
 
 interface LeadDetailViewProps {
@@ -117,6 +128,17 @@ interface CallLog {
 
 
 
+// Add these interfaces at the top with other interfaces
+interface UserInfo {
+  [email: string]: {
+    fullname: string;
+    image: string | null;
+    name: string;
+    email: string;
+    time_zone: string;
+  };
+}
+
 interface Comment {
   name: string;
   content: string;
@@ -126,6 +148,7 @@ interface Comment {
   creation: string;
   owner: string;
   subject: string;
+  comment_by?: string;
   attachments: Array<{
     name: string;
     file_name: string;
@@ -383,6 +406,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
   const [taskToDelete, setTaskToDelete] = React.useState<string | null>(null);
   const [editingCall, setEditingCall] = React.useState<any | null>(null);
   const showUniversalComposer = ['activity'].includes(activeTab);
+  const [userInfo, setUserInfo] = useState<UserInfo>({});
   const userSession = getUserSession();
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
   const [files, setFiles] = useState<Array<{
@@ -545,6 +569,18 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
         const result = await response.json();
         const apiData = result.message;
 
+        // Parse company_details if it exists (changed from organization_info)
+        let companyDetails = null;
+        if (apiData.company_details) {
+          try {
+            companyDetails = typeof apiData.company_details === 'string'
+              ? JSON.parse(apiData.company_details)
+              : apiData.company_details;
+          } catch (e) {
+            console.error('Error parsing company_details:', e);
+          }
+        }
+
         // Create a new object that matches your component's state structure
         const normalizedLead = {
           ...apiData, // Copy all existing properties from the API response
@@ -552,9 +588,11 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
           lastName: apiData.last_name || '',   // Map last_name to lastName
           mobile: apiData.mobile_no || '',     // Map mobile_no to mobile
           jobTitle: apiData.job_title || '',   // Map job_title to jobTitle
+          company_details: companyDetails, // Include parsed company details
         };
 
-        setEditedLead(normalizedLead); // Set the correctly structured state
+        setEditedLead(normalizedLead);
+        setOrganizationInfo(companyDetails); // Also set in state for immediate display
       }
     } catch (error) {
       console.error('Error fetching lead data:', error);
@@ -1149,8 +1187,13 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
       if (response.ok) {
         const result = await response.json();
 
+        // Extract user_info from the response
+        if (result.docinfo?.user_info) {
+          setUserInfo(result.docinfo.user_info);
+        }
+
         // Get comments from activities
-        let commentsData = [];
+        let commentsData: Comment[] = [];
         const activities = result.message[0] || [];
 
         // Filter for comment activities and extract attachments
@@ -1176,12 +1219,16 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
               content: comment.content,
               comment_type: 'Comment',
               creation: comment.creation,
+              comment_by: comment.comment_by,
               owner: comment.owner,
+              subject: comment.subject || '',
               attachments: attachments
             };
           });
 
         setComments(commentsData);
+      } else {
+        throw new Error('Failed to fetch comments');
       }
     } catch (error) {
       console.error('Error fetching comments:', error);
@@ -1189,6 +1236,20 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
     } finally {
       setCommentsLoading(false);
     }
+  };
+
+  const getUserDisplayName = (email: string): string => {
+    if (userInfo[email]?.fullname) {
+      return userInfo[email].fullname;
+    }
+    // Fallback to email if no fullname found
+    return email;
+  };
+
+  // Helper function to get user initial
+  const getUserInitial = (email: string): string => {
+    const displayName = getUserDisplayName(email);
+    return displayName.charAt(0).toUpperCase();
   };
 
   useEffect(() => {
@@ -1448,16 +1509,56 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
 
       if (response.ok) {
         const result = await response.json();
-        setOrganizationInfo(result.message);
-        showToast('Organization information generated successfully', { type: 'success' });
+        const companyInfo = result.message;
+
+        // Update the lead with company details
+        const updatedLead = {
+          ...editedLead,
+          company_details: companyInfo
+        };
+
+        setEditedLead(updatedLead);
+        setOrganizationInfo(companyInfo);
+
+        // Save to the server using company_details field
+        await saveCompanyDetailsToLead(companyInfo);
+
+        showToast('Company information generated and saved successfully', { type: 'success' });
       } else {
-        throw new Error('Failed to fetch organization info');
+        throw new Error('Failed to fetch company info');
       }
     } catch (error) {
-      console.error('Error fetching organization info:', error);
-      showToast('Failed to generate organization information', { type: 'error' });
+      console.error('Error fetching company info:', error);
+      showToast('Failed to generate company information', { type: 'error' });
     } finally {
       setGeneratingInfo(false);
+    }
+  };
+
+  // Function to save company details to the lead
+  const saveCompanyDetailsToLead = async (companyInfo: any) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/method/frappe.client.set_value`, {
+        method: 'POST',
+        headers: {
+          'Authorization': AUTH_TOKEN,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          doctype: 'CRM Lead',
+          name: lead.name,
+          fieldname: {
+            company_details: JSON.stringify(companyInfo)
+          }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save company details');
+      }
+    } catch (error) {
+      console.error('Error saving company details:', error);
+      throw error;
     }
   };
 
@@ -3036,57 +3137,118 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
                     </button>
                   </div>
 
-                  {/* Organization Info Display */}
-                  {organizationInfo && (
-                    <div className={`mb-6 p-4 rounded-lg border ${borderColor} ${theme === 'dark' ? 'bg-gray-800' : 'bg-blue-50'}`}>
-                      <div className="flex justify-between items-center mb-2">
+                  {editedLead.company_details && (
+                    <div className={`mb-6 rounded-lg border ${borderColor} ${theme === 'dark' ? 'bg-gray-800' : 'bg-blue-50'}`}>
+                      <div className="flex justify-between items-center p-4 border-b border-gray-300 dark:border-gray-600">
                         <h4 className={`text-md font-semibold ${textColor}`}>
-                          Company Overview:
+                          Company Overview
                         </h4>
                         <button
-                          onClick={() => setOrganizationInfo(null)}
-                          className={`p-1 rounded-full ${theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-blue-100'}`}
+                          onClick={async () => {
+                            const updatedLead = {
+                              ...editedLead,
+                              company_details: null
+                            };
+                            setEditedLead(updatedLead);
+                            setOrganizationInfo(null);
+
+                            try {
+                              await fetch(`${API_BASE_URL}/method/frappe.client.set_value`, {
+                                method: 'POST',
+                                headers: {
+                                  'Authorization': AUTH_TOKEN,
+                                  'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({
+                                  doctype: 'CRM Lead',
+                                  name: lead.name,
+                                  fieldname: {
+                                    company_details: null
+                                  }
+                                })
+                              });
+                              showToast('Company overview removed', { type: 'success' });
+                            } catch (error) {
+                              console.error('Error removing company details:', error);
+                              showToast('Failed to remove company overview', { type: 'error' });
+                            }
+                          }}
+                          className={`p-1 rounded-full ${theme === 'dark' ? 'hover:bg-gray-700 text-gray-400' : 'hover:bg-blue-100 text-gray-500'}`}
+                          title="Remove company overview"
                         >
                           <IoCloseOutline className="w-4 h-4" />
                         </button>
                       </div>
 
-                      {/* Display the organization info - adjust based on your API response structure */}
-                      <div className={`text-sm ${textSecondaryColor} space-y-2`}>
-                        {organizationInfo.company_name && (
-                          <p><strong>Company Name:</strong> {organizationInfo.company_name}</p>
-                        )}
-                        {organizationInfo.industry && (
-                          <p><strong>Industry:</strong> {organizationInfo.industry}</p>
-                        )}
-                        {organizationInfo.description && (
-                          <p><strong>Description:</strong> {organizationInfo.description}</p>
-                        )}
-                        {organizationInfo.website && (
-                          <p><strong>Website:</strong> {organizationInfo.website}</p>
-                        )}
-                        {organizationInfo.address && (
-                          <p><strong>Address:</strong> {organizationInfo.address}</p>
-                        )}
-                        {organizationInfo.employees && (
-                          <p><strong>Employees:</strong> {organizationInfo.employees}</p>
-                        )}
-                        {organizationInfo.revenue && (
-                          <p><strong>Revenue:</strong> {organizationInfo.revenue}</p>
-                        )}
+                      <div className="p-4">
+                        {/* Simple display of company info - matching old design */}
+                        <div className={`text-sm ${textSecondaryColor} space-y-2`}>
+                          {editedLead.company_details.company_name && (
+                            <p><strong>Company Name:</strong> {editedLead.company_details.company_name}</p>
+                          )}
+                          {editedLead.company_details.industry && (
+                            <p><strong>Industry:</strong> {editedLead.company_details.industry}</p>
+                          )}
+                          {editedLead.company_details.description && (
+                            <p><strong>Description:</strong> {editedLead.company_details.description}</p>
+                          )}
+                          {editedLead.company_details.website && (
+                            <p><strong>Website:</strong> {editedLead.company_details.website}</p>
+                          )}
+                          {editedLead.company_details.address && (
+                            <p><strong>Address:</strong> {editedLead.company_details.address}</p>
+                          )}
+                          {editedLead.company_details.employees && (
+                            <p><strong>Employees:</strong> {editedLead.company_details.employees}</p>
+                          )}
+                          {editedLead.company_details.revenue && (
+                            <p><strong>Revenue:</strong> {editedLead.company_details.revenue}</p>
+                          )}
 
-                        {/* Fallback for any other data structure */}
-                        {typeof organizationInfo === 'string' && (
-                          <p>{organizationInfo}</p>
-                        )}
+                          {/* Display any additional fields that might exist */}
+                          {/* {Object.entries(editedLead.company_details)
+                            .filter(([key, value]) => {
+                              const mainFields = ['company_name', 'industry', 'description', 'website', 'address', 'employees', 'revenue'];
+                              return !mainFields.includes(key) && value && value !== '';
+                            })
+                            .map(([key, value]) => (
+                              <p key={key}>
+                                <strong>{key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}:</strong> {String(value)}
+                              </p>
+                            ))} */}
 
-                        {organizationInfo && Object.keys(organizationInfo).length === 0 && (
-                          <p>No information available for this organization.</p>
-                        )}
+                          {/* Fallback for any other data structure */}
+                          {typeof editedLead.company_details === 'string' && (
+                            <p>{editedLead.company_details}</p>
+                          )}
+
+                          {editedLead.company_details && Object.keys(editedLead.company_details).length === 0 && (
+                            <p>No information available for this organization.</p>
+                          )}
+                        </div>
                       </div>
 
-                      {/* Auto-fill button to populate the form fields */}
-
+                      <div className="p-4 border-t border-gray-300 dark:border-gray-600">
+                        {/* <button
+                          onClick={() => fetchOrganizationInfo(editedLead.organization || '')}
+                          disabled={generatingInfo}
+                          className={`px-3 py-1 text-xs rounded transition-colors flex items-center space-x-1 ${generatingInfo
+                            ? 'bg-gray-400 cursor-not-allowed text-gray-200'
+                            : theme === 'dark'
+                              ? 'bg-purple-600 hover:bg-purple-700 text-white'
+                              : 'bg-blue-600 hover:bg-blue-700 text-white'
+                            }`}
+                        >
+                          {generatingInfo ? (
+                            <>
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                              <span>Regenerating...</span>
+                            </>
+                          ) : (
+                            <span>Regenerate</span>
+                          )}
+                        </button> */}
+                      </div>
                     </div>
                   )}
 
@@ -3101,22 +3263,25 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
                           onChange={(e) => handleInputChange('organization', e.target.value)}
                           className={`p-[2px] pl-2 pr-20 block border w-full rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
                         />
-                        <button
-                          onClick={() => fetchOrganizationInfo(editedLead.organization || '')}
-                          disabled={generatingInfo || !editedLead.organization}
-                          className={`absolute right-1 top-1/2 transform -translate-y-1/2 px-3 py-1 text-xs rounded-md transition-colors ${generatingInfo || !editedLead.organization
-                            ? 'bg-gray-400 cursor-not-allowed text-gray-200'
-                            : theme === 'dark'
-                              ? 'bg-purple-600 hover:bg-purple-700 text-white'
-                              : 'bg-blue-600 hover:bg-blue-700 text-white'
-                            }`}
-                        >
-                          {generatingInfo ? (
-                            <Loader2 className="w-3 h-3 animate-spin" />
-                          ) : (
-                            'Generate'
-                          )}
-                        </button>
+                        {/* Only show Generate button if no company details exist */}
+                        {!editedLead.company_details && (
+                          <button
+                            onClick={() => fetchOrganizationInfo(editedLead.organization || '')}
+                            disabled={generatingInfo || !editedLead.organization}
+                            className={`absolute right-1 top-1/2 transform -translate-y-1/2 px-3 py-1 text-xs rounded-md transition-colors ${generatingInfo || !editedLead.organization
+                              ? 'bg-gray-400 cursor-not-allowed text-gray-200'
+                              : theme === 'dark'
+                                ? 'bg-purple-600 hover:bg-purple-700 text-white'
+                                : 'bg-blue-600 hover:bg-blue-700 text-white'
+                              }`}
+                          >
+                            {generatingInfo ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              'Generate'
+                            )}
+                          </button>
+                        )}
                       </div>
                     </div>
 
@@ -3703,12 +3868,12 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
                             <div className="flex justify-between items-center mb-2">
                               <div className="flex items-center gap-4">
                                 <div className="mt-1 text-gray-400"><FaRegComment size={18} /></div>
-                                {/* Use activity.user, which now holds the fullname */}
+                                {/* Use comment_by instead of user/owner */}
                                 <div className={`w-8 h-8 flex items-center justify-center rounded-full ${theme === 'dark' ? 'bg-gray-400' : 'bg-gray-200'} text-sm font-semibold`}>
-                                  {activity.user?.charAt(0).toUpperCase() || "?"}
+                                  {activity.comment_by?.charAt(0).toUpperCase() || activity.user?.charAt(0).toUpperCase() || "?"}
                                 </div>
                                 <p className={`text-sm font-medium ${textSecondaryColor}`}>
-                                  {activity.user || 'Someone'} added a comment
+                                  {activity.comment_by || activity.user || 'Someone'} added a comment
                                 </p>
                               </div>
                               <p className={`text-xs ${textSecondaryColor}`}>{getRelativeTime(activity.timestamp)}</p>
@@ -4608,9 +4773,10 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
 
         {activeTab === 'comments' && (
           <div className="">
+            {/* Header Section */}
             <div className={`${cardBgColor} max-sm:p-3 p-6 border ${borderColor}`}>
               <div className="flex justify-between items-center gap-4">
-                <h3 className={`text-2xl font-semibold mb-0 ${textColor} mb-4`}>Comments</h3>
+                <h3 className={`text-2xl font-semibold mb-0 ${textColor}`}>Comments</h3>
                 <button
                   onClick={handleNewCommentClick}
                   className={`px-4 py-2 ${buttonBgColor} text-white rounded-lg transition-colors flex items-center space-x-2`}
@@ -4620,6 +4786,8 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
                 </button>
               </div>
             </div>
+
+            {/* Comments List Section */}
             <div className={`${cardBgColor} rounded-lg max-h-[400px] overflow-y-auto pr-2 shadow-sm border ${borderColor} p-6`}>
               {commentsLoading ? (
                 <div className="flex items-center justify-center py-8">
@@ -4628,90 +4796,105 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
               ) : comments.length === 0 ? (
                 <div className="text-center py-8">
                   <FaRegComment className={`w-12 h-12 ${textSecondaryColor} mx-auto mb-4`} />
-                  <p className={textSecondaryColor}>No comments</p>
+                  <p className={textSecondaryColor}>No comments yet</p>
+                  <p className={`text-sm ${textSecondaryColor} mt-2`}>Be the first to add a comment</p>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {comments.slice().reverse().map((comment) => (
-                    <div key={comment.name} className='flex gap-2'>
-                      <div className='flex flex-col items-center'>
-                        <div className="w-7 h-10 flex items-center justify-center bg-gray-500 rounded-full">
-                          <FaRegComment className="w-4 h-4 text-purple-300" />
+                <div className="space-y-6">
+                  {comments.slice().reverse().map((comment) => {
+                    const userEmail = comment.comment_by || comment.owner;
+                    const displayName = getUserDisplayName(userEmail);
+                    const userInitial = getUserInitial(userEmail);
+
+                    return (
+                      <div key={comment.name} className='flex gap-3'>
+                        {/* Timeline and Avatar */}
+                        <div className='flex flex-col items-center'>
+                          <div className="w-8 h-8 flex items-center justify-center bg-purple-600 rounded-full">
+                            <span className="text-white text-sm font-semibold">
+                              {userInitial}
+                            </span>
+                          </div>
+                          <div className='w-px h-full bg-gray-300 dark:bg-gray-600 my-2'></div>
                         </div>
-                        <div className='w-px h-full bg-gray-300 my-2'></div>
-                      </div>
 
-                      <div className={`border w-full rounded-lg p-4 ${theme === 'dark' ? 'border-purple-500/30 hover:bg-purple-800/30' : 'border-gray-200 hover:bg-gray-50'} transition-colors`}>
-                        <div className="flex items-start space-x-3">
-                          <div className="flex-1">
-                            <div className="flex items-center max-sm:flex-wrap justify-between">
-                              <div>
-                                <span className={`font-medium px-2 py-1 rounded-full bg-slate-500 ${textColor}`}>
-                                  {comment.owner.charAt(0).toUpperCase()}
-                                </span>
-                                <span className={`font-medium ml-2 ${textColor}`}>
-                                  <span className="text-gray-300">{comment.owner}</span>
-                                </span>
-                                <span className={`font-medium ml-2 ${textColor}`}>
-                                  added a <span className="text-gray-300">comment</span>
-                                </span>
-                              </div>
-                              <span className={`text-sm ${textSecondaryColor}`}>
-                                {getRelativeTime(comment.creation)}
-                              </span>
-                            </div>
-
-                            <p className={` p-3 rounded ${textColor} mt-2`}>
-                              {stripHtml(comment.content)}
-                            </p>
-
-                            {comment.attachments && comment.attachments.length > 0 && (
-                              <div className="mt-3">
-                                {/* <p className={`text-sm font-semibold mb-2 ${textSecondaryColor}`}>
-                                  Attachments:
-                                </p> */}
-                                <div className="flex flex-wrap gap-2">
-                                  {comment.attachments.map((attachment, index) => {
-                                    const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(attachment.file_url || attachment.file_name || '');
-                                    const fileUrl = attachment.file_url?.startsWith('http') ?
-                                      attachment.file_url :
-                                      `https://api.erpnext.ai${attachment.file_url || ''}`;
-
-                                    return isImage ? (
-                                      <button
-                                        key={index}
-                                        onClick={() => setSelectedImage(fileUrl)}
-                                        className={`flex items-center gap-2 px-3 py-2 rounded-md ${theme === 'dark' ? 'bg-white hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'} transition-colors`}
-                                      >
-                                        <File className="w-4 h-4" />
-                                        <span className="text-sm">
-                                          {attachment.file_name || fileUrl.split('/').pop() || 'Unnamed file'}
-                                        </span>
-                                      </button>
-                                    ) : (
-                                      <a
-                                        key={index}
-                                        href={fileUrl}
-                                        download
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className={`flex items-center gap-2 px-3 py-2 rounded-md ${theme === 'dark' ? 'bg-white hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'} transition-colors`}
-                                      >
-                                        <File className="w-4 h-4" />
-                                        <span className="text-sm">
-                                          {attachment.file_name || fileUrl.split('/').pop() || 'Unnamed file'}
-                                        </span>
-                                      </a>
-                                    );
-                                  })}
+                        {/* Comment Content */}
+                        <div className={`border w-full rounded-lg p-4 ${theme === 'dark' ? 'border-purple-500/30 hover:bg-purple-800/20' : 'border-gray-200 hover:bg-gray-50'} transition-colors`}>
+                          <div className="flex items-start space-x-3">
+                            <div className="flex-1">
+                              {/* Comment Header */}
+                              <div className="flex items-center max-sm:flex-wrap justify-between mb-3">
+                                <div className="flex items-center">
+                                  <span className={`font-semibold ${textColor}`}>
+                                    {displayName}
+                                  </span>
+                                  <span className={`text-sm ml-2 ${textSecondaryColor}`}>
+                                    added a comment
+                                  </span>
                                 </div>
+                                <span className={`text-sm ${textSecondaryColor}`}>
+                                  {getRelativeTime(comment.creation)}
+                                </span>
                               </div>
-                            )}
+
+                              {/* Comment Text */}
+                              <div className={`p-3 rounded-lg ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100'} mt-2`}>
+                                <p className={`${textColor} whitespace-pre-wrap leading-relaxed`}>
+                                  {stripHtml(comment.content)}
+                                </p>
+                              </div>
+
+                              {/* Attachments */}
+                              {comment.attachments && comment.attachments.length > 0 && (
+                                <div className="mt-4">
+                                  <p className={`text-sm font-semibold mb-2 ${textSecondaryColor}`}>
+                                    Attachments ({comment.attachments.length})
+                                  </p>
+                                  <div className="flex flex-wrap gap-2">
+                                    {comment.attachments.map((attachment, index) => {
+                                      const isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(attachment.file_name || '');
+                                      const fileUrl = attachment.file_url?.startsWith('http')
+                                        ? attachment.file_url
+                                        : `https://api.erpnext.ai${attachment.file_url || ''}`;
+
+                                      return (
+                                        <div key={index} className="flex items-center">
+                                          {isImage ? (
+                                            <button
+                                              onClick={() => setSelectedImage(fileUrl)}
+                                              className={`flex items-center gap-2 px-3 py-2 rounded-md border ${theme === 'dark' ? 'border-gray-600 bg-gray-700 hover:bg-gray-600' : 'border-gray-300 bg-white hover:bg-gray-100'} transition-colors`}
+                                            >
+                                              <File className="w-4 h-4" />
+                                              <span className="text-sm max-w-[150px] truncate">
+                                                {attachment.file_name || 'Unnamed file'}
+                                              </span>
+                                            </button>
+                                          ) : (
+                                            <a
+                                              href={fileUrl}
+                                              download
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className={`flex items-center gap-2 px-3 py-2 rounded-md border ${theme === 'dark' ? 'border-gray-600 bg-gray-700 hover:bg-gray-600' : 'border-gray-300 bg-white hover:bg-gray-100'} transition-colors`}
+                                            >
+                                              <File className="w-4 h-4" />
+                                              <span className="text-sm max-w-[150px] truncate">
+                                                {attachment.file_name || 'Unnamed file'}
+                                              </span>
+                                            </a>
+                                          )}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -4720,53 +4903,37 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
             {selectedImage && (
               <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
                 <div className="bg-white dark:bg-gray-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
-                  <div className="flex justify-between items-center p-4 border-b">
-                    <h3 className="text-lg text-white font-medium">Image Preview</h3>
+                  <div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700">
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white">Image Preview</h3>
                     <button
                       onClick={() => setSelectedImage(null)}
-                      className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                      className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600"
                     >
-                      ✕
+                      <IoCloseOutline size={24} />
                     </button>
                   </div>
-                  <div className="p-4 overflow-auto max-h-[calc(90vh-100px)]">
+                  <div className="p-4 overflow-auto max-h-[calc(90vh-100px)] flex items-center justify-center">
                     <img
                       src={selectedImage}
                       alt="Preview"
-                      className="max-w-full mx-auto"
+                      className="max-w-full max-h-full object-contain rounded"
                     />
                   </div>
                 </div>
               </div>
             )}
 
-            {/* <div ref={commentRef}>
-              {showCommentModal && (
-                <EmailComposerleads
-                  onClose={() => {
-                    setShowCommentModal(false);
-                    setReplyData(undefined);
-                  }}
-                  lead={lead}
-                  deal={undefined}
-                  setListSuccess={setListSuccess}
-                  refreshEmails={refreshComments}
-                  replyData={replyData}
-                />
-              )}
-            </div> */}
-            {/* Composer fixed at bottom */}
+            {/* Email Composer Section */}
             <div
               ref={composerRef}
-              //  className={`${cardBgColor} border-t ${borderColor} w-[-webkit-fill-available] pt-4 absolute bottom-0  overflow-hidden`}
               className={`
-                ${cardBgColor} border-t ${borderColor} overflow-hidden z-50
-                fixed bottom-0 left-0 w-full
-                sm:absolute sm:w-[-webkit-fill-available] sm:pt-4 sm:left-auto
-              `}
+        ${cardBgColor} border-t ${borderColor} overflow-hidden z-50
+        fixed bottom-0 left-0 w-full
+        sm:absolute sm:w-[-webkit-fill-available] sm:pt-4 sm:left-auto
+      `}
             >
               {!showEmailModal && (
-                <div className={` border-t flex gap-4 ${borderColor} ${theme === 'dark' ? 'bg-dark-secondary' : 'bg-white'} p-4 z-50 shadow-lg`}>
+                <div className={`border-t flex gap-4 ${borderColor} ${theme === 'dark' ? 'bg-dark-secondary' : 'bg-white'} p-4 z-50 shadow-lg`}>
                   <button
                     className={`flex items-center gap-1 ${theme === "dark" ? "text-white" : "text-gray-600"}`}
                     onClick={() => {
@@ -4806,7 +4973,6 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
                   recipientEmail={editedLead.email}
                 />
               )}
-
             </div>
           </div>
         )}

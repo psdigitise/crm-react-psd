@@ -16,7 +16,7 @@ import {
   Mail,
   Menu,
 } from 'lucide-react';
-import { 
+import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
   LineChart, Line, XAxis, YAxis, CartesianGrid, Legend, ScatterChart, Scatter, ZAxis
 } from 'recharts';
@@ -30,6 +30,7 @@ import { Deals, Dealstable } from '../Dashboardtables/DealsTable';
 import { TodayLeads, TodayLeadstable } from '../Dashboardtables/TodayLeadsTable';
 import { getUserSession } from '../utils/session';
 import { api } from '../api/apiService';
+import { useNavigate } from 'react-router-dom';
 
 const priorityColors = {
   Low: 'text-green-600',
@@ -93,23 +94,20 @@ function ChartCard({ title, description, children, action }: ChartCardProps) {
 
   return (
     <div
-      className={`rounded-xl shadow-sm border-white  p-6 ${
-        theme === 'dark' ? 'bg-custom-gradient border ' : 'bg-white border-gray-100'
-      }`}
+      className={`rounded-xl shadow-sm border-white  p-6 ${theme === 'dark' ? 'bg-custom-gradient border ' : 'bg-white border-gray-100'
+        }`}
     >
       <div className="mb-6">
         <h3
-          className={`text-xl font-bold ${
-            theme === 'dark' ? 'text-white' : 'text-gray-900'
-          }`}
+          className={`text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+            }`}
         >
           {title}
         </h3>
         {description && (
           <p
-            className={`text-sm mt-1 ${
-              theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-            }`}
+            className={`text-sm mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+              }`}
           >
             {description}
           </p>
@@ -290,131 +288,155 @@ export function Dashboard({ onMenuToggle }: DashboardProps) {
   const [contactCount, setContactCount] = useState(0);
   const [organizationCount, setOrganizationCount] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
-  
+
   // New state for charts
   const [salesTrendData, setSalesTrendData] = useState<SalesTrendData[]>([]);
   const [forecastedRevenueData, setForecastedRevenueData] = useState<ForecastedRevenueData[]>([]);
   const [loadingCharts, setLoadingCharts] = useState(false);
 
+  const navigate = useNavigate();
   const userSession = getUserSession();
   const sessionfullname = userSession?.full_name;
   const sessionUsername = userSession?.username || sessionfullname;
 
-  // Function to fetch sales trend data
   const fetchSalesTrendData = async () => {
     try {
       setLoadingCharts(true);
       const userSession = getUserSession();
       const Company = userSession?.company;
-      
+
       // Calculate date range (last 30 days)
       const toDate = new Date();
       const fromDate = new Date();
       fromDate.setDate(fromDate.getDate() - 30);
-      
+
       const formattedFromDate = fromDate.toISOString().split('T')[0];
       const formattedToDate = toDate.toISOString().split('T')[0];
 
-      const response = await api.get(
+      // ✅ Correct API call with params
+      // const response = await api.get(
+      //   '/api/method/customcrm.overrides.custom_crm_dashboard.get_sales_trend',
+      //   {
+      //     params: {
+      //       from_date: formattedFromDate,
+      //       to_date: formattedToDate,
+      //       // company: "shathipsdigitis",
+      //       company: Company,
+      //     },
+      //   }
+      // );
+
+      const response = await api.post(
         '/api/method/customcrm.overrides.custom_crm_dashboard.get_sales_trend',
         {
-          params: {
-            from_date: formattedFromDate,
-            to_date: formattedToDate,
-            company: Company
-          }
+          from_date: formattedFromDate,
+          to_date: formattedToDate,
+          company: Company,
         }
       );
 
-      console.log('Sales Trend API Response:', response.data);
 
-      if (response.data && response.data.message && Array.isArray(response.data.message)) {
-        setSalesTrendData(response.data.message);
+      console.log("✅ Raw Sales Trend Response:", response);
+
+      // ✅ Universal data extraction to handle different shapes
+      const rawData =
+        response?.data?.message?.data ||
+        response?.message?.data ||
+        response?.data?.data?.message?.data ||
+        [];
+
+      if (Array.isArray(rawData) && rawData.length > 0) {
+        const formattedData = rawData.map((item: any) => ({
+          ...item,
+          leads: Number(item.leads) || 0,
+          deals: Number(item.deals) || 0,
+          won_deals: Number(item.won_deals) || 0,
+          date: new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        }));
+        setSalesTrendData(formattedData);
       } else {
-        // Fallback sample data
-        console.log('Using fallback sales trend data');
-        setSalesTrendData([
-          { date: '25', leads: 8, deals: 6, won_deals: 2 },
-          { date: '27', leads: 10, deals: 7, won_deals: 3 },
-          { date: '29', leads: 12, deals: 8, won_deals: 4 },
-          { date: '31', leads: 9, deals: 9, won_deals: 5 },
-          { date: 'Nov 3', leads: 11, deals: 10, won_deals: 6 },
-        ]);
+        console.warn("⚠️ No valid data found in API response.");
+        setSalesTrendData([]);
       }
     } catch (error) {
-      console.error('Error fetching sales trend data:', error);
-      // Fallback sample data
-      setSalesTrendData([
-        { date: '25', leads: 8, deals: 6, won_deals: 2 },
-        { date: '27', leads: 10, deals: 7, won_deals: 3 },
-        { date: '29', leads: 12, deals: 8, won_deals: 4 },
-        { date: '31', leads: 9, deals: 9, won_deals: 5 },
-        { date: 'Nov 3', leads: 11, deals: 10, won_deals: 6 },
-      ]);
+      console.error("❌ Error fetching sales trend data:", error);
+      setSalesTrendData([]);
     } finally {
       setLoadingCharts(false);
     }
   };
 
-  // Function to fetch forecasted revenue data
   const fetchForecastedRevenueData = async () => {
     try {
       setLoadingCharts(true);
       const userSession = getUserSession();
       const Company = userSession?.company;
-      
-      // Calculate date range (last 7 days with time segments)
+
+      // Calculate date range (last 30 days)
       const toDate = new Date();
       const fromDate = new Date();
-      fromDate.setDate(fromDate.getDate() - 7);
-      
+      fromDate.setDate(fromDate.getDate() - 30);
+
       const formattedFromDate = fromDate.toISOString().split('T')[0];
       const formattedToDate = toDate.toISOString().split('T')[0];
 
-      const response = await api.get(
+      // ✅ Use params for GET call
+      // const response = await api.get(
+      //   '/api/method/customcrm.overrides.custom_crm_dashboard.get_forecasted_revenue',
+      //   {
+      //     params: {
+      //       from_date: formattedFromDate,
+      //       to_date: formattedToDate,
+      //       company: Company,
+      //     },
+      //   }
+      // );
+
+      const response = await api.post(
         '/api/method/customcrm.overrides.custom_crm_dashboard.get_forecasted_revenue',
         {
-          params: {
-            from_date: formattedFromDate,
-            to_date: formattedToDate,
-            company: Company
-          }
+          from_date: formattedFromDate,
+          to_date: formattedToDate,
+          company: Company,
         }
       );
 
-      console.log('Forecasted Revenue API Response:', response.data);
 
-      if (response.data && response.data.message && Array.isArray(response.data.message)) {
-        setForecastedRevenueData(response.data.message);
+      console.log('✅ Forecasted Revenue API Response:', response.data);
+
+      // ✅ Extract the data array safely
+      const rawData =
+        response?.data?.message?.data ||
+        response?.message?.data ||
+        response?.data?.data?.message?.data ||
+        [];
+
+      if (Array.isArray(rawData) && rawData.length > 0) {
+        // ✅ Convert month field into readable format
+        const formattedData = rawData.map((item: any) => ({
+          date: item.month
+            ? new Date(item.month.replace('%Y-%m-01', new Date().toISOString())).toLocaleDateString('en-US', {
+              month: 'short',
+              year: 'numeric',
+            })
+            : 'N/A',
+          forecasted: Number(item.forecasted) || 0,
+          actual: Number(item.actual) || 0,
+        }));
+
+        setForecastedRevenueData(formattedData);
       } else {
-        // Fallback sample data
-        console.log('Using fallback forecasted revenue data');
-        setForecastedRevenueData([
-          { date: '31', time: '06:00', forecasted: 8, actual: 6 },
-          { date: '31', time: '12:00', forecasted: 12, actual: 10 },
-          { date: '31', time: '18:00', forecasted: 15, actual: 14 },
-          { date: 'Nov', time: '06:00', forecasted: 18, actual: 16 },
-          { date: 'Nov', time: '12:00', forecasted: 22, actual: 20 },
-          { date: 'Nov', time: '18:00', forecasted: 25, actual: 23 },
-          { date: '2', time: '06:00', forecasted: 28, actual: 26 },
-        ]);
+        console.warn('⚠️ No valid forecasted revenue data found.');
+        setForecastedRevenueData([]);
       }
     } catch (error) {
-      console.error('Error fetching forecasted revenue data:', error);
-      // Fallback sample data
-      setForecastedRevenueData([
-        { date: '31', time: '06:00', forecasted: 8, actual: 6 },
-        { date: '31', time: '12:00', forecasted: 12, actual: 10 },
-        { date: '31', time: '18:00', forecasted: 15, actual: 14 },
-        { date: 'Nov', time: '06:00', forecasted: 18, actual: 16 },
-        { date: 'Nov', time: '12:00', forecasted: 22, actual: 20 },
-        { date: 'Nov', time: '18:00', forecasted: 25, actual: 23 },
-        { date: '2', time: '06:00', forecasted: 28, actual: 26 },
-      ]);
+      console.error('❌ Error fetching forecasted revenue data:', error);
+      setForecastedRevenueData([]);
     } finally {
       setLoadingCharts(false);
     }
   };
+
 
   // Function to fetch deals data
   const fetchDealsData = async () => {
@@ -480,7 +502,7 @@ export function Dashboard({ onMenuToggle }: DashboardProps) {
         fields: JSON.stringify(["name"]),
         filters: JSON.stringify({ company: Company }),
       });
-      
+
       if (response.data) {
         setOrganizationCount(response.data.length || 0);
       }
@@ -729,8 +751,8 @@ export function Dashboard({ onMenuToggle }: DashboardProps) {
       {/* Charts Section - Sales Trend and Forecasted Revenue */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Sales Trend Chart */}
-        <ChartCard 
-          title="Sales trend" 
+        <ChartCard
+          title="Sales trend"
           description="Daily performance of leads, deals, and wins"
         >
           <div className=" rounded-lg p-4">
@@ -752,7 +774,7 @@ export function Dashboard({ onMenuToggle }: DashboardProps) {
                   </div>
                 </div>
               </div>
-              
+
               {loadingCharts ? (
                 <div className="flex items-center justify-center h-64">
                   <div className="text-center">
@@ -769,20 +791,20 @@ export function Dashboard({ onMenuToggle }: DashboardProps) {
                 </div>
               ) : (
                 <ResponsiveContainer width="100%" height={250}>
-                  <LineChart 
-                    data={salesTrendData} 
+                  <LineChart
+                    data={salesTrendData}
                     margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                   >
-                    <CartesianGrid 
-                      strokeDasharray="3 3" 
-                      stroke={theme === 'dark' ? '#374151' : '#e5e7eb'} 
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke={theme === 'dark' ? '#374151' : '#e5e7eb'}
                     />
-                    <XAxis 
-                      dataKey="date" 
+                    <XAxis
+                      dataKey="date"
                       stroke={theme === 'dark' ? '#9ca3af' : '#6b7280'}
                       fontSize={12}
                     />
-                    <YAxis 
+                    <YAxis
                       stroke={theme === 'dark' ? '#9ca3af' : '#6b7280'}
                       fontSize={12}
                     />
@@ -795,26 +817,26 @@ export function Dashboard({ onMenuToggle }: DashboardProps) {
                       }}
                       formatter={(value: any) => [value, 'Count']}
                     />
-                    <Line 
-                      type="monotone" 
-                      dataKey="leads" 
-                      stroke="#3b82f6" 
+                    <Line
+                      type="monotone"
+                      dataKey="leads"
+                      stroke="#3b82f6"
                       strokeWidth={2}
                       dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
                       activeDot={{ r: 6, fill: '#3b82f6' }}
                     />
-                    <Line 
-                      type="monotone" 
-                      dataKey="deals" 
-                      stroke="#8b5cf6" 
+                    <Line
+                      type="monotone"
+                      dataKey="deals"
+                      stroke="#8b5cf6"
                       strokeWidth={2}
                       dot={{ fill: '#8b5cf6', strokeWidth: 2, r: 4 }}
                       activeDot={{ r: 6, fill: '#8b5cf6' }}
                     />
-                    <Line 
-                      type="monotone" 
-                      dataKey="won_deals" 
-                      stroke="#10b981" 
+                    <Line
+                      type="monotone"
+                      dataKey="won_deals"
+                      stroke="#10b981"
                       strokeWidth={2}
                       dot={{ fill: '#10b981', strokeWidth: 2, r: 4 }}
                       activeDot={{ r: 6, fill: '#10b981' }}
@@ -828,7 +850,7 @@ export function Dashboard({ onMenuToggle }: DashboardProps) {
 
         {/* Forecasted Revenue Chart */}
         <ChartCard
-          title="Forecasted revenue" 
+          title="Forecasted revenue"
           description="Projected vs actual revenue based on deal probability"
 
         >
@@ -847,7 +869,7 @@ export function Dashboard({ onMenuToggle }: DashboardProps) {
                   </div>
                 </div>
               </div>
-              
+
               {loadingCharts ? (
                 <div className="flex items-center justify-center h-64">
                   <div className="text-center">
@@ -864,16 +886,16 @@ export function Dashboard({ onMenuToggle }: DashboardProps) {
                 </div>
               ) : (
                 <ResponsiveContainer width="100%" height={250}>
-                  <ScatterChart 
-                    data={forecastedRevenueData} 
+                  <ScatterChart
+                    data={forecastedRevenueData}
                     margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                   >
-                    <CartesianGrid 
-                      strokeDasharray="3 3" 
-                      stroke={theme === 'dark' ? '#374151' : '#e5e7eb'} 
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke={theme === 'dark' ? '#374151' : '#e5e7eb'}
                     />
-                    <XAxis 
-                      dataKey="date" 
+                    <XAxis
+                      dataKey="date"
                       stroke={theme === 'dark' ? '#9ca3af' : '#6b7280'}
                       fontSize={12}
                       tickFormatter={(value) => {
@@ -881,7 +903,7 @@ export function Dashboard({ onMenuToggle }: DashboardProps) {
                         return item && item.time ? `${value} ${item.time}` : value;
                       }}
                     />
-                    <YAxis 
+                    <YAxis
                       stroke={theme === 'dark' ? '#9ca3af' : '#6b7280'}
                       fontSize={12}
                     />
@@ -890,28 +912,28 @@ export function Dashboard({ onMenuToggle }: DashboardProps) {
                         backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
                         border: theme === 'dark' ? '1px solid #4b5563' : '1px solid #e5e7eb',
                         borderRadius: '8px',
-                         color: theme === 'dark' ? '#ffffff' : '#374151' 
+                        color: theme === 'dark' ? '#ffffff' : '#374151'
                       }}
                       formatter={(value: any, name: any) => {
                         const label = name === 'forecasted' ? 'Forecasted' : 'Actual';
-                        return [`$${value}`, label];
+                        return [`₹${value.toLocaleString('en-IN')}`, label];
                       }}
                       labelFormatter={(label) => {
                         const item = forecastedRevenueData.find(d => d.date === label);
                         return item && item.time ? `Date: ${label} ${item.time}` : `Date: ${label}`;
                       }}
                     />
-                    <Scatter 
+                    <Scatter
                       name="forecasted"
-                      dataKey="forecasted" 
-                      fill="#f97316" 
+                      dataKey="forecasted"
+                      fill="#f97316"
                       shape="circle"
                       r={6}
                     />
-                    <Scatter 
+                    <Scatter
                       name="actual"
-                      dataKey="actual" 
-                      fill="#3b82f6" 
+                      dataKey="actual"
+                      fill="#3b82f6"
                       shape="circle"
                       r={6}
                     />
@@ -926,11 +948,10 @@ export function Dashboard({ onMenuToggle }: DashboardProps) {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <TaskTable title="Today Task" data={taskData} compact={false} />
         <TodayLeadstable title="Today Leads" data={TodayLeadsData} />
-        <Dealstable title="Deals Closing This Month" data={DealsTableData} />
       </div>
 
-      {/* Charts Section - Conversion Funnel and Quick Actions */}
-      <div className={`grid grid-cols-1 lg:grid-cols-2 gap-6 rounded-lg ${theme === 'dark' ? 'bg-gray-900/50' : 'bg-white'}`}>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Dealstable title="Deals Closing This Month" data={DealsTableData} />
         <div className=''>
           <ChartCard title="Lead Conversion Funnel">
             <ResponsiveContainer width="100%" height={300}>
@@ -970,89 +991,6 @@ export function Dashboard({ onMenuToggle }: DashboardProps) {
                   <span className={`text-sm font-semibold  ${theme === 'dark' ? 'text-gray-300' : 'text-gray-800'}`}>{item.value}</span>
                 </div>
               ))}
-            </div>
-          </ChartCard>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 relative lg:border-l lg:border-gray-200 dark:lg:border-gray-700 lg:pl-6">
-          <div className='before:absolute before:content-[""] before:w-[2px] before:h-[70%] before:bg-black before:top-[20%]'></div>
-
-          <ChartCard title="Quick Actions">
-            <div className="space-y-6">
-              <button className={`w-full p-3 text-left rounded-lg transition-colors group ${theme === 'dark'
-                ? 'bg-[#076eff4f] hover:bg-blue-300'
-                : 'bg-blue-50 hover:bg-blue-100'
-                }`}
-                onClick={() => {
-                  window.history.pushState({}, '', '/leads');
-                  window.dispatchEvent(new PopStateEvent('popstate'));
-                }}
-              >
-                <div className="flex items-center space-x-3 g">
-                  <div className={`p-2 rounded-lg transition-colors ${theme === 'dark'
-                    ? 'bg-blue-600 group-hover:bg-blue-700'
-                    : 'bg-blue-500 group-hover:bg-blue-600'
-                    }`}>
-                    <Users className="w-4 h-4 text-white " />
-                  </div>
-                  <div >
-                    <p className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`} >Add New Lead</p>
-                    <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Create a new lead entry</p>
-                  </div>
-                </div>
-              </button>
-
-              <button className={`w-full p-3 text-left rounded-lg transition-colors group ${theme === 'dark'
-                ? 'bg-[#7e6dff5d] hover:bg-[#7e6dff96]'
-                : 'bg-green-50 hover:bg-green-100'
-                }`}
-
-                onClick={() => {
-                  window.history.pushState({}, '', '/deals');
-                  window.dispatchEvent(new PopStateEvent('popstate'));
-                }}
-              >
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-[#7e6dff] rounded-lg group-hover:bg-[#7e6dff] transition-colors">
-                    <Target className="w-4 h-4 text-white" />
-                  </div>
-                  <div>
-                    <p className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>Create Deal</p>
-                    <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Start a new deal</p>
-                  </div>
-                </div>
-              </button>
-
-              <button className={`w-full p-3 text-left rounded-lg transition-colors group ${theme === 'dark'
-                ? 'bg-purple-800/30 hover:bg-purple-700/50'
-                : 'bg-purple-50 hover:bg-purple-100'
-                }`}>
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-purple-500 rounded-lg group-hover:bg-purplebg transition-colors">
-                    <Calendar className="w-4 h-4 text-white" />
-                  </div>
-                  <div>
-                    <p  className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>Schedule Meeting</p>
-                    <p  className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Book a new meeting</p>
-                  </div>
-                </div>
-              </button>
-
-              <button className={`w-full p-3 text-left rounded-lg transition-colors group ${theme === 'dark'
-                ? 'bg-[#7e6dff5d] hover:bg-[#7e6dff96]'
-                : 'bg-orange-50 hover:bg-orange-100'
-                }`}>
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-[#7e6dff] rounded-lg group-hover:bg-[#7e6dff]  transition-colors">
-                    <Activity className="w-4 h-4 text-white" />
-                  </div>
-                  <div>
-                    <p className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>View Reports</p>
-                    <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Check analytics</p>
-                  </div>
-                </div>
-              </button>
             </div>
           </ChartCard>
         </div>

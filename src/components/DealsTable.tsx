@@ -162,6 +162,9 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
   const [importStatus, setImportStatus] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  
+  // New state for import popup
+  const [showImportPopup, setShowImportPopup] = useState(false);
 
   // Column mapping state
   const [unmappedColumns, setUnmappedColumns] = useState<UnmappedColumn[]>([]);
@@ -270,9 +273,13 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
             } else if (typeof d.assignedTo === "string") {
               try {
                 const parsed = JSON.parse(d.assignedTo);
-                names = Array.isArray(parsed) ? parsed : d.assignedTo.split(",");
+                if (Array.isArray(parsed)) {
+                  names = parsed.map(name => name.trim()).filter(name => name);
+                } else {
+                  names = d.assignedTo.split(',').map(name => name.trim()).filter(name => name);
+                }
               } catch {
-                names = d.assignedTo.split(",");
+                names = d.assignedTo.split(',').map(name => name.trim()).filter(name => name);
               }
             }
             return names.map(name => name.trim()).filter(name => name !== "");
@@ -300,6 +307,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
 
       const startImportResponse = await fetch(
         `https://api.erpnext.ai/api/method/frappe.core.doctype.data_import.data_import.form_start_import`,
+ 
         {
           method: 'POST',
           headers: {
@@ -337,8 +345,80 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
     }
   };
 
-  // Import functionality
+  // Show import popup instead of directly opening file input
   const handleImportClick = () => {
+    setShowImportPopup(true);
+  };
+
+  // Handle template download
+  const handleDownloadTemplate = async () => {
+    try {
+      setImportStatus('Downloading template...');
+      
+      const response = await fetch(
+        'https://api.erpnext.ai/api/method/frappe.core.doctype.data_import.data_import.download_template',
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': AUTH_TOKEN,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            "doctype": "CRM Deal",
+            "file_type": "CSV",
+            "export_records": "blank_template",
+            "export_fields": {
+              "CRM Deal": [
+                "status",
+                "expected_deal_value",
+                "expected_closure_date",
+                "first_name",
+                "last_name",
+                "email",
+                "mobile_no",
+                "gender",
+                "website",
+                "organization_name",
+                "annual_revenue"
+              ]
+            },
+            "export_filters": null
+          })
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Template download failed: ${response.statusText}`);
+      }
+
+      // Get the blob from response
+      const blob = await response.blob();
+      
+      // Create download link
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = 'CRM_Deal_Template.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(downloadUrl);
+
+      setImportStatus('');
+      setShowImportPopup(false);
+      showToast('Template downloaded successfully!', 'success');
+
+    } catch (error) {
+      console.error('Template download failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to download template';
+      showToast(`Download failed: ${errorMessage}`);
+      setImportStatus('');
+    }
+  };
+
+  // Handle attach file
+  const handleAttachFile = () => {
+    setShowImportPopup(false);
     if (fileInputRef.current) {
       fileInputRef.current.click();
     }
@@ -531,6 +611,94 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
       setManualMappings({});
       setSelectedFile(null); // Clear file on error
     }
+  };
+
+  // Import Popup Component
+  const ImportPopup = () => {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className={`p-6 rounded-lg shadow-lg max-w-md w-full mx-4 ${
+          theme === 'dark' ? 'bg-gray-800' : 'bg-white'
+        }`}>
+          <div className="flex items-center justify-between mb-6">
+            <h3 className={`text-lg font-semibold ${
+              theme === 'dark' ? 'text-white' : 'text-gray-900'
+            }`}>
+              Import Deals
+            </h3>
+            <button
+              onClick={() => setShowImportPopup(false)}
+              className={`p-1 rounded ${
+                theme === 'dark' 
+                  ? 'text-gray-400 hover:text-white' 
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          
+          <div className="space-y-4">
+            <p className={`text-sm ${
+              theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+            }`}>
+              Choose an option to import deals:
+            </p>
+            
+            <div className="grid grid-cols-1 gap-3">
+              {/* Download Template Button */}
+              <button
+                onClick={handleDownloadTemplate}
+                disabled={importStatus === 'Downloading template...'}
+                className={`flex items-center justify-center space-x-2 px-4 py-3 border-2  rounded-lg transition-colors ${
+                  theme === 'dark'
+                    ? 'border-purple-500 text-purple-400 hover:bg-purple-900/30'
+                    : 'border-blue-500 text-blue-600 hover:bg-blue-50'
+                } ${importStatus === 'Downloading template...' ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                <Download className="w-5 h-5" />
+                <div className="text-left">
+                  <div className="font-semibold">Download Template</div>
+                  <div className="text-xs opacity-75">Get CSV template with required fields</div>
+                </div>
+              </button>
+
+              {/* Attach File Button */}
+              <button
+                onClick={handleAttachFile}
+                className={`flex items-center justify-center space-x-2 px-4 py-3 border-2  rounded-lg transition-colors ${
+                  theme === 'dark'
+                    ? 'border-green-500 text-green-400 hover:bg-green-900/30'
+                    : 'border-green-500 text-green-600 hover:bg-green-50'
+                }`}
+              >
+                <Upload className="w-5 h-5" />
+                <div className="text-left">
+                  <div className="font-semibold">Attach File</div>
+                  <div className="text-xs opacity-75">Upload your CSV file to import</div>
+                </div>
+              </button>
+            </div>
+
+            {/* Download status */}
+            {importStatus && (
+              <div className={`text-sm text-center ${
+                theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+              }`}>
+                {importStatus}
+              </div>
+            )}
+
+            {/* Help text */}
+            <div className={`text-xs ${
+              theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+            }`}>
+              <strong>Note:</strong> Use the template to ensure your CSV file has the correct format. Required fields include organization name, contact details, and deal information.
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   // Column Mapping Popup Component
@@ -1305,6 +1473,9 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
         />
       )}
 
+      {/* Import Popup */}
+      {showImportPopup && <ImportPopup />}
+
       {/* Column Mapping Popup */}
       {showMappingPopup && <ColumnMappingPopup />}
 
@@ -1355,7 +1526,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
             <RefreshCcw className="w-4 h-4" />
           </button>
 
-          {/* Import Button */}
+          {/* Updated Import Button */}
           <button
             onClick={handleImportClick}
             className={`px-3 py-2 text-sm border rounded-lg transition-colors flex items-center space-x-1 ${theme === 'dark'
