@@ -176,7 +176,7 @@ const ImportPopup = ({
             </button>
 
             {/* Attach File Button */}
-            {/* <button
+            <button
               onClick={onAttachFile}
               className={`flex items-center justify-center space-x-2 px-4 py-3 border-2 rounded-lg transition-colors ${
                 theme === 'dark'
@@ -189,7 +189,7 @@ const ImportPopup = ({
                 <div className="font-semibold">Attach File</div>
                 <div className="text-xs opacity-75">Upload your CSV file to import</div>
               </div>
-            </button> */}
+            </button>
           </div>
 
           {/* Download status */}
