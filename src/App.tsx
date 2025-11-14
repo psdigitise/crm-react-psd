@@ -42,6 +42,7 @@ import PasswordResetPage from './components/ResetPassword';
 import ForgotPasswordPage from './components/ForgotPasswordPage';
 import AccountActivationPage from './components/AccountActivationPage';
 import { UserDetailView } from './components/UserDetailView';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 
 function AppContent() {
   // Initialize login state from session storage with proper checking
@@ -1060,18 +1061,20 @@ function AppContent() {
 
 function App() {
   return (
-    <ThemeProvider>
-      <Router basename="/login">
-        <Routes>
-          <Route path="/" element={<AppContent />} />
-          <Route path="/update-password" element={<AccountActivationPage />} />
-          <Route path="/reset-password" element={<PasswordResetPage />} />
-          <Route path="/ForgotPassword" element={<ForgotPasswordPage />} />
-          <Route path="*" element={<AppContent />} />
-        </Routes>
-      </Router>
-    </ThemeProvider>
+    <GoogleOAuthProvider clientId='340526796460-ejl46ghv0ret26cfdltc82l9hf0ag62b.apps.googleusercontent.com'>
+      <ThemeProvider>
+        <Router basename="/login">
+          <Routes>
+            <Route path="/" element={<AppContent />} />
+            <Route path="/update-password" element={<AccountActivationPage />} />
+            <Route path="/reset-password" element={<PasswordResetPage />} />
+            <Route path="/ForgotPassword" element={<ForgotPasswordPage />} />
+            <Route path="*" element={<AppContent />} />
+          </Routes>
+        </Router>
+      </ThemeProvider>
+    </GoogleOAuthProvider>
   );
 }
-
+ 
 export default App;

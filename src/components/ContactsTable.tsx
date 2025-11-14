@@ -66,6 +66,7 @@ interface Contact {
 interface ContactsTableProps {
   searchTerm: string;
   onContactClick?: (contact: Contact) => void;
+  onRefresh?: () => void; // Add refresh callback
 }
 
 interface FilterState {
@@ -103,7 +104,7 @@ const defaultColumns: ColumnConfig[] = [
   { key: 'name', label: 'Name', visible: true, sortable: true },
   { key: 'email', label: 'Email', visible: true, sortable: true },
   { key: 'phone', label: 'Phone', visible: true, sortable: true },
-  { key: 'company_name', label: 'Organization', visible: true, sortable: true },
+  { key: 'company_name', label: 'Company Name', visible: true, sortable: true },
   { key: 'lastContact', label: 'Last Contact', visible: true, sortable: true },
   { key: 'status', label: 'Status', visible: false, sortable: true },
   { key: 'assignedTo', label: 'Assigned To', visible: false, sortable: true },
@@ -213,7 +214,7 @@ const ImportPopup = ({
   );
 };
 
-export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps) {
+export function ContactsTable({ searchTerm, onContactClick, onRefresh }: ContactsTableProps) {
   const { theme } = useTheme();
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
@@ -317,7 +318,7 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
           { "label": "Name", "type": "Data", "key": "full_name", "width": "17rem" },
           { "label": "Email", "type": "Data", "key": "email_id", "width": "12rem" },
           { "label": "Phone", "type": "Data", "key": "mobile_no", "width": "12rem" },
-          { "label": "Organization", "type": "Data", "key": "company_name", "width": "12rem" },
+          { "label": "Company Name", "type": "Data", "key": "company_name", "width": "12rem" },
           { "label": "Last Modified", "type": "Datetime", "key": "modified", "width": "8rem" }
         ]),
         kanban_columns: "[]",
@@ -376,6 +377,11 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
         owner: owners.filter((o): o is string => typeof o === 'string')
       });
 
+      // Call the refresh callback if provided
+      if (onRefresh) {
+        onRefresh();
+      }
+
     } catch (error) {
       console.error('Error fetching contacts:', error);
       setError(error instanceof Error ? error.message : 'Failed to fetch contacts');
@@ -383,7 +389,7 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
     } finally {
       setLoading(false);
     }
-  }, [Company]);
+  }, [Company, onRefresh]); // Added onRefresh to dependencies
 
   // Memoized softRefreshContacts function
   const softRefreshContacts = useCallback(async () => {
@@ -406,7 +412,7 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
           { "label": "Name", "type": "Data", "key": "full_name", "width": "17rem" },
           { "label": "Email", "type": "Data", "key": "email_id", "width": "12rem" },
           { "label": "Phone", "type": "Data", "key": "mobile_no", "width": "12rem" },
-          { "label": "Organization", "type": "Data", "key": "company_name", "width": "12rem" },
+          { "label": "Company Name", "type": "Data", "key": "company_name", "width": "12rem" },
           { "label": "Last Modified", "type": "Datetime", "key": "modified", "width": "8rem" }
         ]),
         kanban_columns: "[]",
@@ -481,7 +487,7 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
         intervalRef.current = null;
       }
     };
-  }, [fetchContacts, softRefreshContacts]); // Added dependencies
+  }, [fetchContacts, softRefreshContacts]);
 
   useEffect(() => {
     // Reset to first page when search term changes
@@ -1452,7 +1458,7 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
 
                   {filterOptions.company_name.length > 0 && (
                     <FilterDropdown
-                      title="Organization"
+                      title="Company Name"
                       options={filterOptions.company_name}
                       selected={filters.company_name}
                       onChange={(value) => handleFilterChange('company_name', value)}
@@ -1582,7 +1588,7 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
               {showMenu && (
                 <div className="absolute right-0 bottom-10 bg-white dark:bg-gray-700 shadow-lg rounded-md border dark:border-gray-600 py-1 w-40 z-50">
                   <button
-                    className="block w-full text-left px-4 py-2 hover:bg-gray-300 dark:hover:bg-gray-600"
+                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600"
                     onClick={async () => {
                       await fetchFieldOptions();
                       setShowBulkEdit(true);
@@ -1592,7 +1598,7 @@ export function ContactsTable({ searchTerm, onContactClick }: ContactsTableProps
                     Edit
                   </button>
                   <button
-                    className="block w-full text-left px-4 py-2 hover:bg-gray-300 dark:hover:bg-gray-600"
+                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600"
                     onClick={() => {
                       setShowDeleteConfirm(true);
                       setShowMenu(false);

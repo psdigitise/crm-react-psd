@@ -4390,11 +4390,27 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                                 <div className="flex items-center justify-between">
                                   <div className="flex max-sm:w-min items-center">
                                     {isImageFile(attachmentData.file_name) ? (
-                                      <img
-                                        src={`https://api.erpnext.ai${attachmentData.file_url}`}
-                                        alt={attachmentData.file_name}
-                                        className="w-12 h-12 mr-3 object-cover rounded border border-gray-400"
-                                      />
+                                      // Show original image with fallback for private images
+                                      <div className="relative">
+                                        <img
+                                          src={`https://api.erpnext.ai${attachmentData.file_url}`}
+                                          alt={attachmentData.file_name}
+                                          className="w-12 h-12 mr-3 object-cover rounded border border-gray-400"
+                                          onError={(e) => {
+                                            // Fallback to document icon if image fails to load (private images)
+                                            e.target.style.display = 'none';
+                                            const fallback = e.target.nextSibling;
+                                            if (fallback) fallback.style.display = 'flex';
+                                          }}
+                                        />
+                                        {/* Fallback for private images */}
+                                        <div
+                                          className="w-12 h-12 mr-3 flex items-center justify-center border border-gray-400 rounded bg-gray-200"
+                                          style={{ display: 'none' }}
+                                        >
+                                          <IoDocument className={`w-6 h-6 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`} />
+                                        </div>
+                                      </div>
                                     ) : (
                                       <div className="w-12 h-12 mr-3 flex items-center justify-center border border-gray-400 rounded">
                                         <IoDocument className={`w-6 h-6 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`} />
@@ -4404,6 +4420,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                                       <p className={`font-medium ${textColor}`}>{attachmentData.file_name}</p>
                                       <p className={`text-sm ${textSecondaryColor}`}>
                                         {attachmentData.file_size ? formatFileSize(attachmentData.file_size) : 'Unknown size'}
+                                        {attachmentData.is_private === 1 && ' • Private'}
                                       </p>
                                     </div>
                                   </div>
@@ -4810,21 +4827,39 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                     >
                       <div className="flex items-center">
                         {isImageFile(attachment.file_name) ? (
+                          // Show original image for both private and public files
                           <img
                             src={`https://api.erpnext.ai${attachment.file_url}`}
                             alt={attachment.file_name}
                             className="w-12 h-12 mr-3 object-cover rounded border border-gray-400 hover:opacity-80"
+                            onError={(e) => {
+                              // Fallback to document icon if image fails to load
+                              e.target.style.display = 'none';
+                              const fallback = e.target.parentNode.querySelector('.image-fallback');
+                              if (fallback) fallback.style.display = 'flex';
+                            }}
                           />
                         ) : (
                           <div className="w-12 h-12 mr-3 flex items-center justify-center border border-gray-400 rounded">
                             <IoDocument className={`w-6 h-6 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`} />
                           </div>
-
                         )}
+
+                        {/* Fallback container for images that fail to load */}
+                        {isImageFile(attachment.file_name) && (
+                          <div
+                            className="w-12 h-12 mr-3 flex items-center justify-center border border-gray-400 rounded image-fallback"
+                            style={{ display: 'none' }}
+                          >
+                            <IoDocument className={`w-6 h-6 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`} />
+                          </div>
+                        )}
+
                         <div>
                           <p className={`font-medium ${textColor}`}>{attachment.file_name}</p>
                           <p className={`text-sm ${textSecondaryColor}`}>
                             {attachment.file_size ? formatFileSize(attachment.file_size) : 'Unknown size'}
+                            {attachment.is_private === 1 && ' • Private'}
                           </p>
                         </div>
                       </div>

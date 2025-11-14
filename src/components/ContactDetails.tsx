@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, Edit, Trash2, Mail, Phone, Building2, User, Calendar, MapPin, Zap, Loader2, Plus, X } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2, Mail, Phone, Building2, User, Calendar, MapPin, Zap, Loader2, Plus, X, TicketCheck, TicketX, CheckCircle } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import { showToast } from '../utils/toast';
 import { getUserSession } from '../utils/session';
 import { DealDetailView } from './DealDetailView';
 import { apiAxios, apiUrl, AUTH_TOKEN } from '../api/apiUrl';
 import axios from 'axios';
+import { TiCss3 } from 'react-icons/ti';
 
 interface Contact {
   id: string;
@@ -1276,852 +1277,913 @@ export default function ContactDetails({
   };
 
   const renderPhoneDropdownField = () => {
-    const phones = contact.phone_nos || [];
-    const hasMobileNo = contact.mobile_no && contact.mobile_no !== 'N/A';
-    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-    const dropdownRef = useRef<HTMLDivElement>(null);
+  const phones = contact.phone_nos || [];
+  const hasMobileNo = contact.mobile_no && contact.mobile_no !== 'N/A';
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-    useEffect(() => {
-      const handleClickOutside = (event: MouseEvent) => {
-        if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-          setIsDropdownOpen(false);
-        }
-      };
-
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => {
-        document.removeEventListener('mousedown', handleClickOutside);
-      };
-    }, []);
-
-    if (hasMobileNo && phones.length === 0) {
-      return renderEditableField("Mobile No", "mobile_no");
-    }
-
-    if (!hasMobileNo && phones.length === 0) {
-      return (
-        <div className="text-sm flex gap-1 group">
-          <p className={`w-32 max-sm:w-[50%] ${isDark ? "text-white/80" : "text-gray-600"}`}>Mobile No:</p>
-          <div className="flex-1">
-            <button
-              onClick={() => setAddingPhone(true)}
-              className={`text-sm px-2 py-1 rounded border ${isDark ? 'border-gray-600 text-white hover:bg-gray-700' : 'border-gray-300 text-gray-700 hover:bg-gray-100'}`}
-            >
-              + Create New
-            </button>
-          </div>
-        </div>
-      );
-    }
-
-    const handlePhoneSelect = async (phoneNumber: string) => {
-      if (phoneNumber === 'create_new') {
-        setAddingPhone(true);
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Function to set mobile number as primary
+  const handleSetPrimaryMobile = async (phoneNumber: string) => {
+    try {
+      setLoading(true);
+
+      const session = getUserSession();
+      if (!session) {
+        showToast('Session not found', { type: 'error' });
         return;
       }
 
-      setSelectedPhone(phoneNumber);
-      setIsDropdownOpen(false);
+      const response = await fetch('https://api.erpnext.ai/api/method/crm.api.contact.set_as_primary', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': AUTH_TOKEN
+        },
+        body: JSON.stringify({
+          contact: contact.id,
+          field: "mobile_no",
+          value: phoneNumber
+        })
+      });
 
-      try {
-        setLoading(true);
-
-        const session = getUserSession();
-        if (!session) {
-          showToast('Session not found', { type: 'error' });
-          return;
-        }
-
-        const response = await fetch('https://api.erpnext.ai/api/method/frappe.client.set_value', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': AUTH_TOKEN
-          },
-          body: JSON.stringify({
-            doctype: "Contact",
-            name: contact.id,
-            fieldname: "mobile_no",
-            value: phoneNumber
-          })
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-
-        const result = await response.json();
-        const updatedContactData = result.message;
-
-        if (updatedContactData) {
-          const updatedContact = {
-            ...contact,
-            mobile_no: phoneNumber,
-            full_name: updatedContactData.full_name || contact.full_name,
-            modified: updatedContactData.modified || contact.modified,
-          };
-
-          setContact(updatedContact);
-          onSave(updatedContact);
-          showToast('Mobile number updated successfully', { type: 'success' });
-        }
-
-      } catch (error) {
-        console.error('Error updating primary mobile number:', error);
-        showToast('Failed to update primary mobile number', { type: 'error' });
-        setSelectedPhone(contact.mobile_no || phones.find(p => p.is_primary_phone || p.is_primary_mobile_no)?.phone || phones[0]?.phone || '');
-      } finally {
-        setLoading(false);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
-    };
 
-    const getSelectedPhoneDisplay = () => {
-      if (!selectedPhone) return 'Select phone number';
-      const currentPhone = phones.find(p => p.phone === selectedPhone);
-      return currentPhone ? `${currentPhone.phone}${(currentPhone.is_primary_phone || currentPhone.is_primary_mobile_no) ? ' (Primary)' : ''}` : selectedPhone;
-    };
+      await response.json();
 
-    return (
-      <div className="text-sm flex gap-1 group relative" ref={dropdownRef}>
-        <p className={`w-32 ${isDark ? "text-white/80" : "text-gray-600"}`}>Mobile No:</p>
-        <div className="flex-1">
-          <div className="relative">
-            <button
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className={`w-full px-3 py-2 border rounded text-left flex items-center justify-between ${isDark
-                ? 'bg-dark-secondary text-white border-white/20 hover:border-purple-400'
-                : 'bg-white text-gray-800 border-gray-300 hover:border-blue-400'
-                } transition-colors focus:outline-none`}
-            >
-              <span className={!selectedPhone ? 'text-gray-500 italic' : ''}>
-                {getSelectedPhoneDisplay()}
-              </span>
-              <span className={`transform transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`}>
-                ▼
-              </span>
-            </button>
+      showToast('Mobile number set as primary successfully', { type: 'success' });
+      
+      // Refresh contact details to get updated phone list
+      await fetchContactDetails();
 
-            {isDropdownOpen && (
-              <div className={`absolute top-full left-[-45px] w-[200px] right-0 mt-1 border rounded shadow-lg z-10 max-h-60 overflow-y-auto ${isDark
-                ? 'bg-gray-800 border-white/20 text-white'
-                : 'bg-white border-gray-300 text-gray-800'
-                }`}>
-                {phones.map((phoneItem, index) => (
-                  <div
-                    key={index}
-                    className={`px-3 py-2 flex items-center justify-between hover:${isDark ? 'bg-gray-700' : 'bg-gray-100'} cursor-pointer border-b ${isDark ? 'border-white/10' : 'border-gray-200'} last:border-b-0`}
-                    onClick={() => handlePhoneSelect(phoneItem.phone)}
-                  >
-                    <div className="flex-1">
-                      <span className="font-medium">{phoneItem.phone}</span>
-                      {(phoneItem.is_primary_phone || phoneItem.is_primary_mobile_no) && (
-                        <span className="text-xs text-green-500 ml-2">(Primary)</span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-1 ml-2">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setEditingPhone(phoneItem);
-                          setNewPhoneValue(phoneItem.phone);
-                          setIsDropdownOpen(false);
-                        }}
-                        className={`p-1 rounded ${isDark
-                          ? 'hover:bg-white/20 text-gray-300 hover:text-white'
-                          : 'hover:bg-gray-200 text-gray-500 hover:text-gray-700'
-                          }`}
-                        title="Edit phone number"
-                      >
-                        <Edit size={14} />
-                      </button>
-
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setDeletingPhone(phoneItem);
-                          setIsDropdownOpen(false);
-                        }}
-                        className={`p-1 rounded ${isDark
-                          ? 'hover:bg-red-500/20 text-gray-300 hover:text-red-300'
-                          : 'hover:bg-red-50 text-gray-500 hover:text-red-600'
-                          }`}
-                        title="Delete phone number"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-
-                <div
-                  className={`px-3 py-2 flex items-center justify-between hover:${isDark ? 'bg-gray-700' : 'bg-gray-100'} cursor-pointer border-t ${isDark ? 'border-white/10' : 'border-gray-200'} font-semibold`}
-                  onClick={() => handlePhoneSelect('create_new')}
-                >
-                  <span className="text-blue-500">+ Create New</span>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {loading && (
-            <Loader2 className="w-4 h-4 animate-spin text-purple-600 ml-1 mt-1" />
-          )}
-        </div>
-
-        {/* Edit Phone Popup */}
-        {editingPhone && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className={`p-4 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-white'} w-96`}>
-              <h3 className="text-lg font-semibold mb-3">Edit Phone Number</h3>
-              <div className="flex gap-2 mb-3">
-                <input
-                  type="tel"
-                  value={newPhoneValue}
-                  onChange={(e) => setNewPhoneValue(e.target.value)}
-                  placeholder="Enter phone number..."
-                  className={`flex-1 px-3 py-2 border rounded ${isDark
-                    ? 'bg-gray-700 text-white border-white/20 focus:border-green-400'
-                    : 'bg-white text-gray-800 border-gray-300 focus:border-green-400'
-                    } focus:outline-none`}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleEditPhone();
-                    else if (e.key === 'Escape') {
-                      setEditingPhone(null);
-                      setNewPhoneValue('');
-                    }
-                  }}
-                  autoFocus
-                />
-              </div>
-              <div className="flex gap-2 justify-end">
-                <button
-                  onClick={() => {
-                    setEditingPhone(null);
-                    setNewPhoneValue('');
-                  }}
-                  className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleEditPhone}
-                  disabled={loading || !newPhoneValue.trim()}
-                  className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                >
-                  {loading ? <Loader2 size={16} className="animate-spin" /> : null}
-                  Update Phone
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Delete Phone Confirmation Popup */}
-        {deletingPhone && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className={`p-4 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-white'} w-96`}>
-              <h3 className="text-lg font-semibold mb-3">Delete Phone Number</h3>
-              <div className="mb-4">
-                <p className={isDark ? 'text-gray-300' : 'text-gray-600'}>
-                  Are you sure you want to delete phone number <strong>{deletingPhone?.phone}</strong>? This action cannot be undone.
-                </p>
-              </div>
-              <div className="flex gap-2 justify-end">
-                <button
-                  onClick={() => setDeletingPhone(null)}
-                  className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleDeletePhone}
-                  disabled={loading}
-                  className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                >
-                  {loading ? <Loader2 size={16} className="animate-spin" /> : null}
-                  Delete Phone
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    );
+    } catch (error) {
+      console.error('Error setting primary mobile number:', error);
+      showToast('Failed to set mobile number as primary', { type: 'error' });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const renderAddressField = () => {
-    const isEditing = editingField === "address";
-    const value = contact.address as string;
+  if (hasMobileNo && phones.length === 0) {
+    return renderEditableField("Mobile No", "mobile_no");
+  }
 
+  if (!hasMobileNo && phones.length === 0) {
     return (
       <div className="text-sm flex gap-1 group">
-        <p className={`w-32 ${isDark ? "text-white/80" : "text-gray-600"}`}>Address:</p>
-
-        {isEditing ? (
-          <div className="flex-1">
-            {loadingAddresses ? (
-              <p className="text-xs text-gray-500">Loading addresses...</p>
-            ) : (
-              <select
-                value={editValue}
-                onChange={(e) => setEditValue(e.target.value)}
-                onBlur={() => handleBlur("address")}
-                className={`w-full px-2 py-1 border rounded ${isDark
-                  ? "bg-white text-black border-white/20 focus:border-purple-400"
-                  : "bg-white text-gray-800 border-gray-300 focus:border-blue-400"
-                  } focus:outline-none`}
-                disabled={loading}
-              >
-                <option value="">Select Address</option>
-                {addressOptions.map((addr) => (
-                  <option key={addr.name} value={addr.name}>
-                    {addr.name}
-                  </option>
-                ))}
-              </select>
-            )}
-          </div>
-        ) : (
-          <div
-            className={`flex-1 cursor-pointer px-2 py-1 rounded transition-colors hover:bg-opacity-50 ${isDark
-              ? "text-white hover:bg-white/10"
-              : "text-gray-800 hover:bg-gray-100"
-              } min-h-[40px]`}
-            onClick={() => handleSingleClick("address")}
-            title="Click to edit address"
+        <p className={`w-32 max-sm:w-[50%] ${isDark ? "text-white/80" : "text-gray-600"}`}>Mobile No:</p>
+        <div className="flex-1">
+          <button
+            onClick={() => setAddingPhone(true)}
+            className={`text-sm px-2 py-1 rounded border ${isDark ? 'border-gray-600 text-white hover:bg-gray-700' : 'border-gray-300 text-gray-700 hover:bg-gray-100'}`}
           >
-            {value && value !== "N/A" ? (
-              <div className="whitespace-pre-wrap">{value}</div>
-            ) : (
-              <span className="italic opacity-60">Select Address</span>
-            )}
-          </div>
-        )}
-
-        {loading && editingField === "address" && (
-          <Loader2 className="w-4 h-4 animate-spin text-purple-600 ml-1" />
-        )}
-      </div>
-    );
-  };
-
-  const AddEmailPopup = () => {
-    if (!addingEmail) return null;
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className={`p-4 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-white'} w-96`}>
-          <h3 className="text-lg font-semibold mb-3">Add Email Address</h3>
-          <div className="flex gap-2 mb-3">
-            <input
-              type="email"
-              value={newEmailValue}
-              onChange={(e) => setNewEmailValue(e.target.value)}
-              placeholder="Enter email address..."
-              className={`flex-1 px-3 py-2 border rounded ${isDark
-                ? 'bg-gray-700 text-white border-white/20 focus:border-green-400'
-                : 'bg-white text-gray-800 border-gray-300 focus:border-green-400'
-                } focus:outline-none`}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleAddEmail();
-                else if (e.key === 'Escape') {
-                  setAddingEmail(false);
-                  setNewEmailValue('');
-                }
-              }}
-              autoFocus
-            />
-          </div>
-          <div className="flex gap-2 justify-end">
-            <button
-              onClick={() => {
-                setAddingEmail(false);
-                setNewEmailValue('');
-              }}
-              className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleAddEmail}
-              disabled={loading || !newEmailValue.trim()}
-              className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-            >
-              {loading ? <Loader2 size={16} className="animate-spin" /> : null}
-              Add Email
-            </button>
-          </div>
+            + Create New
+          </button>
         </div>
       </div>
     );
+  }
+
+  const handlePhoneSelect = async (phoneNumber: string) => {
+    if (phoneNumber === 'create_new') {
+      setAddingPhone(true);
+      setIsDropdownOpen(false);
+      return;
+    }
+
+    setSelectedPhone(phoneNumber);
+    setIsDropdownOpen(false);
+
+    try {
+      setLoading(true);
+
+      const session = getUserSession();
+      if (!session) {
+        showToast('Session not found', { type: 'error' });
+        return;
+      }
+
+      const response = await fetch('https://api.erpnext.ai/api/method/frappe.client.set_value', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': AUTH_TOKEN
+        },
+        body: JSON.stringify({
+          doctype: "Contact",
+          name: contact.id,
+          fieldname: "mobile_no",
+          value: phoneNumber
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      const updatedContactData = result.message;
+
+      if (updatedContactData) {
+        const updatedContact = {
+          ...contact,
+          mobile_no: phoneNumber,
+          full_name: updatedContactData.full_name || contact.full_name,
+          modified: updatedContactData.modified || contact.modified,
+        };
+
+        setContact(updatedContact);
+        onSave(updatedContact);
+        showToast('Mobile number updated successfully', { type: 'success' });
+      }
+
+    } catch (error) {
+      console.error('Error updating primary mobile number:', error);
+      showToast('Failed to update primary mobile number', { type: 'error' });
+      setSelectedPhone(contact.mobile_no || phones.find(p => p.is_primary_phone || p.is_primary_mobile_no)?.phone || phones[0]?.phone || '');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const AddPhonePopup = () => {
-    if (!addingPhone) return null;
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className={`p-4 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-white'} w-96`}>
-          <h3 className="text-lg font-semibold mb-3">Add Phone Number</h3>
-          <div className="flex gap-2 mb-3">
-            <input
-              type="tel"
-              value={newPhoneValue}
-              onChange={(e) => setNewPhoneValue(e.target.value)}
-              placeholder="Enter phone number..."
-              className={`flex-1 px-3 py-2 border rounded ${isDark
-                ? 'bg-gray-700 text-white border-white/20 focus:border-green-400'
-                : 'bg-white text-gray-800 border-gray-300 focus:border-green-400'
-                } focus:outline-none`}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleAddPhone();
-                else if (e.key === 'Escape') {
-                  setAddingPhone(false);
-                  setNewPhoneValue('');
-                }
-              }}
-              autoFocus
-            />
-          </div>
-          <div className="flex gap-2 justify-end">
-            <button
-              onClick={() => {
-                setAddingPhone(false);
-                setNewPhoneValue('');
-              }}
-              className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleAddPhone}
-              disabled={loading || !newPhoneValue.trim()}
-              className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-            >
-              {loading ? <Loader2 size={16} className="animate-spin" /> : null}
-              Add Phone
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  const DeleteConfirmationPopup = () => {
-    if (!showDeleteConfirm) return null;
-
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className={`p-6 rounded-lg max-w-md w-full mx-4 ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-gray-800'}`}>
-              Delete Contact
-            </h3>
-            <button
-              onClick={handleCancelDelete}
-              className={`p-1 rounded-full ${isDark ? 'hover:bg-gray-700 text-white' : 'hover:bg-gray-200 text-gray-600'}`}
-              disabled={deleteLoading}
-            >
-              <X size={20} />
-            </button>
-          </div>
-
-          <div className="mb-6">
-            <p className={`${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
-              Are you sure you want to delete <span className="font-semibold">{contact.full_name || contact.name}</span>? This action cannot be undone and all associated data will be permanently removed.
-            </p>
-          </div>
-
-          <div className="flex gap-3 justify-end">
-            <button
-              onClick={handleCancelDelete}
-              className={`px-4 py-2 rounded border ${isDark
-                ? 'border-gray-600 text-white hover:bg-gray-700'
-                : 'border-gray-300 text-gray-700 hover:bg-gray-100'
-                } transition-colors`}
-              disabled={deleteLoading}
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleDelete}
-              className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700 transition-colors flex items-center gap-2"
-              disabled={deleteLoading}
-            >
-              {deleteLoading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Deleting...
-                </>
-              ) : (
-                <>
-                  <Trash2 size={16} />
-                  Delete
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-      </div>
-    );
+  const getSelectedPhoneDisplay = () => {
+    if (!selectedPhone) return 'Select phone number';
+    const currentPhone = phones.find(p => p.phone === selectedPhone);
+    return currentPhone ? `${currentPhone.phone}${(currentPhone.is_primary_phone || currentPhone.is_primary_mobile_no) ? ' (Primary)' : ''}` : selectedPhone;
   };
 
   return (
-    <div className={`min-h-screen overflow-x-auto flex-col sm:flex-row flex ${isDark ? "bg-transparent text-white" : "bg-white text-gray-800"}`}>
-      {fetchLoading && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 p-4 rounded-lg flex items-center gap-3">
-            <Loader2 className="w-6 h-6 animate-spin text-purple-600" />
-            <span>Loading contact details...</span>
-          </div>
-        </div>
-      )}
+    <div className="text-sm flex gap-1 group relative" ref={dropdownRef}>
+      <p className={`w-32 ${isDark ? "text-white/80" : "text-gray-600"}`}>Mobile No:</p>
+      <div className="flex-1">
+        <div className="relative">
+          <button
+            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            className={`w-full px-3 py-2 border rounded text-left flex items-center justify-between ${isDark
+              ? 'bg-dark-secondary text-white border-white/20 hover:border-purple-400'
+              : 'bg-white text-gray-800 border-gray-300 hover:border-blue-400'
+              } transition-colors focus:outline-none`}
+          >
+            <span className={!selectedPhone ? 'text-gray-500 italic' : ''}>
+              {getSelectedPhoneDisplay()}
+            </span>
+            <span className={`transform transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`}>
+              ▼
+            </span>
+          </button>
 
-      {/* Sidebar - Only show when NOT showing deal detail */}
-      {!showDealDetail && (
-        <div className={`w-80 max-sm:w-[100%] border-r ${isDark ? "border-white bg-transparent" : "border-gray-300 bg-white"}`}>
-          {/* Header */}
-          <div className={`p-4 border-b ${isDark ? "border-white/20" : "border-gray-300"}`}>
-            <div className="flex items-center gap-3 mb-4">
-              <div className="flex items-center gap-3">
-                {/* Avatar */}
+          {isDropdownOpen && (
+            <div className={`absolute top-full left-[-45px] w-[250px] right-0 mt-1 border rounded shadow-lg z-10 max-h-60 overflow-y-auto ${isDark
+              ? 'bg-gray-800 border-white/20 text-white'
+              : 'bg-white border-gray-300 text-gray-800'
+              }`}>
+              {phones.map((phoneItem, index) => (
                 <div
-                  onClick={handleClick}
-                  className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center text-lg font-semibold bg-gray-200 cursor-pointer relative group"
+                  key={index}
+                  className={`px-3 py-2 flex items-center justify-between hover:${isDark ? 'bg-gray-700' : 'bg-gray-100'} cursor-pointer border-b ${isDark ? 'border-white/10' : 'border-gray-200'} last:border-b-0`}
+                  onClick={() => handlePhoneSelect(phoneItem.phone)}
                 >
-                  {uploadingImage ? (
-                    <div className="w-full h-full flex items-center justify-center bg-gray-300">
-                      <Loader2 className="w-5 h-5 animate-spin text-gray-600" />
-                    </div>
-                  ) : (
-                    <>
-                      {imagePreview || contact.image_url ? (
-                        <img
-                          src={imagePreview || contact.image_url}
-                          alt={contact.first_name || 'User'}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <span className="text-gray-600">
-                          {contact.first_name?.[0]?.toUpperCase() || 'C'}
-                        </span>
-                      )}
+                  <div className="flex-1">
+                    <span className="font-medium">{phoneItem.phone}</span>
+                    {(phoneItem.is_primary_phone || phoneItem.is_primary_mobile_no) && (
+                      <span className="text-xs text-green-500 ml-2">(Primary)</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1 ml-2">
+                    {/* Set As Primary Button - Only show if not already primary */}
+                    {!(phoneItem.is_primary_phone || phoneItem.is_primary_mobile_no) && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSetPrimaryMobile(phoneItem.phone);
+                          setIsDropdownOpen(false);
+                        }}
+                        className={`p-1 rounded text-xs font-medium ${isDark
+                          ? ' text-white'
+                          : ' text-black'
+                          }`}
+                        title="Set as primary"
+                      >
+                       <CheckCircle size={14} />
+                      </button>
+                    )}
 
-                      {/* Upload overlay on hover */}
-                      <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <span className="text-white text-xs font-medium">Upload</span>
-                      </div>
-                    </>
-                  )}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditingPhone(phoneItem);
+                        setNewPhoneValue(phoneItem.phone);
+                        setIsDropdownOpen(false);
+                      }}
+                      className={`p-1 rounded ${isDark
+                        ? 'hover:bg-white/20 text-gray-300 hover:text-white'
+                        : 'hover:bg-gray-200 text-gray-500 hover:text-gray-700'
+                        }`}
+                      title="Edit phone number"
+                    >
+                      <Edit size={14} />
+                    </button>
 
-                  <input
-                    type="file"
-                    accept="image/*"
-                    ref={fileInputRef}
-                    className="hidden"
-                    onChange={handleFileChange}
-                    disabled={uploadingImage}
-                  />
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeletingPhone(phoneItem);
+                        setIsDropdownOpen(false);
+                      }}
+                      className={`p-1 rounded ${isDark
+                        ? 'hover:bg-red-500/20 text-gray-300 hover:text-red-300'
+                        : 'hover:bg-red-50 text-gray-500 hover:text-red-600'
+                        }`}
+                      title="Delete phone number"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 </div>
+              ))}
 
-                {/* Name & Company */}
-                <div>
-                  <h2 className="text-lg font-semibold">
-                    {contact.full_name || contact.name}
-                  </h2>
-                  <span className="text-xs text-gray-400 block">
-                    {contact.company_name || 'No company'}
-                  </span>
-                </div>
+              <div
+                className={`px-3 py-2 flex items-center justify-between hover:${isDark ? 'bg-gray-700' : 'bg-gray-100'} cursor-pointer border-t ${isDark ? 'border-white/10' : 'border-gray-200'} font-semibold`}
+                onClick={() => handlePhoneSelect('create_new')}
+              >
+                <span className="text-blue-500">+ Create New</span>
               </div>
             </div>
+          )}
+        </div>
 
-            {/* Buttons */}
-            <div className="flex flex-wrap gap-2 mb-4 transition-all duration-300">
+        {loading && (
+          <Loader2 className="w-4 h-4 animate-spin text-purple-600 ml-1 mt-1" />
+        )}
+      </div>
+
+      {/* Edit Phone Popup */}
+      {editingPhone && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className={`p-4 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-white'} w-96`}>
+            <h3 className="text-lg font-semibold mb-3">Edit Phone Number</h3>
+            <div className="flex gap-2 mb-3">
+              <input
+                type="tel"
+                value={newPhoneValue}
+                onChange={(e) => setNewPhoneValue(e.target.value)}
+                placeholder="Enter phone number..."
+                className={`flex-1 px-3 py-2 border rounded ${isDark
+                  ? 'bg-gray-700 text-white border-white/20 focus:border-green-400'
+                  : 'bg-white text-gray-800 border-gray-300 focus:border-green-400'
+                  } focus:outline-none`}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleEditPhone();
+                  else if (e.key === 'Escape') {
+                    setEditingPhone(null);
+                    setNewPhoneValue('');
+                  }
+                }}
+                autoFocus
+              />
+            </div>
+            <div className="flex gap-2 justify-end">
               <button
-                onClick={() => setShowDeleteConfirm(true)}
-                disabled={loading}
-                className="flex items-center gap-1 text-red-500 border border-red-500 px-2 py-1 rounded text-sm disabled:opacity-50 hover:bg-red-50"
+                onClick={() => {
+                  setEditingPhone(null);
+                  setNewPhoneValue('');
+                }}
+                className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
               >
-                <Trash2 size={14} /> Delete
+                Cancel
+              </button>
+              <button
+                onClick={handleEditPhone}
+                disabled={loading || !newPhoneValue.trim()}
+                className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {loading ? <Loader2 size={16} className="animate-spin" /> : null}
+                Update Phone
               </button>
             </div>
           </div>
-
-          {/* Details */}
-          <div className="p-4 space-y-3">
-            <h3 className="text-sm font-semibold mb-1">Details</h3>
-            {renderEditableField("Salutation", "salutation")}
-            {renderEditableField("First Name", "first_name")}
-            {renderEditableField("Last Name", "last_name")}
-            {renderEmailDropdownField()}
-            {renderPhoneDropdownField()}
-            {renderEditableField("Gender", "gender")}
-            {renderEditableField("Company Name", "company_name")}
-            {renderEditableField("Designation", "designation")}
-            {renderAddressField()}
-          </div>
         </div>
       )}
 
-      {/* Main Content - Only show when NOT showing deal detail */}
-      {!showDealDetail && (
-        <div className="flex-1">
-          {/* Tabs */}
-          <div className={`flex items-center gap-6 border-b p-6 ${isDark ? "border-white/20" : "border-gray-300"}`}>
-            <button className="flex items-center gap-1 font-medium relative">
-              <Zap size={16} />
-              Deals
-              <span className="bg-black text-white text-xs rounded-full px-1.5 ml-1">
-                {contact.reference_deals?.length || 0}
-              </span>
-            </button>
-          </div>
-
-          {/* Deals Table */}
-          <div className="p-6">
-            {contact.reference_deals?.length ? (
-              <div>
-                {/* Desktop Table View - UNCHANGED */}
-                <div className="hidden md:block overflow-x-auto">
-                  <table className="min-w-full text-sm border-collapse">
-                    <thead>
-                      <tr className={`${isDark ? "bg-white/10" : "bg-gray-100"} text-left`}>
-                        <th className="p-3 font-medium">Organization</th>
-                        <th className="p-3 font-medium">Amount</th>
-                        <th className="p-3 font-medium">Status</th>
-                        <th className="p-3 font-medium">Email</th>
-                        <th className="p-3 font-medium">Mobile No</th>
-                        <th className="p-3 font-medium">Deal Owner</th>
-                        <th className="p-3 font-medium">Last Modified</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {contact.reference_deals.map((deal, index) => (
-                        <tr
-                          key={index}
-                          className={`border-t ${isDark ? 'border-white/10' : 'border-gray-200'} hover:bg-opacity-50 ${isDark ? 'hover:bg-white/5' : 'hover:bg-gray-50'} cursor-pointer transition-colors`}
-                          onClick={() => handleDealRowClick(deal.name)}
-                          title="Click to view deal details"
-                        >
-                          <td className="p-3">
-                            <div className="flex items-center gap-2">
-                              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${isDark ? 'bg-purple-600' : 'bg-gray-300'} text-white`}>
-                                {deal.organization?.[0]?.toUpperCase() || 'O'}
-                              </div>
-                              <div>
-                                <p className="font-medium">{deal.organization || 'No organization'}</p>
-                                <p className="text-xs text-gray-500">{deal.name}</p>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="p-3">
-                            <span className="font-medium">₹ {deal.annual_revenue?.toLocaleString() || '0.00'}</span>
-                          </td>
-                          <td className="p-3">
-                            <div className="flex items-center gap-2">
-                              <div className={`w-3 h-3 rounded-full ${deal.status === 'Qualification' ? 'bg-blue-500' :
-                                deal.status === 'Demo/Making' ? 'bg-yellow-500' :
-                                  deal.status === 'Proposal/Quotation' ? 'bg-orange-500' :
-                                    deal.status === 'Negotiation' ? 'bg-purple-500' :
-                                      deal.status === 'Won' ? 'bg-green-500' :
-                                        deal.status === 'Lost' ? 'bg-red-500' :
-                                          'bg-gray-500'
-                                }`}></div>
-                              <span className="text-sm">{deal.status || 'Qualification'}</span>
-                            </div>
-                          </td>
-                          <td className="p-3">
-                            <div className="flex items-center gap-2">
-                              <Mail size={14} className="text-blue-500" />
-                              <span className={`text-sm ${deal.email !== 'No email' ? 'text-blue-500' : 'text-gray-400'}`}>
-                                {deal.email || 'No email'}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="p-3">
-                            <div className="flex items-center gap-2">
-                              <Phone size={14} className="text-green-500" />
-                              <span className="text-sm">{deal.mobile_no || 'No phone'}</span>
-                            </div>
-                          </td>
-                          <td className="p-3">
-                            <div className="flex items-center gap-2">
-                              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${isDark ? 'bg-gray-600' : 'bg-gray-400'} text-white`}>
-                                {deal.deal_owner?.[0]?.toUpperCase() || 'U'}
-                              </div>
-                              <span className="text-sm">{deal.deal_owner || 'Unassigned'}</span>
-                            </div>
-                          </td>
-                          <td className="p-3">
-                            <span className="text-sm text-gray-500">
-                              {formatDate(deal.modified)}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Mobile Card View - NEW RESPONSIVE DESIGN */}
-                <div className="block md:hidden space-y-4">
-                  {contact.reference_deals.map((deal, index) => (
-                    <div
-                      key={index}
-                      className={`p-4 rounded-lg border ${isDark
-                          ? 'bg-purplebg border-transparent'
-                          : 'bg-white border-gray-200'
-                        } shadow-sm`}
-                    >
-                      <div className="flex justify-between items-center">
-                        <div 
-                          className="flex items-center flex-1 cursor-pointer"
-                          onClick={() => handleDealRowClick(deal.name)}
-                        >
-                          <div
-                            className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 ${isDark ? 'bg-purple-600' : 'bg-gray-300'
-                              }`}
-                          >
-                            <span
-                              className={`text-sm font-semibold ${isDark ? 'text-white' : 'text-gray-700'
-                                }`}
-                            >
-                              {deal.organization?.[0]?.toUpperCase() || 'O'}
-                            </span>
-                          </div>
-                          <div>
-                            <h3
-                              className={`text-base font-semibold ${isDark ? 'text-white' : 'text-gray-700'
-                                }`}
-                            >
-                              {deal.organization || 'No organization'}
-                            </h3>
-                            <p className={`text-xs font-semibold ${isDark ? 'text-white' : 'text-gray-700'
-                                }`}>{deal.name}</p>
-                          </div>
-                        </div>
-                        
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleDealDetails(deal.name);
-                          }}
-                          className={`p-1 rounded transition-transform ${isDark ? 'hover:bg-purple-700' : 'hover:bg-gray-100'
-                            }`}
-                        >
-                          <svg 
-                            className={`w-4 h-4 transform transition-transform ${isDealExpanded(deal.name) ? 'rotate-180' : ''
-                              } ${isDark ? 'text-white' : 'text-gray-600'}`}
-                            fill="none" 
-                            stroke="currentColor" 
-                            viewBox="0 0 24 24"
-                          >
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                          </svg>
-                        </button>
-                      </div>
-
-                      {/* Collapsible details section */}
-                      {isDealExpanded(deal.name) && (
-                        <div className="mt-3 pt-3 border-t border-gray-200 space-y-2">
-                          <div className="flex justify-between text-sm">
-                            <span className={`font-medium ${isDark ? 'text-gray-300' : 'text-gray-500'}`}>
-                              Amount:
-                            </span>
-                            <span className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                              ₹ {deal.annual_revenue?.toLocaleString() || '0.00'}
-                            </span>
-                          </div>
-                          
-                          <div className="flex justify-between text-sm">
-                            <span className={`font-medium ${isDark ? 'text-gray-300' : 'text-gray-500'}`}>
-                              Status:
-                            </span>
-                            <div className="flex items-center gap-2">
-                              <div className={`w-2 h-2 rounded-full ${deal.status === 'Qualification' ? 'bg-blue-500' :
-                                deal.status === 'Demo/Making' ? 'bg-yellow-500' :
-                                  deal.status === 'Proposal/Quotation' ? 'bg-orange-500' :
-                                    deal.status === 'Negotiation' ? 'bg-purple-500' :
-                                      deal.status === 'Won' ? 'bg-green-500' :
-                                        deal.status === 'Lost' ? 'bg-red-500' :
-                                          'bg-gray-500'
-                                }`}></div>
-                              <span className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                                {deal.status || 'Qualification'}
-                              </span>
-                            </div>
-                          </div>
-                          
-                          <div className="flex justify-between text-sm">
-                            <span className={`font-medium ${isDark ? 'text-gray-300' : 'text-gray-500'}`}>
-                              Email:
-                            </span>
-                            <div className="flex items-center gap-2">
-                              <Mail size={12} className="text-white" />
-                              <span className={`font-semibold ${deal.email !== 'No email' ? 'text-white' : 'text-gray-400'}`}>
-                                {deal.email || 'No email'}
-                              </span>
-                            </div>
-                          </div>
-                          
-                          <div className="flex justify-between text-sm">
-                            <span className={`font-medium ${isDark ? 'text-gray-300' : 'text-gray-500'}`}>
-                              Mobile No:
-                            </span>
-                            <div className="flex items-center gap-2">
-                              <Phone size={12} className="text-green-500" />
-                              <span className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                                {deal.mobile_no || 'No phone'}
-                              </span>
-                            </div>
-                          </div>
-                          
-                          <div className="flex justify-between text-sm">
-                            <span className={`font-medium ${isDark ? 'text-gray-300' : 'text-gray-500'}`}>
-                              Deal Owner:
-                            </span>
-                            <div className="flex items-center gap-2">
-                              <div
-                                className={`w-4 h-4 rounded-full flex items-center justify-center text-xs font-bold ${isDark ? 'bg-gray-600' : 'bg-gray-400'
-                                  } text-white`}
-                              >
-                                {deal.deal_owner?.[0]?.toUpperCase() || 'U'}
-                              </div>
-                              <span className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                                {deal.deal_owner || 'Unassigned'}
-                              </span>
-                            </div>
-                          </div>
-                          
-                          <div className="flex justify-between text-sm">
-                            <span className={`font-medium ${isDark ? 'text-gray-300' : 'text-gray-500'}`}>
-                              Last Modified:
-                            </span>
-                            <span className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                              {formatDate(deal.modified)}
-                            </span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <div className="flex items-center justify-center min-h-[calc(100vh-250px)]">
-                <div className="flex flex-col items-center gap-2 p-8 text-gray-500">
-                  <Zap className="w-8 h-8 text-gray-400" />
-                  <p>No Deals Found</p>
-                </div>
-              </div>
-            )}
+      {/* Delete Phone Confirmation Popup */}
+      {deletingPhone && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className={`p-4 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-white'} w-96`}>
+            <h3 className="text-lg font-semibold mb-3">Delete Phone Number</h3>
+            <div className="mb-4">
+              <p className={isDark ? 'text-gray-300' : 'text-gray-600'}>
+                Are you sure you want to delete phone number <strong>{deletingPhone?.phone}</strong>? This action cannot be undone.
+              </p>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => setDeletingPhone(null)}
+                className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeletePhone}
+                disabled={loading}
+                className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {loading ? <Loader2 size={16} className="animate-spin" /> : null}
+                Delete Phone
+              </button>
+            </div>
           </div>
         </div>
       )}
-
-      <AddEmailPopup />
-      <AddPhonePopup />
-      <DeleteConfirmationPopup />
     </div>
   );
+};    
+
+const renderAddressField = () => {
+  const isEditing = editingField === "address";
+  const value = contact.address as string;
+
+  return (
+    <div className="text-sm flex gap-1 group">
+      <p className={`w-32 ${isDark ? "text-white/80" : "text-gray-600"}`}>Address:</p>
+
+      {isEditing ? (
+        <div className="flex-1">
+          {loadingAddresses ? (
+            <p className="text-xs text-gray-500">Loading addresses...</p>
+          ) : (
+            <select
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              onBlur={() => handleBlur("address")}
+              className={`w-full px-2 py-1 border rounded ${isDark
+                ? "bg-white text-black border-white/20 focus:border-purple-400"
+                : "bg-white text-gray-800 border-gray-300 focus:border-blue-400"
+                } focus:outline-none`}
+              disabled={loading}
+            >
+              <option value="">Select Address</option>
+              {addressOptions.map((addr) => (
+                <option key={addr.name} value={addr.name}>
+                  {addr.name}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+      ) : (
+        <div
+          className={`flex-1 cursor-pointer px-2 py-1 rounded transition-colors hover:bg-opacity-50 ${isDark
+            ? "text-white hover:bg-white/10"
+            : "text-gray-800 hover:bg-gray-100"
+            } min-h-[40px]`}
+          onClick={() => handleSingleClick("address")}
+          title="Click to edit address"
+        >
+          {value && value !== "N/A" ? (
+            <div className="whitespace-pre-wrap">{value}</div>
+          ) : (
+            <span className="italic opacity-60">Select Address</span>
+          )}
+        </div>
+      )}
+
+      {loading && editingField === "address" && (
+        <Loader2 className="w-4 h-4 animate-spin text-purple-600 ml-1" />
+      )}
+    </div>
+  );
+};
+
+const AddEmailPopup = () => {
+  if (!addingEmail) return null;
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className={`p-4 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-white'} w-96`}>
+        <h3 className="text-lg font-semibold mb-3">Add Email Address</h3>
+        <div className="flex gap-2 mb-3">
+          <input
+            type="email"
+            value={newEmailValue}
+            onChange={(e) => setNewEmailValue(e.target.value)}
+            placeholder="Enter email address..."
+            className={`flex-1 px-3 py-2 border rounded ${isDark
+              ? 'bg-gray-700 text-white border-white/20 focus:border-green-400'
+              : 'bg-white text-gray-800 border-gray-300 focus:border-green-400'
+              } focus:outline-none`}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleAddEmail();
+              else if (e.key === 'Escape') {
+                setAddingEmail(false);
+                setNewEmailValue('');
+              }
+            }}
+            autoFocus
+          />
+        </div>
+        <div className="flex gap-2 justify-end">
+          <button
+            onClick={() => {
+              setAddingEmail(false);
+              setNewEmailValue('');
+            }}
+            className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleAddEmail}
+            disabled={loading || !newEmailValue.trim()}
+            className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            {loading ? <Loader2 size={16} className="animate-spin" /> : null}
+            Add Email
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const AddPhonePopup = () => {
+  if (!addingPhone) return null;
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className={`p-4 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-white'} w-96`}>
+        <h3 className="text-lg font-semibold mb-3">Add Phone Number</h3>
+        <div className="flex gap-2 mb-3">
+          <input
+            type="tel"
+            value={newPhoneValue}
+            onChange={(e) => setNewPhoneValue(e.target.value)}
+            placeholder="Enter phone number..."
+            className={`flex-1 px-3 py-2 border rounded ${isDark
+              ? 'bg-gray-700 text-white border-white/20 focus:border-green-400'
+              : 'bg-white text-gray-800 border-gray-300 focus:border-green-400'
+              } focus:outline-none`}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleAddPhone();
+              else if (e.key === 'Escape') {
+                setAddingPhone(false);
+                setNewPhoneValue('');
+              }
+            }}
+            autoFocus
+          />
+        </div>
+        <div className="flex gap-2 justify-end">
+          <button
+            onClick={() => {
+              setAddingPhone(false);
+              setNewPhoneValue('');
+            }}
+            className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleAddPhone}
+            disabled={loading || !newPhoneValue.trim()}
+            className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            {loading ? <Loader2 size={16} className="animate-spin" /> : null}
+            Add Phone
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const DeleteConfirmationPopup = () => {
+  if (!showDeleteConfirm) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className={`p-6 rounded-lg max-w-md w-full mx-4 ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-gray-800'}`}>
+            Delete Contact
+          </h3>
+          <button
+            onClick={handleCancelDelete}
+            className={`p-1 rounded-full ${isDark ? 'hover:bg-gray-700 text-white' : 'hover:bg-gray-200 text-gray-600'}`}
+            disabled={deleteLoading}
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="mb-6">
+          <p className={`${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
+            Are you sure you want to delete <span className="font-semibold">{contact.full_name || contact.name}</span>? This action cannot be undone and all associated data will be permanently removed.
+          </p>
+        </div>
+
+        <div className="flex gap-3 justify-end">
+          <button
+            onClick={handleCancelDelete}
+            className={`px-4 py-2 rounded border ${isDark
+              ? 'border-gray-600 text-white hover:bg-gray-700'
+              : 'border-gray-300 text-gray-700 hover:bg-gray-100'
+              } transition-colors`}
+            disabled={deleteLoading}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleDelete}
+            className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700 transition-colors flex items-center gap-2"
+            disabled={deleteLoading}
+          >
+            {deleteLoading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Deleting...
+              </>
+            ) : (
+              <>
+                <Trash2 size={16} />
+                Delete
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+return (
+  <div className={`min-h-screen overflow-x-auto flex-col sm:flex-row flex ${isDark ? "bg-transparent text-white" : "bg-white text-gray-800"}`}>
+    {fetchLoading && (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg flex items-center gap-3">
+          <Loader2 className="w-6 h-6 animate-spin text-purple-600" />
+          <span>Loading contact details...</span>
+        </div>
+      </div>
+    )}
+
+    {/* Sidebar - Only show when NOT showing deal detail */}
+    {!showDealDetail && (
+      <div className={`w-80 max-sm:w-[100%] border-r ${isDark ? "border-white bg-transparent" : "border-gray-300 bg-white"}`}>
+        {/* Header */}
+        <div className={`p-4 border-b ${isDark ? "border-white/20" : "border-gray-300"}`}>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="flex items-center gap-3">
+              {/* Avatar */}
+              <div
+                onClick={handleClick}
+                className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center text-lg font-semibold bg-gray-200 cursor-pointer relative group"
+              >
+                {uploadingImage ? (
+                  <div className="w-full h-full flex items-center justify-center bg-gray-300">
+                    <Loader2 className="w-5 h-5 animate-spin text-gray-600" />
+                  </div>
+                ) : (
+                  <>
+                    {imagePreview || contact.image_url ? (
+                      <img
+                        src={imagePreview || contact.image_url}
+                        alt={contact.first_name || 'User'}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-gray-600">
+                        {contact.first_name?.[0]?.toUpperCase() || 'C'}
+                      </span>
+                    )}
+
+                    {/* Upload overlay on hover */}
+                    <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <span className="text-white text-xs font-medium">Upload</span>
+                    </div>
+                  </>
+                )}
+
+                <input
+                  type="file"
+                  accept="image/*"
+                  ref={fileInputRef}
+                  className="hidden"
+                  onChange={handleFileChange}
+                  disabled={uploadingImage}
+                />
+              </div>
+
+              {/* Name & Company */}
+              <div>
+                <h2 className="text-lg font-semibold">
+                  {contact.full_name || contact.name}
+                </h2>
+                <span className="text-xs text-gray-400 block">
+                  {contact.company_name || 'No company'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Buttons */}
+          <div className="flex flex-wrap gap-2 mb-4 transition-all duration-300">
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              disabled={loading}
+              className="flex items-center gap-1 text-red-500 border border-red-500 px-2 py-1 rounded text-sm disabled:opacity-50 hover:bg-red-50"
+            >
+              <Trash2 size={14} /> Delete
+            </button>
+          </div>
+        </div>
+
+        {/* Details */}
+        <div className="p-4 space-y-3">
+          <h3 className="text-sm font-semibold mb-1">Details</h3>
+          {renderEditableField("Salutation", "salutation")}
+          {renderEditableField("First Name", "first_name")}
+          {renderEditableField("Last Name", "last_name")}
+          {renderEmailDropdownField()}
+          {renderPhoneDropdownField()}
+          {renderEditableField("Gender", "gender")}
+          {renderEditableField("Company Name", "company_name")}
+          {renderEditableField("Designation", "designation")}
+          {renderAddressField()}
+        </div>
+      </div>
+    )}
+
+    {/* Main Content - Only show when NOT showing deal detail */}
+    {!showDealDetail && (
+      <div className="flex-1">
+        {/* Tabs */}
+        <div className={`flex items-center gap-6 border-b p-6 ${isDark ? "border-white/20" : "border-gray-300"}`}>
+          <button className="flex items-center gap-1 font-medium relative">
+            <Zap size={16} />
+            Deals
+            <span className="bg-black text-white text-xs rounded-full px-1.5 ml-1">
+              {contact.reference_deals?.length || 0}
+            </span>
+          </button>
+        </div>
+
+        {/* Deals Table */}
+        <div className="p-6">
+          {contact.reference_deals?.length ? (
+            <div>
+              {/* Desktop Table View - UNCHANGED */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="min-w-full text-sm border-collapse">
+                  <thead>
+                    <tr className={`${isDark ? "bg-white/10" : "bg-gray-100"} text-left`}>
+                      <th className="p-3 font-medium">Organization</th>
+                      <th className="p-3 font-medium">Amount</th>
+                      <th className="p-3 font-medium">Status</th>
+                      <th className="p-3 font-medium">Email</th>
+                      <th className="p-3 font-medium">Mobile No</th>
+                      <th className="p-3 font-medium">Deal Owner</th>
+                      <th className="p-3 font-medium">Last Modified</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {contact.reference_deals.map((deal, index) => (
+                      <tr
+                        key={index}
+                        className={`border-t ${isDark ? 'border-white/10' : 'border-gray-200'} hover:bg-opacity-50 ${isDark ? 'hover:bg-white/5' : 'hover:bg-gray-50'} cursor-pointer transition-colors`}
+                        onClick={() => handleDealRowClick(deal.name)}
+                        title="Click to view deal details"
+                      >
+                        <td className="p-3">
+                          <div className="flex items-center gap-2">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${isDark ? 'bg-purple-600' : 'bg-gray-300'} text-white`}>
+                              {deal.organization?.[0]?.toUpperCase() || 'O'}
+                            </div>
+                            <div>
+                              <p className="font-medium">{deal.organization || 'No organization'}</p>
+                              <p className="text-xs text-gray-500">{deal.name}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="p-3">
+                          <span className="font-medium">₹ {deal.annual_revenue?.toLocaleString() || '0.00'}</span>
+                        </td>
+                        <td className="p-3">
+                          <div className="flex items-center gap-2">
+                            <div className={`w-3 h-3 rounded-full ${deal.status === 'Qualification' ? 'bg-blue-500' :
+                              deal.status === 'Demo/Making' ? 'bg-yellow-500' :
+                                deal.status === 'Proposal/Quotation' ? 'bg-orange-500' :
+                                  deal.status === 'Negotiation' ? 'bg-purple-500' :
+                                    deal.status === 'Won' ? 'bg-green-500' :
+                                      deal.status === 'Lost' ? 'bg-red-500' :
+                                        'bg-gray-500'
+                              }`}></div>
+                            <span className="text-sm">{deal.status || 'Qualification'}</span>
+                          </div>
+                        </td>
+                        <td className="p-3">
+                          <div className="flex items-center gap-2">
+                            <Mail size={14} className="text-blue-500" />
+                            <span className={`text-sm ${deal.email !== 'No email' ? 'text-blue-500' : 'text-gray-400'}`}>
+                              {deal.email || 'No email'}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="p-3">
+                          <div className="flex items-center gap-2">
+                            <Phone size={14} className="text-green-500" />
+                            <span className="text-sm">{deal.mobile_no || 'No phone'}</span>
+                          </div>
+                        </td>
+                        <td className="p-3">
+                          <div className="flex items-center gap-2">
+                            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${isDark ? 'bg-gray-600' : 'bg-gray-400'} text-white`}>
+                              {deal.deal_owner?.[0]?.toUpperCase() || 'U'}
+                            </div>
+                            <span className="text-sm">{deal.deal_owner || 'Unassigned'}</span>
+                          </div>
+                        </td>
+                        <td className="p-3">
+                          <span className="text-sm text-gray-500">
+                            {formatDate(deal.modified)}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile Card View - NEW RESPONSIVE DESIGN */}
+              <div className="block md:hidden space-y-4">
+                {contact.reference_deals.map((deal, index) => (
+                  <div
+                    key={index}
+                    className={`p-4 rounded-lg border ${isDark
+                      ? 'bg-purplebg border-transparent'
+                      : 'bg-white border-gray-200'
+                      } shadow-sm`}
+                  >
+                    <div className="flex justify-between items-center">
+                      <div
+                        className="flex items-center flex-1 cursor-pointer"
+                        onClick={() => handleDealRowClick(deal.name)}
+                      >
+                        <div
+                          className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 ${isDark ? 'bg-purple-600' : 'bg-gray-300'
+                            }`}
+                        >
+                          <span
+                            className={`text-sm font-semibold ${isDark ? 'text-white' : 'text-gray-700'
+                              }`}
+                          >
+                            {deal.organization?.[0]?.toUpperCase() || 'O'}
+                          </span>
+                        </div>
+                        <div>
+                          <h3
+                            className={`text-base font-semibold ${isDark ? 'text-white' : 'text-gray-700'
+                              }`}
+                          >
+                            {deal.organization || 'No organization'}
+                          </h3>
+                          <p className={`text-xs font-semibold ${isDark ? 'text-white' : 'text-gray-700'
+                            }`}>{deal.name}</p>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleDealDetails(deal.name);
+                        }}
+                        className={`p-1 rounded transition-transform ${isDark ? 'hover:bg-purple-700' : 'hover:bg-gray-100'
+                          }`}
+                      >
+                        <svg
+                          className={`w-4 h-4 transform transition-transform ${isDealExpanded(deal.name) ? 'rotate-180' : ''
+                            } ${isDark ? 'text-white' : 'text-gray-600'}`}
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                    </div>
+
+                    {/* Collapsible details section */}
+                    {isDealExpanded(deal.name) && (
+                      <div className="mt-3 pt-3 border-t border-gray-200 space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className={`font-medium ${isDark ? 'text-gray-300' : 'text-gray-500'}`}>
+                            Amount:
+                          </span>
+                          <span className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                            ₹ {deal.annual_revenue?.toLocaleString() || '0.00'}
+                          </span>
+                        </div>
+
+                        <div className="flex justify-between text-sm">
+                          <span className={`font-medium ${isDark ? 'text-gray-300' : 'text-gray-500'}`}>
+                            Status:
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <div className={`w-2 h-2 rounded-full ${deal.status === 'Qualification' ? 'bg-blue-500' :
+                              deal.status === 'Demo/Making' ? 'bg-yellow-500' :
+                                deal.status === 'Proposal/Quotation' ? 'bg-orange-500' :
+                                  deal.status === 'Negotiation' ? 'bg-purple-500' :
+                                    deal.status === 'Won' ? 'bg-green-500' :
+                                      deal.status === 'Lost' ? 'bg-red-500' :
+                                        'bg-gray-500'
+                              }`}></div>
+                            <span className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                              {deal.status || 'Qualification'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex justify-between text-sm">
+                          <span className={`font-medium ${isDark ? 'text-gray-300' : 'text-gray-500'}`}>
+                            Email:
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <Mail size={12} className="text-white" />
+                            <span className={`font-semibold ${deal.email !== 'No email' ? 'text-white' : 'text-gray-400'}`}>
+                              {deal.email || 'No email'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex justify-between text-sm">
+                          <span className={`font-medium ${isDark ? 'text-gray-300' : 'text-gray-500'}`}>
+                            Mobile No:
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <Phone size={12} className="text-green-500" />
+                            <span className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                              {deal.mobile_no || 'No phone'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex justify-between text-sm">
+                          <span className={`font-medium ${isDark ? 'text-gray-300' : 'text-gray-500'}`}>
+                            Deal Owner:
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <div
+                              className={`w-4 h-4 rounded-full flex items-center justify-center text-xs font-bold ${isDark ? 'bg-gray-600' : 'bg-gray-400'
+                                } text-white`}
+                            >
+                              {deal.deal_owner?.[0]?.toUpperCase() || 'U'}
+                            </div>
+                            <span className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                              {deal.deal_owner || 'Unassigned'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex justify-between text-sm">
+                          <span className={`font-medium ${isDark ? 'text-gray-300' : 'text-gray-500'}`}>
+                            Last Modified:
+                          </span>
+                          <span className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                            {formatDate(deal.modified)}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center min-h-[calc(100vh-250px)]">
+              <div className="flex flex-col items-center gap-2 p-8 text-gray-500">
+                <Zap className="w-8 h-8 text-gray-400" />
+                <p>No Deals Found</p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    )}
+
+    <AddEmailPopup />
+    <AddPhonePopup />
+    <DeleteConfirmationPopup />
+  </div>
+);
 }

@@ -1063,7 +1063,7 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
               {/* Row 5 - Status and Deal Owner */}
               <div>
                 <label className={`block text-md font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>
-                  Status <span className="text-red-500">*</span>
+                  Status 
                 </label>
                 <select
                   name="status"

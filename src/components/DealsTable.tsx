@@ -84,7 +84,7 @@ const statusColors = {
   Won: ' !text-green-800 dark:bg-green-900/30 dark:text-green-300',
   Lost: ' !text-red-800 dark:bg-red-900/30 dark:text-red-800',
   'Ready to Close': ' !text-orange-800 dark:bg-orange-900/30 dark:text-orange-500',
-  Junk: 'bg-transparent text-black dark:bg-transparent dark:text-black',
+  Junk: 'bg-transparent text-black dark:bg-transparent dark:text-gray-300',
 };
 
 const defaultColumns: ColumnConfig[] = [
@@ -113,9 +113,8 @@ const Toast = ({ message, type = 'error', onClose }: { message: string; type?: '
   }, [onClose]);
 
   return (
-    <div className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg max-w-sm ${
-      type === 'error' ? 'bg-red-500 text-white' : 'bg-green-500 text-white'
-    }`}>
+    <div className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg max-w-sm ${type === 'error' ? 'bg-red-500 text-white' : 'bg-green-500 text-white'
+      }`}>
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium">{message}</span>
         <button
@@ -162,7 +161,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
   const [importStatus, setImportStatus] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  
+
   // New state for import popup
   const [showImportPopup, setShowImportPopup] = useState(false);
 
@@ -307,7 +306,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
 
       const startImportResponse = await fetch(
         `https://api.erpnext.ai/api/method/frappe.core.doctype.data_import.data_import.form_start_import`,
- 
+
         {
           method: 'POST',
           headers: {
@@ -354,7 +353,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
   const handleDownloadTemplate = async () => {
     try {
       setImportStatus('Downloading template...');
-      
+
       const response = await fetch(
         'https://api.erpnext.ai/api/method/frappe.core.doctype.data_import.data_import.download_template',
         {
@@ -393,7 +392,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
 
       // Get the blob from response
       const blob = await response.blob();
-      
+
       // Create download link
       const downloadUrl = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -436,9 +435,9 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
 
     // Store the file in state
     setSelectedFile(file);
-    
+
     await handleBulkImport(file);
-    
+
     // Reset file input
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -489,11 +488,11 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
       // Check for unmapped columns in the response
       if (importResult.message?.unmapped_columns && importResult.message.unmapped_columns.length > 0) {
         const unmappedColumns = importResult.message.unmapped_columns;
-        
+
         setImportProgress(0);
         setImportStatus('');
         setIsImporting(false);
-        
+
         // Store unmapped columns and show mapping popup
         setUnmappedColumns(unmappedColumns);
         setManualMappings({});
@@ -503,7 +502,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
 
       // If no unmapped columns, continue directly with the import process
       const dataImportName = importResult.message?.name || importResult.message?.data_import_name;
-      
+
       if (!dataImportName) {
         throw new Error('Could not get import reference from response');
       }
@@ -551,7 +550,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
       formData.append('import_type', 'Insert New Records');
       formData.append('company', sessionCompany || '');
       formData.append('filedata', selectedFile);
-      
+
       // Convert manual mappings to JSON string
       const manualMappingsJson = JSON.stringify(manualMappings);
       formData.append('manual_mappings', manualMappingsJson);
@@ -592,7 +591,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
 
       // If no more unmapped columns, continue with the import process
       const dataImportName = importResult.message?.name || importResult.message?.data_import_name;
-      
+
       if (!dataImportName) {
         throw new Error('Could not get import reference from response');
       }
@@ -617,44 +616,39 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
   const ImportPopup = () => {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className={`p-6 rounded-lg shadow-lg max-w-md w-full mx-4 ${
-          theme === 'dark' ? 'bg-gray-800' : 'bg-white'
-        }`}>
+        <div className={`p-6 rounded-lg shadow-lg max-w-md w-full mx-4 ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'
+          }`}>
           <div className="flex items-center justify-between mb-6">
-            <h3 className={`text-lg font-semibold ${
-              theme === 'dark' ? 'text-white' : 'text-gray-900'
-            }`}>
+            <h3 className={`text-lg font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+              }`}>
               Import Deals
             </h3>
             <button
               onClick={() => setShowImportPopup(false)}
-              className={`p-1 rounded ${
-                theme === 'dark' 
-                  ? 'text-gray-400 hover:text-white' 
+              className={`p-1 rounded ${theme === 'dark'
+                  ? 'text-gray-400 hover:text-white'
                   : 'text-gray-500 hover:text-gray-700'
-              }`}
+                }`}
             >
               <X className="w-5 h-5" />
             </button>
           </div>
-          
+
           <div className="space-y-4">
-            <p className={`text-sm ${
-              theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
-            }`}>
+            <p className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+              }`}>
               Choose an option to import deals:
             </p>
-            
+
             <div className="grid grid-cols-1 gap-3">
               {/* Download Template Button */}
               <button
                 onClick={handleDownloadTemplate}
                 disabled={importStatus === 'Downloading template...'}
-                className={`flex items-center justify-center space-x-2 px-4 py-3 border-2  rounded-lg transition-colors ${
-                  theme === 'dark'
+                className={`flex items-center justify-center space-x-2 px-4 py-3 border-2  rounded-lg transition-colors ${theme === 'dark'
                     ? 'border-purple-500 text-purple-400 hover:bg-purple-900/30'
                     : 'border-blue-500 text-blue-600 hover:bg-blue-50'
-                } ${importStatus === 'Downloading template...' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  } ${importStatus === 'Downloading template...' ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 <Download className="w-5 h-5" />
                 <div className="text-left">
@@ -666,11 +660,10 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
               {/* Attach File Button */}
               <button
                 onClick={handleAttachFile}
-                className={`flex items-center justify-center space-x-2 px-4 py-3 border-2  rounded-lg transition-colors ${
-                  theme === 'dark'
+                className={`flex items-center justify-center space-x-2 px-4 py-3 border-2  rounded-lg transition-colors ${theme === 'dark'
                     ? 'border-green-500 text-green-400 hover:bg-green-900/30'
                     : 'border-green-500 text-green-600 hover:bg-green-50'
-                }`}
+                  }`}
               >
                 <Upload className="w-5 h-5" />
                 <div className="text-left">
@@ -682,17 +675,15 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
 
             {/* Download status */}
             {importStatus && (
-              <div className={`text-sm text-center ${
-                theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
-              }`}>
+              <div className={`text-sm text-center ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                }`}>
                 {importStatus}
               </div>
             )}
 
             {/* Help text */}
-            <div className={`text-xs ${
-              theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-            }`}>
+            <div className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+              }`}>
               <strong>Note:</strong> Use the template to ensure your CSV file has the correct format. Required fields include organization name, contact details, and deal information.
             </div>
           </div>
@@ -705,7 +696,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
   const ColumnMappingPopup = () => {
     // Available CRM Deal fields for mapping
     const crmDealFields = [
-      'name', 'organization', 'annual_revenue', 'status', 'email', 
+      'name', 'organization', 'annual_revenue', 'status', 'email',
       'mobile_no', 'deal_owner', 'close_date', 'territory', 'industry',
       'website', 'first_name', 'last_name', 'salutation', 'no_of_employees',
       'description', 'probability', 'expected_value', 'next_step'
@@ -730,27 +721,23 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
 
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className={`p-6 rounded-lg shadow-lg max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto ${
-          theme === 'dark' ? 'bg-gray-800' : 'bg-white'
-        }`}>
+        <div className={`p-6 rounded-lg shadow-lg max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'
+          }`}>
           <div className="flex items-center justify-between mb-4">
-            <h3 className={`text-lg font-semibold ${
-              theme === 'dark' ? 'text-white' : 'text-gray-900'
-            }`}>
+            <h3 className={`text-lg font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+              }`}>
               Map CSV Columns
             </h3>
           </div>
-          
+
           <div className="mb-4">
-            <p className={`text-sm ${
-              theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
-            }`}>
-              The following columns in your CSV file could not be automatically mapped. 
+            <p className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+              }`}>
+              The following columns in your CSV file could not be automatically mapped.
               Please select the appropriate CRM Deal field for each column.
             </p>
-            <p className={`text-xs mt-1 ${
-              theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-            }`}>
+            <p className={`text-xs mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+              }`}>
               File: {selectedFile?.name}
             </p>
           </div>
@@ -758,20 +745,18 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
           <div className="space-y-4 mb-6">
             {unmappedColumns.map((column) => (
               <div key={column.column_name} className="flex items-center justify-between">
-                <span className={`font-medium ${
-                  theme === 'dark' ? 'text-white' : 'text-gray-700'
-                }`}>
+                <span className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-700'
+                  }`}>
                   {column.column_name}
                 </span>
-                
+
                 <select
                   value={manualMappings[column.column_name] || ''}
                   onChange={(e) => handleMappingChange(column.column_name, e.target.value)}
-                  className={`ml-4 px-3 py-2 border rounded ${
-                    theme === 'dark' 
-                      ? 'bg-gray-700 border-gray-600 text-white' 
+                  className={`ml-4 px-3 py-2 border rounded ${theme === 'dark'
+                      ? 'bg-gray-700 border-gray-600 text-white'
                       : 'bg-white border-gray-300 text-gray-900'
-                  }`}
+                    }`}
                 >
                   <option value="">Select Field</option>
                   {crmDealFields.map(field => (
@@ -787,24 +772,22 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
           <div className="flex justify-end space-x-3">
             <button
               onClick={handleCancel}
-              className={`px-4 py-2 border rounded-lg transition-colors ${
-                theme === 'dark'
+              className={`px-4 py-2 border rounded-lg transition-colors ${theme === 'dark'
                   ? 'border-gray-600 text-white hover:bg-gray-700'
                   : 'border-gray-300 text-gray-700 hover:bg-gray-50'
-              }`}
+                }`}
             >
               Cancel Import
             </button>
             <button
               onClick={handleMappingSubmit}
               disabled={Object.keys(manualMappings).length !== unmappedColumns.length}
-              className={`px-4 py-2 rounded-lg transition-colors ${
-                Object.keys(manualMappings).length !== unmappedColumns.length
+              className={`px-4 py-2 rounded-lg transition-colors ${Object.keys(manualMappings).length !== unmappedColumns.length
                   ? 'bg-gray-400 cursor-not-allowed'
                   : theme === 'dark'
                     ? 'bg-purple-600 text-white hover:bg-purple-700'
                     : 'bg-purple-600 text-white hover:bg-purple-700'
-              }`}
+                }`}
             >
               Continue Import
             </button>
@@ -1120,51 +1103,149 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
   };
 
   const handleDeleteConfirmation = async () => {
-    if (selectedDeals.length === 0) {
-      console.error("No deals selected for deletion.");
-      setIsDeletePopupOpen(false);
-      return;
-    }
+  if (selectedDeals.length === 0) {
+    console.error("No deals selected for deletion.");
+    setIsDeletePopupOpen(false);
+    return;
+  }
 
-    setIsDeleting(true);
+  setIsDeleting(true);
 
-    try {
-      const requestBody = {
-        doctype: "CRM Deal",
-        items: JSON.stringify(selectedDeals),
-      };
+  try {
+    const requestBody = {
+      doctype: "CRM Deal",
+      items: JSON.stringify(selectedDeals),
+    };
 
-      const response = await apiAxios.post(
-        "/api/method/frappe.desk.reportview.delete_items",
-        requestBody,
-        {
-          headers: {
-            "Authorization": AUTH_TOKEN,
-          },
-        }
-      );
+    const response = await apiAxios.post(
+      "/api/method/frappe.desk.reportview.delete_items",
+      requestBody,
+      {
+        headers: {
+          "Authorization": AUTH_TOKEN,
+        },
+      }
+    );
 
-      console.log("Deals deleted successfully:", response.data);
-      setIsDeletePopupOpen(false);
+    console.log("Deals deleted successfully:", response.data);
+    
+    // Check if the response indicates success
+    if (response.data && response.data.message === "ok") {
+      // Success case
+      setIsDeletePopupOpen(false); // Close popup on success
       setSelectedDeals([]);
       setShowDropdown(false);
       await fetchDeals();
-
-    } catch (error) {
-      let errorMessage = "An unknown error occurred during deletion.";
-      if (axios.isAxiosError(error) && error.response) {
-        errorMessage = error.response.data?.message || `API Error: ${error.response.status}`;
-      } else if (error instanceof Error) {
-        errorMessage = error.message;
-      }
-
-      console.error("Failed to delete deals:", errorMessage);
-      setError(errorMessage);
-
-    } finally {
-      setIsDeleting(false);
+      showToast('Deals deleted successfully!', 'success');
+    } else {
+      // Handle cases where response is not exactly "ok"
+      throw new Error("Cannot delete or cancel because CRM Deal is linked with CRM Notification");
     }
-  };
+
+  } catch (error: any) {
+    console.log("=== ERROR DETAILS ===");
+    console.log("Full error:", error);
+    console.log("Error response:", error.response?.data);
+    
+    let errorMessage = "Deletion failed";
+    
+    // Only process error messages if this is actually an error
+    if (error.response?.data?._server_messages) {
+      console.log("_server_messages found:", error.response.data._server_messages);
+      
+      try {
+        // Parse the outer array
+        const serverMessages = error.response.data._server_messages;
+        let parsedMessages;
+        
+        // Handle both string and array cases
+        if (typeof serverMessages === 'string') {
+          parsedMessages = JSON.parse(serverMessages);
+        } else if (Array.isArray(serverMessages)) {
+          parsedMessages = serverMessages;
+        } else {
+          parsedMessages = [serverMessages];
+        }
+        
+        console.log("Parsed messages:", parsedMessages);
+        
+        if (Array.isArray(parsedMessages) && parsedMessages.length > 0) {
+          // The first item might be a string with escaped JSON
+          const firstMessage = parsedMessages[0];
+          
+          if (typeof firstMessage === 'string') {
+            // Clean the escaped string to make it valid JSON
+            const cleanedJsonString = firstMessage
+              .replace(/\\"/g, '"')  // Fix: \" becomes "
+              .replace(/\\\\/g, '\\') // Fix: \\ becomes \
+              .replace(/^"|"$/g, ''); // Remove surrounding quotes if present
+              
+            console.log("Cleaned JSON string:", cleanedJsonString);
+            
+            try {
+              // Now parse the cleaned JSON
+              const messageObj = JSON.parse(cleanedJsonString);
+              console.log("Message object:", messageObj);
+              
+              if (messageObj.message) {
+                errorMessage = messageObj.message;
+                // Remove HTML tags for clean display
+                errorMessage = errorMessage.replace(/<[^>]*>/g, '');
+              }
+            } catch (innerParseError) {
+              console.log("Inner parse failed, using string as is:", cleanedJsonString);
+              errorMessage = cleanedJsonString;
+            }
+          } else if (firstMessage.message) {
+            // If it's already an object
+            errorMessage = firstMessage.message;
+            errorMessage = errorMessage.replace(/<[^>]*>/g, '');
+          }
+        }
+      } catch (parseError) {
+        console.log("Parse error, trying fallback extraction:", parseError);
+        // Fallback: extract using regex from the raw string
+        try {
+          const rawString = typeof error.response.data._server_messages === 'string' 
+            ? error.response.data._server_messages 
+            : JSON.stringify(error.response.data._server_messages);
+          
+          const regex = /"message":\s*"([^"]*)"/;
+          const match = rawString.match(regex);
+          if (match && match[1]) {
+            errorMessage = match[1]
+              .replace(/<[^>]*>/g, '')
+              .replace(/\\"/g, '"')
+              .replace(/\\\\/g, '\\');
+          }
+        } catch (fallbackError) {
+          console.log("Fallback also failed");
+        }
+      }
+    } 
+    // Method 2: Check for direct message in response
+    else if (error.response?.data?.message) {
+      errorMessage = error.response.data.message;
+      errorMessage = errorMessage.replace(/<[^>]*>/g, '');
+    }
+    // Method 3: Check for exception
+    else if (error.response?.data?.exception) {
+      errorMessage = error.response.data.exception;
+    }
+    // Method 4: Use the error message directly
+    else if (error.message) {
+      errorMessage = error.message;
+    }
+    
+    console.log("Final message to display:", errorMessage);
+    
+    // Close the popup when showing error toast
+    setIsDeletePopupOpen(false);
+    showToast(` ${errorMessage}`, 'error');
+  } finally {
+    setIsDeleting(false);
+  }
+};
 
   const handleAssignConfirmation = (assignee: string) => {
     setIsAssigning(true);
@@ -1466,10 +1547,10 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
     <div className="">
       {/* Toast Notification */}
       {toast && (
-        <Toast 
-          message={toast.message} 
-          type={toast.type} 
-          onClose={hideToast} 
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={hideToast}
         />
       )}
 
@@ -1498,14 +1579,14 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
               </h3>
               <div className="text-sm font-medium">{importProgress}%</div>
             </div>
-            
+
             <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
-              <div 
+              <div
                 className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                 style={{ width: `${importProgress}%` }}
               ></div>
             </div>
-            
+
             <p className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
               {importStatus}
             </p>
@@ -1689,7 +1770,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
                 : 'border-gray-300 hover:bg-gray-50'
                 }`}
             >
-              <Upload  className="w-4 h-4" />
+              <Upload className="w-4 h-4" />
             </button>
           )}
           <span className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>
@@ -1789,15 +1870,15 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
                   } shadow-sm`}
               >
                 <div className="flex justify-between items-center">
-                <input
-                      type="checkbox"
-                      checked={selectedDeals.includes(deal.id)}
-                      onChange={(e) => {
-                        e.stopPropagation();
-                        handleRowSelection(deal.id);
-                      }}
-                      className="rounded mr-4 border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
+                  <input
+                    type="checkbox"
+                    checked={selectedDeals.includes(deal.id)}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      handleRowSelection(deal.id);
+                    }}
+                    className="rounded mr-4 border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
                   <div
                     className="flex items-center flex-1 cursor-pointer"
                     onClick={() => onDealClick?.(deal)}
@@ -1822,7 +1903,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
                   </div>
 
                   <div className="flex items-center gap-2">
-                    
+
 
                     {/* Dropdown arrow */}
                     <button

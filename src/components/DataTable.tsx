@@ -25,9 +25,8 @@ const Toast = ({ message, type = 'error', onClose }: { message: string; type?: '
   }, [onClose]);
 
   return (
-    <div className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg max-w-sm ${
-      type === 'error' ? 'bg-red-500 text-white' : 'bg-green-500 text-white'
-    }`}>
+    <div className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg max-w-sm ${type === 'error' ? 'bg-red-500 text-white' : 'bg-green-500 text-white'
+      }`}>
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium">{message}</span>
         <button
@@ -108,7 +107,7 @@ const statusColors: Record<string, string> = {
   Contacted: ' text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
   Qualified: ' text-green-800 dark:bg-green-900/30 dark:text-green-300',
   Unqualified: ' text-gray-500 dark:bg-gray-900/30 dark:text-gray-500',
-  Junk: 'bg-transparent text-black dark:bg-transparent dark:text-black',
+  Junk: 'bg-transparent text-black dark:bg-gray-900/30 dark:text-gray-400',
   Nurture: ' text-violet-500 dark:bg-violet-900/30 dark:text-violet-500',
 };
 
@@ -309,44 +308,39 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
   const ImportPopup = () => {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className={`p-6 rounded-lg shadow-lg max-w-md w-full mx-4 ${
-          theme === 'dark' ? 'bg-gray-800' : 'bg-white'
-        }`}>
+        <div className={`p-6 rounded-lg shadow-lg max-w-md w-full mx-4 ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'
+          }`}>
           <div className="flex items-center justify-between mb-6">
-            <h3 className={`text-lg font-semibold ${
-              theme === 'dark' ? 'text-white' : 'text-gray-900'
-            }`}>
+            <h3 className={`text-lg font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+              }`}>
               Import Leads
             </h3>
             <button
               onClick={() => setShowImportPopup(false)}
-              className={`p-1 rounded ${
-                theme === 'dark' 
-                  ? 'text-gray-400 hover:text-white' 
+              className={`p-1 rounded ${theme === 'dark'
+                  ? 'text-gray-400 hover:text-white'
                   : 'text-gray-500 hover:text-gray-700'
-              }`}
+                }`}
             >
               <X className="w-5 h-5" />
             </button>
           </div>
-          
+
           <div className="space-y-4">
-            <p className={`text-sm ${
-              theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
-            }`}>
+            <p className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+              }`}>
               Choose an option to import leads:
             </p>
-            
+
             <div className="grid grid-cols-1 gap-3">
               {/* Download Template Button */}
               <button
                 onClick={handleDownloadTemplate}
                 disabled={importStatus === 'Downloading template...'}
-                className={`flex items-center justify-center space-x-2 px-4 py-3 border-2 rounded-lg transition-colors ${
-                  theme === 'dark'
+                className={`flex items-center justify-center space-x-2 px-4 py-3 border-2 rounded-lg transition-colors ${theme === 'dark'
                     ? 'border-purple-500 text-purple-400 hover:bg-purple-900/30'
                     : 'border-blue-500 text-blue-600 hover:bg-blue-50'
-                } ${importStatus === 'Downloading template...' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  } ${importStatus === 'Downloading template...' ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 <Download className="w-5 h-5" />
                 <div className="text-left">
@@ -358,11 +352,10 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
               {/* Attach File Button */}
               <button
                 onClick={handleAttachFile}
-                className={`flex items-center justify-center space-x-2 px-4 py-3 border-2 rounded-lg transition-colors ${
-                  theme === 'dark'
+                className={`flex items-center justify-center space-x-2 px-4 py-3 border-2 rounded-lg transition-colors ${theme === 'dark'
                     ? 'border-green-500 text-green-400 hover:bg-green-900/30'
                     : 'border-green-500 text-green-600 hover:bg-green-50'
-                }`}
+                  }`}
               >
                 <Upload className="w-5 h-5" />
                 <div className="text-left">
@@ -374,17 +367,15 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
 
             {/* Download status */}
             {importStatus && (
-              <div className={`text-sm text-center ${
-                theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
-              }`}>
+              <div className={`text-sm text-center ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                }`}>
                 {importStatus}
               </div>
             )}
 
             {/* Help text */}
-            <div className={`text-xs ${
-              theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-            }`}>
+            <div className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+              }`}>
               <strong>Note:</strong> Use the template to ensure your CSV file has the correct format. Required fields include name, email, organization, and status.
             </div>
           </div>
@@ -397,7 +388,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
   const handleDownloadTemplate = async () => {
     try {
       setImportStatus('Downloading template...');
-      
+
       const response = await fetch(
         'https://api.erpnext.ai/api/method/frappe.core.doctype.data_import.data_import.download_template',
         {
@@ -433,7 +424,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
 
       // Get the blob from response
       const blob = await response.blob();
-      
+
       // Create download link
       const downloadUrl = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -481,9 +472,9 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
 
     // Store the file in state
     setSelectedFile(file);
-    
+
     await handleBulkImport(file);
-    
+
     // Reset file input
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -541,193 +532,193 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
   };
 
   const handleBulkImport = async (file: File) => {
-  try {
-    setIsImporting(true);
-    setImportProgress(0);
-    setImportStatus('Starting import process...');
+    try {
+      setIsImporting(true);
+      setImportProgress(0);
+      setImportStatus('Starting import process...');
 
-    const session = getUserSession();
-    const sessionCompany = session?.company;
+      const session = getUserSession();
+      const sessionCompany = session?.company;
 
-    if (!session?.api_key || !session?.api_secret) {
-      throw new Error("User session or API credentials not found.");
-    }
-
-    setImportProgress(20);
-    setImportStatus('Uploading CSV file...');
-
-    // Step 1: Import leads with company
-    const formData = new FormData();
-    formData.append('reference_doctype', 'CRM Lead');
-    formData.append('import_type', 'Insert New Records');
-    formData.append('company', sessionCompany || '');
-    formData.append('filedata', file);
-
-    const importResponse = await fetch(
-      'https://api.erpnext.ai/api/method/customcrm.email.import.import_leads_with_company',
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': AUTH_TOKEN,
-        },
-        body: formData
+      if (!session?.api_key || !session?.api_secret) {
+        throw new Error("User session or API credentials not found.");
       }
-    );
 
-    if (!importResponse.ok) {
-      throw new Error(`Import API failed: ${importResponse.statusText}`);
-    }
+      setImportProgress(20);
+      setImportStatus('Uploading CSV file...');
 
-    const importResult = await importResponse.json();
-    console.log('Initial Import API Response:', importResult);
+      // Step 1: Import leads with company
+      const formData = new FormData();
+      formData.append('reference_doctype', 'CRM Lead');
+      formData.append('import_type', 'Insert New Records');
+      formData.append('company', sessionCompany || '');
+      formData.append('filedata', file);
 
-    // Check for unmapped columns in the response
-    if (importResult.message?.unmapped_columns && importResult.message.unmapped_columns.length > 0) {
-      const unmappedColumns = importResult.message.unmapped_columns;
-      
+      const importResponse = await fetch(
+        'https://api.erpnext.ai/api/method/customcrm.email.import.import_leads_with_company',
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': AUTH_TOKEN,
+          },
+          body: formData
+        }
+      );
+
+      if (!importResponse.ok) {
+        throw new Error(`Import API failed: ${importResponse.statusText}`);
+      }
+
+      const importResult = await importResponse.json();
+      console.log('Initial Import API Response:', importResult);
+
+      // Check for unmapped columns in the response
+      if (importResult.message?.unmapped_columns && importResult.message.unmapped_columns.length > 0) {
+        const unmappedColumns = importResult.message.unmapped_columns;
+
+        setImportProgress(0);
+        setImportStatus('');
+        setIsImporting(false);
+
+        // Store unmapped columns and show mapping popup
+        setUnmappedColumns(unmappedColumns);
+        setManualMappings({});
+        setShowMappingPopup(true);
+        return; // Stop the import process until user maps columns
+      }
+
+      // If no unmapped columns, complete the import process
+      setImportProgress(100);
+      setImportStatus('Import completed successfully!');
+
+      // Show success toast
+      showToast('Leads imported successfully!', 'success');
+
+      // Refresh the leads data after successful import
+      setTimeout(() => {
+        fetchLeads();
+        setIsImporting(false);
+        setImportProgress(0);
+        setImportStatus('');
+        setSelectedFile(null); // Clear the file after successful import
+      }, 1000);
+
+    } catch (error) {
+      console.error('Import failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to import leads';
+      setError(errorMessage);
+      setIsImporting(false);
       setImportProgress(0);
       setImportStatus('');
-      setIsImporting(false);
-      
-      // Store unmapped columns and show mapping popup
-      setUnmappedColumns(unmappedColumns);
-      setManualMappings({});
-      setShowMappingPopup(true);
-      return; // Stop the import process until user maps columns
+      showToast(`Import failed: ${errorMessage}`);
+      // Clear the file on error
+      setSelectedFile(null);
     }
-
-    // If no unmapped columns, complete the import process
-    setImportProgress(100);
-    setImportStatus('Import completed successfully!');
-
-    // Show success toast
-    showToast('Leads imported successfully!', 'success');
-
-    // Refresh the leads data after successful import
-    setTimeout(() => {
-      fetchLeads();
-      setIsImporting(false);
-      setImportProgress(0);
-      setImportStatus('');
-      setSelectedFile(null); // Clear the file after successful import
-    }, 1000);
-
-  } catch (error) {
-    console.error('Import failed:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Failed to import leads';
-    setError(errorMessage);
-    setIsImporting(false);
-    setImportProgress(0);
-    setImportStatus('');
-    showToast(`Import failed: ${errorMessage}`);
-    // Clear the file on error
-    setSelectedFile(null);
-  }
-};
+  };
 
   // Function to handle mapping submission
   const handleMappingSubmit = async () => {
-  if (Object.keys(manualMappings).length !== unmappedColumns.length) {
-    showToast('Please map all unmapped columns before continuing');
-    return;
-  }
-
-  if (!selectedFile) {
-    showToast('File not found. Please select the file again.');
-    return;
-  }
-
-  setShowMappingPopup(false);
-  setIsImporting(true);
-  setImportProgress(40);
-  setImportStatus('Applying column mappings...');
-
-  try {
-    const session = getUserSession();
-    const sessionCompany = session?.company;
-
-    // Re-upload the file with manual mappings using the stored file
-    const formData = new FormData();
-    formData.append('reference_doctype', 'CRM Lead');
-    formData.append('import_type', 'Insert New Records');
-    formData.append('company', sessionCompany || '');
-    formData.append('filedata', selectedFile);
-    
-    // Convert manual mappings to JSON string
-    const manualMappingsJson = JSON.stringify(manualMappings);
-    formData.append('manual_mappings', manualMappingsJson);
-
-    console.log('Sending manual mappings:', manualMappings);
-    console.log('Manual mappings JSON:', manualMappingsJson);
-
-    const importResponse = await fetch(
-      'https://api.erpnext.ai/api/method/customcrm.email.import.import_leads_with_company',
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': AUTH_TOKEN,
-        },
-        body: formData
-      }
-    );
-
-    if (!importResponse.ok) {
-      throw new Error(`Import API failed: ${importResponse.statusText}`);
-    }
-
-    const importResult = await importResponse.json();
-    console.log('Second Import API Response with mappings:', importResult);
-
-    // Check if there are still unmapped columns
-    if (importResult.message?.unmapped_columns && importResult.message.unmapped_columns.length > 0) {
-      // Show mapping popup again with remaining unmapped columns
-      setUnmappedColumns(importResult.message.unmapped_columns);
-      setManualMappings({});
-      setShowMappingPopup(true);
-      setIsImporting(false);
-      setImportProgress(0);
-      setImportStatus('');
-      showToast('Some columns still need mapping');
+    if (Object.keys(manualMappings).length !== unmappedColumns.length) {
+      showToast('Please map all unmapped columns before continuing');
       return;
     }
 
-    // If no more unmapped columns, complete the import process
-    setImportProgress(100);
-    setImportStatus('Import completed successfully!');
+    if (!selectedFile) {
+      showToast('File not found. Please select the file again.');
+      return;
+    }
 
-    // Show success toast
-    showToast('Leads imported successfully!', 'success');
+    setShowMappingPopup(false);
+    setIsImporting(true);
+    setImportProgress(40);
+    setImportStatus('Applying column mappings...');
 
-    // Refresh the leads data after successful import
-    setTimeout(() => {
-      fetchLeads();
+    try {
+      const session = getUserSession();
+      const sessionCompany = session?.company;
+
+      // Re-upload the file with manual mappings using the stored file
+      const formData = new FormData();
+      formData.append('reference_doctype', 'CRM Lead');
+      formData.append('import_type', 'Insert New Records');
+      formData.append('company', sessionCompany || '');
+      formData.append('filedata', selectedFile);
+
+      // Convert manual mappings to JSON string
+      const manualMappingsJson = JSON.stringify(manualMappings);
+      formData.append('manual_mappings', manualMappingsJson);
+
+      console.log('Sending manual mappings:', manualMappings);
+      console.log('Manual mappings JSON:', manualMappingsJson);
+
+      const importResponse = await fetch(
+        'https://api.erpnext.ai/api/method/customcrm.email.import.import_leads_with_company',
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': AUTH_TOKEN,
+          },
+          body: formData
+        }
+      );
+
+      if (!importResponse.ok) {
+        throw new Error(`Import API failed: ${importResponse.statusText}`);
+      }
+
+      const importResult = await importResponse.json();
+      console.log('Second Import API Response with mappings:', importResult);
+
+      // Check if there are still unmapped columns
+      if (importResult.message?.unmapped_columns && importResult.message.unmapped_columns.length > 0) {
+        // Show mapping popup again with remaining unmapped columns
+        setUnmappedColumns(importResult.message.unmapped_columns);
+        setManualMappings({});
+        setShowMappingPopup(true);
+        setIsImporting(false);
+        setImportProgress(0);
+        setImportStatus('');
+        showToast('Some columns still need mapping');
+        return;
+      }
+
+      // If no more unmapped columns, complete the import process
+      setImportProgress(100);
+      setImportStatus('Import completed successfully!');
+
+      // Show success toast
+      showToast('Leads imported successfully!', 'success');
+
+      // Refresh the leads data after successful import
+      setTimeout(() => {
+        fetchLeads();
+        setIsImporting(false);
+        setImportProgress(0);
+        setImportStatus('');
+        setUnmappedColumns([]);
+        setManualMappings({});
+        setSelectedFile(null); // Clear file after successful import
+      }, 1000);
+
+    } catch (error) {
+      console.error('Mapping submission failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to apply mappings';
+      showToast(`Import failed: ${errorMessage}`);
       setIsImporting(false);
       setImportProgress(0);
       setImportStatus('');
       setUnmappedColumns([]);
       setManualMappings({});
-      setSelectedFile(null); // Clear file after successful import
-    }, 1000);
-
-  } catch (error) {
-    console.error('Mapping submission failed:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Failed to apply mappings';
-    showToast(`Import failed: ${errorMessage}`);
-    setIsImporting(false);
-    setImportProgress(0);
-    setImportStatus('');
-    setUnmappedColumns([]);
-    setManualMappings({});
-    setSelectedFile(null); // Clear file on error
-  }
-};
+      setSelectedFile(null); // Clear file on error
+    }
+  };
 
   // Column Mapping Popup Component
   const ColumnMappingPopup = () => {
     // Available CRM Lead fields for mapping
     const crmLeadFields = [
-      'first_name', 'last_name', 'lead_name', 'organization', 'status', 
-      'email', 'mobile_no', 'website', 'territory', 'industry', 
+      'first_name', 'last_name', 'lead_name', 'organization', 'status',
+      'email', 'mobile_no', 'website', 'territory', 'industry',
       'job_title', 'source', 'salutation', 'gender', 'no_of_employees',
       'annual_revenue', 'lead_owner', 'notes'
     ];
@@ -751,27 +742,23 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
 
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className={`p-6 rounded-lg shadow-lg max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto ${
-          theme === 'dark' ? 'bg-gray-800' : 'bg-white'
-        }`}>
+        <div className={`p-6 rounded-lg shadow-lg max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'
+          }`}>
           <div className="flex items-center justify-between mb-4">
-            <h3 className={`text-lg font-semibold ${
-              theme === 'dark' ? 'text-white' : 'text-gray-900'
-            }`}>
+            <h3 className={`text-lg font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+              }`}>
               Map CSV Columns
             </h3>
           </div>
-          
+
           <div className="mb-4">
-            <p className={`text-sm ${
-              theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
-            }`}>
-              The following columns in your CSV file could not be automatically mapped. 
+            <p className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+              }`}>
+              The following columns in your CSV file could not be automatically mapped.
               Please select the appropriate CRM Lead field for each column.
             </p>
-            <p className={`text-xs mt-1 ${
-              theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-            }`}>
+            <p className={`text-xs mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+              }`}>
               File: {selectedFile?.name}
             </p>
           </div>
@@ -779,20 +766,18 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
           <div className="space-y-4 mb-6">
             {unmappedColumns.map((column) => (
               <div key={column.column_name} className="flex items-center justify-between">
-                <span className={`font-medium ${
-                  theme === 'dark' ? 'text-white' : 'text-gray-700'
-                }`}>
+                <span className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-700'
+                  }`}>
                   {column.column_name}
                 </span>
-                
+
                 <select
                   value={manualMappings[column.column_name] || ''}
                   onChange={(e) => handleMappingChange(column.column_name, e.target.value)}
-                  className={`ml-4 px-3 py-2 border rounded ${
-                    theme === 'dark' 
-                      ? 'bg-gray-700 border-gray-600 text-white' 
+                  className={`ml-4 px-3 py-2 border rounded ${theme === 'dark'
+                      ? 'bg-gray-700 border-gray-600 text-white'
                       : 'bg-white border-gray-300 text-gray-900'
-                  }`}
+                    }`}
                 >
                   <option value="">Select Field</option>
                   {crmLeadFields.map(field => (
@@ -808,24 +793,22 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
           <div className="flex justify-end space-x-3">
             <button
               onClick={handleCancel}
-              className={`px-4 py-2 border rounded-lg transition-colors ${
-                theme === 'dark'
+              className={`px-4 py-2 border rounded-lg transition-colors ${theme === 'dark'
                   ? 'border-gray-600 text-white hover:bg-gray-700'
                   : 'border-gray-300 text-gray-700 hover:bg-gray-50'
-              }`}
+                }`}
             >
               Cancel Import
             </button>
             <button
               onClick={handleMappingSubmit}
               disabled={Object.keys(manualMappings).length !== unmappedColumns.length}
-              className={`px-4 py-2 rounded-lg transition-colors ${
-                Object.keys(manualMappings).length !== unmappedColumns.length
+              className={`px-4 py-2 rounded-lg transition-colors ${Object.keys(manualMappings).length !== unmappedColumns.length
                   ? 'bg-gray-400 cursor-not-allowed'
                   : theme === 'dark'
                     ? 'bg-purple-600 text-white hover:bg-purple-700'
                     : 'bg-purple-600 text-white hover:bg-purple-700'
-              }`}
+                }`}
             >
               Continue Import
             </button>
@@ -1236,39 +1219,143 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
     setIsDeleting(true);
 
     try {
-      const session = getUserSession();
-
-      const deleteApiUrl = `https://api.erpnext.ai/api/method/frappe.desk.reportview.delete_items`;
-
-      const deletePayload = {
+      const requestBody = {
+        doctype: "CRM Lead",
         items: JSON.stringify(selectedIds),
-        doctype: "CRM Lead"
       };
 
-      const deleteResponse = await fetch(deleteApiUrl, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
-        },
-        body: JSON.stringify(deletePayload)
-      });
+      const response = await fetch(
+        "https://api.erpnext.ai/api/method/frappe.desk.reportview.delete_items",
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': AUTH_TOKEN
+          },
+          body: JSON.stringify(requestBody)
+        }
+      );
 
-      if (!deleteResponse.ok) {
-        throw new Error(`Failed to delete leads: ${deleteResponse.statusText}`);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      await fetchLeads();
+      const result = await response.json();
+      console.log("Leads deleted successfully:", result);
 
+      // Check if the response indicates success
+      if (result && result.message === "ok") {
+        // Success case
+        setIsDeletePopupOpen(false); // Close popup on success
+        setSelectedIds([]);
+        setShowDropdown(false);
+        await fetchLeads();
+        showToast('Leads deleted successfully!', 'success');
+      } else {
+        // Handle cases where response is not exactly "ok"
+        throw new Error("Cannot delete or cancel because CRM Lead is linked with CRM Notification");
+      }
+
+    } catch (error: any) {
+      console.log("=== ERROR DETAILS ===");
+      console.log("Full error:", error);
+      console.log("Error response:", error.response?.data);
+
+      let errorMessage = "Deletion failed";
+
+      // Only process error messages if this is actually an error
+      if (error.response?.data?._server_messages) {
+        console.log("_server_messages found:", error.response.data._server_messages);
+
+        try {
+          // Parse the outer array
+          const serverMessages = error.response.data._server_messages;
+          let parsedMessages;
+
+          // Handle both string and array cases
+          if (typeof serverMessages === 'string') {
+            parsedMessages = JSON.parse(serverMessages);
+          } else if (Array.isArray(serverMessages)) {
+            parsedMessages = serverMessages;
+          } else {
+            parsedMessages = [serverMessages];
+          }
+
+          console.log("Parsed messages:", parsedMessages);
+
+          if (Array.isArray(parsedMessages) && parsedMessages.length > 0) {
+            // The first item might be a string with escaped JSON
+            const firstMessage = parsedMessages[0];
+
+            if (typeof firstMessage === 'string') {
+              // Clean the escaped string to make it valid JSON
+              const cleanedJsonString = firstMessage
+                .replace(/\\"/g, '"')  // Fix: \" becomes "
+                .replace(/\\\\/g, '\\') // Fix: \\ becomes \
+                .replace(/^"|"$/g, ''); // Remove surrounding quotes if present
+
+              console.log("Cleaned JSON string:", cleanedJsonString);
+
+              try {
+                // Now parse the cleaned JSON
+                const messageObj = JSON.parse(cleanedJsonString);
+                console.log("Message object:", messageObj);
+
+                if (messageObj.message) {
+                  errorMessage = messageObj.message;
+                  // Remove HTML tags for clean display
+                  errorMessage = errorMessage.replace(/<[^>]*>/g, '');
+                }
+              } catch (innerParseError) {
+                console.log("Inner parse failed, using string as is:", cleanedJsonString);
+                errorMessage = cleanedJsonString;
+              }
+            } else if (firstMessage.message) {
+              // If it's already an object
+              errorMessage = firstMessage.message;
+              errorMessage = errorMessage.replace(/<[^>]*>/g, '');
+            }
+          }
+        } catch (parseError) {
+          console.log("Parse error, trying fallback extraction:", parseError);
+          // Fallback: extract using regex from the raw string
+          try {
+            const rawString = typeof error.response?.data?._server_messages === 'string'
+              ? error.response.data._server_messages
+              : JSON.stringify(error.response?.data?._server_messages || '');
+
+            const regex = /"message":\s*"([^"]*)"/;
+            const match = rawString.match(regex);
+            if (match && match[1]) {
+              errorMessage = match[1]
+                .replace(/<[^>]*>/g, '')
+                .replace(/\\"/g, '"')
+                .replace(/\\\\/g, '\\');
+            }
+          } catch (fallbackError) {
+            console.log("Fallback also failed");
+          }
+        }
+      }
+      // Method 2: Check for direct message in response
+      else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+        errorMessage = errorMessage.replace(/<[^>]*>/g, '');
+      }
+      // Method 3: Check for exception
+      else if (error.response?.data?.exception) {
+        errorMessage = error.response.data.exception;
+      }
+      // Method 4: Use the error message directly
+      else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      console.log("Final message to display:", errorMessage);
+
+      // Close the popup when showing error toast
       setIsDeletePopupOpen(false);
-      setSelectedIds([]);
-      setShowDropdown(false);
-
-    } catch (error) {
-      console.error("Failed to delete leads:", error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to delete leads';
-      setError(errorMessage);
-      showToast(errorMessage);
+      showToast(`${errorMessage}`, 'error');
     } finally {
       setIsDeleting(false);
     }
@@ -1341,10 +1428,10 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
     <div className="">
       {/* Toast Notification */}
       {toast && (
-        <Toast 
-          message={toast.message} 
-          type={toast.type} 
-          onClose={hideToast} 
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={hideToast}
         />
       )}
 
@@ -1373,14 +1460,14 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
               </h3>
               <div className="text-sm font-medium">{importProgress}%</div>
             </div>
-            
+
             <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
-              <div 
+              <div
                 className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                 style={{ width: `${importProgress}%` }}
               ></div>
             </div>
-            
+
             <p className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
               {importStatus}
             </p>
@@ -1636,7 +1723,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
                     : 'border-gray-300 hover:bg-gray-50'
                     }`}
                 >
-                  <Upload  className="w-4 h-4" />
+                  <Upload className="w-4 h-4" />
                 </button>
               </div>
             )}
