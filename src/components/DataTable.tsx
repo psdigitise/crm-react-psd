@@ -76,6 +76,9 @@ interface Lead {
   first_name?: string;
   last_name?: string;
   lead_owner?: string;
+  _assign?: string;
+  lead_score?: number;
+  lead_summary?: string;
 }
 
 interface DataTableProps {
@@ -213,6 +216,75 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
     }
   }, [searchTerm]);
 
+  const analyzeLeadScore = async (leadId: string) => {
+    try {
+      const response = await axios.get(
+        'https://api.erpnext.ai/api/method/customcrm.email.getcompany_info.analyze_lead_score',
+        {
+          params: { lead_id: leadId },
+          headers: {
+            Authorization: AUTH_TOKEN,
+          }
+        }
+      );
+
+      console.log("Analyze API response:", response.data);
+      return response.data.message;
+    } catch (error: any) {
+      console.error("Error analyzing lead score:", error);
+      if (error.response) {
+        console.error("Server Response:", error.response.data);
+      }
+      return null;
+    }
+  };
+
+  const saveLeadScore = async (leadId: string, score: number, summary: string) => {
+    try {
+      await axios.post(
+        "https://api.erpnext.ai/api/method/frappe.client.set_value",
+        {
+          doctype: "CRM Lead",
+          name: leadId,
+          fieldname: { lead_score: score, lead_summary: summary }
+        },
+        { headers: { Authorization: AUTH_TOKEN } }
+      );
+
+      console.log("Lead score & summary updated!");
+    } catch (error: any) {
+      console.error("Error updating score:", error.response?.data || error);
+    }
+  };
+
+  const handleLeadOpen = async (lead: Lead, preGeneratedSummary?: string) => {
+    onLeadClick(lead);
+
+    console.log("Analyzing lead score for:", lead.id);
+
+    const analysis = await analyzeLeadScore(lead.id);
+    if (!analysis) return;
+
+    const lead_score = analysis.lead_score || analysis.score;
+    const lead_summary = preGeneratedSummary || analysis.lead_summary || analysis.summary;
+
+    if (lead_score !== undefined && lead_summary) {
+      await saveLeadScore(lead.id, lead_score, lead_summary);
+      
+      setLeads(prev =>
+        prev.map(l =>
+          l.id === lead.id
+            ? { 
+                ...l, 
+                lead_score: lead_score.toString(), 
+                lead_summary: lead_summary
+              }
+            : l
+        )
+      );
+    }
+  };
+
   const fetchLeads = async () => {
     try {
       setLoading(true);
@@ -257,31 +329,37 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
 
       const leadsData = result.message?.data || result.data || [];
 
-      const transformedLeads: Lead[] = leadsData
-        .filter((apiLead: any) => apiLead.converted === 0)
-        .map((apiLead: any) => ({
-          id: apiLead.name || apiLead.idx?.toString() || Math.random().toString(),
-          name: apiLead.name || 'Unknown',
-          firstName: apiLead.first_name || apiLead.lead_name?.split(' ')[0] || 'Unknown',
-          lastName: apiLead.last_name || apiLead.lead_name?.split(' ').slice(1).join(' ') || '',
-          leadId: apiLead.name || 'N/A',
-          organization: apiLead.organization || 'N/A',
-          status: mapApiStatus(apiLead.status),
-          email: apiLead.email || 'N/A',
-          mobile: apiLead.mobile_no || 'N/A',
-          assignedTo: apiLead.lead_owner || apiLead.owner || 'N/A',
-          lastModified: formatDate(apiLead.modified),
-          website: apiLead.website || '',
-          territory: apiLead.territory || '',
-          industry: apiLead.industry || '',
-          jobTitle: '',
-          source: '',
-          salutation: apiLead.salutation || '',
-          converted: apiLead.converted || 0,
-          ...apiLead
-        }));
+      const transformedLeads = await Promise.all(
+        leadsData
+          .filter((apiLead: any) => apiLead.converted === 0)
+          .map(async (apiLead: any) => {
+            return {
+              id: apiLead.name || apiLead.idx?.toString() || Math.random().toString(),
+              name: apiLead.name || 'Unknown',
+              firstName: apiLead.first_name || apiLead.lead_name?.split(' ')[0] || 'Unknown',
+              lastName: apiLead.last_name || apiLead.lead_name?.split(' ').slice(1).join(' ') || '',
+              leadId: apiLead.name || 'N/A',
+              organization: apiLead.organization || 'N/A',
+              status: mapApiStatus(apiLead.status),
+              email: apiLead.email || 'N/A',
+              mobile: apiLead.mobile_no || 'N/A',
+              assignedTo: apiLead._assign || 'N/A',
+              lastModified: formatDate(apiLead.modified),
+              website: apiLead.website || '',
+              territory: apiLead.territory || '',
+              industry: apiLead.industry || '',
+              jobTitle: '',
+              source: '',
+              salutation: apiLead.salutation || '',
+              converted: apiLead.converted || 0,
+              ...apiLead
+            };
+          })
+      );
 
       setLeads(transformedLeads);
+      console.log(transformedLeads, "Transformed leads with analyzed scores");
+
       setTotalItems(transformedLeads.length);
       setSelectedIds([]);
 
@@ -302,6 +380,19 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const shouldRefreshScore = (lead: any): boolean => {
+    if (!lead.lead_score || lead.lead_score === 'null') return true;
+    
+    if (lead.modified) {
+      const modifiedDate = new Date(lead.modified);
+      const now = new Date();
+      const daysSinceModification = (now.getTime() - modifiedDate.getTime()) / (1000 * 3600 * 24);
+      return daysSinceModification < 7;
+    }
+    
+    return false;
   };
 
   // Import Popup Component
@@ -333,7 +424,6 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
             </p>
 
             <div className="grid grid-cols-1 gap-3">
-              {/* Download Template Button */}
               <button
                 onClick={handleDownloadTemplate}
                 disabled={importStatus === 'Downloading template...'}
@@ -349,7 +439,6 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
                 </div>
               </button>
 
-              {/* Attach File Button */}
               <button
                 onClick={handleAttachFile}
                 className={`flex items-center justify-center space-x-2 px-4 py-3 border-2 rounded-lg transition-colors ${theme === 'dark'
@@ -365,7 +454,6 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
               </button>
             </div>
 
-            {/* Download status */}
             {importStatus && (
               <div className={`text-sm text-center ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
                 }`}>
@@ -373,7 +461,6 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
               </div>
             )}
 
-            {/* Help text */}
             <div className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
               }`}>
               <strong>Note:</strong> Use the template to ensure your CSV file has the correct format. Required fields include name, email, organization, and status.
@@ -384,7 +471,6 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
     );
   };
 
-  // Handle template download
   const handleDownloadTemplate = async () => {
     try {
       setImportStatus('Downloading template...');
@@ -422,10 +508,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
         throw new Error(`Template download failed: ${response.statusText}`);
       }
 
-      // Get the blob from response
       const blob = await response.blob();
-
-      // Create download link
       const downloadUrl = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = downloadUrl;
@@ -447,7 +530,6 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
     }
   };
 
-  // Handle attach file
   const handleAttachFile = () => {
     setShowImportPopup(false);
     if (fileInputRef.current) {
@@ -455,7 +537,6 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
     }
   };
 
-  // Show import popup instead of directly opening file input
   const handleImportClick = () => {
     setShowImportPopup(true);
   };
@@ -464,30 +545,24 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Check if file is CSV
     if (!file.name.toLowerCase().endsWith('.csv')) {
       showToast('Please select a CSV file');
       return;
     }
 
-    // Store the file in state
     setSelectedFile(file);
-
     await handleBulkImport(file);
 
-    // Reset file input
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   };
 
-  // Extract the import continuation logic into a separate function
   const continueImportProcess = async (dataImportName: string) => {
     try {
       setImportProgress(60);
       setImportStatus('Starting data import...');
 
-      // Start the actual import process
       const startImportPayload: any = {
         data_import: dataImportName
       };
@@ -514,16 +589,14 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
       setImportProgress(100);
       setImportStatus('Import completed successfully!');
 
-      // Show success toast
       showToast('Leads imported successfully!', 'success');
 
-      // Refresh the leads data after successful import
       setTimeout(() => {
         fetchLeads();
         setIsImporting(false);
         setImportProgress(0);
         setImportStatus('');
-        setSelectedFile(null); // Clear the file after successful import
+        setSelectedFile(null);
       }, 1000);
 
     } catch (error) {
@@ -547,7 +620,6 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
       setImportProgress(20);
       setImportStatus('Uploading CSV file...');
 
-      // Step 1: Import leads with company
       const formData = new FormData();
       formData.append('reference_doctype', 'CRM Lead');
       formData.append('import_type', 'Insert New Records');
@@ -572,7 +644,6 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
       const importResult = await importResponse.json();
       console.log('Initial Import API Response:', importResult);
 
-      // Check for unmapped columns in the response
       if (importResult.message?.unmapped_columns && importResult.message.unmapped_columns.length > 0) {
         const unmappedColumns = importResult.message.unmapped_columns;
 
@@ -580,27 +651,23 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
         setImportStatus('');
         setIsImporting(false);
 
-        // Store unmapped columns and show mapping popup
         setUnmappedColumns(unmappedColumns);
         setManualMappings({});
         setShowMappingPopup(true);
-        return; // Stop the import process until user maps columns
+        return;
       }
 
-      // If no unmapped columns, complete the import process
       setImportProgress(100);
       setImportStatus('Import completed successfully!');
 
-      // Show success toast
       showToast('Leads imported successfully!', 'success');
 
-      // Refresh the leads data after successful import
       setTimeout(() => {
         fetchLeads();
         setIsImporting(false);
         setImportProgress(0);
         setImportStatus('');
-        setSelectedFile(null); // Clear the file after successful import
+        setSelectedFile(null);
       }, 1000);
 
     } catch (error) {
@@ -611,12 +678,10 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
       setImportProgress(0);
       setImportStatus('');
       showToast(`Import failed: ${errorMessage}`);
-      // Clear the file on error
       setSelectedFile(null);
     }
   };
 
-  // Function to handle mapping submission
   const handleMappingSubmit = async () => {
     if (Object.keys(manualMappings).length !== unmappedColumns.length) {
       showToast('Please map all unmapped columns before continuing');
@@ -637,14 +702,12 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
       const session = getUserSession();
       const sessionCompany = session?.company;
 
-      // Re-upload the file with manual mappings using the stored file
       const formData = new FormData();
       formData.append('reference_doctype', 'CRM Lead');
       formData.append('import_type', 'Insert New Records');
       formData.append('company', sessionCompany || '');
       formData.append('filedata', selectedFile);
 
-      // Convert manual mappings to JSON string
       const manualMappingsJson = JSON.stringify(manualMappings);
       formData.append('manual_mappings', manualMappingsJson);
 
@@ -669,9 +732,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
       const importResult = await importResponse.json();
       console.log('Second Import API Response with mappings:', importResult);
 
-      // Check if there are still unmapped columns
       if (importResult.message?.unmapped_columns && importResult.message.unmapped_columns.length > 0) {
-        // Show mapping popup again with remaining unmapped columns
         setUnmappedColumns(importResult.message.unmapped_columns);
         setManualMappings({});
         setShowMappingPopup(true);
@@ -682,14 +743,11 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
         return;
       }
 
-      // If no more unmapped columns, complete the import process
       setImportProgress(100);
       setImportStatus('Import completed successfully!');
 
-      // Show success toast
       showToast('Leads imported successfully!', 'success');
 
-      // Refresh the leads data after successful import
       setTimeout(() => {
         fetchLeads();
         setIsImporting(false);
@@ -697,7 +755,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
         setImportStatus('');
         setUnmappedColumns([]);
         setManualMappings({});
-        setSelectedFile(null); // Clear file after successful import
+        setSelectedFile(null);
       }, 1000);
 
     } catch (error) {
@@ -709,18 +767,17 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
       setImportStatus('');
       setUnmappedColumns([]);
       setManualMappings({});
-      setSelectedFile(null); // Clear file on error
+      setSelectedFile(null);
     }
   };
 
   // Column Mapping Popup Component
   const ColumnMappingPopup = () => {
-    // Available CRM Lead fields for mapping
     const crmLeadFields = [
       'first_name', 'last_name', 'lead_name', 'organization', 'status',
       'email', 'mobile_no', 'website', 'territory', 'industry',
       'job_title', 'source', 'salutation', 'gender', 'no_of_employees',
-      'annual_revenue', 'lead_owner', 'notes'
+      'annual_revenue', 'lead_owner', 'notes', '_assign'
     ];
 
     const handleMappingChange = (columnName: string, field: string) => {
@@ -737,7 +794,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
       setIsImporting(false);
       setImportProgress(0);
       setImportStatus('');
-      setSelectedFile(null); // Clear the file on cancel
+      setSelectedFile(null);
     };
 
     return (
@@ -822,7 +879,6 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
     apiStatus: string
   ): 'New' | 'Contacted' | 'Qualified' | 'Unqualified' | 'Junk' | 'Nurture' | string => {
     if (!apiStatus) return 'New';
-    const status = apiStatus.toLowerCase();
     return apiStatus;
   };
 
@@ -996,6 +1052,147 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
     </button>
   );
 
+  // Render cell function with updated assignedTo logic
+  const renderCell = (lead: Lead, key: keyof Lead, theme: string) => {
+    switch (key) {
+      case 'name':
+        return (
+          <div className="flex items-center">
+            <div className={`w-6 h-6 rounded-full flex items-center justify-center mr-3 ${theme === 'dark' ? 'bg-purplebg' : 'bg-gray-200'
+              }`}>
+              <span className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-700'
+                }`}>
+                {lead.firstName?.charAt(0).toUpperCase()}
+              </span>
+            </div>
+            <div className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+              }`}>
+              {lead.name}
+            </div>
+          </div>
+        );
+      case 'organization':
+        return (
+          <div className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+            {lead.organization}
+          </div>
+        );
+      case 'status':
+        return (
+          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(lead.status)}`}>
+            <FaCircleDot className="w-2 h-2 mr-1" />
+            {lead.status}
+          </span>
+        );
+      case 'email':
+        return (
+          <div className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+            }`}>
+            {lead.email}
+          </div>
+        );
+      case 'mobile':
+        return (
+          <div className={`flex items-center text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+            }`}>
+            <Phone className={`w-4 h-4 mr-2 ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`} />
+            {lead.mobile}
+          </div>
+        );
+      case 'assignedTo':
+        // Handle both string and array formats for assignedTo
+        let assignedNames: string[] = [];
+
+        if (Array.isArray(lead.assignedTo)) {
+          assignedNames = lead.assignedTo.map(name => name.trim()).filter(name => name);
+        } else if (typeof lead.assignedTo === 'string') {
+          try {
+            const parsed = JSON.parse(lead.assignedTo);
+            if (Array.isArray(parsed)) {
+              assignedNames = parsed.map(name => name.trim()).filter(name => name);
+            } else {
+              assignedNames = lead.assignedTo.split(',').map(name => name.trim()).filter(name => name);
+            }
+          } catch {
+            assignedNames = lead.assignedTo.split(',').map(name => name.trim()).filter(name => name);
+          }
+        }
+
+        if (assignedNames.length === 0) {
+          return (
+            <div className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
+              Unassigned
+            </div>
+          );
+        } else if (assignedNames.length === 1) {
+          return (
+            <div className="flex items-center">
+              <div className={`w-6 h-6 rounded-full flex items-center justify-center mr-2 ${theme === 'dark' ? 'bg-purplebg' : 'bg-gray-200'
+                }`}>
+                <span className={`text-xs font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-700'
+                  }`}>
+                  {assignedNames[0].charAt(0).toUpperCase()}
+                </span>
+              </div>
+              <div className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                {assignedNames[0]}
+              </div>
+            </div>
+          );
+        } else {
+          return (
+            <div className="flex items-center">
+              {assignedNames.slice(0, 3).map((name, index) => (
+                <div
+                  key={index}
+                  className={`w-6 h-6 rounded-full flex items-center justify-center border-2 ${theme === "dark" ? "bg-purplebg border-purplebg" : "bg-gray-200 border-white"
+                    }`}
+                  style={{
+                    marginLeft: index === 0 ? "0px" : "-8px",
+                    zIndex: 10 - index,
+                  }}
+                >
+                  <span
+                    className={`text-xs font-semibold ${theme === "dark" ? "text-white" : "text-gray-700"
+                      }`}
+                  >
+                    {name.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+              ))}
+              {assignedNames.length > 3 && (
+                <div
+                  className={`w-6 h-6 rounded-full flex items-center justify-center border-2 ${theme === "dark" ? "bg-purplebg border-purplebg" : "bg-gray-200 border-white"
+                    }`}
+                  style={{ marginLeft: "-8px" }}
+                >
+                  <span
+                    className={`text-xs font-semibold ${theme === "dark" ? "text-white" : "text-gray-700"
+                      }`}
+                  >
+                    +{assignedNames.length - 3}
+                  </span>
+                </div>
+              )}
+            </div>
+          );
+        }
+      case 'lastModified':
+        return (
+          <div className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`}>
+            {lead.lastModified}
+          </div>
+        );
+      default:
+        return (
+          <span className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+            }`}>
+            {lead[key] || 'N/A'}
+          </span>
+        );
+    }
+  };
+
   const FilterDropdown = ({
     title,
     options,
@@ -1093,7 +1290,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
         exportFilters['industry'] = ['in', filters.industry];
       }
       if (filters.assignedTo.length > 0) {
-        exportFilters['lead_owner'] = ['in', filters.assignedTo];
+        exportFilters['_assign'] = ['in', filters.assignedTo];
       }
 
       const columnToFieldMap: Record<string, string> = {
@@ -1102,7 +1299,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
         'status': 'status',
         'email': 'email',
         'mobile': 'mobile_no',
-        'assignedTo': 'lead_owner',
+        'assignedTo': '_assign',
         'lastModified': 'modified',
         'territory': 'territory',
         'industry': 'industry',
@@ -1243,16 +1440,13 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
       const result = await response.json();
       console.log("Leads deleted successfully:", result);
 
-      // Check if the response indicates success
       if (result && result.message === "ok") {
-        // Success case
-        setIsDeletePopupOpen(false); // Close popup on success
+        setIsDeletePopupOpen(false);
         setSelectedIds([]);
         setShowDropdown(false);
         await fetchLeads();
         showToast('Leads deleted successfully!', 'success');
       } else {
-        // Handle cases where response is not exactly "ok"
         throw new Error("Cannot delete or cancel because CRM Lead is linked with CRM Notification");
       }
 
@@ -1263,16 +1457,13 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
 
       let errorMessage = "Deletion failed";
 
-      // Only process error messages if this is actually an error
       if (error.response?.data?._server_messages) {
         console.log("_server_messages found:", error.response.data._server_messages);
 
         try {
-          // Parse the outer array
           const serverMessages = error.response.data._server_messages;
           let parsedMessages;
 
-          // Handle both string and array cases
           if (typeof serverMessages === 'string') {
             parsedMessages = JSON.parse(serverMessages);
           } else if (Array.isArray(serverMessages)) {
@@ -1284,26 +1475,22 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
           console.log("Parsed messages:", parsedMessages);
 
           if (Array.isArray(parsedMessages) && parsedMessages.length > 0) {
-            // The first item might be a string with escaped JSON
             const firstMessage = parsedMessages[0];
 
             if (typeof firstMessage === 'string') {
-              // Clean the escaped string to make it valid JSON
               const cleanedJsonString = firstMessage
-                .replace(/\\"/g, '"')  // Fix: \" becomes "
-                .replace(/\\\\/g, '\\') // Fix: \\ becomes \
-                .replace(/^"|"$/g, ''); // Remove surrounding quotes if present
+                .replace(/\\"/g, '"')
+                .replace(/\\\\/g, '\\')
+                .replace(/^"|"$/g, '');
 
               console.log("Cleaned JSON string:", cleanedJsonString);
 
               try {
-                // Now parse the cleaned JSON
                 const messageObj = JSON.parse(cleanedJsonString);
                 console.log("Message object:", messageObj);
 
                 if (messageObj.message) {
                   errorMessage = messageObj.message;
-                  // Remove HTML tags for clean display
                   errorMessage = errorMessage.replace(/<[^>]*>/g, '');
                 }
               } catch (innerParseError) {
@@ -1311,14 +1498,12 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
                 errorMessage = cleanedJsonString;
               }
             } else if (firstMessage.message) {
-              // If it's already an object
               errorMessage = firstMessage.message;
               errorMessage = errorMessage.replace(/<[^>]*>/g, '');
             }
           }
         } catch (parseError) {
           console.log("Parse error, trying fallback extraction:", parseError);
-          // Fallback: extract using regex from the raw string
           try {
             const rawString = typeof error.response?.data?._server_messages === 'string'
               ? error.response.data._server_messages
@@ -1337,23 +1522,19 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
           }
         }
       }
-      // Method 2: Check for direct message in response
       else if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
         errorMessage = errorMessage.replace(/<[^>]*>/g, '');
       }
-      // Method 3: Check for exception
       else if (error.response?.data?.exception) {
         errorMessage = error.response.data.exception;
       }
-      // Method 4: Use the error message directly
       else if (error.message) {
         errorMessage = error.message;
       }
 
       console.log("Final message to display:", errorMessage);
 
-      // Close the popup when showing error toast
       setIsDeletePopupOpen(false);
       showToast(`${errorMessage}`, 'error');
     } finally {
@@ -1374,7 +1555,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
         status: mapApiStatus(apiLead.status),
         email: apiLead.email || 'N/A',
         mobile: apiLead.mobile_no || 'N/A',
-        assignedTo: apiLead.lead_owner || apiLead.owner || 'N/A',
+        assignedTo: apiLead._assign || 'N/A',
         lastModified: formatDate(apiLead.modified),
         website: apiLead.website || '',
         territory: apiLead.territory || '',
@@ -1807,7 +1988,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
                       ? 'hover:bg-purple-800/20'
                       : 'hover:bg-gray-50'
                       }`}
-                    onClick={() => onLeadClick(lead)}
+                    onClick={() => handleLeadOpen(lead)}
                   >
                     <td
                       className="px-6 py-4 whitespace-nowrap"
@@ -1827,42 +2008,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
                     {/* === Render all columns === */}
                     {visibleColumns.map((column) => (
                       <td key={column.key} className="px-6 py-4 whitespace-nowrap">
-                        {column.key === 'name' ? (
-                          <div className="flex items-center">
-                            <div
-                              className={`w-6 h-6 rounded-full flex items-center justify-center mr-3 ${theme === 'dark' ? 'bg-purplebg' : 'bg-gray-200'
-                                }`}
-                            >
-                              <span
-                                className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-700'
-                                  }`}
-                              >
-                                {lead.firstName?.charAt(0).toUpperCase()}
-                              </span>
-                            </div>
-                            <div
-                              className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'
-                                }`}
-                            >
-                              {lead.name}
-                            </div>
-                          </div>
-                        ) : column.key === 'status' ? (
-                          // Special rendering for status with colors
-                          <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(lead.status)}`}
-                          >
-                            <FaCircleDot className="w-2 h-2 mr-1" />
-                            {lead.status}
-                          </span>
-                        ) : (
-                          <span
-                            className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-900'
-                              }`}
-                          >
-                            {lead[column.key] || 'N/A'}
-                          </span>
-                        )}
+                        {renderCell(lead, column.key, theme)}
                       </td>
                     ))}
                   </tr>
@@ -1967,7 +2113,35 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
                             className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'
                               }`}
                           >
-                            {lead[column.key] || 'N/A'}
+                            {column.key === 'assignedTo' ? (
+                              (() => {
+                                let assignedNames: string[] = [];
+                                if (Array.isArray(lead.assignedTo)) {
+                                  assignedNames = lead.assignedTo.map(name => name.trim()).filter(name => name);
+                                } else if (typeof lead.assignedTo === 'string') {
+                                  try {
+                                    const parsed = JSON.parse(lead.assignedTo);
+                                    if (Array.isArray(parsed)) {
+                                      assignedNames = parsed.map(name => name.trim()).filter(name => name);
+                                    } else {
+                                      assignedNames = lead.assignedTo.split(',').map(name => name.trim()).filter(name => name);
+                                    }
+                                  } catch {
+                                    assignedNames = lead.assignedTo.split(',').map(name => name.trim()).filter(name => name);
+                                  }
+                                }
+
+                                if (assignedNames.length === 0) {
+                                  return 'Unassigned';
+                                } else if (assignedNames.length === 1) {
+                                  return assignedNames[0];
+                                } else {
+                                  return `${assignedNames.slice(0, 2).join(', ')}${assignedNames.length > 2 ? ` +${assignedNames.length - 2}` : ''}`;
+                                }
+                              })()
+                            ) : (
+                              lead[column.key] || 'N/A'
+                            )}
                           </span>
                         </div>
                       ) : null

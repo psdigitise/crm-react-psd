@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { IoCloseOutline } from 'react-icons/io5';
 import { AUTH_TOKEN } from '../../api/apiUrl';
+import { getUserSession } from '../../utils/session';
 
 interface AssignDealPopupProps {
     isOpen: boolean;
@@ -43,8 +44,9 @@ export const AssignDealPopup: React.FC<AssignDealPopupProps> = ({
         try {
             setIsLoadingUsers(true);
 
-            // You'll need to get the company from session or props
-            const sessionCompany = "testtttt"; // Replace with actual company from your session
+
+            const session = getUserSession();
+            const sessionCompany = session?.company;
 
             const response = await fetch('https://api.erpnext.ai/api/method/frappe.desk.search.search_link', {
                 method: 'POST',

@@ -69,7 +69,7 @@ export interface Deal {
   mobile_no?: string;
   gender?: string;
   deal_owner?: string;
-  close_date?: string;
+  closed_date?: string;
   probability?: string;
   next_step?: string;
   deal_name?: string;
@@ -189,6 +189,11 @@ interface Email {
   creation: string;
 }
 
+interface LostReason {
+  value: string;
+  label: string;
+}
+
 interface TaskForm {
   title: string;
   description: string;
@@ -282,6 +287,13 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
   const [emailModalTab, setEmailModalTab] = useState<TabType | null>(null);
   const [territorySearch, setTerritorySearch] = useState('');
   const [showCreateTerritoryModal, setShowCreateTerritoryModal] = useState(false);
+  const [lostReasons, setLostReasons] = useState<LostReason[]>([]);
+  const [showLostReasonModal, setShowLostReasonModal] = useState(false);
+  const [lostReasonForm, setLostReasonForm] = useState({
+    lost_reason: '',
+    lost_notes: ''
+  });
+
   // const [OwnersOptions, setOwnersOptions] = useState([]); // Before
   const [userOptions, setUserOptions] = useState<{ value: string; label: string; }[]>([]); // After
   // Form states
@@ -1304,6 +1316,14 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
   const handleStatusChange = async (newStatus: Deal['status']) => {
     try {
       setLoading(true);
+
+      if (newStatus === 'Lost') {
+        // Fetch lost reasons first
+        await fetchLostReasons();
+        setShowLostReasonModal(true);
+        return; // Don't update status yet, wait for popup confirmation
+      }
+
       const updatedDeal = { ...editedDeal, status: newStatus };
 
       const response = await fetch(
@@ -1327,11 +1347,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
       if (response.ok) {
         setEditedDeal(updatedDeal);
         onSave(updatedDeal);
-
-        // Show success toast message
         showToast('Status updated successfully!', { type: 'success' });
 
-        // Refresh the activity tab
         if (activeTab === 'activity') {
           await fetchAllActivities();
         }
@@ -1342,6 +1359,93 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
       console.error('Error updating status:', error);
       showToast('Failed to update status', { type: 'error' });
       setEditedDeal({ ...editedDeal });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchLostReasons = async () => {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/method/frappe.desk.search.search_link`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': AUTH_TOKEN,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            txt: "",
+            doctype: "CRM Lost Reason"
+          })
+        }
+      );
+
+      if (response.ok) {
+        const result = await response.json();
+        const reasons = result.message.map((item: any) => ({
+          value: item.value,
+          label: item.value
+        }));
+        setLostReasons(reasons);
+      } else {
+        throw new Error('Failed to fetch lost reasons');
+      }
+    } catch (error) {
+      console.error('Error fetching lost reasons:', error);
+      showToast('Failed to fetch lost reasons', { type: 'error' });
+    }
+  };
+
+  const saveLostDeal = async () => {
+    if (!lostReasonForm.lost_reason.trim()) {
+      showToast('Lost reason is required', { type: 'error' });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const session = getUserSession();
+      const response = await fetch(
+        `${API_BASE_URL}/method/frappe.client.set_value`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': AUTH_TOKEN,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            doctype: 'CRM Deal',
+            name: deal.name,
+            fieldname: {
+              status: 'Lost',
+              lost_reason: lostReasonForm.lost_reason,
+              lost_notes: lostReasonForm.lost_notes || '',
+              probability: 0 // Set probability to 0 for lost deals
+            }
+          })
+        }
+      );
+
+      if (response.ok) {
+        const updatedDeal = { ...editedDeal, status: 'Lost' };
+        setEditedDeal(updatedDeal);
+        onSave(updatedDeal);
+
+        setShowLostReasonModal(false);
+        setLostReasonForm({ lost_reason: '', lost_notes: '' });
+
+        showToast('Deal marked as lost successfully!', { type: 'success' });
+
+        if (activeTab === 'activity') {
+          await fetchAllActivities();
+        }
+      } else {
+        throw new Error('Failed to mark deal as lost');
+      }
+    } catch (error) {
+      console.error('Error marking deal as lost:', error);
+      showToast('Failed to mark deal as lost', { type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -1805,7 +1909,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         next_step: dealData.next_step || '',
         probability: dealData.probability?.toString() || '0',
         status: dealData.status || 'Qualification',
-        close_date: dealData.close_date || '',
+        closed_date: dealData.closed_date || '',
         // NEW FIELDS
         expected_deal_value: dealData.expected_deal_value?.toString() || '',
         expected_closure_date: dealData.expected_closure_date || '',
@@ -1892,7 +1996,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
           website: editedDeal.website,
           territory: editedDeal.territory,
           annual_revenue: editedDeal.annual_revenue,
-          close_date: editedDeal.close_date,
+          closed_date: editedDeal.closed_date,
           probability: editedDeal.probability,
           next_step: editedDeal.next_step,
           deal_owner: editedDeal.deal_owner,
@@ -2280,455 +2384,461 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
       {/* Content */}
       <div className="p-4 sm:p-6">
         {activeTab === 'overview' && (
-          <div>
-            <div className="grid grid-cols-1 gap-6">
-              <div className="space-y-6">
-                <div className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} max-sm:p-3 p-6`}>
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className={`text-lg font-semibold ${textColor}`}>Data</h3>
-                    <button
-                      onClick={handleSave}
-                      className={`px-4 py-2 ${buttonBgColor} text-white rounded-lg transition-colors flex items-center space-x-2`}
-                      disabled={loading}
+  <div>
+    <div className="grid grid-cols-1 gap-6">
+      <div className="space-y-6">
+        <div className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} max-sm:p-3 p-6`}>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className={`text-lg font-semibold ${textColor}`}>Data</h3>
+            <button
+              onClick={handleSave}
+              className={`px-4 py-2 ${buttonBgColor} text-white rounded-lg transition-colors flex items-center space-x-2`}
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <span>Saving...</span>
+                </>
+              ) : 'Save'}
+            </button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+            {/* Organization Field */}
+            <div>
+              <label className={`block text-sm font-medium ${textSecondaryColor}`}>
+                Organization
+              </label>
+              <Listbox
+                value={editedDeal.organization_name || ""}
+                onChange={(value) => {
+                  handleInputChange("organization_name", value);
+                  handleInputChange("organization", value);
+                }}
+              >
+                {({ open, close }) => (
+                  <div className="relative mt-1">
+                    <Listbox.Button
+                      className={`relative w-full cursor-default rounded-md border ${borderColor} py-0.5 pl-3 pr-10 text-left shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
                     >
-                      {loading ? (
-                        <>
-                          <span>Saving...</span>
-                        </>
-                      ) : 'Save'}
-                    </button>
+                      <span className="block truncate">
+                        {editedDeal.organization_name || "Select Organization"}
+                      </span>
+                      <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+                        <svg
+                          className="h-5 w-5 text-gray-400"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M10 3a1 1 0 01.707.293l3 3a1 1 0 01-1.414 1.414L10 5.414 7.707 7.707a1 1 0 01-1.414-1.414l3-3A1 1 0 0110 3zm-3.707 9.293a1 1 0 011.414 0L10 14.586l2.293-2.293a1 1 0 011.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      </span>
+                    </Listbox.Button>
+
+                    <Listbox.Options className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
+                      {/* Search Input */}
+                      <div className="sticky top-0 z-10 bg-white p-2 border-b">
+                        <div className="relative">
+                          <input
+                            type="text"
+                            placeholder="Search organizations..."
+                            className="w-full pl-8 pr-4 py-2 border rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+                            onChange={(e) => setOrganizationSearch(e.target.value)}
+                            value={organizationSearch}
+                          />
+                          <svg
+                            className="absolute left-2 top-2.5 h-4 w-4 text-gray-400"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                            />
+                          </svg>
+                          <button
+                            className="absolute right-2 top-2 text-gray-400 hover:text-gray-600"
+                            onClick={() => setOrganizationSearch("")}
+                          >
+                            ×
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Organization Options */}
+                      {organizationOptions
+                        .filter((org) =>
+                          org.label.toLowerCase().includes(organizationSearch.toLowerCase())
+                        )
+                        .map((org) => (
+                          <Listbox.Option
+                            key={org.value}
+                            value={org.value}
+                            className={({ active }) =>
+                              `relative cursor-default select-none border-b py-2 pl-3 pr-9 ${active ? "bg-blue-100 text-blue-900" : "text-gray-900"
+                              }`
+                            }
+                          >
+                            {({ selected }) => (
+                              <>
+                                <span
+                                  className={`block truncate ${selected ? "font-medium" : "font-normal"
+                                    }`}
+                                >
+                                  {org.label}
+                                </span>
+                                {selected && (
+                                  <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-blue-600">
+                                    <svg
+                                      className="h-5 w-5"
+                                      viewBox="0 0 20 20"
+                                      fill="currentColor"
+                                    >
+                                      <path
+                                        fillRule="evenodd"
+                                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                        clipRule="evenodd"
+                                      />
+                                    </svg>
+                                  </span>
+                                )}
+                              </>
+                            )}
+                          </Listbox.Option>
+                        ))}
+
+                      {/* Create New Button */}
+                      <div className="sticky top-[44px] z-10 bg-white border-b">
+                        <button
+                          type="button"
+                          className="flex items-center w-full px-3 py-2 text-sm text-blue-600 hover:bg-gray-100"
+                          onClick={() => {
+                            setShowCreateOrganizationModal(true);
+                            close();
+                          }}
+                        >
+                          <Plus className="w-4 h-4 mr-2" />
+                          Create New
+                        </button>
+                      </div>
+
+                      {/* Clear Button */}
+                      <div className="sticky top-[88px] z-10 bg-white border-b">
+                        <button
+                          type="button"
+                          className="flex items-center w-full px-3 py-2 text-sm text-red-600 hover:bg-gray-100"
+                          onClick={() => {
+                            handleInputChange("organization_name", "");
+                            handleInputChange("organization", "");
+                            setOrganizationSearch("");
+                            close();
+                          }}
+                        >
+                          <svg
+                            className="w-4 h-4 mr-2"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M6 18L18 6M6 6l12 12"
+                            />
+                          </svg>
+                          Clear
+                        </button>
+                      </div>
+                    </Listbox.Options>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                )}
+              </Listbox>
 
-                    <div>
-                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>
-                        Organization
-                      </label>
-                      <Listbox
-                        value={editedDeal.organization_name || ""}
-                        onChange={(value) => {
-                          handleInputChange("organization_name", value);
-                          handleInputChange("organization", value); // Set both fields
-                        }}
-                      >
-                        {({ open, close }) => (
-                          <div className="relative mt-1">
-                            <Listbox.Button
-                              className={`relative w-full cursor-default rounded-md border ${borderColor} py-0.5 pl-3 pr-10 text-left shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
-                            >
-                              <span className="block truncate">
-                                {editedDeal.organization_name || "Select Organization"}
-                              </span>
-                              <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
-                                <svg
-                                  className="h-5 w-5 text-gray-400"
-                                  viewBox="0 0 20 20"
-                                  fill="currentColor"
+              <CreateOrganizationPopup
+                isOpen={showCreateOrganizationModal}
+                onClose={() => setShowCreateOrganizationModal(false)}
+                theme="dark"
+                dealName={deal.name}
+                currentDealData={editedDeal}
+                onOrganizationCreated={(newOrganizationName, organizationData) => {
+                  handleInputChange("organization", newOrganizationName);
+                  handleInputChange("organization_name", newOrganizationName);
+                  fetchOrganizations();
+                  setShowCreateOrganizationModal(false);
+                  showToast('Organization created and deal updated successfully!', {
+                    type: 'success'
+                  });
+                }}
+              />
+            </div>
+
+            {/* NEW: Expected Deal Value (₹) - Mandatory */}
+            <div>
+              <label className={`block text-sm font-medium ${textSecondaryColor}`}>
+                Expected Deal Value (₹) <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="number"
+                value={editedDeal.expected_deal_value || ''}
+                onChange={(e) => {
+                  handleInputChange('expected_deal_value', e.target.value);
+                  if (errors.expected_deal_value) {
+                    setErrors(prev => ({ ...prev, expected_deal_value: '' }));
+                  }
+                }}
+                className={`p-[2px] pl-2 mt-1 border block w-full rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor} ${errors.expected_deal_value ? 'border-red-500' : ''}`}
+                placeholder="Enter expected deal value"
+              />
+              {errors.expected_deal_value && (
+                <p className="text-sm text-red-500 mt-1">{errors.expected_deal_value}</p>
+              )}
+            </div>
+
+            {/* NEW: Expected Closure Date - Mandatory */}
+            <div>
+              <label className={`block text-sm font-medium ${textSecondaryColor}`}>
+                Expected Closure Date <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="date"
+                value={editedDeal.expected_closure_date?.split(' ')[0] || ''}
+                onChange={(e) => {
+                  handleInputChange('expected_closure_date', e.target.value);
+                  if (errors.expected_closure_date) {
+                    setErrors(prev => ({ ...prev, expected_closure_date: '' }));
+                  }
+                }}
+                className={`p-[2px] pl-2 mt-1 border block w-full rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor} ${errors.expected_closure_date ? 'border-red-500' : ''}`}
+              />
+              {errors.expected_closure_date && (
+                <p className="text-sm text-red-500 mt-1">{errors.expected_closure_date}</p>
+              )}
+            </div>
+
+           <div>
+              <label className={`block text-sm font-medium ${textSecondaryColor}`}>
+                Close Date
+              </label>
+              <input
+                type="date"
+                value={editedDeal.closed_date?.split(' ')[0] || ''}
+                onChange={(e) => handleInputChange('closed_date', e.target.value)}
+                className={`p-[2px] pl-2 mt-1 border block w-full rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
+              />
+              <p className="text-xs text-gray-500 mt-1">Date when the deal was closed</p>
+            </div>
+
+            {/* UPDATED: Probability - Read-only */}
+            <div>
+              <label className={`block text-sm font-medium ${textSecondaryColor}`}>
+                Probability
+              </label>
+              <input
+                type="number"
+                value={editedDeal.probability || ''}
+                readOnly
+                className={`p-[2px] pl-2 mt-1 block w-full border rounded-md ${borderColor} shadow-sm sm:text-sm ${theme === 'dark' ? 'bg-gray-700 text-gray-400' : 'bg-gray-100 text-gray-500'} cursor-not-allowed`}
+              />
+              <p className="text-xs text-gray-500 mt-1">This field is automatically calculated</p>
+            </div>
+
+            <div>
+              <label className={`block text-sm font-medium ${textSecondaryColor}`}>Website</label>
+              <input
+                type="text"
+                value={editedDeal.website || ''}
+                onChange={(e) => {
+                  handleInputChange('website', e.target.value);
+                  if (errors.website) {
+                    setErrors(prev => ({ ...prev, website: '' }));
+                  }
+                }}
+                className={`p-[2px] pl-2 placeholder-gray-200 mt-1 border block w-full rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
+              />
+              {errors.website && (
+                <p className="text-sm text-red-500 mt-1">{errors.website}</p>
+              )}
+            </div>
+
+            <div>
+              <label className={`block text-sm font-medium ${textSecondaryColor}`}>Territory</label>
+              <Listbox
+                value={editedDeal.territory || ""}
+                onChange={(value) => handleInputChange("territory", value)}
+              >
+                {({ open, close }) => (
+                  <div className="relative mt-1">
+                    <Listbox.Button
+                      className={`relative w-full cursor-default rounded-md border ${borderColor} py-0.5 pl-3 pr-10 text-left shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
+                    >
+                      <span className="block truncate">
+                        {editedDeal.territory || "Select Territory"}
+                      </span>
+                      <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+                        <svg
+                          className="h-5 w-5 text-gray-400"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M10 3a1 1 0 01.707.293l3 3a1 1 
+                        0 01-1.414 1.414L10 5.414 7.707 
+                        7.707a1 1 0 01-1.414-1.414l3-3A1 
+                        1 0 0110 3zm-3.707 9.293a1 1 
+                        0 011.414 0L10 14.586l2.293-2.293a1 
+                        1 0 011.414 1.414l-3 3a1 1 
+                        0 01-1.414 0l-3-3a1 1 
+                       0 010-1.414z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      </span>
+                    </Listbox.Button>
+
+                    <Listbox.Options className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
+                      {/* Search Input */}
+                      <div className="sticky top-0 z-10 bg-white p-2 border-b">
+                        <div className="relative">
+                          <input
+                            type="text"
+                            placeholder="Search territory..."
+                            className="w-full pl-8 pr-4 py-2 border rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+                            onChange={(e) => setTerritorySearch(e.target.value)}
+                            value={territorySearch}
+                          />
+                          <svg
+                            className="absolute left-2 top-2.5 h-4 w-4 text-gray-400"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M21 21l-6-6m2-5a7 7 
+                      0 11-14 0 7 7 0 0114 0z"
+                            ></path>
+                          </svg>
+                          <button
+                            className="absolute right-2 top-2 text-gray-400 hover:text-gray-600"
+                            onClick={() => setTerritorySearch("")}
+                          >
+                            ×
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Territory Options */}
+                      {TerritoryOptions
+                        .filter((t) =>
+                          t.label.toLowerCase().includes(territorySearch.toLowerCase())
+                        )
+                        .map((t) => (
+                          <Listbox.Option
+                            key={t.value}
+                            value={t.value}
+                            className={({ active }) =>
+                              `relative cursor-default select-none border-b py-2 pl-3 pr-9 ${active ? "bg-blue-100 text-blue-900" : "text-gray-900"
+                              }`
+                            }
+                          >
+                            {({ selected }) => (
+                              <>
+                                <span
+                                  className={`block truncate ${selected ? "font-medium" : "font-normal"
+                                    }`}
                                 >
-                                  <path
-                                    fillRule="evenodd"
-                                    d="M10 3a1 1 0 01.707.293l3 3a1 1 0 01-1.414 1.414L10 5.414 7.707 7.707a1 1 0 01-1.414-1.414l3-3A1 1 0 0110 3zm-3.707 9.293a1 1 0 011.414 0L10 14.586l2.293-2.293a1 1 0 011.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
-                                    clipRule="evenodd"
-                                  />
-                                </svg>
-                              </span>
-                            </Listbox.Button>
+                                  {t.label}
+                                </span>
+                                {selected && (
+                                  <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-blue-600">
+                                    ✓
+                                  </span>
+                                )}
+                              </>
+                            )}
+                          </Listbox.Option>
+                        ))}
 
-                            <Listbox.Options className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
-                              {/* Search Input */}
-                              <div className="sticky top-0 z-10 bg-white p-2 border-b">
-                                <div className="relative">
-                                  <input
-                                    type="text"
-                                    placeholder="Search organizations..."
-                                    className="w-full pl-8 pr-4 py-2 border rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
-                                    onChange={(e) => setOrganizationSearch(e.target.value)}
-                                    value={organizationSearch}
-                                  />
-                                  <svg
-                                    className="absolute left-2 top-2.5 h-4 w-4 text-gray-400"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth="2"
-                                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                                    />
-                                  </svg>
-                                  <button
-                                    className="absolute right-2 top-2 text-gray-400 hover:text-gray-600"
-                                    onClick={() => setOrganizationSearch("")}
-                                  >
-                                    ×
-                                  </button>
-                                </div>
-                              </div>
-
-                              {/* Organization Options */}
-                              {organizationOptions
-                                .filter((org) =>
-                                  org.label.toLowerCase().includes(organizationSearch.toLowerCase())
-                                )
-                                .map((org) => (
-                                  <Listbox.Option
-                                    key={org.value}
-                                    value={org.value}
-                                    className={({ active }) =>
-                                      `relative cursor-default select-none border-b py-2 pl-3 pr-9 ${active ? "bg-blue-100 text-blue-900" : "text-gray-900"
-                                      }`
-                                    }
-                                  >
-                                    {({ selected }) => (
-                                      <>
-                                        <span
-                                          className={`block truncate ${selected ? "font-medium" : "font-normal"
-                                            }`}
-                                        >
-                                          {org.label}
-                                        </span>
-                                        {selected && (
-                                          <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-blue-600">
-                                            <svg
-                                              className="h-5 w-5"
-                                              viewBox="0 0 20 20"
-                                              fill="currentColor"
-                                            >
-                                              <path
-                                                fillRule="evenodd"
-                                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                                clipRule="evenodd"
-                                              />
-                                            </svg>
-                                          </span>
-                                        )}
-                                      </>
-                                    )}
-                                  </Listbox.Option>
-                                ))}
-
-                              {/* Create New Button */}
-                              <div className="sticky top-[44px] z-10 bg-white border-b">
-                                <button
-                                  type="button"
-                                  className="flex items-center w-full px-3 py-2 text-sm text-blue-600 hover:bg-gray-100"
-                                  onClick={() => {
-                                    setShowCreateOrganizationModal(true);
-                                    close();
-                                  }}
-                                >
-                                  <Plus className="w-4 h-4 mr-2" />
-                                  Create New
-                                </button>
-                              </div>
-
-                              {/* Clear Button */}
-                              <div className="sticky top-[88px] z-10 bg-white border-b">
-                                <button
-                                  type="button"
-                                  className="flex items-center w-full px-3 py-2 text-sm text-red-600 hover:bg-gray-100"
-                                  onClick={() => {
-                                    handleInputChange("organization_name", "");
-                                    handleInputChange("organization", ""); // Clear both fields
-                                    setOrganizationSearch("");
-                                    close();
-                                  }}
-                                >
-                                  <svg
-                                    className="w-4 h-4 mr-2"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth="2"
-                                      d="M6 18L18 6M6 6l12 12"
-                                    />
-                                  </svg>
-                                  Clear
-                                </button>
-                              </div>
-                            </Listbox.Options>
-                          </div>
-                        )}
-                      </Listbox>
-
-                      <CreateOrganizationPopup
-                        isOpen={showCreateOrganizationModal}
-                        onClose={() => setShowCreateOrganizationModal(false)}
-                        theme="dark"
-                        dealName={deal.name}
-                        currentDealData={editedDeal}
-                        onOrganizationCreated={(newOrganizationName, organizationData) => {
-                          // Set both organization fields
-                          handleInputChange("organization", newOrganizationName);
-                          handleInputChange("organization_name", newOrganizationName);
-
-                          // Refresh the organization list and close modal
-                          fetchOrganizations();
-                          setShowCreateOrganizationModal(false);
-
-                          // Show success message - use the correct showToast
-                          showToast('Organization created and deal updated successfully!', {
-                            type: 'success'
-                          });
-                        }}
-                      />
-                    </div>
-
-                    {/* NEW: Expected Deal Value (₹) - Mandatory */}
-                    <div>
-                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>
-                        Expected Deal Value (₹) <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="number"
-                        value={editedDeal.expected_deal_value || ''}
-                        onChange={(e) => {
-                          handleInputChange('expected_deal_value', e.target.value);
-                          // Clear error when user starts typing
-                          if (errors.expected_deal_value) {
-                            setErrors(prev => ({ ...prev, expected_deal_value: '' }));
-                          }
-                        }}
-                        className={`p-[2px] pl-2 mt-1 border block w-full rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor} ${errors.expected_deal_value ? 'border-red-500' : ''}`}
-                        placeholder="Enter expected deal value"
-                      />
-                      {errors.expected_deal_value && (
-                        <p className="text-sm text-red-500 mt-1">{errors.expected_deal_value}</p>
-                      )}
-                    </div>
-
-                    {/* NEW: Expected Closure Date - Mandatory */}
-                    <div>
-                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>
-                        Expected Closure Date <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="date"
-                        value={editedDeal.expected_closure_date?.split(' ')[0] || ''}
-                        onChange={(e) => {
-                          handleInputChange('expected_closure_date', e.target.value);
-                          // Clear error when user starts typing
-                          if (errors.expected_closure_date) {
-                            setErrors(prev => ({ ...prev, expected_closure_date: '' }));
-                          }
-                        }}
-                        className={`p-[2px] pl-2 mt-1 border block w-full rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor} ${errors.expected_closure_date ? 'border-red-500' : ''}`}
-                      />
-                      {errors.expected_closure_date && (
-                        <p className="text-sm text-red-500 mt-1">{errors.expected_closure_date}</p>
-                      )}
-                    </div>
-
-                    {/* UPDATED: Probability - Read-only */}
-                    <div>
-                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>
-                        Probability
-                      </label>
-                      <input
-                        type="number"
-                        value={editedDeal.probability || ''}
-                        readOnly
-                        className={`p-[2px] pl-2 mt-1 block w-full border rounded-md ${borderColor} shadow-sm sm:text-sm ${theme === 'dark' ? 'bg-gray-700 text-gray-400' : 'bg-gray-100 text-gray-500'} cursor-not-allowed`}
-                      />
-                      <p className="text-xs text-gray-500 mt-1">This field is automatically calculated</p>
-                    </div>
-
-                    <div>
-                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>Website</label>
-                      <input
-                        type="text"
-                        value={editedDeal.website || ''}
-                        onChange={(e) => {
-                          handleInputChange('website', e.target.value);
-                          // Clear website error when user starts typing
-                          if (errors.website) {
-                            setErrors(prev => ({ ...prev, website: '' }));
-                          }
-                        }}
-                        className={`p-[2px] pl-2 placeholder-gray-200 mt-1 border block w-full rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
-                      />
-                      {errors.website && (
-                        <p className="text-sm text-red-500 mt-1">{errors.website}</p>
-                      )}
-                    </div>
-
-                    <div>
-                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>Territory</label>
-                      <Listbox
-                        value={editedDeal.territory || ""}
-                        onChange={(value) => handleInputChange("territory", value)}
-                      >
-                        {({ open, close }) => (
-                          <div className="relative mt-1">
-                            <Listbox.Button
-                              className={`relative w-full cursor-default rounded-md border ${borderColor} py-0.5 pl-3 pr-10 text-left shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
-                            >
-                              <span className="block truncate">
-                                {editedDeal.territory || "Select Territory"}
-                              </span>
-                              <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
-                                <svg
-                                  className="h-5 w-5 text-gray-400"
-                                  viewBox="0 0 20 20"
-                                  fill="currentColor"
-                                >
-                                  <path
-                                    fillRule="evenodd"
-                                    d="M10 3a1 1 0 01.707.293l3 3a1 1 
-                               0 01-1.414 1.414L10 5.414 7.707 
-                               7.707a1 1 0 01-1.414-1.414l3-3A1 
-                               1 0 0110 3zm-3.707 9.293a1 1 
-                               0 011.414 0L10 14.586l2.293-2.293a1 
-                               1 0 011.414 1.414l-3 3a1 1 
-                               0 01-1.414 0l-3-3a1 1 
-                              0 010-1.414z"
-                                    clipRule="evenodd"
-                                  />
-                                </svg>
-                              </span>
-                            </Listbox.Button>
-
-                            <Listbox.Options className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
-                              {/* Search Input */}
-                              <div className="sticky top-0 z-10 bg-white p-2 border-b">
-                                <div className="relative">
-                                  <input
-                                    type="text"
-                                    placeholder="Search territory..."
-                                    className="w-full pl-8 pr-4 py-2 border rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
-                                    onChange={(e) => setTerritorySearch(e.target.value)}
-                                    value={territorySearch}
-                                  />
-                                  <svg
-                                    className="absolute left-2 top-2.5 h-4 w-4 text-gray-400"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth="2"
-                                      d="M21 21l-6-6m2-5a7 7 
-                            0 11-14 0 7 7 0 0114 0z"
-                                    ></path>
-                                  </svg>
-                                  <button
-                                    className="absolute right-2 top-2 text-gray-400 hover:text-gray-600"
-                                    onClick={() => setTerritorySearch("")}
-                                  >
-                                    ×
-                                  </button>
-                                </div>
-                              </div>
-
-                              {/* Territory Options */}
-                              {TerritoryOptions
-                                .filter((t) =>
-                                  t.label.toLowerCase().includes(territorySearch.toLowerCase())
-                                )
-                                .map((t) => (
-                                  <Listbox.Option
-                                    key={t.value}
-                                    value={t.value}
-                                    className={({ active }) =>
-                                      `relative cursor-default select-none border-b py-2 pl-3 pr-9 ${active ? "bg-blue-100 text-blue-900" : "text-gray-900"
-                                      }`
-                                    }
-                                  >
-                                    {({ selected }) => (
-                                      <>
-                                        <span
-                                          className={`block truncate ${selected ? "font-medium" : "font-normal"
-                                            }`}
-                                        >
-                                          {t.label}
-                                        </span>
-                                        {selected && (
-                                          <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-blue-600">
-                                            ✓
-                                          </span>
-                                        )}
-                                      </>
-                                    )}
-                                  </Listbox.Option>
-                                ))}
-
-                              {/* Clear */}
-                              <div className="sticky top-[88px] z-10 bg-white border-b">
-                                <button
-                                  type="button"
-                                  className="flex items-center w-full px-3 py-2 text-sm text-red-600 hover:bg-gray-100"
-                                  onClick={() => {
-                                    handleInputChange("territory", "");
-                                    setTerritorySearch("");
-                                    close();
-                                  }}
-                                >
-                                  ✕ Clear
-                                </button>
-                              </div>
-                            </Listbox.Options>
-                          </div>
-                        )}
-                      </Listbox>
-                      <CreateTerritoryPopup
-                        isOpen={showCreateTerritoryModal}
-                        onClose={() => setShowCreateTerritoryModal(false)}
-                        theme="dark"
-                      />
-                    </div>
-
-                    <div>
-                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>Annual Revenue</label>
-                      <input
-                        type="text"
-                        value={editedDeal.annual_revenue || ''}
-                        onChange={(e) => handleInputChange('annual_revenue', e.target.value)}
-                        className={`p-[2px] pl-2 mt-1 block w-full border rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
-                      />
-                    </div>
-
-                    <div>
-                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>Next Step</label>
-                      <input
-                        type="text"
-                        value={editedDeal.next_step || ''}
-                        onChange={(e) => handleInputChange('next_step', e.target.value)}
-                        className={`p-[2px] pl-2 mt-1 block w-full border rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
-                      />
-                    </div>
-
-                    <div>
-                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>Deal Owner</label>
-                      <Select
-                        value={OwnersOptions.find(
-                          (option) => option.value === editedDeal.deal_owner
-                        )}
-                        onChange={(selectedOption) =>
-                          handleInputChange('deal_owner', selectedOption ? selectedOption.value : '')
-                        }
-                        options={OwnersOptions}
-                        isClearable
-                        isSearchable
-                        placeholder="Search or select Deal Owners..."
-                        className="mt-1 w-full"
-                        classNamePrefix="org-select"
-                        styles={darkSelectStyles}
-                      />
-                    </div>
+                      {/* Clear */}
+                      <div className="sticky top-[88px] z-10 bg-white border-b">
+                        <button
+                          type="button"
+                          className="flex items-center w-full px-3 py-2 text-sm text-red-600 hover:bg-gray-100"
+                          onClick={() => {
+                            handleInputChange("territory", "");
+                            setTerritorySearch("");
+                            close();
+                          }}
+                        >
+                          ✕ Clear
+                        </button>
+                      </div>
+                    </Listbox.Options>
                   </div>
-                </div>
-              </div>
+                )}
+              </Listbox>
+              <CreateTerritoryPopup
+                isOpen={showCreateTerritoryModal}
+                onClose={() => setShowCreateTerritoryModal(false)}
+                theme="dark"
+              />
+            </div>
+
+            <div>
+              <label className={`block text-sm font-medium ${textSecondaryColor}`}>Annual Revenue</label>
+              <input
+                type="text"
+                value={editedDeal.annual_revenue || ''}
+                onChange={(e) => handleInputChange('annual_revenue', e.target.value)}
+                className={`p-[2px] pl-2 mt-1 block w-full border rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
+              />
+            </div>
+
+            <div>
+              <label className={`block text-sm font-medium ${textSecondaryColor}`}>Next Step</label>
+              <input
+                type="text"
+                value={editedDeal.next_step || ''}
+                onChange={(e) => handleInputChange('next_step', e.target.value)}
+                className={`p-[2px] pl-2 mt-1 block w-full border rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
+              />
+            </div>
+
+            <div>
+              <label className={`block text-sm font-medium ${textSecondaryColor}`}>Deal Owner</label>
+              <Select
+                value={OwnersOptions.find(
+                  (option) => option.value === editedDeal.deal_owner
+                )}
+                onChange={(selectedOption) =>
+                  handleInputChange('deal_owner', selectedOption ? selectedOption.value : '')
+                }
+                options={OwnersOptions}
+                isClearable
+                isSearchable
+                placeholder="Search or select Deal Owners..."
+                className="mt-1 w-full"
+                classNamePrefix="org-select"
+                styles={darkSelectStyles}
+              />
             </div>
           </div>
-        )}
+        </div>
+      </div>
+    </div>
+  </div>
+)}
 
         {activeTab === 'notes' && (
           <div className="space-y-6">
@@ -4968,6 +5078,76 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
           theme={theme}
           fetchCallLogs={fetchCallLogs} // ADDED: Passes the function to refresh call logs
         />
+      )}
+
+      {/* Lost Reason Modal */}
+      {showLostReasonModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className={`w-full max-w-md ${cardBgColor} rounded-lg shadow-lg p-6 relative border ${borderColor}`}>
+            <div className="mb-6">
+              <h3 className={`text-lg font-semibold ${textColor} mb-2`}>
+                Lost reason
+              </h3>
+              <p className={`text-sm ${textSecondaryColor}`}>
+                Please provide a reason for marking this deal as lost
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              {/* Lost Reason Dropdown */}
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${textSecondaryColor}`}>
+                  Lost reason <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={lostReasonForm.lost_reason}
+                  onChange={(e) => setLostReasonForm({ ...lostReasonForm, lost_reason: e.target.value })}
+                  className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
+                >
+                  <option value="">Select lost reason</option>
+                  {lostReasons.map((reason) => (
+                    <option key={reason.value} value={reason.value}>
+                      {reason.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Lost Notes */}
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${textSecondaryColor}`}>
+                  Lost notes
+                </label>
+                <textarea
+                  value={lostReasonForm.lost_notes}
+                  onChange={(e) => setLostReasonForm({ ...lostReasonForm, lost_notes: e.target.value })}
+                  rows={4}
+                  className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
+                  placeholder="Add any additional notes..."
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-600">
+              <button
+                onClick={() => {
+                  setShowLostReasonModal(false);
+                  setLostReasonForm({ lost_reason: '', lost_notes: '' });
+                }}
+                className={`px-4 py-2 rounded-lg border ${borderColor} ${theme === 'dark' ? 'text-white hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-100'} transition-colors`}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveLostDeal}
+                disabled={loading}
+                className={`px-4 py-2 rounded-lg text-white transition-colors ${theme === 'dark' ? 'bg-purplebg hover:bg-purple-700' : 'bg-blue-600 hover:bg-blue-700'} disabled:opacity-50`}
+              >
+                {loading ? 'Saving...' : 'Save'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
 

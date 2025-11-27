@@ -316,6 +316,11 @@ export function CreateLeadModal({ isOpen, onClose, onSubmit }: CreateLeadModalPr
       newErrors.firstName = 'First Name is required';
     }
 
+    // ADDED: Organization field validation
+    if (!formData.organization.trim()) {
+      newErrors.organization = 'Organization is required';
+    }
+
     if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = 'Invalid email address';
     }
@@ -403,16 +408,12 @@ export function CreateLeadModal({ isOpen, onClose, onSubmit }: CreateLeadModalPr
       const result = await response.json();
       console.log(response);
 
-
-
-
       if (result.message) {
         setSuccess('Lead created successfully!');
         onSubmit({
           ...docPayload, // Your form data
           name: result.message.name // The generated ID from the server
         });
-
 
         setTimeout(() => {
           setFormData({
@@ -455,12 +456,6 @@ export function CreateLeadModal({ isOpen, onClose, onSubmit }: CreateLeadModalPr
     }
   };
 
-  // const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-  //   setFormData({
-  //     ...formData,
-  //     [e.target.name]: e.target.value
-  //   });
-  // };
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
 
@@ -566,7 +561,7 @@ export function CreateLeadModal({ isOpen, onClose, onSubmit }: CreateLeadModalPr
                   className={`w-full px-3 py-2  text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
                     ? 'bg-white-31 border-white text-white placeholder-gray-400'
                     : 'bg-white/80 border-gray-300 placeholder-gray-500'
-                    }`}
+                    } ${errors.firstName ? 'border-red-500' : ''}`}
                   disabled={isLoading}
                 />
                 {errors.firstName && (
@@ -607,7 +602,7 @@ export function CreateLeadModal({ isOpen, onClose, onSubmit }: CreateLeadModalPr
                   className={`w-full  text-sm px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
                     ? 'bg-white-31 border-white text-white placeholder-gray-400'
                     : 'bg-white/80 border-gray-300 placeholder-gray-500'
-                    }`}
+                    } ${errors.email ? 'border-red-500' : ''}`}
                   disabled={isLoading}
                 />
                 {errors.email && (
@@ -629,7 +624,7 @@ export function CreateLeadModal({ isOpen, onClose, onSubmit }: CreateLeadModalPr
                   className={`w-full  text-sm px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
                     ? 'bg-white-31 border-white text-white placeholder-gray-400'
                     : 'bg-white/80 border-gray-300 placeholder-gray-500'
-                    }`}
+                    } ${errors.mobile ? 'border-red-500' : ''}`}
                   disabled={isLoading}
                 />
                 {errors.mobile && (
@@ -669,7 +664,7 @@ export function CreateLeadModal({ isOpen, onClose, onSubmit }: CreateLeadModalPr
               <div>
                 <label className={`block text-md font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
                   }`}>
-                  Organization
+                  Organization <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -680,9 +675,12 @@ export function CreateLeadModal({ isOpen, onClose, onSubmit }: CreateLeadModalPr
                   className={`w-full  text-sm px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
                     ? 'bg-white-31 border-white text-white placeholder-gray-400'
                     : 'bg-white/80 border-gray-300 placeholder-gray-500'
-                    }`}
+                    } ${errors.organization ? 'border-red-500' : ''}`}
                   disabled={isLoading}
                 />
+                {errors.organization && (
+                  <p className="text-sm text-red-500 mt-1">{errors.organization}</p>
+                )}
               </div>
 
               <div>
@@ -699,7 +697,7 @@ export function CreateLeadModal({ isOpen, onClose, onSubmit }: CreateLeadModalPr
                   className={`w-full  text-sm px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
                     ? 'bg-white-31 border-white text-white placeholder-gray-400'
                     : 'bg-white/80 border-gray-300 placeholder-gray-500'
-                    }`}
+                    } ${errors.website ? 'border-red-500' : ''}`}
                   disabled={isLoading}
                 />
                 {errors.website && (
@@ -727,7 +725,6 @@ export function CreateLeadModal({ isOpen, onClose, onSubmit }: CreateLeadModalPr
                   <option value="11-50">11-50</option>
                   <option value="51-200">51-200</option>
                   <option value="201-500">201-500</option>
-                  {/* <option value="500+">500+</option> */}
                 </select>
               </div>
 
@@ -846,7 +843,7 @@ export function CreateLeadModal({ isOpen, onClose, onSubmit }: CreateLeadModalPr
                   <option value="">Select Lead Owner</option>
                   {users.map(user => (
                     <option key={user.name} value={user.name}>
-                      {user.full_name} {/* This displays the email address */}
+                      {user.full_name}
                     </option>
                   ))}
                 </select>

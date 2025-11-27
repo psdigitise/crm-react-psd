@@ -485,7 +485,7 @@ export function Header({
             }`}>{title}</h1>
             {subtitle && (
               <>
-                <span className={`${theme === 'dark' ? 'text-gray-500' : 'text-white'} hidden sm:inline`}>/</span>
+                <span className={`${theme === 'dark' ? 'text-gray-500' : 'text-black'} hidden sm:inline`}>/</span>
                 <span className={`${theme === 'dark' ? 'text-white' : 'text-gray-600'} hidden sm:inline`}>{subtitle}</span>
               </>
             )}
@@ -520,10 +520,10 @@ export function Header({
             placeholder="Search..."
             value={searchValue}
             onChange={(e) => onSearchChange(e.target.value)}
-            className={`pl-10 pr-4 py-2 border rounded-lg focus:ring-2 placeholder:text-black focus:ring-blue-500 focus:border-transparent w-full ${
+            className={`pl-10 pr-4 py-2 border rounded-lg focus:ring-2 placeholder:text-white  focus:border-transparent w-full ${
               theme === 'dark' 
-                ? 'bg-white-31 text-white border-transparent placeholder-white' 
-                : 'border-gray-300 placeholder-gray-500'
+                ? 'bg-white-31 text-white border-transparent placeholder:!text-white ' 
+                : 'border-gray-300  placeholder:!text-black'
             }`}
           />
         </div>

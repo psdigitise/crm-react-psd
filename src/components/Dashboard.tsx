@@ -15,6 +15,7 @@ import {
   Phone,
   Mail,
   Menu,
+  User,
 } from 'lucide-react';
 import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
@@ -66,13 +67,23 @@ interface MetricCardProps {
 function MetricCard({ title, value, change, icon, trend, color }: MetricCardProps) {
   const { theme } = useTheme();
 
+  // Define icon colors based on theme
+  const getIconColor = () => {
+    if (color === 'bg-black') {
+      return theme === 'dark' ? 'text-white' : 'text-white';
+    }
+    return theme === 'dark' ? 'text-white' : 'text-purple-600';
+  };
+
   return (
     <div className={`rounded-3xl shadow-sm border p-6 hover:shadow-md transition-shadow relative ${theme === 'dark'
       ? 'bg-[#6200ee] border-purple-500/30'
       : 'bg-white border-gray-100'
       }`}>
-      <div className={`absolute right-3 top-4 p-3 rounded-full ${color}`}>
-        {icon}
+      <div className={`absolute right-3 top-4 p-3 rounded-full ${color} ${theme === 'dark' ? 'bg-purple-600' : 'bg-purple-100'}`}>
+        <div className={getIconColor()}>
+          {icon}
+        </div>
       </div>
       <div className="space-y-1">
         <p className={`text-base font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>{title}</p>
@@ -94,7 +105,7 @@ function ChartCard({ title, description, children, action }: ChartCardProps) {
 
   return (
     <div
-      className={`rounded-xl shadow-sm border-white  p-6 ${theme === 'dark' ? 'bg-custom-gradient border ' : 'bg-white border-gray-100'
+      className={`rounded-xl shadow-sm h-[100%] border-white  p-6 ${theme === 'dark' ? 'bg-custom-gradient border ' : 'bg-white border-gray-100'
         }`}
     >
       <div className="mb-6">
@@ -169,8 +180,8 @@ function TaskTable({ title, data, compact = false }: TaskTableProps) {
           <h3 className={`text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{title}</h3>
         </div>
       </div>
-      <div className="overflow-y-auto overflow-x-auto h-[350px] table-scroll">
-        <table className="w-full table-fixed min-w-[700px]">
+      <div className="overflow-y-auto overflow-x-auto h-[430px] table-scroll">
+        <table className="w-full table-fixed min-w-[500px]">
           <thead className={`sticky top-0 z-10 ${theme === 'dark' ? 'bg-purplebg' : 'bg-gray-50'} sticky top-0 z-10`}>
             <tr className={`divide-x-2 divide-white ${theme === 'dark' ? 'divide-white' : 'divide-white'} py-3`}>
               <th className={`px-4 sm:px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>
@@ -186,9 +197,9 @@ function TaskTable({ title, data, compact = false }: TaskTableProps) {
                   </th>
                 </>
               )}
-              <th className={`px-4 sm:px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>
+              {/* <th className={`px-4 sm:px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>
                 Priority
-              </th>
+              </th> */}
             </tr>
           </thead>
           <tbody className={`divide-y ${theme === 'dark' ? 'divide-white' : 'divide-gray-200'}`}>
@@ -224,17 +235,17 @@ function TaskTable({ title, data, compact = false }: TaskTableProps) {
                     </td>
                   </>
                 )}
-                <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                {/* <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
                   <span className={`text-sm font-medium text-black ${priorityColors[item.priority as keyof typeof priorityColors]}`}>
                     {item.priority}
                   </span>
-                </td>
+                </td> */}
               </tr>
             ))}
             {data.length === 0 && (
               <tr>
                 <td
-                  colSpan={4}
+                  colSpan={3}
                   className={`px-8 py-4 text-sm text-center ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}
                 >
                   No Today Tasks Found
@@ -581,7 +592,7 @@ export function Dashboard({ onMenuToggle }: DashboardProps) {
       const userSession = getUserSession();
       const Company = userSession?.company;
       const response = await api.get('/api/v2/document/CRM Deal', {
-        fields: JSON.stringify(["organization", "status", "close_date"]),
+        fields: JSON.stringify(["organization", "status", "closed_date"]),
         filters: JSON.stringify({ company: Company }),
       });
 
@@ -591,8 +602,8 @@ export function Dashboard({ onMenuToggle }: DashboardProps) {
       const currentYear = now.getFullYear();
 
       const dealsThisMonth = data.filter((item: any) => {
-        if (!item.close_date) return false;
-        const closeDate = new Date(item.close_date);
+        if (!item.closed_date) return false;
+        const closeDate = new Date(item.closed_date);
         return closeDate.getMonth() === currentMonth &&
           closeDate.getFullYear() === currentYear;
       });
@@ -601,7 +612,7 @@ export function Dashboard({ onMenuToggle }: DashboardProps) {
         id: `${index}`,
         organization: item.organization || 'N/A',
         status: item.status || 'N/A',
-        close_date: item.close_date ? new Date(item.close_date).toLocaleDateString() : 'N/A',
+        closed_date: item.closed_date ? new Date(item.closed_date).toLocaleDateString() : 'N/A',
       }));
 
       setDealsTableData(formattedDeals);
@@ -681,6 +692,9 @@ export function Dashboard({ onMenuToggle }: DashboardProps) {
     { name: 'Proposal/Quotation', value: statusCounts['Proposal/Quotation'], color: '#613085' },
   ];
 
+  // Calculate if there's any data to show in the funnel
+  const hasFunnelData = conversionData.some(item => item.value > 0);
+
   return (
     <div className={`p-4 sm:p-6 space-y-6 min-h-screen ${theme === 'dark'
       ? 'bg-gradient-to-br from-dark-primary via-dark-secondary to-dark-tertiary'
@@ -719,32 +733,32 @@ export function Dashboard({ onMenuToggle }: DashboardProps) {
           value={contactCount}
           change={12.5}
           trend="up"
-          icon={<Users className="w-6 h-6 text-purplebg" />}
-          color="bg-black"
+          icon={<User className="w-6 h-6" />}
+          color={theme === 'dark' ? 'bg-purple-600' : 'bg-purple-100'}
         />
         <MetricCard
           title="Active Leads"
           value={leadCount}
           change={8.2}
           trend="up"
-          icon={<TrendingUp className="w-6 h-6 text-purplebg" />}
-          color="bg-black"
+          icon={<TrendingUp className="w-6 h-6" />}
+          color={theme === 'dark' ? 'bg-purple-600' : 'bg-purple-100'}
         />
         <MetricCard
           title="Open Deals"
           value={statusCounts.total}
           change={-3.1}
           trend="down"
-          icon={<Target className="w-6 h-6 text-purplebg" />}
-          color="bg-black"
+          icon={<Target className="w-6 h-6" />}
+          color={theme === 'dark' ? 'bg-purple-600' : 'bg-purple-100'}
         />
         <MetricCard
           title="Total Organizations"
           value={organizationCount}
           change={5.4}
           trend="up"
-          icon={<Users className="w-6 h-6 text-purplebg" />}
-          color="bg-black"
+          icon={<Users className="w-6 h-6" />}
+          color={theme === 'dark' ? 'bg-purple-600' : 'bg-purple-100'}
         />
       </div>
 
@@ -852,20 +866,35 @@ export function Dashboard({ onMenuToggle }: DashboardProps) {
         <ChartCard
           title="Forecasted revenue"
           description="Projected vs actual revenue based on deal probability"
-
         >
-          <div className=" rounded-lg p-4 forecast-chart">
+          <div className="rounded-lg p-4 forecast-chart">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Revenue ($)</span>
+                <span className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
+                  Revenue (₹)
+                </span>
                 <div className="flex items-center space-x-4">
                   <div className="flex items-center space-x-1">
-                    <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
-                    <span className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Forecasted</span>
+                    <div
+                      className="w-3 h-3 rounded-full"
+                      style={{
+                        backgroundColor: theme === 'dark' ? '#f59e0b' : '#f97316'
+                      }}
+                    ></div>
+                    <span className={`text-xs ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
+                      Forecasted
+                    </span>
                   </div>
                   <div className="flex items-center space-x-1">
-                    <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                    <span className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Actual</span>
+                    <div
+                      className="w-3 h-3 rounded-full"
+                      style={{
+                        backgroundColor: theme === 'dark' ? '#60a5fa' : '#3b82f6'
+                      }}
+                    ></div>
+                    <span className={`text-xs ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
+                      Actual
+                    </span>
                   </div>
                 </div>
               </div>
@@ -874,68 +903,124 @@ export function Dashboard({ onMenuToggle }: DashboardProps) {
                 <div className="flex items-center justify-center h-64">
                   <div className="text-center">
                     <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-2 text-purple-500" />
-                    <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Loading chart data...</p>
+                    <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                      Loading chart data...
+                    </p>
                   </div>
                 </div>
               ) : forecastedRevenueData.length === 0 ? (
                 <div className="flex items-center justify-center h-64">
                   <div className="text-center">
                     <AlertCircle className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-                    <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>No data available</p>
+                    <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                      No data available
+                    </p>
                   </div>
                 </div>
               ) : (
-                <ResponsiveContainer width="100%" height={250}>
+                <ResponsiveContainer width="100%" height={280}>
                   <ScatterChart
                     data={forecastedRevenueData}
-                    margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                    margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
                   >
                     <CartesianGrid
                       strokeDasharray="3 3"
-                      stroke={theme === 'dark' ? '#374151' : '#e5e7eb'}
+                      stroke={theme === 'dark' ? '#4B5563' : '#E5E7EB'}
+                      strokeOpacity={0.6}
                     />
                     <XAxis
                       dataKey="date"
-                      stroke={theme === 'dark' ? '#9ca3af' : '#6b7280'}
-                      fontSize={12}
-                      tickFormatter={(value) => {
-                        const item = forecastedRevenueData.find(d => d.date === value);
-                        return item && item.time ? `${value} ${item.time}` : value;
-                      }}
+                      stroke={theme === 'dark' ? '#D1D5DB' : '#4B5563'}
+                      fontSize={11}
+                      tickLine={false}
+                      axisLine={{ stroke: theme === 'dark' ? '#4B5563' : '#D1D5DB' }}
+                      tick={{ fill: theme === 'dark' ? '#D1D5DB' : '#4B5563' }}
                     />
                     <YAxis
-                      stroke={theme === 'dark' ? '#9ca3af' : '#6b7280'}
-                      fontSize={12}
+                      stroke={theme === 'dark' ? '#D1D5DB' : '#4B5563'}
+                      fontSize={11}
+                      tickLine={false}
+                      axisLine={{ stroke: theme === 'dark' ? '#4B5563' : '#D1D5DB' }}
+                      tick={{ fill: theme === 'dark' ? '#D1D5DB' : '#4B5563' }}
+                      tickFormatter={(value) => `₹${(value / 1000).toFixed(0)}k`}
                     />
                     <Tooltip
-                      contentStyle={{
-                        backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
-                        border: theme === 'dark' ? '1px solid #4b5563' : '1px solid #e5e7eb',
-                        borderRadius: '8px',
-                        color: theme === 'dark' ? '#ffffff' : '#374151'
-                      }}
-                      formatter={(value: any, name: any) => {
-                        const label = name === 'forecasted' ? 'Forecasted' : 'Actual';
-                        return [`₹${value.toLocaleString('en-IN')}`, label];
-                      }}
-                      labelFormatter={(label) => {
-                        const item = forecastedRevenueData.find(d => d.date === label);
-                        return item && item.time ? `Date: ${label} ${item.time}` : `Date: ${label}`;
+                      content={({ active, payload, label }) => {
+                        if (active && payload && payload.length) {
+                          const forecastedValue = payload.find(p => p.name === 'forecasted')?.value;
+                          const actualValue = payload.find(p => p.name === 'actual')?.value;
+
+                          return (
+                            <div className={`
+                      p-3 rounded-lg shadow-lg border backdrop-blur-sm
+                      ${theme === 'dark'
+                                ? 'bg-gray-800 border-gray-600 text-white'
+                                : 'bg-white border-gray-200 text-gray-900'
+                              }
+                    `}>
+                              <p className="font-semibold mb-2">{`Date: ${label}`}</p>
+                              {forecastedValue !== undefined && (
+                                <p className="text-sm flex items-center">
+                                  <span
+                                    className="w-2 h-2 rounded-full mr-2"
+                                    style={{ backgroundColor: theme === 'dark' ? '#f59e0b' : '#f97316' }}
+                                  ></span>
+                                  Forecasted: <span className="font-semibold ml-1">₹{forecastedValue?.toLocaleString('en-IN')}</span>
+                                </p>
+                              )}
+                              {actualValue !== undefined && (
+                                <p className="text-sm flex items-center mt-1">
+                                  <span
+                                    className="w-2 h-2 rounded-full mr-2"
+                                    style={{ backgroundColor: theme === 'dark' ? '#60a5fa' : '#3b82f6' }}
+                                  ></span>
+                                  Actual: <span className="font-semibold ml-1">₹{actualValue?.toLocaleString('en-IN')}</span>
+                                </p>
+                              )}
+                            </div>
+                          );
+                        }
+                        return null;
                       }}
                     />
                     <Scatter
                       name="forecasted"
                       dataKey="forecasted"
-                      fill="#f97316"
+                      fill={theme === 'dark' ? '#f59e0b' : '#f97316'}
+                      stroke={theme === 'dark' ? '#d97706' : '#ea580c'}
+                      strokeWidth={1}
                       shape="circle"
                       r={6}
                     />
                     <Scatter
                       name="actual"
                       dataKey="actual"
-                      fill="#3b82f6"
+                      fill={theme === 'dark' ? '#60a5fa' : '#3b82f6'}
+                      stroke={theme === 'dark' ? '#2563eb' : '#1d4ed8'}
+                      strokeWidth={1}
                       shape="circle"
                       r={6}
+                    />
+                    <Legend
+                      verticalAlign="bottom"
+                      height={36}
+                      content={({ payload }) => (
+                        <div className="flex justify-center space-x-4 mt-2">
+                          {payload?.map((entry, index) => (
+                            <div key={`legend-${index}`} className="flex items-center space-x-1">
+                              <div
+                                className="w-3 h-3 rounded-full"
+                                style={{ backgroundColor: entry.color }}
+                              ></div>
+                              <span className={`
+                        text-xs ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}
+                      `}>
+                                {entry.value}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     />
                   </ScatterChart>
                 </ResponsiveContainer>
@@ -952,46 +1037,89 @@ export function Dashboard({ onMenuToggle }: DashboardProps) {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Dealstable title="Deals Closing This Month" data={DealsTableData} />
-        <div className=''>
+
+        {/* Lead Conversion Funnel - Updated layout */}
+        <div className='h-[100%]'>
           <ChartCard title="Lead Conversion Funnel">
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={conversionData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={120}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {conversionData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: theme === 'dark' ? 'white' : 'white',
-                    border: theme === 'dark' ? '1px solid #6366F1' : '1px solid #e5e7eb',
-                    borderRadius: '8px',
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                    color: theme === 'dark' ? '#E5E7EB' : '#374151'
-                  }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="grid grid-cols-2 gap-4 mt-4">
-              {conversionData.map((item, index) => (
-                <div key={index} className="flex items-center space-x-2">
-                  <div
-                    className="w-3 h-3 rounded-full"
-                    style={{ backgroundColor: item.color }}
-                  />
-                  <span className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>{item.name}</span>
-                  <span className={`text-sm font-semibold  ${theme === 'dark' ? 'text-gray-300' : 'text-gray-800'}`}>{item.value}</span>
+            {!hasFunnelData ? (
+              <div className="flex items-center justify-center h-64">
+                <div className="text-center">
+                  <AlertCircle className={`w-8 h-8 mx-auto mb-2 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`} />
+                  <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>No conversion data available</p>
                 </div>
-              ))}
-            </div>
+              </div>
+            ) : (
+              <div className="flex flex-col lg:flex-row items-center lg:items-start">
+                {/* Pie Chart - Left aligned */}
+                <div className="w-full lg:w-1/2 flex justify-center lg:justify-start mb-4 lg:mb-0">
+                  <ResponsiveContainer width="110%" height={250} className="ml-10  mt-10 ">
+                    <PieChart>
+                      <Pie
+                        data={conversionData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={100}
+                        paddingAngle={4}
+                        dataKey="value"
+                      >
+                        {conversionData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        content={({ active, payload }) => {
+                          if (active && payload && payload.length) {
+                            const data = payload[0];
+                            const percentage = ((data.value / statusCounts.total) * 100).toFixed(1);
+
+                            return (
+                              <div className={`
+                                        p-3 rounded-lg shadow-lg border min-w-[140px]
+                                        ${theme === 'dark'
+                                  ? 'bg-gray-800 border-gray-600 text-white'
+                                  : 'bg-white border-gray-200 text-gray-900'
+                                } `}>
+                                <div className='d-flex flex justify-between'>
+                                  <p className="font-semibold text-sm content-center">{data.name}</p>
+                                  <p className="text-lg font-bold ">{data.value}</p>
+                                </div>
+                                <p className="text-sm opacity-75">{percentage}% of total</p>
+                              </div>
+                            );
+                          }
+                          return null;
+                        }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Legend - Right aligned */}
+                <div className="w-full lg:w-1/2 grid grid-cols-1 gap-3 pl-0 lg:pl-6">
+                  {conversionData.map((item, index) => (
+                    <div key={index} className="flex items-center justify-between p-2 rounded-lg bg-opacity-10"
+                      style={{
+                        backgroundColor: theme === 'dark' ? `${item.color}50` : `${item.color}10`,
+                        border: theme === 'dark' ? `1px solid ${item.color}30` : `1px solid ${item.color}20`
+                      }}>
+                      <div className="flex items-center space-x-3">
+                        <div
+                          className="w-4 h-4 rounded-full flex-shrink-0"
+                          style={{ backgroundColor: item.color }}
+                        />
+                        <span className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'}`}>
+                          {item.name}
+                        </span>
+                      </div>
+                      <span className={`text-sm font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                        {item.value}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </ChartCard>
         </div>
       </div>

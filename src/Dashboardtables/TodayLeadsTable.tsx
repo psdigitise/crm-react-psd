@@ -28,7 +28,7 @@ export function TodayLeadstable({ title, data }: TodayLeadsTableProps) {
                 </div>
             </div>
             <div className="overflow-y-auto overflow-x-auto table-scroll h-full">
-                <table className="w-full table-fixed min-w-[700px]">
+                <table className="w-full table-fixed min-w-[500px]">
                     <thead className={`${theme === 'dark' ? 'bg-purplebg' : 'bg-gray-50'} sticky top-0 z-10`}>
                         <tr className='divide-x divide-white'>
                             <th className={`px-4 py-3 text-gray-500 text-center text-xs font-semibold uppercase tracking-wider ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`}>
@@ -53,8 +53,8 @@ export function TodayLeadstable({ title, data }: TodayLeadsTableProps) {
                         {data.length === 0 && (
                             <tr>
                                 <td
-                                    colSpan={1}
-                                    className={`px-4 py-4 text-sm text-center ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`}
+                                    colSpan={2}
+                                    className={`px-4 py-4 text-sm text-center ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}
                                 >
                                     No Today Leads Found
                                 </td>
