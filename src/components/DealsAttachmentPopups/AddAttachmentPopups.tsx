@@ -106,7 +106,7 @@ const UploadAttachmentPopup: React.FC<Props> = ({
 
     setIsUploading(true);
     try {
-      const token = AUTH_TOKEN ;
+      const token = AUTH_TOKEN;
 
       // If link input is shown and valid, upload using from_link
       if (showLinkInput && isValidLink(linkUrl)) {
@@ -120,7 +120,7 @@ const UploadAttachmentPopup: React.FC<Props> = ({
         const response = await fetch("https://api.erpnext.ai/api/method/upload_file", {
           method: "POST",
           headers: {
-            Authorization: AUTH_TOKEN ,
+            Authorization: AUTH_TOKEN,
           },
           body: formData,
         });
@@ -158,7 +158,7 @@ const UploadAttachmentPopup: React.FC<Props> = ({
         const response = await fetch("https://api.erpnext.ai/api/method/upload_file", {
           method: "POST",
           headers: {
-            Authorization: AUTH_TOKEN ,
+            Authorization: AUTH_TOKEN,
           },
           body: formData,
         });
@@ -323,10 +323,10 @@ const UploadAttachmentPopup: React.FC<Props> = ({
                         <img
                           src={URL.createObjectURL(fileItem.file)}
                           alt={fileItem.file.name}
-                          className="w-14 h-14 object-cover rounded border border-gray-400"
+                          className="w-14 h-14 object-cover rounded border border-gray-400  flex-shrink-0"
                         />
                       ) : (
-                        <div className="w-14 h-14 flex items-center justify-center border border-gray-400 rounded">
+                        <div className="w-14 h-14 flex items-center justify-center border border-gray-400 rounded  flex-shrink-0">
                           <IoDocument
                             className={`w-6 h-6 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}
                           />
@@ -335,8 +335,11 @@ const UploadAttachmentPopup: React.FC<Props> = ({
                       <div className="space-y-1">
                         <div>
                           <p
-                            className={`text-sm font-medium truncate ${theme === 'dark' ? 'text-white' : 'text-gray-800'
-                              }`}
+                            className={`text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}
+                            style={{
+                              wordBreak: 'break-word',
+                              overflowWrap: 'break-word'
+                            }}
                           >
                             {fileItem.file.name}
                           </p>

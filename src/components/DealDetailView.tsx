@@ -393,8 +393,6 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
   const fetchNotes = useCallback(async () => {
     setNotesLoading(true);
     try {
-
-
       const response = await fetch(
         `${API_BASE_URL}/method/crm.api.activities.get_activities`,
         {
@@ -411,17 +409,28 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
 
       if (response.ok) {
         const result = await response.json();
-        // Notes are in the third array of the message array
+
+        // Update docinfo if available
+        if (result.docinfo && result.docinfo.user_info) {
+          setDocinfo(prev => ({
+            ...prev,
+            user_info: {
+              ...prev.user_info,
+              ...result.docinfo.user_info
+            }
+          }));
+        }
+
         const notesData = result.message[2] || [];
 
-        // Transform the notes data to match your Note interface
         const formattedNotes = notesData.map((note: any) => ({
           name: note.name,
           title: note.title,
           content: note.content,
           reference_doctype: 'CRM Deal',
           reference_docname: deal.name,
-          creation: note.modified, // Using modified since creation isn't in the response
+          creation: note.creation || note.modified || new Date().toISOString(),
+          modified: note.modified || note.creation || new Date().toISOString(),
           owner: note.owner
         }));
 
@@ -431,11 +440,11 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
       }
     } catch (error) {
       console.error("Error fetching notes:", error);
-      // showToast.error("Failed to fetch notes");
     } finally {
       setNotesLoading(false);
     }
   }, [deal.name]);
+
 
   const fetchCallLogs = useCallback(async () => {
     setCallsLoading(true);
@@ -713,11 +722,11 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
   };
 
   const addNote = async () => {
-
     setNotesLoading(true);
     try {
       const session = getUserSession();
       const sessionCompany = session?.company || '';
+
       const response = await apiAxios.post(
         '/api/method/frappe.client.insert',
         {
@@ -727,7 +736,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
             content: noteForm.content,
             company: sessionCompany,
             reference_doctype: "CRM Deal",
-            reference_docname: deal.name
+            reference_docname: deal.name,
+            creation: new Date().toISOString() // Explicitly set creation time
           }
         },
         {
@@ -739,14 +749,32 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
       );
 
       if (response.status === 200) {
+        // Instead of just fetching notes, update the state immediately
+        const newNote = {
+          name: response.data.message.name,
+          title: noteForm.title,
+          content: noteForm.content,
+          reference_doctype: "CRM Deal",
+          reference_docname: deal.name,
+          creation: new Date().toISOString(), // Use current timestamp
+          owner: session?.username || session?.full_name || 'Unknown',
+          modified: new Date().toISOString()
+        };
+
+        // Update notes state immediately
+        setNotes(prev => [newNote, ...prev]);
+
         setNoteForm({ title: '', content: '' });
         setShowNoteModal(false);
-        await fetchNotes();  // Refresh the notes list
+
+        // Also trigger a background refresh
+        fetchNotes();
       } else {
         throw new Error(response.data.message || 'Failed to add note');
       }
     } catch (error) {
       console.error('Error adding note:', error);
+      showToast('Failed to add note', { type: 'error' });
     } finally {
       setNotesLoading(false);
     }
@@ -1415,13 +1443,18 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
   const getFullname = (username: string): string => {
     if (!username) return 'Unknown';
 
-    // Check if we have user info in docinfo
-    const userInfo = docinfo.user_info[username];
-    if (userInfo && userInfo.fullname) {
-      return userInfo.fullname;
+    // First check the docinfo from the latest activity fetch
+    if (docinfo.user_info && docinfo.user_info[username]) {
+      return docinfo.user_info[username].fullname || username.split('@')[0] || username;
     }
 
-    // Fallback: return the username or a formatted version
+    // Fallback to session data if available
+    const session = getUserSession();
+    if (session && session.username === username) {
+      return session.full_name || username;
+    }
+
+    // Ultimate fallback
     return username.split('@')[0] || username;
   };
 
@@ -1765,8 +1798,25 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
   function getRelativeTime(dateString: string) {
     if (!dateString) return "Unknown date";
 
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return "Invalid date";
+    let date;
+
+    try {
+      // Handle different date formats
+      // API returns: "2025-12-01 15:53:54.001203"
+      // Replace space with 'T' to make it ISO-like
+      const isoDateString = dateString.includes(' ')
+        ? dateString.replace(' ', 'T')
+        : dateString;
+
+      date = new Date(isoDateString);
+    } catch {
+      return "Unknown date";
+    }
+
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      return "Unknown date";
+    }
 
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
@@ -1775,8 +1825,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
     const diffHr = Math.floor(diffMin / 60);
     const diffDay = Math.floor(diffHr / 24);
     const diffWeek = Math.floor(diffDay / 7);
-    const diffMonth = Math.floor(diffDay / 30); // approximate
-    const diffYear = Math.floor(diffDay / 365); // approximate
+    const diffMonth = Math.floor(diffDay / 30);
+    const diffYear = Math.floor(diffDay / 365);
 
     if (diffSec < 60) return `${diffSec} sec ago`;
     if (diffMin < 60) return `${diffMin} min ago`;
@@ -2737,77 +2787,77 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
             </div>
 
             <div className="grid grid-cols-1 mb-5 gap-6">
-  <div className="space-y-6">
-    <div className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} max-sm:p-3 p-6`}>
-      <div className="flex justify-between items-center mb-4">
-        <h3 className={`text-lg font-semibold ${textColor}`}>Person Details</h3>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-6">
+                <div className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} max-sm:p-3 p-6`}>
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className={`text-lg font-semibold ${textColor}`}>Person Details</h3>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-        {/* First Name */}
-        <div>
-          <label className={`block text-sm font-medium ${textSecondaryColor}`}>
-            First Name
-          </label>
-          <input
-            type="text"
-            readOnly
-            value={editedDeal.first_name || ''}
-            onChange={(e) => handleInputChange('first_name', e.target.value)}
-           className={`mt-1 block w-full border rounded-md shadow-sm sm:text-sm px-3 py-2 ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-gray-400 cursor-not-allowed' : 'bg-gray-100 border-gray-300 text-gray-500 cursor-not-allowed'}`}
-            placeholder=""
-          />
-        </div>
+                    {/* First Name */}
+                    <div>
+                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>
+                        First Name
+                      </label>
+                      <input
+                        type="text"
+                        readOnly
+                        value={editedDeal.first_name || ''}
+                        onChange={(e) => handleInputChange('first_name', e.target.value)}
+                        className={`mt-1 block w-full border rounded-md shadow-sm sm:text-sm px-3 py-2 ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-gray-400 cursor-not-allowed' : 'bg-gray-100 border-gray-300 text-gray-500 cursor-not-allowed'}`}
+                        placeholder=""
+                      />
+                    </div>
 
-        {/* Last Name */}
-        <div>
-          <label className={`block text-sm font-medium ${textSecondaryColor}`}>
-            Last Name
-          </label>
-          <input
-            type="text"
-            readOnly
-            value={editedDeal.last_name || ''}
-            onChange={(e) => handleInputChange('last_name', e.target.value)}
-           className={`mt-1 block w-full border rounded-md shadow-sm sm:text-sm px-3 py-2 ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-gray-400 cursor-not-allowed' : 'bg-gray-100 border-gray-300 text-gray-500 cursor-not-allowed'}`}
-            placeholder=""
-          />
-        </div>
+                    {/* Last Name */}
+                    <div>
+                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>
+                        Last Name
+                      </label>
+                      <input
+                        type="text"
+                        readOnly
+                        value={editedDeal.last_name || ''}
+                        onChange={(e) => handleInputChange('last_name', e.target.value)}
+                        className={`mt-1 block w-full border rounded-md shadow-sm sm:text-sm px-3 py-2 ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-gray-400 cursor-not-allowed' : 'bg-gray-100 border-gray-300 text-gray-500 cursor-not-allowed'}`}
+                        placeholder=""
+                      />
+                    </div>
 
-        {/* Email */}
-        <div>
-          <label className={`block text-sm font-medium ${textSecondaryColor}`}>
-            Email
-          </label>
-          <input
-            type="email"
-            readOnly
-            value={editedDeal.email || ''}
-            onChange={(e) => handleInputChange('email', e.target.value)}
-            className={`mt-1 block w-full border rounded-md shadow-sm sm:text-sm px-3 py-2 ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-gray-400 cursor-not-allowed' : 'bg-gray-100 border-gray-300 text-gray-500 cursor-not-allowed'}`}
-            placeholder=""
-          />
-        </div>
+                    {/* Email */}
+                    <div>
+                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>
+                        Email
+                      </label>
+                      <input
+                        type="email"
+                        readOnly
+                        value={editedDeal.email || ''}
+                        onChange={(e) => handleInputChange('email', e.target.value)}
+                        className={`mt-1 block w-full border rounded-md shadow-sm sm:text-sm px-3 py-2 ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-gray-400 cursor-not-allowed' : 'bg-gray-100 border-gray-300 text-gray-500 cursor-not-allowed'}`}
+                        placeholder=""
+                      />
+                    </div>
 
-        {/* Mobile Number */}
-        <div>
-          <label className={`block text-sm font-medium ${textSecondaryColor}`}>
-            Mobile Number
-          </label>
-          <input
-            type="tel"
-            readOnly
-            value={editedDeal.mobile_no || ''}
-            onChange={(e) => handleInputChange('mobile_no', e.target.value)}
-             className={`mt-1 block w-full border rounded-md shadow-sm sm:text-sm px-3 py-2 ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-gray-400 cursor-not-allowed' : 'bg-gray-100 border-gray-300 text-gray-500 cursor-not-allowed'}`}
-                      
-          />
-        </div>
+                    {/* Mobile Number */}
+                    <div>
+                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>
+                        Mobile Number
+                      </label>
+                      <input
+                        type="tel"
+                        readOnly
+                        value={editedDeal.mobile_no || ''}
+                        onChange={(e) => handleInputChange('mobile_no', e.target.value)}
+                        className={`mt-1 block w-full border rounded-md shadow-sm sm:text-sm px-3 py-2 ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-gray-400 cursor-not-allowed' : 'bg-gray-100 border-gray-300 text-gray-500 cursor-not-allowed'}`}
 
-      </div>
-    </div>
-  </div>
-</div>
+                      />
+                    </div>
+
+                  </div>
+                </div>
+              </div>
+            </div>
 
 
             <div className="grid grid-cols-1 gap-6">
@@ -2893,16 +2943,14 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
           <div className="space-y-6">
             {/* Add Note Form */}
             <div>
-              {/* <h3 className={`text-lg font-semibold ${textColor} mb-4`}>Add Note</h3> */}
               <div className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} max-sm:p-3 p-6`}>
                 <div className='flex justify-between items-center gap-5 mb-6'>
-
-                  <h3 className={`text-lg font-semibold ${textColor} mb-0`}>Notes</h3>
+                  <h3 className={`text-lg font-semibold ${textColor}`}>Notes</h3>
                   <button
                     onClick={() => {
                       setShowNoteModal(true);
-                      setIsEditMode(false); // Add this line
-                      setNoteForm({ title: '', content: '' }); // Also reset form if needed
+                      setIsEditMode(false);
+                      setNoteForm({ title: '', content: '' });
                     }}
                     className={`px-4 py-2 rounded-lg flex items-center space-x-2 text-white  ${theme === 'dark' ? 'bg-purple-600 hover:bg-purple-700' : 'bg-blue-600 hover:bg-blue-700'}`}
                   >
@@ -2910,26 +2958,34 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                     <span>New Note</span>
                   </button>
                 </div>
+
                 {notes.length === 0 ? (
                   <div className="text-center py-8">
                     <FileText className={`w-12 h-12 mx-auto mb-4 ${textSecondaryColor}`} />
                     <p className={textSecondaryColor}>No Notes</p>
-                    <span
+                    <button
                       onClick={() => {
                         setShowNoteModal(true);
-                        setIsEditMode(false); // Add this line
-                        setNoteForm({ title: '', content: '' }); // Also reset form if needed
+                        setIsEditMode(false);
+                        setNoteForm({ title: '', content: '' });
                       }}
-                      className="text-white cursor-pointer bg-gray-400 rounded-md inline-block text-center px-6 py-2"
-                    >Create Note </span>
+                      className={`mt-4 px-6 py-2 rounded-md cursor-pointer transition-colors ${theme === 'dark'
+                        ? 'bg-gray-600 text-white hover:bg-gray-700'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                    >
+                      Create Note
+                    </button>
                   </div>
                 ) : (
                   <div className="grid grid-cols-3 max-sm:grid-cols-1 gap-5">
-                    {/* Notes list */}
                     {notes.map((note) => (
+
                       <div
                         key={note.name}
-                        className={`border ${borderColor} rounded-lg p-4 relative`} // ✅ relative here
+                        className={`border ${borderColor} rounded-lg p-4 relative transition-colors ${theme === 'dark'
+                          ? 'bg-gray-800 hover:bg-gray-750'
+                          : 'bg-white hover:bg-gray-50'
+                          }`}
                         onClick={() => {
                           setNoteForm({
                             name: note.name || '',
@@ -2940,35 +2996,43 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                           setShowNoteModal(true);
                         }}
                         style={{ cursor: 'pointer' }}
-
                       >
                         {/* Title & Menu Button */}
                         <div className="flex items-center justify-between mb-2">
-                          <h4 className={`text-lg font-semibold ${textColor}`}>{note.title}</h4>
-                          <div className="relative"> {/* ✅ relative so dropdown anchors here */}
+                          <h4 className={`text-lg font-semibold ${textColor} truncate`}>{note.title}</h4>
+                          <div className="relative">
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setOpenMenuId(openMenuId === note.name ? null : note.name);
                               }}
-                              className="p-1 rounded transition-colors"
+                              className={`p-1 rounded transition-colors ${theme === 'dark'
+                                ? 'hover:bg-gray-700'
+                                : 'hover:bg-gray-200'
+                                }`}
                               style={{ lineHeight: 0 }}
                             >
-                              <BsThreeDots className="w-4 h-4 text-white" />
+                              <BsThreeDots className={`w-4 h-4 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`} />
                             </button>
 
                             {/* Dropdown */}
                             {openMenuId === note.name && (
-                              <div className="absolute right-0 mt-2 w-28 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+                              <div className={`absolute right-0 mt-2 w-28 rounded-lg shadow-lg z-10 border ${theme === 'dark'
+                                ? 'bg-gray-800 border-gray-700'
+                                : 'bg-white border-gray-200'
+                                }`}>
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     deleteNote(note.name);
                                     setOpenMenuId(null);
                                   }}
-                                  className="flex items-center gap-2 px-3 py-2 hover:bg-gray-300 hover:rounded-lg w-full text-left"
+                                  className={`flex items-center gap-2 px-3 py-2 w-full text-left transition-colors ${theme === 'dark'
+                                    ? 'text-red-400 hover:bg-gray-700 hover:rounded-lg'
+                                    : 'text-red-600 hover:bg-gray-100 hover:rounded-lg'
+                                    }`}
                                 >
-                                  <Trash2 className="w-4 h-4 text-red-500" />
+                                  <Trash2 className="w-4 h-4" />
                                   <span>Delete</span>
                                 </button>
                               </div>
@@ -2977,28 +3041,46 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                         </div>
 
                         {/* Content */}
-                        <p
-                          className={`text-base font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-600'
-                            } whitespace-pre-wrap`}
-                        >
-                          {note.content}
-                        </p>
+                        <div className="mb-12">
+                          <p className={`text-base font-normal ${textSecondaryColor} whitespace-pre-wrap line-clamp-3`}>
+                            {note.content}
+                          </p>
+                        </div>
 
                         {/* Footer */}
-                        <div className="flex justify-between items-center mt-20 text-sm gap-2">
+                        <div className="flex justify-between items-center mt-4 pt-4 border-t ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'} text-sm gap-2">
                           <div className="flex items-center gap-2">
-                            <span className="flex items-center justify-center w-6 h-6 rounded-full bg-gray-500 text-gray-300 font-bold text-xs">
+                            <div className={`flex items-center justify-center w-6 h-6 rounded-full ${theme === 'dark' ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-700'} font-bold text-xs`}>
                               {note.owner?.charAt(0).toUpperCase() || "-"}
-                            </span>
+                            </div>
                             <span className={textSecondaryColor}>{getFullname(note.owner)}</span>
                           </div>
                           <span className={`${textSecondaryColor} font-medium`}>
-                            {getRelativeTime(note.creation)}
+                            {(() => {
+                              // Use a more robust timestamp display
+                              const timestamp = note.creation || note.modified;
+                              if (!timestamp) return "Unknown Time";
+
+                              try {
+                                // Try to parse the timestamp
+                                const date = new Date(timestamp);
+                                if (!isNaN(date.getTime())) {
+                                  // Use your existing getRelativeTime function
+                                  return getRelativeTime(timestamp);
+                                }
+                              } catch (e) {
+                                console.error("Error parsing date:", e);
+                              }
+
+                              // Fallback: show raw timestamp or formatted string
+                              return typeof timestamp === 'string'
+                                ? timestamp.split(' ')[0] || "Unknown Time"
+                                : "Unknown Time";
+                            })()}
                           </span>
                         </div>
                       </div>
                     ))}
-
                   </div>
                 )}
               </div>
@@ -3014,17 +3096,24 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
 
                 {/* Modal */}
                 <div
-                  className={`relative transform overflow-hidden rounded-lg text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg border border-gray-400 ${theme === 'dark' ? 'bg-dark-secondary' : 'bg-white'}`}
+                  className={`relative transform overflow-hidden rounded-lg text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg ${theme === 'dark'
+                    ? 'bg-gray-900 border border-gray-700'
+                    : 'bg-white border border-gray-200'
+                    }`}
                 >
-                  <div className={`px-4 pt-5 pb-4 sm:p-6 sm:pb-4 ${theme === 'dark' ? 'bg-dark-secondary' : 'bg-white'}`}>
+                  <div className={`px-4 pt-5 pb-4 sm:p-6 sm:pb-4 ${theme === 'dark' ? 'bg-gray-900' : 'bg-white'
+                    }`}>
                     {/* Close */}
                     <div className="absolute top-0 right-0 pt-4 pr-4">
                       <button
                         type="button"
-                        className={`rounded-md ${theme === 'dark' ? 'text-white' : 'text-gray-400'} hover:text-gray-500 focus:outline-none`}
+                        className={`rounded-md ${theme === 'dark'
+                          ? 'text-gray-400 hover:text-white'
+                          : 'text-gray-400 hover:text-gray-500'
+                          } focus:outline-none`}
                         onClick={() => {
                           setShowNoteModal(false);
-                          setIsEditMode(false); // Add this line
+                          setIsEditMode(false);
                         }}
                       >
                         <IoCloseOutline size={24} />
@@ -3032,24 +3121,27 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                     </div>
 
                     {/* Header */}
-                    <h3 className={`text-xl font-bold mb-4 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                    <h3 className={`text-xl font-bold mb-4 ${textColor}`}>
                       {isEditMode ? 'Edit Note' : 'Create Note'}
                     </h3>
 
                     {/* Form */}
                     <div className="space-y-4">
                       <div>
-                        <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                          Title <span className='text-red-500'>*</span>
+                        <label className={`block text-sm font-medium mb-2 ${textSecondaryColor}`}>
+                          Title <span className="text-red-500">*</span>
                         </label>
                         <input
                           type="text"
                           value={noteForm.title}
                           onChange={(e) => setNoteForm({ ...noteForm, title: e.target.value })}
-                          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
-                            ? 'bg-gray-800 border-gray-600 text-white !placeholder-gray-400'
-                            : 'bg-white border-gray-300 text-gray-900 !placeholder-gray-500'
-                            } ${noteForm.title === '' && noteFormError ? 'border-red-500' : ''}`}
+                          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${theme === 'dark'
+                            ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-400'
+                            : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                            } ${noteForm.title === '' && noteFormError
+                              ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
+                              : ''
+                            }`}
                           placeholder="Call with John Doe"
                         />
                         {noteForm.title === '' && noteFormError && (
@@ -3057,14 +3149,16 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                         )}
                       </div>
                       <div>
-                        <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                        <label className={`block text-sm font-medium mb-2 ${textSecondaryColor}`}>
                           Content
                         </label>
                         <textarea
                           value={noteForm.content}
                           onChange={(e) => setNoteForm({ ...noteForm, content: e.target.value })}
-                          rows={8}  // Increased from 4 to 8
-                          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark' ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'
+                          rows={8}
+                          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${theme === 'dark'
+                            ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-400'
+                            : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
                             }`}
                           placeholder="Took a call with John Doe and discussed the new project"
                         />
@@ -3073,7 +3167,10 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                   </div>
 
                   {/* Footer */}
-                  <div className={`px-4 py-3 sm:px-6 ${theme === 'dark' ? 'bg-dark-tertiary' : 'bg-gray-50'}`}>
+                  <div className={`px-4 py-3 sm:px-6 ${theme === 'dark'
+                    ? 'bg-gray-800 border-t border-gray-700'
+                    : 'bg-gray-50 border-t border-gray-200'
+                    }`}>
                     <div className="w-full">
                       <button
                         onClick={async () => {
@@ -3095,7 +3192,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                           }
                         }}
                         disabled={notesLoading}
-                        className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 sm:text-sm ${theme === 'dark'
+                        className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 sm:text-sm transition-colors ${theme === 'dark'
                           ? 'bg-purple-600 text-white hover:bg-purple-700 focus:ring-purple-500'
                           : 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500'
                           } ${notesLoading ? 'opacity-50 cursor-not-allowed' : ''
@@ -3106,7 +3203,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                             {isEditMode ? 'Updating...' : 'Creating...'}
                           </span>
                         ) : (
-                          isEditMode ? 'Update' : 'Update'
+                          isEditMode ? 'Update Note' : 'Create Note'
                         )}
                       </button>
                     </div>
@@ -3685,12 +3782,9 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
 
         {activeTab === 'tasks' && (
           <div className="space-y-6">
-            {/* Add Task Form */}
-            {/* <div className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} p-6`}> */}
-            {/* <h3 className={`text-lg font-semibold ${textColor} mb-4`}>Add Task</h3> */}
             <div className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} max-sm:p-3 p-6`}>
               <div className='flex justify-between items-center gap-5 mb-6'>
-                <h3 className={`text-lg font-semibold ${textColor} mb-0`}> Tasks</h3>
+                <h3 className={`text-lg font-semibold ${textColor}`}>Tasks</h3>
                 <button
                   onClick={() => {
                     setTaskForm({
@@ -3700,21 +3794,22 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                       priority: 'Medium',
                       due_date: '',
                       assigned_to: ''
-                    }); // reset form
-                    setIsEditMode(false); // reset to create mode
-                    setCurrentTaskId(null); // clear task id
+                    });
+                    setIsEditMode(false);
+                    setCurrentTaskId(null);
                     setShowTaskModal(true);
                   }}
-                  className={`px-4 py-2 rounded-lg flex items-center space-x-2 text-white  ${theme === 'dark' ? 'bg-purple-600 hover:bg-purple-700' : 'bg-blue-600 hover:bg-blue-700'}`}
+                  className={`px-4 py-2 rounded-lg flex items-center space-x-2 text-white ${theme === 'dark' ? 'bg-purple-600 hover:bg-purple-700' : 'bg-blue-600 hover:bg-blue-700'}`}
                 >
                   <Plus className="w-4 h-4" />
                   <span>Create Task</span>
                 </button>
               </div>
+
               {tasks.length === 0 ? (
                 <div className="text-center py-8">
                   <SiTicktick className={`w-12 h-12 mx-auto mb-4 ${textSecondaryColor}`} />
-                  <p className={textSecondaryColor}>No tasks </p>
+                  <p className={textSecondaryColor}>No tasks</p>
                   <span
                     onClick={() => {
                       setTaskForm({
@@ -3729,66 +3824,69 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                       setCurrentTaskId(null);
                       setShowTaskModal(true);
                     }}
-                    className="text-white cursor-pointer bg-gray-400 rounded-md inline-block text-center px-6 py-2"
-                  >Create Task</span>
+                    className={`mt-4 px-6 py-2 rounded-md cursor-pointer ${theme === 'dark' ? 'bg-gray-600 text-white hover:bg-gray-700' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                  >
+                    Create Task
+                  </span>
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {tasks.map((note) => (
+                  {tasks.map((task) => (
                     <div
-                      key={note.name}
+                      key={task.name}
                       onClick={() => {
                         setTaskForm({
-                          title: note.title,
-                          description: note.description,
-                          status: note.status,
-                          priority: note.priority,
-                          due_date: note.due_date ? note.due_date.split(' ')[0] : '', // Extract just the date part
-                          assigned_to: note.assigned_to,
+                          title: task.title,
+                          description: task.description,
+                          status: task.status,
+                          priority: task.priority,
+                          due_date: task.due_date ? task.due_date.split(' ')[0] : '',
+                          assigned_to: task.assigned_to,
                         });
                         setIsEditMode(true);
-                        setCurrentTaskId(note.name); // Store the task name for editing
+                        setCurrentTaskId(task.name);
                         setShowTaskModal(true);
                       }}
-                      className={`border ${borderColor} rounded-lg p-4`}
+                      className={`border ${borderColor} rounded-lg p-4 cursor-pointer ${theme === 'dark' ? 'hover:bg-gray-800' : 'hover:bg-gray-50'}`}
                     >
                       <div className="flex justify-between items-start mb-2">
-                        <h4 className={`font-medium ${textColor}`}>{note.title}</h4>
+                        <h4 className={`font-medium ${textColor}`}>{task.title}</h4>
                       </div>
 
-                      {/* Row: Left (assigned, date, priority) | Right (status, menu) */}
                       <div className="mt-1 text-sm flex justify-between items-center flex-wrap gap-2">
                         {/* Left side */}
                         <div className="flex items-center gap-2 flex-wrap">
                           {/* Assigned to */}
-                          <div className="relative z-10 w-6 h-6 flex items-center justify-center rounded-full bg-gray-500 text-white text-xs font-semibold">
-                            {note.assigned_to?.charAt(0).toUpperCase() || "U"}
+                          <div className={`w-6 h-6 flex items-center justify-center rounded-full ${theme === 'dark' ? 'bg-gray-600 text-white' : 'bg-gray-200 text-gray-700'} text-xs font-semibold`}>
+                            {task.assigned_to?.charAt(0).toUpperCase() || "U"}
                           </div>
                           <span className={textSecondaryColor}>
-                            {getFullname(note.assigned_to) || 'Unassigned'}
+                            {getFullname(task.assigned_to) || 'Unassigned'}
                           </span>
 
                           {/* Due date */}
-                          {note.due_date && (
+                          {task.due_date && (
                             <span className={`flex items-center gap-0.5 ${textSecondaryColor}`}>
                               <LuCalendar className="w-3.5 h-3.5" />
-                              {note.due_date}
+                              {task.due_date}
                             </span>
                           )}
 
                           {/* Priority */}
                           <span className="flex items-center gap-1">
                             <span
-                              className={`w-2.5 h-2.5 rounded-full inline-block ${note.priority === 'High'
+                              className={`w-2.5 h-2.5 rounded-full ${task.priority === 'High'
                                 ? 'bg-red-500'
-                                : note.priority === 'Medium'
+                                : task.priority === 'Medium'
                                   ? 'bg-yellow-500'
-                                  : note.priority === 'Low'
+                                  : task.priority === 'Low'
                                     ? 'bg-gray-300'
                                     : 'bg-gray-400'
                                 }`}
                             ></span>
-                            <span className="text-xs text-white font-medium">{note.priority}</span>
+                            <span className={`text-xs font-medium ${textSecondaryColor}`}>
+                              {task.priority}
+                            </span>
                           </span>
                         </div>
 
@@ -3796,11 +3894,11 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                         <div className="flex items-center gap-2">
                           {/* Status */}
                           <span
-                            className={`px-1 text-xs font-semibold rounded ${note.status === 'Done'
+                            className={`px-1 text-xs font-semibold rounded ${task.status === 'Done'
                               ? theme === 'dark'
                                 ? 'bg-green-900 text-green-200'
                                 : 'bg-green-100 text-green-800'
-                              : note.status === 'Open'
+                              : task.status === 'Open'
                                 ? theme === 'dark'
                                   ? 'bg-blue-900 text-blue-200'
                                   : 'bg-blue-100 text-blue-800'
@@ -3809,7 +3907,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                                   : 'bg-gray-200 text-gray-800'
                               }`}
                           >
-                            {note.status}
+                            {task.status}
                           </span>
 
                           {/* Three dots menu */}
@@ -3817,43 +3915,42 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setOpenMenuId(openMenuId === note.name ? null : note.name);
+                                setOpenMenuId(openMenuId === task.name ? null : task.name);
                               }}
-                              className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full"
+                              className={`p-1 rounded-full ${theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-200'}`}
                             >
-                              <BsThreeDots className="w-4 h-4 text-white" />
+                              <BsThreeDots className={`w-4 h-4 ${textColor}`} />
                             </button>
 
-                            {/* Dropdown menu */}
-                            {openMenuId === note.name && (
+                            {openMenuId === task.name && (
                               <div
-                                className="absolute right-0 mt-2 w-28 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-10"
+                                className={`absolute right-0 mt-2 w-28 border ${borderColor} rounded-lg shadow-lg z-10 ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}`}
                                 onClick={(e) => e.stopPropagation()}
                               >
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    setTaskToDelete(note.name); // Store the task to be deleted
-                                    setShowDeleteTaskPopup(true); // Show the popup
-                                    setOpenMenuId(null); // Close the dropdown
+                                    setTaskToDelete(task.name);
+                                    setShowDeleteTaskPopup(true);
+                                    setOpenMenuId(null);
                                   }}
                                   className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 hover:rounded-lg w-full text-left"
                                 >
                                   <Trash2 className="w-4 h-4 text-red-500" />
-                                  <span className='text-white'>Delete</span>
+                                  <span className={textColor}>Delete</span>
                                 </button>
                               </div>
                             )}
                           </div>
-
                         </div>
                       </div>
                     </div>
                   ))}
+
                   {showDeleteTaskPopup && taskToDelete && (
                     <DeleteTaskPopup
                       closePopup={() => setShowDeleteTaskPopup(false)}
-                      task={{ name: taskToDelete }} // Pass as object with name property
+                      task={{ name: taskToDelete }}
                       theme={theme}
                       onDeleteSuccess={fetchTasks}
                     />
@@ -3861,9 +3958,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                 </div>
               )}
             </div>
-            {/* 
-              
-            </div> */}
+
+            {/* Task Modal with improved theme styling */}
             {showTaskModal && (
               <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto">
                 {/* Overlay */}
@@ -3872,14 +3968,14 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                   onClick={() => setShowTaskModal(false)}
                 />
 
-                {/* Modal - Increased width to max-w-4xl */}
-                <div className={`relative transform overflow-hidden rounded-lg text-left shadow-xl transition-all sm:my-8 sm:w-11/12 sm:max-w-[600px] border ${theme === 'dark' ? 'border-gray-600 bg-dark-secondary' : 'border-gray-400 bg-white'}`}>
-                  <div className={`px-6 pt-6 pb-4 sm:p-8 sm:pb-6 ${theme === 'dark' ? 'bg-dark-secondary' : 'bg-white'}`}>
-                    {/* Close */}
+                {/* Modal */}
+                <div className={`relative transform overflow-hidden rounded-lg text-left shadow-xl transition-all sm:my-8 sm:w-11/12 sm:max-w-[600px] border ${theme === 'dark' ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-white'}`}>
+                  <div className="px-6 pt-6 pb-4 sm:p-8 sm:pb-6">
+                    {/* Close button */}
                     <div className="absolute top-0 right-0 pt-6 pr-6">
                       <button
                         type="button"
-                        className={`rounded-md ${theme === 'dark' ? 'text-white' : 'text-gray-400'} hover:text-gray-500 focus:outline-none`}
+                        className={`rounded-md ${theme === 'dark' ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-700'} focus:outline-none`}
                         onClick={() => {
                           setShowTaskModal(false);
                           setIsEditMode(false);
@@ -3896,32 +3992,32 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
 
                     {/* Form */}
                     <div className="space-y-6">
+                      {/* Title Field */}
                       <div>
                         <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                          Title <span className='text-red-500'>*</span>
+                          Title <span className="text-red-500">*</span>
                         </label>
                         <input
                           type="text"
                           value={taskForm.title}
-                          // onChange={(e) => setTaskForm({ ...taskForm, title: e.target.value })}
                           onChange={(e) => {
                             setTaskForm({ ...taskForm, title: e.target.value });
-                            // Clear from error when user starts typing
                             if (errors.title) {
                               setErrors(prev => ({ ...prev, title: '' }));
                             }
                           }}
-                          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
-                            ? 'bg-gray-800 border-gray-600 text-white'
-                            : 'bg-white border-gray-300 text-gray-900'
-                            }`}
-                          placeholder="Task title"
+                          className={`w-full px-3 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all ${theme === 'dark'
+                            ? 'bg-gray-800 border-gray-700 text-white !placeholder-gray-400'
+                            : 'bg-white border-gray-300 text-gray-900 !placeholder-gray-500'
+                            } ${errors.title ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : ''}`}
+                          placeholder="Enter task title"
                         />
                         {errors.title && (
                           <p className="text-sm text-red-500 mt-1">{errors.title}</p>
                         )}
                       </div>
 
+                      {/* Description Field */}
                       <div>
                         <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
                           Description
@@ -3930,15 +4026,15 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                           value={taskForm.description}
                           onChange={(e) => setTaskForm({ ...taskForm, description: e.target.value })}
                           rows={6}
-                          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
-                            ? 'bg-gray-800 border-gray-600 text-white'
-                            : 'bg-white border-gray-300 text-gray-900'
+                          className={`w-full px-3 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all ${theme === 'dark'
+                            ? 'bg-gray-800 border-gray-700 text-white !placeholder-gray-400'
+                            : 'bg-white border-gray-300 text-gray-900 !placeholder-gray-500'
                             }`}
-                          placeholder="Task description"
+                          placeholder="Enter task description"
                         />
                       </div>
 
-                      {/* All fields in one row */}
+                      {/* Row with all fields */}
                       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                         {/* Status */}
                         <div>
@@ -3948,29 +4044,17 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                           <select
                             value={taskForm.status}
                             onChange={(e) => setTaskForm({ ...taskForm, status: e.target.value })}
-                            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
-                              ? 'bg-gray-800 border-gray-600 text-white'
+                            className={`w-full px-3 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all  ${theme === 'dark'
+                              ? 'bg-gray-800 border-gray-700 text-white'
                               : 'bg-white border-gray-300 text-gray-900'
                               }`}
                           >
-                            <option
-                              className={theme === 'dark' ? 'bg-gray-800 text-white' : ''}
-                              value="Backlog">Backlog</option>
-                            <option
-                              className={theme === 'dark' ? 'bg-gray-800 text-white' : ''}
-                              value="Todo">Todo</option>
-                            <option
-                              className={theme === 'dark' ? 'bg-gray-800 text-white' : ''}
-                              value="In Progress">In Progress</option>
-                            <option
-                              className={theme === 'dark' ? 'bg-gray-800 text-white' : ''}
-                              value="Done">Done</option>
-                            <option
-                              className={theme === 'dark' ? 'bg-gray-800 text-white' : ''}
-                              value="Canceled">Canceled</option>
-                            <option
-                              className={theme === 'dark' ? 'bg-gray-800 text-white' : ''}
-                              value="Open">Open</option>
+                            <option value="Backlog">Backlog</option>
+                            <option value="Todo">Todo</option>
+                            <option value="In Progress">In Progress</option>
+                            <option value="Done">Done</option>
+                            <option value="Canceled">Canceled</option>
+                            <option value="Open">Open</option>
                           </select>
                         </div>
 
@@ -3982,64 +4066,56 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                           <select
                             value={taskForm.priority}
                             onChange={(e) => setTaskForm({ ...taskForm, priority: e.target.value })}
-                            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
-                              ? 'bg-gray-800 border-gray-600 text-white'
+                            className={`w-full px-3 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all  ${theme === 'dark'
+                              ? 'bg-gray-800 border-gray-700 text-white'
                               : 'bg-white border-gray-300 text-gray-900'
                               }`}
                           >
-                            <option
-                              className={theme === 'dark' ? 'bg-gray-800 text-white' : ''}
-                              value="Low">Low</option>
-                            <option
-                              className={theme === 'dark' ? 'bg-gray-800 text-white' : ''}
-                              value="Medium">Medium</option>
-                            <option
-                              className={theme === 'dark' ? 'bg-gray-800 text-white' : ''}
-                              value="High">High</option>
+                            <option value="Low">Low</option>
+                            <option value="Medium">Medium</option>
+                            <option value="High">High</option>
                           </select>
                         </div>
 
-                        {/* Due Date */}
+                        {/* Due Date - Fixed with proper dark mode support */}
                         <div>
                           <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                            Date
+                            Due Date
                           </label>
-
                           <input
                             type="date"
                             value={taskForm.due_date}
                             onChange={(e) => setTaskForm({ ...taskForm, due_date: e.target.value })}
-                            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
-                              ? 'bg-gray-800 border-gray-600 text-white'
-                              : 'bg-white border-gray-300 text-gray-900'
+                            className={`w-full px-3 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all ${theme === 'dark'
+                              ? 'bg-gray-800 border-gray-700 text-white [color-scheme:dark]'
+                              : 'bg-white border-gray-300 text-gray-900 [color-scheme:light]'
                               }`}
                           />
                         </div>
 
                         {/* Assigned To */}
-                        {/* Inside the 'showTaskModal' JSX block */}
-
                         <div>
-                          <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                          <label className={`block text-sm font-medium mb-2 ${textSecondaryColor}`}>
                             Assigned To
                           </label>
                           <select
                             value={taskForm.assigned_to}
                             onChange={(e) => setTaskForm({ ...taskForm, assigned_to: e.target.value })}
-                            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
+                            className={`w-full px-3 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
                               ? 'bg-gray-800 border-gray-600 text-white'
                               : 'bg-white border-gray-300 text-gray-900'
                               }`}
                           >
-                            <option value="">Select Assignee</option>
-
-                            {/* Dynamically create options from the userOptions state */}
+                            <option value="" className={theme === 'dark' ? 'bg-gray-800 text-white' : ''} >Select Assignee</option>
                             {userOptions.map((user) => (
-                              <option key={user.value} value={user.value}>
-                                {user.label} {/* This will show the user's full name */}
+                              <option
+                                key={user.value}
+                                value={user.value}
+                                className={theme === 'dark' ? 'bg-gray-800 text-white' : ''}
+                              >
+                                {user.label}
                               </option>
                             ))}
-
                           </select>
                         </div>
                       </div>
@@ -4047,49 +4123,43 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                   </div>
 
                   {/* Footer */}
-                  <div className={`px-6 py-4 sm:px-8 ${theme === 'dark' ? 'bg-dark-tertiary' : 'bg-gray-50'}`}>
-                    <div className="w-full">
-                      <button
-                        onClick={async () => {
-                          // if (!taskForm.title.trim()) {
-                          //   showToast('Title is required', { type: 'error' });
-                          //   return;
-                          // }
-
-                          let success = false;
-                          if (isEditMode) {
-                            success = await editTask(currentTaskId);
-                          } else {
-                            success = await addTask();
-                          }
-                          if (success) {
-                            setTaskForm({
-                              title: '',
-                              description: '',
-                              status: 'Open',
-                              priority: 'Medium',
-                              due_date: '',
-                              assigned_to: ''
-                            });
-                            setShowTaskModal(false);
-                            setIsEditMode(false);
-                          }
-                        }}
-                        disabled={tasksLoading}
-                        className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-3 text-base font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 sm:text-sm ${theme === 'dark'
-                          ? 'bg-purple-600 text-white hover:bg-purple-700 focus:ring-purple-500'
-                          : 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500'
-                          } ${tasksLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                      >
-                        {tasksLoading ? (
-                          <span className="flex items-center justify-center">
-                            {isEditMode ? 'Updating...' : 'Creating...'}
-                          </span>
-                        ) : (
-                          isEditMode ? 'Update' : 'Create'
-                        )}
-                      </button>
-                    </div>
+                  <div className={`px-6 py-4 sm:px-8 border-t ${theme === 'dark' ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-gray-50'}`}>
+                    <button
+                      onClick={async () => {
+                        let success = false;
+                        if (isEditMode) {
+                          success = await editTask(currentTaskId);
+                        } else {
+                          success = await addTask();
+                        }
+                        if (success) {
+                          setTaskForm({
+                            title: '',
+                            description: '',
+                            status: 'Open',
+                            priority: 'Medium',
+                            due_date: '',
+                            assigned_to: ''
+                          });
+                          setShowTaskModal(false);
+                          setIsEditMode(false);
+                        }
+                      }}
+                      disabled={tasksLoading}
+                      className={`w-full inline-flex justify-center items-center rounded-md border border-transparent shadow-sm px-4 py-3 text-base font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:text-sm transition-all ${theme === 'dark'
+                        ? 'bg-purple-600 text-white hover:bg-purple-700 focus:ring-purple-500'
+                        : 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500'
+                        } ${tasksLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                      {tasksLoading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          {isEditMode ? 'Updating...' : 'Creating...'}
+                        </>
+                      ) : (
+                        isEditMode ? 'Update Task' : 'Create Task'
+                      )}
+                    </button>
                   </div>
                 </div>
               </div>
@@ -5052,15 +5122,18 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                           )}
 
                           <button
-                            className={`p-1.5 bg-gray-700 rounded-full ${theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-200'}`}
                             onClick={(e) => {
-                              e.stopPropagation(); // Prevent triggering the parent div's click
+                              e.stopPropagation();
                               setAttachmentToDelete({
                                 name: attachment.name
                               });
                             }}
+                            className={`p-2 rounded-full flex items-center justify-center ${theme === 'dark'
+                              ? 'bg-red-900/30 hover:bg-red-800/40 text-red-400'
+                              : 'bg-red-100 hover:bg-red-200 text-red-600'}`}
+                            title="Delete attachment"
                           >
-                            <Trash2 className={`w-5 h-5 text-white ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`} />
+                            <Trash2 className="w-4 h-4" />
                           </button>
 
                         </div>
