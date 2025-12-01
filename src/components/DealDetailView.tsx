@@ -255,16 +255,11 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
   //popup for all add
   const [showNoteModal, setShowNoteModal] = useState(false);
-  const [generatedEmailContent, setGeneratedEmailContent] = useState<string>('');
-  const [generatingContent, setGeneratingContent] = useState<boolean>(false);
   const [showCallModal, setShowCallModal] = useState(false);
-  const [showCommentModal, setShowCommentModal] = useState(false);
-  const [CommentModalMode, setCommentModalMode] = useState("comment"); // "reply" or "comment"
   const [showTaskModal, setShowTaskModal] = useState(false);
   console.log("showTaskModal", showTaskModal)
   const [showEmailModal, setShowEmailModal] = useState(false);
-  // const [showEmailModal, setShowEmailModal] = useState(false);
-  const [emailModalMode, setEmailModalMode] = useState("reply"); // "reply" or "comment"
+  const [emailModalMode, setEmailModalMode] = useState("reply");
   // Replace your existing email state with these tab-specific states
   const [showEmailModalActivity, setShowEmailModalActivity] = useState(false);
   const [showEmailModalEmails, setShowEmailModalEmails] = useState(false);
@@ -284,7 +279,6 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
   const Username = userSession?.username || sessionfullname;
   const [organizationSearch, setOrganizationSearch] = useState('');
   const [showCreateOrganizationModal, setShowCreateOrganizationModal] = useState(false);
-  const [emailModalTab, setEmailModalTab] = useState<TabType | null>(null);
   const [territorySearch, setTerritorySearch] = useState('');
   const [showCreateTerritoryModal, setShowCreateTerritoryModal] = useState(false);
   const [lostReasons, setLostReasons] = useState<LostReason[]>([]);
@@ -567,69 +561,6 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
       setCallsLoading(false);
     }
   }, [deal.name]);
-
-  // const fetchCallLogs = async () => {
-  //   setCallsLoading(true);
-  //   try {
-  //     // 1. First, fetch the initial list of all call logs to get their names.
-  //     const listResponse = await fetch(`${API_BASE_URL}/method/frappe.client.get_list`, {
-  //       method: 'POST',
-  //       headers: {
-  //         'Authorization': AUTH_TOKEN,
-  //         'Content-Type': 'application/json'
-  //       },
-  //       body: JSON.stringify({
-  //         doctype: 'CRM Call Log',
-  //         filters: JSON.stringify([
-  //           ['reference_doctype', '=', 'CRM Deal'],
-  //           ['reference_docname', '=', deal.name]
-  //         ]),
-  //         fields: JSON.stringify(['name']) // We only need the 'name' for the next step
-  //       })
-  //     });
-
-  //     if (!listResponse.ok) {
-  //       throw new Error(`Failed to fetch initial call list: ${listResponse.statusText}`);
-  //     }
-
-  //     const listData = await listResponse.json();
-  //     const callSummaries = listData.message || [];
-
-  //     if (callSummaries.length === 0) {
-  //       setCallLogs([]); // If there are no calls, set state to empty and exit.
-  //       return;
-  //     }
-
-  //     // 2. Create an array of promises. Each promise is an API call to get the details for one call log.
-  //     const detailPromises = callSummaries.map((summary: { name: any; }) =>
-  //       fetch(`${API_BASE_URL}/method/crm.fcrm.doctype.crm_call_log.crm_call_log.get_call_log`, {
-  //         method: 'POST',
-  //         headers: {
-  //           'Authorization': AUTH_TOKEN,
-  //           'Content-Type': 'application/json'
-  //         },
-  //         body: JSON.stringify({ name: summary.name }) // Pass the unique name for each call
-  //       }).then(res => res.json()) // Parse the JSON response for each call
-  //     );
-
-  //     // 3. Use Promise.all to wait for ALL the detail-fetching API calls to complete.
-  //     const detailResponses = await Promise.all(detailPromises);
-
-  //     // 4. The result is an array of responses. We need to combine their 'message' properties.
-  //     // .flatMap() is a clean way to merge the arrays from each response.
-  //     const allCallLogs = detailResponses.flatMap(response => response.message || []);
-
-  //     // 5. Finally, update the state a single time with the complete, combined list of call logs.
-  //     setCallLogs(allCallLogs);
-
-  //   } catch (error) {
-  //     console.error('Error fetching call logs:', error);
-  //     showToast('Failed to fetch call logs', { type: 'error' });
-  //   } finally {
-  //     setCallsLoading(false);
-  //   }
-  // };
-
 
   const fetchComments = useCallback(async () => {
     setCommentsLoading(true);
@@ -2266,7 +2197,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
   }, []);
 
   return (
-    <div className={`min-h-screen ${bgColor}`}>
+    <div className={`min-h-screen relative ${bgColor}`}>
       {/* Header */}
       <div className={`border-b px-4 sm:px-6 py-4 ${theme === 'dark'
         ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
@@ -2296,8 +2227,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
             >
               <div className="relative inline-block w-48">
                 <Listbox.Button
-                  className={`pl-8 pr-4 py-2 rounded-lg transition-colors appearance-none w-full text-left ${theme === 'dark' ? 'bg-purplebg text-white' : 'bg-black text-white'
-                    }`}
+                  className={`pl-8 pr-4 py-2 rounded-lg transition-colors appearance-none text-white w-full text-left  ${theme === 'dark' ? 'bg-purple-600 hover:bg-purple-700' : 'bg-blue-600 hover:bg-blue-700'}`}
                 >
                   <span className="absolute left-3 top-1/2 transform -translate-y-1/2">
                     <FaCircleDot className={statusColors[editedDeal.status]} />
@@ -2384,461 +2314,479 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
       {/* Content */}
       <div className="p-4 sm:p-6">
         {activeTab === 'overview' && (
-  <div>
-    <div className="grid grid-cols-1 gap-6">
-      <div className="space-y-6">
-        <div className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} max-sm:p-3 p-6`}>
-          <div className="flex justify-between items-center mb-4">
-            <h3 className={`text-lg font-semibold ${textColor}`}>Data</h3>
-            <button
-              onClick={handleSave}
-              className={`px-4 py-2 ${buttonBgColor} text-white rounded-lg transition-colors flex items-center space-x-2`}
-              disabled={loading}
-            >
-              {loading ? (
-                <>
-                  <span>Saving...</span>
-                </>
-              ) : 'Save'}
-            </button>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-            {/* Organization Field */}
-            <div>
-              <label className={`block text-sm font-medium ${textSecondaryColor}`}>
-                Organization
-              </label>
-              <Listbox
-                value={editedDeal.organization_name || ""}
-                onChange={(value) => {
-                  handleInputChange("organization_name", value);
-                  handleInputChange("organization", value);
-                }}
-              >
-                {({ open, close }) => (
-                  <div className="relative mt-1">
-                    <Listbox.Button
-                      className={`relative w-full cursor-default rounded-md border ${borderColor} py-0.5 pl-3 pr-10 text-left shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
+          <div>
+            <div className="grid grid-cols-1 gap-6">
+              <div className="space-y-6">
+                <div className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} max-sm:p-3 p-6`}>
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className={`text-lg font-semibold ${textColor}`}>Data</h3>
+                    <button
+                      onClick={handleSave}
+                      className={`px-4 py-2 rounded-lg flex items-center space-x-2 text-white  ${theme === 'dark' ? 'bg-purple-600 hover:bg-purple-700' : 'bg-blue-600 hover:bg-blue-700'}`}
+                      disabled={loading}
                     >
-                      <span className="block truncate">
-                        {editedDeal.organization_name || "Select Organization"}
-                      </span>
-                      <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
-                        <svg
-                          className="h-5 w-5 text-gray-400"
-                          viewBox="0 0 20 20"
-                          fill="currentColor"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M10 3a1 1 0 01.707.293l3 3a1 1 0 01-1.414 1.414L10 5.414 7.707 7.707a1 1 0 01-1.414-1.414l3-3A1 1 0 0110 3zm-3.707 9.293a1 1 0 011.414 0L10 14.586l2.293-2.293a1 1 0 011.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                      </span>
-                    </Listbox.Button>
-
-                    <Listbox.Options className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
-                      {/* Search Input */}
-                      <div className="sticky top-0 z-10 bg-white p-2 border-b">
-                        <div className="relative">
-                          <input
-                            type="text"
-                            placeholder="Search organizations..."
-                            className="w-full pl-8 pr-4 py-2 border rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
-                            onChange={(e) => setOrganizationSearch(e.target.value)}
-                            value={organizationSearch}
-                          />
-                          <svg
-                            className="absolute left-2 top-2.5 h-4 w-4 text-gray-400"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="2"
-                              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                            />
-                          </svg>
-                          <button
-                            className="absolute right-2 top-2 text-gray-400 hover:text-gray-600"
-                            onClick={() => setOrganizationSearch("")}
-                          >
-                            ×
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Organization Options */}
-                      {organizationOptions
-                        .filter((org) =>
-                          org.label.toLowerCase().includes(organizationSearch.toLowerCase())
-                        )
-                        .map((org) => (
-                          <Listbox.Option
-                            key={org.value}
-                            value={org.value}
-                            className={({ active }) =>
-                              `relative cursor-default select-none border-b py-2 pl-3 pr-9 ${active ? "bg-blue-100 text-blue-900" : "text-gray-900"
-                              }`
-                            }
-                          >
-                            {({ selected }) => (
-                              <>
-                                <span
-                                  className={`block truncate ${selected ? "font-medium" : "font-normal"
-                                    }`}
-                                >
-                                  {org.label}
-                                </span>
-                                {selected && (
-                                  <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-blue-600">
-                                    <svg
-                                      className="h-5 w-5"
-                                      viewBox="0 0 20 20"
-                                      fill="currentColor"
-                                    >
-                                      <path
-                                        fillRule="evenodd"
-                                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                        clipRule="evenodd"
-                                      />
-                                    </svg>
-                                  </span>
-                                )}
-                              </>
-                            )}
-                          </Listbox.Option>
-                        ))}
-
-                      {/* Create New Button */}
-                      <div className="sticky top-[44px] z-10 bg-white border-b">
-                        <button
-                          type="button"
-                          className="flex items-center w-full px-3 py-2 text-sm text-blue-600 hover:bg-gray-100"
-                          onClick={() => {
-                            setShowCreateOrganizationModal(true);
-                            close();
-                          }}
-                        >
-                          <Plus className="w-4 h-4 mr-2" />
-                          Create New
-                        </button>
-                      </div>
-
-                      {/* Clear Button */}
-                      <div className="sticky top-[88px] z-10 bg-white border-b">
-                        <button
-                          type="button"
-                          className="flex items-center w-full px-3 py-2 text-sm text-red-600 hover:bg-gray-100"
-                          onClick={() => {
-                            handleInputChange("organization_name", "");
-                            handleInputChange("organization", "");
-                            setOrganizationSearch("");
-                            close();
-                          }}
-                        >
-                          <svg
-                            className="w-4 h-4 mr-2"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="2"
-                              d="M6 18L18 6M6 6l12 12"
-                            />
-                          </svg>
-                          Clear
-                        </button>
-                      </div>
-                    </Listbox.Options>
+                      {loading ? (
+                        <>
+                          <span>Saving...</span>
+                        </>
+                      ) : 'Save'}
+                    </button>
                   </div>
-                )}
-              </Listbox>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-              <CreateOrganizationPopup
-                isOpen={showCreateOrganizationModal}
-                onClose={() => setShowCreateOrganizationModal(false)}
-                theme="dark"
-                dealName={deal.name}
-                currentDealData={editedDeal}
-                onOrganizationCreated={(newOrganizationName, organizationData) => {
-                  handleInputChange("organization", newOrganizationName);
-                  handleInputChange("organization_name", newOrganizationName);
-                  fetchOrganizations();
-                  setShowCreateOrganizationModal(false);
-                  showToast('Organization created and deal updated successfully!', {
-                    type: 'success'
-                  });
-                }}
-              />
-            </div>
-
-            {/* NEW: Expected Deal Value (₹) - Mandatory */}
-            <div>
-              <label className={`block text-sm font-medium ${textSecondaryColor}`}>
-                Expected Deal Value (₹) <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="number"
-                value={editedDeal.expected_deal_value || ''}
-                onChange={(e) => {
-                  handleInputChange('expected_deal_value', e.target.value);
-                  if (errors.expected_deal_value) {
-                    setErrors(prev => ({ ...prev, expected_deal_value: '' }));
-                  }
-                }}
-                className={`p-[2px] pl-2 mt-1 border block w-full rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor} ${errors.expected_deal_value ? 'border-red-500' : ''}`}
-                placeholder="Enter expected deal value"
-              />
-              {errors.expected_deal_value && (
-                <p className="text-sm text-red-500 mt-1">{errors.expected_deal_value}</p>
-              )}
-            </div>
-
-            {/* NEW: Expected Closure Date - Mandatory */}
-            <div>
-              <label className={`block text-sm font-medium ${textSecondaryColor}`}>
-                Expected Closure Date <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="date"
-                value={editedDeal.expected_closure_date?.split(' ')[0] || ''}
-                onChange={(e) => {
-                  handleInputChange('expected_closure_date', e.target.value);
-                  if (errors.expected_closure_date) {
-                    setErrors(prev => ({ ...prev, expected_closure_date: '' }));
-                  }
-                }}
-                className={`p-[2px] pl-2 mt-1 border block w-full rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor} ${errors.expected_closure_date ? 'border-red-500' : ''}`}
-              />
-              {errors.expected_closure_date && (
-                <p className="text-sm text-red-500 mt-1">{errors.expected_closure_date}</p>
-              )}
-            </div>
-
-           <div>
-              <label className={`block text-sm font-medium ${textSecondaryColor}`}>
-                Close Date
-              </label>
-              <input
-                type="date"
-                value={editedDeal.closed_date?.split(' ')[0] || ''}
-                onChange={(e) => handleInputChange('closed_date', e.target.value)}
-                className={`p-[2px] pl-2 mt-1 border block w-full rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
-              />
-              <p className="text-xs text-gray-500 mt-1">Date when the deal was closed</p>
-            </div>
-
-            {/* UPDATED: Probability - Read-only */}
-            <div>
-              <label className={`block text-sm font-medium ${textSecondaryColor}`}>
-                Probability
-              </label>
-              <input
-                type="number"
-                value={editedDeal.probability || ''}
-                readOnly
-                className={`p-[2px] pl-2 mt-1 block w-full border rounded-md ${borderColor} shadow-sm sm:text-sm ${theme === 'dark' ? 'bg-gray-700 text-gray-400' : 'bg-gray-100 text-gray-500'} cursor-not-allowed`}
-              />
-              <p className="text-xs text-gray-500 mt-1">This field is automatically calculated</p>
-            </div>
-
-            <div>
-              <label className={`block text-sm font-medium ${textSecondaryColor}`}>Website</label>
-              <input
-                type="text"
-                value={editedDeal.website || ''}
-                onChange={(e) => {
-                  handleInputChange('website', e.target.value);
-                  if (errors.website) {
-                    setErrors(prev => ({ ...prev, website: '' }));
-                  }
-                }}
-                className={`p-[2px] pl-2 placeholder-gray-200 mt-1 border block w-full rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
-              />
-              {errors.website && (
-                <p className="text-sm text-red-500 mt-1">{errors.website}</p>
-              )}
-            </div>
-
-            <div>
-              <label className={`block text-sm font-medium ${textSecondaryColor}`}>Territory</label>
-              <Listbox
-                value={editedDeal.territory || ""}
-                onChange={(value) => handleInputChange("territory", value)}
-              >
-                {({ open, close }) => (
-                  <div className="relative mt-1">
-                    <Listbox.Button
-                      className={`relative w-full cursor-default rounded-md border ${borderColor} py-0.5 pl-3 pr-10 text-left shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
-                    >
-                      <span className="block truncate">
-                        {editedDeal.territory || "Select Territory"}
-                      </span>
-                      <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
-                        <svg
-                          className="h-5 w-5 text-gray-400"
-                          viewBox="0 0 20 20"
-                          fill="currentColor"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M10 3a1 1 0 01.707.293l3 3a1 1 
-                        0 01-1.414 1.414L10 5.414 7.707 
-                        7.707a1 1 0 01-1.414-1.414l3-3A1 
-                        1 0 0110 3zm-3.707 9.293a1 1 
-                        0 011.414 0L10 14.586l2.293-2.293a1 
-                        1 0 011.414 1.414l-3 3a1 1 
-                        0 01-1.414 0l-3-3a1 1 
-                       0 010-1.414z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                      </span>
-                    </Listbox.Button>
-
-                    <Listbox.Options className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
-                      {/* Search Input */}
-                      <div className="sticky top-0 z-10 bg-white p-2 border-b">
-                        <div className="relative">
-                          <input
-                            type="text"
-                            placeholder="Search territory..."
-                            className="w-full pl-8 pr-4 py-2 border rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
-                            onChange={(e) => setTerritorySearch(e.target.value)}
-                            value={territorySearch}
-                          />
-                          <svg
-                            className="absolute left-2 top-2.5 h-4 w-4 text-gray-400"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="2"
-                              d="M21 21l-6-6m2-5a7 7 
-                      0 11-14 0 7 7 0 0114 0z"
-                            ></path>
-                          </svg>
-                          <button
-                            className="absolute right-2 top-2 text-gray-400 hover:text-gray-600"
-                            onClick={() => setTerritorySearch("")}
-                          >
-                            ×
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Territory Options */}
-                      {TerritoryOptions
-                        .filter((t) =>
-                          t.label.toLowerCase().includes(territorySearch.toLowerCase())
-                        )
-                        .map((t) => (
-                          <Listbox.Option
-                            key={t.value}
-                            value={t.value}
-                            className={({ active }) =>
-                              `relative cursor-default select-none border-b py-2 pl-3 pr-9 ${active ? "bg-blue-100 text-blue-900" : "text-gray-900"
-                              }`
-                            }
-                          >
-                            {({ selected }) => (
-                              <>
-                                <span
-                                  className={`block truncate ${selected ? "font-medium" : "font-normal"
-                                    }`}
+                    {/* Organization Field */}
+                    <div>
+                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>
+                        Organization
+                      </label>
+                      <Listbox
+                        value={editedDeal.organization_name || ""}
+                        onChange={(value) => {
+                          handleInputChange("organization_name", value);
+                          handleInputChange("organization", value);
+                        }}
+                      >
+                        {({ open, close }) => (
+                          <div className="relative mt-1">
+                            <Listbox.Button
+                              className={`relative w-full cursor-default rounded-md border ${borderColor} py-2 pl-3 pr-10 text-left shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 sm:text-sm ${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}`}
+                            >
+                              <span className="block truncate">
+                                {editedDeal.organization_name || "Select Organization"}
+                              </span>
+                              <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+                                <svg
+                                  className="h-5 w-5 text-gray-400"
+                                  viewBox="0 0 20 20"
+                                  fill="currentColor"
                                 >
-                                  {t.label}
-                                </span>
-                                {selected && (
-                                  <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-blue-600">
-                                    ✓
-                                  </span>
-                                )}
-                              </>
-                            )}
-                          </Listbox.Option>
-                        ))}
+                                  <path
+                                    fillRule="evenodd"
+                                    d="M10 3a1 1 0 01.707.293l3 3a1 1 0 01-1.414 1.414L10 5.414 7.707 7.707a1 1 0 01-1.414-1.414l3-3A1 1 0 0110 3zm-3.707 9.293a1 1 0 011.414 0L10 14.586l2.293-2.293a1 1 0 011.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
+                                    clipRule="evenodd"
+                                  />
+                                </svg>
+                              </span>
+                            </Listbox.Button>
 
-                      {/* Clear */}
-                      <div className="sticky top-[88px] z-10 bg-white border-b">
-                        <button
-                          type="button"
-                          className="flex items-center w-full px-3 py-2 text-sm text-red-600 hover:bg-gray-100"
-                          onClick={() => {
-                            handleInputChange("territory", "");
-                            setTerritorySearch("");
-                            close();
-                          }}
-                        >
-                          ✕ Clear
-                        </button>
-                      </div>
-                    </Listbox.Options>
+                            <Listbox.Options className={`absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm ${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}`}>
+                              {/* Search Input */}
+                              <div className={`sticky top-0 z-10 p-2 border-b ${theme === 'dark' ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'}`}>
+                                <div className="relative">
+                                  <input
+                                    type="text"
+                                    placeholder="Search organizations..."
+                                    className={`w-full pl-8 pr-4 py-2 border rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'}`}
+                                    onChange={(e) => setOrganizationSearch(e.target.value)}
+                                    value={organizationSearch}
+                                  />
+                                  <svg
+                                    className="absolute left-2 top-2.5 h-4 w-4 text-gray-400"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth="2"
+                                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                                    />
+                                  </svg>
+                                  <button
+                                    className="absolute right-2 top-2 text-gray-400 hover:text-gray-600"
+                                    onClick={() => setOrganizationSearch("")}
+                                  >
+                                    ×
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* Organization Options */}
+                              {organizationOptions
+                                .filter((org) =>
+                                  org.label.toLowerCase().includes(organizationSearch.toLowerCase())
+                                )
+                                .map((org) => (
+                                  <Listbox.Option
+                                    key={org.value}
+                                    value={org.value}
+                                    className={({ active }) =>
+                                      `relative cursor-default select-none border-b py-2 pl-3 pr-9 ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'} ${active ? (theme === 'dark' ? 'bg-purple-600 text-white' : 'bg-blue-100 text-blue-900') : ''}`
+                                    }
+                                  >
+                                    {({ selected }) => (
+                                      <>
+                                        <span
+                                          className={`block truncate ${selected ? "font-medium" : "font-normal"
+                                            }`}
+                                        >
+                                          {org.label}
+                                        </span>
+                                        {selected && (
+                                          <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-blue-600">
+                                            <svg
+                                              className="h-5 w-5"
+                                              viewBox="0 0 20 20"
+                                              fill="currentColor"
+                                            >
+                                              <path
+                                                fillRule="evenodd"
+                                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                                clipRule="evenodd"
+                                              />
+                                            </svg>
+                                          </span>
+                                        )}
+                                      </>
+                                    )}
+                                  </Listbox.Option>
+                                ))}
+
+                              {/* Create New Button */}
+                              <div className={`sticky top-[44px] z-10 border-b ${theme === 'dark' ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'}`}>
+                                <button
+                                  type="button"
+                                  className={`flex items-center w-full px-3 py-2 text-sm hover:rounded ${theme === 'dark' ? 'text-blue-400 hover:bg-gray-700' : 'text-blue-600 hover:bg-gray-100'}`}
+                                  onClick={() => {
+                                    setShowCreateOrganizationModal(true);
+                                    close();
+                                  }}
+                                >
+                                  <Plus className="w-4 h-4 mr-2" />
+                                  Create New
+                                </button>
+                              </div>
+
+                              {/* Clear Button */}
+                              <div className={`sticky top-[88px] z-10 border-b ${theme === 'dark' ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'}`}>
+                                <button
+                                  type="button"
+                                  className={`flex items-center w-full px-3 py-2 text-sm hover:rounded ${theme === 'dark' ? 'text-red-400 hover:bg-gray-700' : 'text-red-600 hover:bg-gray-100'}`}
+                                  onClick={() => {
+                                    handleInputChange("organization_name", "");
+                                    handleInputChange("organization", "");
+                                    setOrganizationSearch("");
+                                    close();
+                                  }}
+                                >
+                                  <svg
+                                    className="w-4 h-4 mr-2"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth="2"
+                                      d="M6 18L18 6M6 6l12 12"
+                                    />
+                                  </svg>
+                                  Clear
+                                </button>
+                              </div>
+                            </Listbox.Options>
+                          </div>
+                        )}
+                      </Listbox>
+
+                      <CreateOrganizationPopup
+                        isOpen={showCreateOrganizationModal}
+                        onClose={() => setShowCreateOrganizationModal(false)}
+                        theme="dark"
+                        dealName={deal.name}
+                        currentDealData={editedDeal}
+                        onOrganizationCreated={(newOrganizationName, organizationData) => {
+                          handleInputChange("organization", newOrganizationName);
+                          handleInputChange("organization_name", newOrganizationName);
+                          fetchOrganizations();
+                          setShowCreateOrganizationModal(false);
+                          showToast('Organization created and deal updated successfully!', {
+                            type: 'success'
+                          });
+                        }}
+                      />
+                    </div>
+
+                    {/* Expected Deal Value (₹) - Mandatory */}
+                    <div>
+                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>
+                        Expected Deal Value (₹) <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="number"
+                        value={editedDeal.expected_deal_value || ''}
+                        onChange={(e) => {
+                          handleInputChange('expected_deal_value', e.target.value);
+                          if (errors.expected_deal_value) {
+                            setErrors(prev => ({ ...prev, expected_deal_value: '' }));
+                          }
+                        }}
+                        className={`mt-1 block w-full rounded-md border shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 ${theme === 'dark' ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'} ${errors.expected_deal_value ? 'border-red-500' : ''}`}
+                        placeholder="Enter expected deal value"
+                      />
+                      {errors.expected_deal_value && (
+                        <p className="text-sm text-red-500 mt-1">{errors.expected_deal_value}</p>
+                      )}
+                    </div>
+
+                    {/* Expected Closure Date - Mandatory */}
+                    <div>
+                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>
+                        Expected Closure Date <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="date"
+                        value={editedDeal.expected_closure_date?.split(' ')[0] || ''}
+                        onChange={(e) => {
+                          handleInputChange('expected_closure_date', e.target.value);
+                          if (errors.expected_closure_date) {
+                            setErrors(prev => ({ ...prev, expected_closure_date: '' }));
+                          }
+                        }}
+                        className={`mt-1 block w-full rounded-md border shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 ${theme === 'dark' ? 'bg-gray-800 border-gray-600 text-white [color-scheme:dark]' : 'bg-white border-gray-300 text-gray-900'}`}
+                      />
+                      {errors.expected_closure_date && (
+                        <p className="text-sm text-red-500 mt-1">{errors.expected_closure_date}</p>
+                      )}
+                    </div>
+
+                    {/* Close Date */}
+                    <div>
+                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>
+                        Close Date
+                      </label>
+                      <input
+                        type="date"
+                        value={editedDeal.closed_date?.split(' ')[0] || ''}
+                        onChange={(e) => handleInputChange('closed_date', e.target.value)}
+                        className={`mt-1 block w-full rounded-md border shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 ${theme === 'dark' ? 'bg-gray-800 border-gray-600 text-white [color-scheme:dark]' : 'bg-white border-gray-300 text-gray-900'}`}
+                      />
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Date when the deal was closed</p>
+                    </div>
+
+                    {/* Probability - Read-only */}
+                    <div>
+                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>
+                        Probability
+                      </label>
+                      <input
+                        type="number"
+                        value={editedDeal.probability || ''}
+                        readOnly
+                        className={`mt-1 block w-full border rounded-md shadow-sm sm:text-sm px-3 py-2 ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-gray-400 cursor-not-allowed' : 'bg-gray-100 border-gray-300 text-gray-500 cursor-not-allowed'}`}
+                      />
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">This field is automatically calculated</p>
+                    </div>
+
+                    {/* Website */}
+                    <div>
+                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>Website</label>
+                      <input
+                        type="text"
+                        value={editedDeal.website || ''}
+                        onChange={(e) => {
+                          handleInputChange('website', e.target.value);
+                          if (errors.website) {
+                            setErrors(prev => ({ ...prev, website: '' }));
+                          }
+                        }}
+                        className={`mt-1 block w-full rounded-md border shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 ${theme === 'dark' ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'}`}
+                        placeholder="example.com"
+                      />
+                      {errors.website && (
+                        <p className="text-sm text-red-500 mt-1">{errors.website}</p>
+                      )}
+                    </div>
+
+                    {/* Territory */}
+                    <div>
+                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>Territory</label>
+                      <Listbox
+                        value={editedDeal.territory || ""}
+                        onChange={(value) => handleInputChange("territory", value)}
+                      >
+                        {({ open, close }) => (
+                          <div className="relative mt-1">
+                            <Listbox.Button
+                              className={`relative w-full cursor-default rounded-md border ${borderColor} py-2 pl-3 pr-10 text-left shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 sm:text-sm ${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}`}
+                            >
+                              <span className="block truncate">
+                                {editedDeal.territory || "Select Territory"}
+                              </span>
+                              <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+                                <svg
+                                  className="h-5 w-5 text-gray-400"
+                                  viewBox="0 0 20 20"
+                                  fill="currentColor"
+                                >
+                                  <path
+                                    fillRule="evenodd"
+                                    d="M10 3a1 1 0 01.707.293l3 3a1 1 
+                              0 01-1.414 1.414L10 5.414 7.707 
+                              7.707a1 1 0 01-1.414-1.414l3-3A1 
+                              1 0 0110 3zm-3.707 9.293a1 1 
+                              0 011.414 0L10 14.586l2.293-2.293a1 
+                              1 0 011.414 1.414l-3 3a1 1 
+                              0 01-1.414 0l-3-3a1 1 
+                              0 010-1.414z"
+                                    clipRule="evenodd"
+                                  />
+                                </svg>
+                              </span>
+                            </Listbox.Button>
+
+                            <Listbox.Options className={`absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm ${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}`}>
+                              {/* Search Input */}
+                              <div className={`sticky top-0 z-10 p-2 border-b ${theme === 'dark' ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'}`}>
+                                <div className="relative">
+                                  <input
+                                    type="text"
+                                    placeholder="Search territory..."
+                                    className={`w-full pl-8 pr-4 py-2 border rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'}`}
+                                    onChange={(e) => setTerritorySearch(e.target.value)}
+                                    value={territorySearch}
+                                  />
+                                  <svg
+                                    className="absolute left-2 top-2.5 h-4 w-4 text-gray-400"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth="2"
+                                      d="M21 21l-6-6m2-5a7 7 
+                                0 11-14 0 7 7 0 0114 0z"
+                                    ></path>
+                                  </svg>
+                                  <button
+                                    className="absolute right-2 top-2 text-gray-400 hover:text-gray-600"
+                                    onClick={() => setTerritorySearch("")}
+                                  >
+                                    ×
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* Territory Options */}
+                              {TerritoryOptions
+                                .filter((t) =>
+                                  t.label.toLowerCase().includes(territorySearch.toLowerCase())
+                                )
+                                .map((t) => (
+                                  <Listbox.Option
+                                    key={t.value}
+                                    value={t.value}
+                                    className={({ active }) =>
+                                      `relative cursor-default select-none border-b py-2 pl-3 pr-9 ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'} ${active ? (theme === 'dark' ? 'bg-purple-600 text-white' : 'bg-blue-100 text-blue-900') : ''}`
+                                    }
+                                  >
+                                    {({ selected }) => (
+                                      <>
+                                        <span
+                                          className={`block truncate ${selected ? "font-medium" : "font-normal"
+                                            }`}
+                                        >
+                                          {t.label}
+                                        </span>
+                                        {selected && (
+                                          <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-blue-600">
+                                            ✓
+                                          </span>
+                                        )}
+                                      </>
+                                    )}
+                                  </Listbox.Option>
+                                ))}
+
+                              {/* Clear Button */}
+                              <div className={`sticky top-[88px] z-10 border-b ${theme === 'dark' ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'}`}>
+                                <button
+                                  type="button"
+                                  className={`flex items-center w-full px-3 py-2 text-sm hover:rounded ${theme === 'dark' ? 'text-red-400 hover:bg-gray-700' : 'text-red-600 hover:bg-gray-100'}`}
+                                  onClick={() => {
+                                    handleInputChange("territory", "");
+                                    setTerritorySearch("");
+                                    close();
+                                  }}
+                                >
+                                  ✕ Clear
+                                </button>
+                              </div>
+                            </Listbox.Options>
+                          </div>
+                        )}
+                      </Listbox>
+                      <CreateTerritoryPopup
+                        isOpen={showCreateTerritoryModal}
+                        onClose={() => setShowCreateTerritoryModal(false)}
+                        theme="dark"
+                      />
+                    </div>
+
+                    {/* Annual Revenue */}
+                    <div>
+                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>Annual Revenue</label>
+                      <input
+                        type="text"
+                        value={editedDeal.annual_revenue || ''}
+                        onChange={(e) => handleInputChange('annual_revenue', e.target.value)}
+                        className={`mt-1 block w-full rounded-md border shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 ${theme === 'dark' ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'}`}
+                        placeholder="Enter annual revenue"
+                      />
+                    </div>
+
+                    {/* Next Step */}
+                    <div>
+                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>Next Step</label>
+                      <input
+                        type="text"
+                        value={editedDeal.next_step || ''}
+                        onChange={(e) => handleInputChange('next_step', e.target.value)}
+                        className={`mt-1 block w-full rounded-md border shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 ${theme === 'dark' ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'}`}
+                        placeholder="Enter next step"
+                      />
+                    </div>
+
+                   
+                    {/* Deal Owner */}
+                    <div>
+                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>Deal Owner</label>
+                      <Select
+                        
+                        value={OwnersOptions.find(
+                          (option) => option.value === editedDeal.deal_owner
+                        )}
+                        onChange={(selectedOption) =>
+                          handleInputChange('deal_owner', selectedOption ? selectedOption.value : '')
+                        }
+                        options={OwnersOptions}
+                        isClearable
+                        isSearchable
+                        placeholder="Search or select Deal Owner..."
+                        className="mt-1 w-full"
+                        classNamePrefix="owner-select"
+                        styles={theme === 'dark' ? darkSelectStyles : undefined}
+                       
+                        formatOptionLabel={({ label, }) => (
+                          <div className="flex flex-col">
+                            <span className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>
+                              {label || value.split('@')[0]} 
+                            </span>
+
+                          </div>
+                        )}
+                      />
+                    </div>
                   </div>
-                )}
-              </Listbox>
-              <CreateTerritoryPopup
-                isOpen={showCreateTerritoryModal}
-                onClose={() => setShowCreateTerritoryModal(false)}
-                theme="dark"
-              />
-            </div>
-
-            <div>
-              <label className={`block text-sm font-medium ${textSecondaryColor}`}>Annual Revenue</label>
-              <input
-                type="text"
-                value={editedDeal.annual_revenue || ''}
-                onChange={(e) => handleInputChange('annual_revenue', e.target.value)}
-                className={`p-[2px] pl-2 mt-1 block w-full border rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
-              />
-            </div>
-
-            <div>
-              <label className={`block text-sm font-medium ${textSecondaryColor}`}>Next Step</label>
-              <input
-                type="text"
-                value={editedDeal.next_step || ''}
-                onChange={(e) => handleInputChange('next_step', e.target.value)}
-                className={`p-[2px] pl-2 mt-1 block w-full border rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
-              />
-            </div>
-
-            <div>
-              <label className={`block text-sm font-medium ${textSecondaryColor}`}>Deal Owner</label>
-              <Select
-                value={OwnersOptions.find(
-                  (option) => option.value === editedDeal.deal_owner
-                )}
-                onChange={(selectedOption) =>
-                  handleInputChange('deal_owner', selectedOption ? selectedOption.value : '')
-                }
-                options={OwnersOptions}
-                isClearable
-                isSearchable
-                placeholder="Search or select Deal Owners..."
-                className="mt-1 w-full"
-                classNamePrefix="org-select"
-                styles={darkSelectStyles}
-              />
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
-    </div>
-  </div>
-)}
+        )}
 
         {activeTab === 'notes' && (
           <div className="space-y-6">
@@ -2855,7 +2803,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                       setIsEditMode(false); // Add this line
                       setNoteForm({ title: '', content: '' }); // Also reset form if needed
                     }}
-                    className={`${buttonBgColor} text-white px-4 py-2 rounded-lg flex items-center space-x-2`}
+                    className={`px-4 py-2 rounded-lg flex items-center space-x-2 text-white  ${theme === 'dark' ? 'bg-purple-600 hover:bg-purple-700' : 'bg-blue-600 hover:bg-blue-700'}`}
                   >
                     <Plus className="w-4 h-4" />
                     <span>New Note</span>
@@ -2997,9 +2945,10 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                           type="text"
                           value={noteForm.title}
                           onChange={(e) => setNoteForm({ ...noteForm, title: e.target.value })}
-                          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark' ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'
-                            } ${noteForm.title === '' && noteFormError ? 'border-red-500' : ''
-                            }`}
+                          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
+                            ? 'bg-gray-800 border-gray-600 text-white !placeholder-gray-400'
+                            : 'bg-white border-gray-300 text-gray-900 !placeholder-gray-500'
+                            } ${noteForm.title === '' && noteFormError ? 'border-red-500' : ''}`}
                           placeholder="Call with John Doe"
                         />
                         {noteForm.title === '' && noteFormError && (
@@ -3091,8 +3040,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                     });
                     setShowCallModal(true);
                   }}
-                  className={`text-white px-4 py-2 rounded-lg flex items-center space-x-2 ${theme === 'dark' ? 'bg-purplebg hover:bg-purple-800' : 'bg-green-600 hover:bg-green-700'}`
-                  }
+                  className={`px-4 py-2 rounded-lg flex items-center space-x-2 text-white ${theme === 'dark' ? 'bg-purple-600 hover:bg-purple-700' : 'bg-blue-600 hover:bg-blue-700'}`}
                 >
                   <Plus className="w-4 h-4" />
                   <span>Create Call Log</span>
@@ -3152,7 +3100,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                           </div>
 
                           {/* Text */}
-                          <span className="ml-2 text-sm text-white">
+                          <span className={`ml-2 text-sm ${textColor}`}>
                             {getFullname(getCallerName(call))} has reached out
                           </span>
                         </div>
@@ -3181,9 +3129,9 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                             {formatDateRelative(call.creation)}
                           </p>
 
-                          <p className={`text-sm ${textSecondaryColor}`}>
+                          {/* <p className={`text-sm ${textSecondaryColor}`}>
                             {call.duration}
-                          </p>
+                          </p> */}
 
                           <span
                             className={`text-xs px-2 py-1 rounded ${call.status === 'Completed'
@@ -3318,7 +3266,10 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                         setErrors(prev => ({ ...prev, to: '' }));
                       }
                     }}
-                    className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
+                    className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
+                      ? 'bg-gray-800 border-gray-600 text-white !placeholder-gray-400'
+                      : 'bg-white border-gray-300 text-gray-900 !placeholder-gray-500'
+                      }`}
                     placeholder="To"
                   />
                   {errors.to && (
@@ -3338,7 +3289,10 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                         setErrors(prev => ({ ...prev, from: '' }));
                       }
                     }}
-                    className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
+                     className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
+                      ? 'bg-gray-800 border-gray-600 text-white !placeholder-gray-400'
+                      : 'bg-white border-gray-300 text-gray-900 !placeholder-gray-500'
+                      }`}
                     placeholder="From"
                   />
                   {errors.from && (
@@ -3365,7 +3319,10 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                     type="number"
                     value={callForm.duration}
                     onChange={(e) => setCallForm({ ...callForm, duration: e.target.value })}
-                    className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
+                    className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
+                      ? 'bg-gray-800 border-gray-600 text-white !placeholder-gray-400'
+                      : 'bg-white border-gray-300 text-gray-900 !placeholder-gray-500'
+                      }`}
                     placeholder="Call duration in seconds"
                   />
                 </div>
@@ -3427,7 +3384,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                     }
                   }}
                   disabled={callsLoading}
-                  className={`px-4 py-2 rounded-lg text-white flex items-center space-x-2 transition-colors ${theme === 'dark' ? 'bg-purplebg hover:bg-purple-700' : 'bg-green-600 hover:bg-green-700'} disabled:opacity-50`}
+                  className={`px-4 py-2 rounded-lg text-white flex items-center space-x-2 transition-colors ${theme === 'dark' ? 'bg-purplebg hover:bg-purple-700' : 'bg-blue-600 hover:bg-blue-700'} disabled:opacity-50`}
                 >
                   <span>{isEditMode ? 'Update' : 'Create'}</span>
                 </button>
@@ -3450,9 +3407,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                       composerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                     }, 100);
                   }}
-                  className={`px-4 py-2 rounded-lg flex items-center space-x-2 text-white ${theme === 'dark'
-                    ? 'bg-purplebg hover:bg-purple-700'
-                    : 'bg-blue-600 hover:bg-blue-700'}`}
+                  className={`px-4 py-2 rounded-lg flex items-center space-x-2 text-white  ${theme === 'dark' ? 'bg-purple-600 hover:bg-purple-700' : 'bg-blue-600 hover:bg-blue-700'}`}
                 >
                   <Plus className="w-4 h-4" />
                   <span>New Comment</span>
@@ -3553,7 +3508,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
               className={`
                 ${cardBgColor} border-t ${borderColor} overflow-hidden z-50
                 fixed bottom-0 left-0 w-full px-4 py-3
-                sm:absolute sm:w-[-webkit-fill-available] sm:pt-4 sm:left-auto sm:px-0 sm:py-0
+                sm:absolute sm:w-[-webkit-fill-available] sm:pt-4 
               `}
             >
               {!showEmailModalComments ? (
@@ -3649,7 +3604,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                     setCurrentTaskId(null); // clear task id
                     setShowTaskModal(true);
                   }}
-                  className={`px-4 py-2 rounded-lg flex items-center space-x-2 text-white ${theme === 'dark' ? 'bg-purplebg hover:bg-purple-700' : 'bg-blue-600 hover:bg-blue-700'}`}
+                  className={`px-4 py-2 rounded-lg flex items-center space-x-2 text-white  ${theme === 'dark' ? 'bg-purple-600 hover:bg-purple-700' : 'bg-blue-600 hover:bg-blue-700'}`}
                 >
                   <Plus className="w-4 h-4" />
                   <span>Create Task</span>
@@ -4055,7 +4010,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                       composerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                     }, 100);
                   }}
-                  className={`px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 ml-auto ${theme === 'dark' ? 'bg-purplebg text-white hover:bg-purple-700' : 'bg-purplebg text-white hover:bg-purple-700'}`}
+                  className={`px-4 py-2 rounded-lg flex items-center space-x-2 text-white  ${theme === 'dark' ? 'bg-purple-600 hover:bg-purple-700' : 'bg-blue-600 hover:bg-blue-700'}`}
                 >
                   <HiOutlinePlus className="w-4 h-4" />
                   <span>New Email</span>
@@ -4208,7 +4163,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
               className={`
                 ${cardBgColor} border-t ${borderColor} overflow-hidden z-50
                 fixed bottom-0 left-0 w-full px-4 py-3
-                sm:absolute sm:w-[-webkit-fill-available] sm:pt-4 sm:left-auto sm:px-0 sm:py-0
+                sm:absolute sm:w-[-webkit-fill-available] sm:pt-4
               `}
             >
               {!showEmailModalEmails ? (
@@ -4252,8 +4207,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         )}
 
         {activeTab === 'activity' && (
-          <div className="">
-            <div className={`relative rounded-lg shadow-sm border p-6 pb-24 ${theme === 'dark' ? `bg-gray-900 border-gray-700` : 'bg-white border-gray-200'}`}>
+          <div className="h-full">
+            <div className={`relative h-full rounded-lg shadow-sm border p-4 max-sm:p-3 pb-5 ${theme === 'dark' ? `bg-gray-900 border-gray-700` : 'bg-white border-gray-200'}`}>
               <h3 className={`text-lg font-semibold mb-6 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Activity</h3>
 
               {activityLoading ? (
@@ -4661,96 +4616,97 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                             </div>
                           </div>
                         );
-                      } else if (activity.type === 'task') {
-                        // Find the corresponding detailed task data from the `tasks` state
-                        const taskData = tasks.find(t => t.name === activity.id);
-                        if (!taskData) return null; // Fallback if data not found
-
-                        return (
-                          <div key={taskData.name} className="flex items-start w-full space-x-3">
-                            {/* Icon on the left */}
-                            <div className={`p-2 rounded-full mt-1 ${theme === 'dark' ? 'bg-orange-900' : 'bg-orange-100'}`}>
-                              <SiTicktick className="w-4 h-4 text-white" />
-                            </div>
-
-                            {/* Detailed Task Card */}
-                            <div
-                              onClick={() => {
-                                // Your existing logic to open the edit modal
-                                setTaskForm({
-                                  title: taskData.title,
-                                  description: taskData.description,
-                                  status: taskData.status,
-                                  priority: taskData.priority,
-                                  due_date: taskData.due_date ? taskData.due_date.split(' ')[0] : '',
-                                  assigned_to: taskData.assigned_to,
-                                });
-                                setIsEditMode(true);
-                                setCurrentTaskId(taskData.name);
-                                setShowTaskModal(true);
-                              }}
-                              className={`flex-1 border ${borderColor} rounded-lg p-4 cursor-pointer hover:shadow-md`}
-                            >
-                              <div className="flex justify-between items-start mb-2">
-                                <h4 className={`font-medium ${textColor}`}>{taskData.title}</h4>
-                              </div>
-
-                              <div className="mt-1 text-sm flex justify-between items-center flex-wrap gap-2">
-                                {/* Left side: Assignee, Date, Priority */}
-                                <div className="flex items-center gap-4 flex-wrap">
-                                  <div className="flex items-center gap-1">
-                                    <div className={`w-8 h-8 flex items-center justify-center rounded-full ${theme === 'dark' ? 'bg-gray-400' : 'bg-gray-200'} text-sm font-semibold`}>
-                                      {taskData.assigned_to?.charAt(0).toUpperCase() || "U"}
-                                    </div>
-                                    <span className={textSecondaryColor}>{taskData.assigned_to || 'Unassigned'}</span>
-                                  </div>
-
-                                  {taskData.due_date && (
-                                    <span className={`flex items-center gap-1 ${textSecondaryColor}`}>
-                                      <LuCalendar className="w-3.5 h-3.5" />
-                                      {formatDate(taskData.due_date)}
-                                    </span>
-                                  )}
-
-                                  <span className="flex items-center gap-1.5">
-                                    <span className={`w-2.5 h-2.5 rounded-full ${taskData.priority === 'High' ? 'bg-red-500'
-                                      : taskData.priority === 'Medium' ? 'bg-yellow-500'
-                                        : 'bg-gray-400'
-                                      }`}></span>
-                                    <span className={`text-xs font-medium ${textSecondaryColor}`}>{taskData.priority}</span>
-                                  </span>
-                                </div>
-
-                                {/* Right side: Status and Menu */}
-                                <div className="flex items-center gap-2">
-                                  <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${taskData.status === 'Done'
-                                    ? (theme === 'dark' ? 'bg-green-900 text-green-200' : 'bg-green-100 text-green-800')
-                                    : (theme === 'dark' ? 'bg-blue-900 text-blue-200' : 'bg-blue-100 text-blue-800')
-                                    }`}>
-                                    {taskData.status}
-                                  </span>
-                                  <div className="relative">
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setOpenMenuId(openMenuId === taskData.name ? null : taskData.name);
-                                      }}
-                                      className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full"
-                                    >
-                                      <BsThreeDots className={`w-4 h-4 ${textColor}`} />
-                                    </button>
-                                    {openMenuId === taskData.name && (
-                                      <div className="absolute right-0 mt-2 w-28 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-10">
-                                        {/* Your delete button logic here */}
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        );
                       }
+                      // else if (activity.type === 'task') {
+                      //   // Find the corresponding detailed task data from the `tasks` state
+                      //   const taskData = tasks.find(t => t.name === activity.id);
+                      //   if (!taskData) return null; // Fallback if data not found
+
+                      //   return (
+                      //     <div key={taskData.name} className="flex items-start w-full space-x-3">
+                      //       {/* Icon on the left */}
+                      //       <div className={`p-2 rounded-full mt-1 ${theme === 'dark' ? 'bg-orange-900' : 'bg-orange-100'}`}>
+                      //         <SiTicktick className="w-4 h-4 text-white" />
+                      //       </div>
+
+                      //       {/* Detailed Task Card */}
+                      //       <div
+                      //         onClick={() => {
+                      //           // Your existing logic to open the edit modal
+                      //           setTaskForm({
+                      //             title: taskData.title,
+                      //             description: taskData.description,
+                      //             status: taskData.status,
+                      //             priority: taskData.priority,
+                      //             due_date: taskData.due_date ? taskData.due_date.split(' ')[0] : '',
+                      //             assigned_to: taskData.assigned_to,
+                      //           });
+                      //           setIsEditMode(true);
+                      //           setCurrentTaskId(taskData.name);
+                      //           setShowTaskModal(true);
+                      //         }}
+                      //         className={`flex-1 border ${borderColor} rounded-lg p-4 cursor-pointer hover:shadow-md`}
+                      //       >
+                      //         <div className="flex justify-between items-start mb-2">
+                      //           <h4 className={`font-medium ${textColor}`}>{taskData.title}</h4>
+                      //         </div>
+
+                      //         <div className="mt-1 text-sm flex justify-between items-center flex-wrap gap-2">
+                      //           {/* Left side: Assignee, Date, Priority */}
+                      //           <div className="flex items-center gap-4 flex-wrap">
+                      //             <div className="flex items-center gap-1">
+                      //               <div className={`w-8 h-8 flex items-center justify-center rounded-full ${theme === 'dark' ? 'bg-gray-400' : 'bg-gray-200'} text-sm font-semibold`}>
+                      //                 {taskData.assigned_to?.charAt(0).toUpperCase() || "U"}
+                      //               </div>
+                      //               <span className={textSecondaryColor}>{taskData.assigned_to || 'Unassigned'}</span>
+                      //             </div>
+
+                      //             {taskData.due_date && (
+                      //               <span className={`flex items-center gap-1 ${textSecondaryColor}`}>
+                      //                 <LuCalendar className="w-3.5 h-3.5" />
+                      //                 {formatDate(taskData.due_date)}
+                      //               </span>
+                      //             )}
+
+                      //             <span className="flex items-center gap-1.5">
+                      //               <span className={`w-2.5 h-2.5 rounded-full ${taskData.priority === 'High' ? 'bg-red-500'
+                      //                 : taskData.priority === 'Medium' ? 'bg-yellow-500'
+                      //                   : 'bg-gray-400'
+                      //                 }`}></span>
+                      //               <span className={`text-xs font-medium ${textSecondaryColor}`}>{taskData.priority}</span>
+                      //             </span>
+                      //           </div>
+
+                      //           {/* Right side: Status and Menu */}
+                      //           <div className="flex items-center gap-2">
+                      //             <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${taskData.status === 'Done'
+                      //               ? (theme === 'dark' ? 'bg-green-900 text-green-200' : 'bg-green-100 text-green-800')
+                      //               : (theme === 'dark' ? 'bg-blue-900 text-blue-200' : 'bg-blue-100 text-blue-800')
+                      //               }`}>
+                      //               {taskData.status}
+                      //             </span>
+                      //             <div className="relative">
+                      //               <button
+                      //                 onClick={(e) => {
+                      //                   e.stopPropagation();
+                      //                   setOpenMenuId(openMenuId === taskData.name ? null : taskData.name);
+                      //                 }}
+                      //                 className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full"
+                      //               >
+                      //                 <BsThreeDots className={`w-4 h-4 ${textColor}`} />
+                      //               </button>
+                      //               {openMenuId === taskData.name && (
+                      //                 <div className="absolute right-0 mt-2 w-28 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-10">
+                      //                   {/* Your delete button logic here */}
+                      //                 </div>
+                      //               )}
+                      //             </div>
+                      //           </div>
+                      //         </div>
+                      //       </div>
+                      //     </div>
+                      //   );
+                      // }
                       else if (activity.type === 'grouped_change') {
                         const isExpanded = expandedGroup === activity.id;
                         const changeCount = activity.changes.length;
@@ -4857,13 +4813,13 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
               className={`
                 ${cardBgColor} border-t ${borderColor} overflow-hidden z-50
                 fixed bottom-0 left-0 w-full px-4 py-3
-                sm:absolute sm:w-[-webkit-fill-available] sm:pt-4 sm:left-auto sm:px-0 sm:py-0
+                sm:absolute sm:w-[-webkit-fill-available] sm:pt-4 
               `}
             >
               {!showEmailModalActivity ? (
                 <div className="flex gap-4">
                   <button
-                    className={`flex items-center gap-2 px-3 py-1 rounded-md text-sm ${theme === "dark" ? "text-gray-300 hover:bg-gray-700" : "text-gray-600 hover:bg-gray-200"}`}
+                    className={`flex items-center gap-2 px-3 py-1 rounded-md text-md ${theme === "dark" ? "text-gray-300 hover:bg-gray-700" : "text-gray-600 hover:bg-gray-200"}`}
                     onClick={() => {
                       setEmailModalModeActivity("reply");
                       setShowEmailModalActivity(true);
@@ -4910,7 +4866,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                 <h3 className={`text-lg font-semibold ${textColor} mb-0`}>Attachments</h3>
                 <button
                   onClick={() => setIsUploadPopupOpen(true)}
-                  className={`px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 ml-auto ${theme === 'dark' ? 'bg-purplebg text-white hover:bg-purple-700' : 'bg-purplebg text-white hover:bg-purple-700'}`}
+                  className={`px-4 py-2 rounded-lg flex items-center space-x-2 text-white  ${theme === 'dark' ? 'bg-purple-600 hover:bg-purple-700' : 'bg-blue-600 hover:bg-blue-700'}`}
                 >
                   <HiOutlinePlus className="w-4 h-4" />
                   <span>Upload Attachment</span>

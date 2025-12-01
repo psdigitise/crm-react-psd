@@ -97,7 +97,8 @@ export const AssignDealPopup: React.FC<AssignDealPopupProps> = ({
                 body: JSON.stringify({
                     doctype: "CRM Deal",
                     name: JSON.stringify(dealNames), // Format as required
-                    assign_to: selectedAssignee,
+                    
+                    assign_to: [selectedAssignee],
                     bulk_assign: true,
                     re_assign: true
                 })

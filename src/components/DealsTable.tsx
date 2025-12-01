@@ -13,6 +13,7 @@ import { ClearAssignmentPopup } from './DealPopups/ClearAssignmentPopup';
 import axios from 'axios';
 import { api } from '../api/apiService';
 import { ExportPopup } from './LeadsPopup/ExportPopup';
+import { LinkedItemsPopup } from './LeadsPopup/LinkedItemsPopup';
 
 interface Deal {
   id: string;
@@ -189,6 +190,14 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
     assignedTo: [] as string[]
   });
 
+  // Linked items state (NEW - copied from leads table)
+  const [linkedItems, setLinkedItems] = useState<any[]>([]);
+  const [isLinkedItemsPopupOpen, setIsLinkedItemsPopupOpen] = useState(false);
+  const [isUnlinking, setIsUnlinking] = useState(false);
+  const [isCheckingLinkedItems, setIsCheckingLinkedItems] = useState(false);
+  const [showDeleteLinkedConfirm, setShowDeleteLinkedConfirm] = useState(false);
+  const [dealsToDelete, setDealsToDelete] = useState<string[]>([]);
+
   const showToast = (message: string, type: 'error' | 'success' = 'error') => {
     setToast({ message, type });
   };
@@ -247,7 +256,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
         status: apiDeal.status || 'Qualification',
         email: apiDeal.email || 'N/A',
         mobileNo: apiDeal.mobile_no || 'N/A',
-        assignedTo: apiDeal._assign || apiDeal.deal_owner || 'N/A',
+        assignedTo: apiDeal._assign  || 'N/A',
         lastModified: formatDate(apiDeal.modified),
         annualRevenue: formatCurrency(apiDeal.annual_revenue),
         closeDate: apiDeal.close_date ? formatDate(apiDeal.close_date) : 'N/A',
@@ -306,7 +315,6 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
 
       const startImportResponse = await fetch(
         `https://api.erpnext.ai/api/method/frappe.core.doctype.data_import.data_import.form_start_import`,
-
         {
           method: 'POST',
           headers: {
@@ -1091,161 +1099,229 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
   );
 
   // Handler functions
-  const handleEditClick = (deal: Deal) => {
-    setSelectedDeals([deal.id]);
-    setIsEditPopupOpen(true);
-    setShowDropdown(false);
-  };
 
   const handleCloseEditPopup = () => {
     setIsEditPopupOpen(false);
     setCurrentEditDeal(null);
   };
 
-  const handleDeleteConfirmation = async () => {
-  if (selectedDeals.length === 0) {
-    console.error("No deals selected for deletion.");
-    setIsDeletePopupOpen(false);
-    return;
-  }
+  // NEW: Check linked items function for deals
+  const checkLinkedItems = async () => {
+    if (selectedDeals.length === 0) {
+      showToast("No deals selected", "error");
+      return;
+    }
 
-  setIsDeleting(true);
+    setIsCheckingLinkedItems(true);
 
-  try {
-    const requestBody = {
-      doctype: "CRM Deal",
-      items: JSON.stringify(selectedDeals),
-    };
+    try {
+      // Store the deals that need to be deleted after unlinking
+      setDealsToDelete(selectedDeals);
 
-    const response = await apiAxios.post(
-      "/api/method/frappe.desk.reportview.delete_items",
-      requestBody,
-      {
-        headers: {
-          "Authorization": AUTH_TOKEN,
-        },
+      // Check linked items for the first selected deal
+      const dealId = selectedDeals[0];
+      console.log(`Checking linked items for deal: ${dealId}`);
+
+      const linkedDocsResponse = await fetch(
+        "https://api.erpnext.ai/api/method/crm.api.doc.get_linked_docs_of_document",
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': AUTH_TOKEN
+          },
+          body: JSON.stringify({
+            doctype: "CRM Deal",
+            docname: dealId
+          })
+        }
+      );
+
+      if (linkedDocsResponse.ok) {
+        const linkedDocsResult = await linkedDocsResponse.json();
+        const items = linkedDocsResult.message || [];
+
+        if (items.length > 0) {
+          setLinkedItems(items);
+          setIsLinkedItemsPopupOpen(true);
+        } else {
+          // No linked items, proceed directly to delete using frappe.client.delete
+          await deleteDealsDirectly(selectedDeals);
+        }
+      } else {
+        throw new Error("Failed to fetch linked items");
       }
-    );
+    } catch (error) {
+      console.error("Error checking linked items:", error);
+      showToast("Failed to check linked items", "error");
+    } finally {
+      setIsCheckingLinkedItems(false);
+    }
+  };
 
-    console.log("Deals deleted successfully:", response.data);
-    
-    // Check if the response indicates success
-    if (response.data && response.data.message === "ok") {
-      // Success case
-      setIsDeletePopupOpen(false); // Close popup on success
+  // NEW: Function to delete deals directly (when no linked items)
+  const deleteDealsDirectly = async (dealIds: string[]) => {
+    setIsDeleting(true);
+
+    try {
+      // Delete each deal individually using ONLY frappe.client.delete
+      for (const dealId of dealIds) {
+        const deleteResponse = await fetch(
+          "https://api.erpnext.ai/api/method/frappe.client.delete",
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': AUTH_TOKEN
+            },
+            body: JSON.stringify({
+              doctype: "CRM Deal",
+              name: dealId
+            })
+          }
+        );
+
+        if (!deleteResponse.ok) {
+          const errorData = await deleteResponse.json();
+          throw new Error(errorData.message || `Failed to delete deal ${dealId}`);
+        }
+
+        const result = await deleteResponse.json();
+        console.log(`Deal ${dealId} deleted successfully:`, result);
+      }
+
       setSelectedDeals([]);
       setShowDropdown(false);
       await fetchDeals();
       showToast('Deals deleted successfully!', 'success');
-    } else {
-      // Handle cases where response is not exactly "ok"
-      throw new Error("Cannot delete or cancel because CRM Deal is linked with CRM Notification");
-    }
 
-  } catch (error: any) {
-    console.log("=== ERROR DETAILS ===");
-    console.log("Full error:", error);
-    console.log("Error response:", error.response?.data);
-    
-    let errorMessage = "Deletion failed";
-    
-    // Only process error messages if this is actually an error
-    if (error.response?.data?._server_messages) {
-      console.log("_server_messages found:", error.response.data._server_messages);
-      
-      try {
-        // Parse the outer array
-        const serverMessages = error.response.data._server_messages;
-        let parsedMessages;
-        
-        // Handle both string and array cases
-        if (typeof serverMessages === 'string') {
-          parsedMessages = JSON.parse(serverMessages);
-        } else if (Array.isArray(serverMessages)) {
-          parsedMessages = serverMessages;
-        } else {
-          parsedMessages = [serverMessages];
+    } catch (error: any) {
+      console.error("Delete error:", error);
+      showToast(`Deletion failed: ${error.message}`, 'error');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // NEW: Handle delete selected (triggers linked items check)
+  const handleDeleteSelected = async () => {
+    if (selectedDeals.length === 0) {
+      showToast("No deals selected", "error");
+      return;
+    }
+    await checkLinkedItems();
+  };
+
+  // NEW: Handle unlink all function for deals
+  const handleUnlinkAll = async (): Promise<void> => {
+    setIsUnlinking(true);
+
+    try {
+      // STEP 1: Unlink items using remove_linked_doc_reference WITHOUT deleting
+      const itemsToUnlink = linkedItems.map((item: any) => ({
+        doctype: item.reference_doctype,
+        docname: item.reference_docname
+      }));
+
+      if (itemsToUnlink.length > 0) {
+        const unlinkResponse = await fetch(
+          "https://api.erpnext.ai/api/method/crm.api.doc.remove_linked_doc_reference",
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': AUTH_TOKEN
+            },
+            body: JSON.stringify({
+              items: itemsToUnlink,
+              remove_contact: false,
+              delete: false
+            })
+          }
+        );
+
+        if (!unlinkResponse.ok) {
+          throw new Error("Failed to unlink items");
         }
-        
-        console.log("Parsed messages:", parsedMessages);
-        
-        if (Array.isArray(parsedMessages) && parsedMessages.length > 0) {
-          // The first item might be a string with escaped JSON
-          const firstMessage = parsedMessages[0];
-          
-          if (typeof firstMessage === 'string') {
-            // Clean the escaped string to make it valid JSON
-            const cleanedJsonString = firstMessage
-              .replace(/\\"/g, '"')  // Fix: \" becomes "
-              .replace(/\\\\/g, '\\') // Fix: \\ becomes \
-              .replace(/^"|"$/g, ''); // Remove surrounding quotes if present
-              
-            console.log("Cleaned JSON string:", cleanedJsonString);
+
+        const unlinkResult = await unlinkResponse.json();
+        console.log("Unlink response:", unlinkResult);
+
+        // STEP 2: Verify unlinking was successful
+        const dealId = dealsToDelete[0];
+        const verifyResponse = await fetch(
+          "https://api.erpnext.ai/api/method/crm.api.doc.get_linked_docs_of_document",
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': AUTH_TOKEN
+            },
+            body: JSON.stringify({
+              doctype: "CRM Deal",
+              docname: dealId
+            })
+          }
+        );
+
+        if (verifyResponse.ok) {
+          const verifyResult = await verifyResponse.json();
+          const remainingItems = verifyResult.message || [];
+
+          if (remainingItems.length === 0) {
+            // STEP 3: All items unlinked successfully - close the popup and show toast
+            showToast('Items unlinked successfully!', 'success');
             
-            try {
-              // Now parse the cleaned JSON
-              const messageObj = JSON.parse(cleanedJsonString);
-              console.log("Message object:", messageObj);
-              
-              if (messageObj.message) {
-                errorMessage = messageObj.message;
-                // Remove HTML tags for clean display
-                errorMessage = errorMessage.replace(/<[^>]*>/g, '');
-              }
-            } catch (innerParseError) {
-              console.log("Inner parse failed, using string as is:", cleanedJsonString);
-              errorMessage = cleanedJsonString;
-            }
-          } else if (firstMessage.message) {
-            // If it's already an object
-            errorMessage = firstMessage.message;
-            errorMessage = errorMessage.replace(/<[^>]*>/g, '');
+            // Close the LinkedItemsPopup automatically
+            setIsLinkedItemsPopupOpen(false);
+            setLinkedItems([]);
+            
+            return; // Resolve the promise
+          } else {
+            throw new Error("Some items could not be unlinked");
           }
-        }
-      } catch (parseError) {
-        console.log("Parse error, trying fallback extraction:", parseError);
-        // Fallback: extract using regex from the raw string
-        try {
-          const rawString = typeof error.response.data._server_messages === 'string' 
-            ? error.response.data._server_messages 
-            : JSON.stringify(error.response.data._server_messages);
-          
-          const regex = /"message":\s*"([^"]*)"/;
-          const match = rawString.match(regex);
-          if (match && match[1]) {
-            errorMessage = match[1]
-              .replace(/<[^>]*>/g, '')
-              .replace(/\\"/g, '"')
-              .replace(/\\\\/g, '\\');
-          }
-        } catch (fallbackError) {
-          console.log("Fallback also failed");
+        } else {
+          throw new Error("Failed to verify unlinking");
         }
       }
-    } 
-    // Method 2: Check for direct message in response
-    else if (error.response?.data?.message) {
-      errorMessage = error.response.data.message;
-      errorMessage = errorMessage.replace(/<[^>]*>/g, '');
+    } catch (error) {
+      console.error("Error unlinking items:", error);
+      showToast("Failed to unlink items", "error");
+      throw error; // Re-throw the error
+    } finally {
+      setIsUnlinking(false);
     }
-    // Method 3: Check for exception
-    else if (error.response?.data?.exception) {
-      errorMessage = error.response.data.exception;
+  };
+
+  // NEW: Handle confirm delete after unlinking
+  const handleConfirmDeleteLinkedItems = async () => {
+    setIsDeleting(true);
+
+    try {
+      // Delete the deals using ONLY frappe.client.delete
+      await deleteDealsDirectly(dealsToDelete);
+
+      setShowDeleteLinkedConfirm(false);
+      setIsLinkedItemsPopupOpen(false);
+      setLinkedItems([]);
+      setDealsToDelete([]);
+      showToast('Deals deleted successfully!', 'success');
+
+    } catch (error) {
+      console.error("Error deleting deals after unlinking:", error);
+      showToast("Failed to delete deals after unlinking", "error");
+    } finally {
+      setIsDeleting(false);
     }
-    // Method 4: Use the error message directly
-    else if (error.message) {
-      errorMessage = error.message;
-    }
-    
-    console.log("Final message to display:", errorMessage);
-    
-    // Close the popup when showing error toast
+  };
+
+  // UPDATED: Handle delete confirmation (now only called from DeleteDealPopup)
+  const handleDeleteConfirmation = async () => {
+    // This function is now only called from DeleteDealPopup
+    // It should directly delete without checking linked items
+    await deleteDealsDirectly(selectedDeals);
     setIsDeletePopupOpen(false);
-    showToast(` ${errorMessage}`, 'error');
-  } finally {
-    setIsDeleting(false);
-  }
-};
+  };
 
   const handleAssignConfirmation = (assignee: string) => {
     setIsAssigning(true);
@@ -1554,6 +1630,57 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
         />
       )}
 
+      {/* Delete Linked Items Confirmation */}
+      {showDeleteLinkedConfirm && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center overflow-y-auto">
+          <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" />
+          <div className={`relative transform overflow-hidden rounded-lg text-left shadow-xl transition-all w-full max-w-md mx-4 ${theme === 'dark' ? 'bg-gray-900' : 'bg-white'
+            }`}>
+            <div className="p-6">
+              <h3 className={`text-lg font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                }`}>
+                Delete Deal
+              </h3>
+              <p className={`text-sm mb-6 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                }`}>
+                Are you sure you want to delete this Deal?
+              </p>
+
+              <div className="flex justify-end space-x-3">
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteLinkedConfirm(false)}
+                  className={`px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${theme === 'dark'
+                    ? 'border-gray-600 text-white hover:bg-gray-700'
+                    : 'border-gray-300 text-gray-700 hover:bg-gray-100'
+                    }`}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmDeleteLinkedItems}
+                  disabled={isDeleting}
+                  className={`px-4 py-2 text-sm font-medium rounded-lg border transition-colors flex items-center ${theme === 'dark'
+                    ? 'border-red-500 bg-red-600 text-white hover:bg-red-700'
+                    : 'border-red-500 bg-red-600 text-white hover:bg-red-700'
+                    } disabled:opacity-50 disabled:cursor-not-allowed`}
+                >
+                  {isDeleting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    'Delete'
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Import Popup */}
       {showImportPopup && <ImportPopup />}
 
@@ -1657,7 +1784,10 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
                     </button>
                     <button
                       onClick={() => setShowFilters(false)}
-                      className={theme === 'dark' ? 'text-white hover:text-white' : 'text-white hover:text-gray-600'}
+                     className={`p-1 rounded ${theme === 'dark'
+                  ? 'text-gray-400 hover:text-white'
+                  : 'text-gray-500 hover:text-gray-700'
+                }`}
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -1737,7 +1867,10 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
                   <h3 className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Manage Columns</h3>
                   <button
                     onClick={() => setShowColumnSettings(false)}
-                    className={theme === 'dark' ? 'text-white hover:text-white' : 'text-white hover:text-gray-600'}
+                    className={`p-1 rounded ${theme === 'dark'
+                  ? 'text-gray-400 hover:text-white'
+                  : 'text-gray-500 hover:text-gray-700'
+                }`}
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -2060,7 +2193,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
               <div className="absolute right-0 bottom-10 bg-white dark:bg-gray-700 shadow-lg rounded-md border dark:border-gray-600 py-1 w-40 z-50">
                 <button
                   onClick={() => {
-                    setIsDeletePopupOpen(true);
+                    handleDeleteSelected(); // UPDATED: Now checks linked items first
                     setShowDropdown(false);
                   }}
                   className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">
@@ -2119,7 +2252,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
       <DeleteDealPopup
         isOpen={isDeletePopupOpen}
         onClose={() => setIsDeletePopupOpen(false)}
-        onConfirm={handleDeleteConfirmation}
+        onConfirm={handleDeleteConfirmation} // UPDATED: Now calls deleteDealsDirectly
         isLoading={isDeleting}
         theme={theme}
       />
@@ -2151,6 +2284,25 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
         isLoading={isExporting}
         onFormatChange={handleFormatChange}
         onRefresh={fetchDeals}
+      />
+      
+      {/* NEW: Linked Items Popup for Deals */}
+      <LinkedItemsPopup
+        isOpen={isLinkedItemsPopupOpen}
+        onClose={() => {
+          setIsLinkedItemsPopupOpen(false);
+          setLinkedItems([]);
+          setDealsToDelete([]);
+        }}
+        linkedItems={linkedItems}
+        onUnlinkAll={handleUnlinkAll}
+        isUnlinking={isUnlinking}
+        theme={theme}
+        selectedIds={dealsToDelete}
+        onDeleteAfterUnlink={() => {
+          // This will show the final delete confirmation popup after unlinking
+          setShowDeleteLinkedConfirm(true);
+        }}
       />
     </div>
   );

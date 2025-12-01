@@ -16,7 +16,7 @@ const showToast = (msg, opts) => alert(msg);
 
 // const API_BASE_URL = "https://api.erpnext.ai/api/v2/document";
 const API_BASE_URL = "https://api.erpnext.ai/api/method";
-const AUTH_TOKEN =  getAuthToken();
+const AUTH_TOKEN = getAuthToken();
 
 // export default function CommentCreate({
 //   reference_doctype = "",
@@ -30,31 +30,31 @@ interface CommentEmailProps {
     name: string;
     [key: string]: any;
   };
-    setAttachments:React.Dispatch<React.SetStateAction<string[]>>
+  setAttachments: React.Dispatch<React.SetStateAction<string[]>>
   reference_doctype?: string;
   reference_name?: string;
   onSuccess?: () => void;
   onClose?: () => void;
-  
-    refreshEmails: () => Promise<void>;
-      handleFileChange: (event: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
-       fileInputRef?: React.RefObject<HTMLInputElement>;
-        attachments: string[];
-        setShowCommentModal:any;
-          uploadedFiles: { name: string; url: string }[]; 
-            setUploadedFiles: React.Dispatch<React.SetStateAction<{ name: string; url: string }[]>>;
-    setEmailForm: React.Dispatch<React.SetStateAction<{
-        recipient: string;
-        cc: string;
-        bcc: string;
-        subject: string;
-        message: string;
-        
-    }>>;
-       
+
+  refreshEmails: () => Promise<void>;
+  handleFileChange: (event: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
+  fileInputRef?: React.RefObject<HTMLInputElement>;
+  attachments: string[];
+  setShowCommentModal: any;
+  uploadedFiles: { name: string; url: string }[];
+  setUploadedFiles: React.Dispatch<React.SetStateAction<{ name: string; url: string }[]>>;
+  setEmailForm: React.Dispatch<React.SetStateAction<{
+    recipient: string;
+    cc: string;
+    bcc: string;
+    subject: string;
+    message: string;
+
+  }>>;
+
 }
 export default function Commentemailleads({
-  
+
   reference_doctype = "",
   reference_name = "",
   onSuccess,
@@ -64,306 +64,306 @@ export default function Commentemailleads({
   fileInputRef,
   handleFileChange,
   attachments,
-   setUploadedFiles,
-    setEmailForm,
+  setUploadedFiles,
+  setEmailForm,
   uploadedFiles,
-   setAttachments,
-   setShowCommentModal
-  
-}:CommentEmailProps) {
+  setAttachments,
+  setShowCommentModal
+
+}: CommentEmailProps) {
   // ...rest of your code
-  console.log('1bf',lead.name);
-  
+  console.log('1bf', lead.name);
+
   const { theme } = useTheme();
   const [showReply, setShowReply] = useState(false);
   const [comment, setComment] = useState("");
   const [loading, setLoading] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
-  const [attachmentsName,setAttachmentsName]=useState<string[]>([])
-  
-const hasMessageContent = comment.trim().length > 0;
+  const [attachmentsName, setAttachmentsName] = useState<string[]>([])
+
+  const hasMessageContent = comment.trim().length > 0;
   const getUserInfo = () => {
-  try {
-    const session = sessionStorage.getItem('userSession');
-    if (session) {
-      const user = JSON.parse(session);
-      const email = user.email;
-      const username = user.username;
+    try {
+      const session = sessionStorage.getItem('userSession');
+      if (session) {
+        const user = JSON.parse(session);
+        const email = user.email;
+        const username = user.username;
 
-      console.log("Email:", email);
-      console.log("Username:", username);
+        console.log("Email:", email);
+        console.log("Username:", username);
 
-      return { email, username };
+        return { email, username };
+      }
+    } catch (error) {
+      console.error("Failed to parse session storage:", error);
     }
-  } catch (error) {
-    console.error("Failed to parse session storage:", error);
-  }
-  return { email: "", username: "" };
-};
+    return { email: "", username: "" };
+  };
 
-useEffect(() => {
-  const { email, username } = getUserInfo();
-  console.log("Current user:", username, email);
-}, []);
+  useEffect(() => {
+    const { email, username } = getUserInfo();
+    console.log("Current user:", username, email);
+  }, []);
 
 
 
 
-// const addAttachmentsToComment = async (commentName: string[], attachmentNames: string[]) => {
-//   // Validate inputs
-//   if (!commentName || attachmentNames.length === 0) {
-//     showToast("Comment name and at least one attachment are required", { type: "error" });
-//     return;
-//   }
+  // const addAttachmentsToComment = async (commentName: string[], attachmentNames: string[]) => {
+  //   // Validate inputs
+  //   if (!commentName || attachmentNames.length === 0) {
+  //     showToast("Comment name and at least one attachment are required", { type: "error" });
+  //     return;
+  //   }
 
-//   try {
-//     const response = await fetch(
-//       "https://api.erpnext.ai/api/method/crm.api.comment.add_attachments", 
-//       {
-//         method: "POST",
-//         headers: {
-//           "Authorization": AUTH_TOKEN,
-//           "Content-Type": "application/json",
-//         },
-//         body: JSON.stringify({
-//           name: commentName,  // Should be a single string, not an array
-//           attachments: attachmentNames  // Array of attachment IDs
-//         }),
-//       }
-//     );
+  //   try {
+  //     const response = await fetch(
+  //       "https://api.erpnext.ai/api/method/crm.api.comment.add_attachments", 
+  //       {
+  //         method: "POST",
+  //         headers: {
+  //           "Authorization": AUTH_TOKEN,
+  //           "Content-Type": "application/json",
+  //         },
+  //         body: JSON.stringify({
+  //           name: commentName,  // Should be a single string, not an array
+  //           attachments: attachmentNames  // Array of attachment IDs
+  //         }),
+  //       }
+  //     );
 
-//     const result = await response.json();
+  //     const result = await response.json();
 
-//     if (!response.ok) {
-//       // Handle Frappe-specific error format
-//       const errorMsg = result.exc_type 
-//         ? `${result.exc_type}: ${result.message}`
-//         : result.message || "Failed to add attachments";
-//       throw new Error(errorMsg);
-//     }
+  //     if (!response.ok) {
+  //       // Handle Frappe-specific error format
+  //       const errorMsg = result.exc_type 
+  //         ? `${result.exc_type}: ${result.message}`
+  //         : result.message || "Failed to add attachments";
+  //       throw new Error(errorMsg);
+  //     }
 
-//     showToast(result.message || "Attachments added successfully", { type: "success" });
-//     return result;
-//   } catch (error) {
-//     console.error("Error adding attachments:", error);
-//     showToast(error.message || "Error adding attachments", { type: "error" });
-//     throw error;
-//   }
-// };
+  //     showToast(result.message || "Attachments added successfully", { type: "success" });
+  //     return result;
+  //   } catch (error) {
+  //     console.error("Error adding attachments:", error);
+  //     showToast(error.message || "Error adding attachments", { type: "error" });
+  //     throw error;
+  //   }
+  // };
 
-// Usage example - should be triggered by an event, not in useEffect
-// const handleAddAttachments = async () => {
-//   try {
-//     await addAttachmentsToComment(attachmentsName,attachments);
-//   } catch (error) {
-//     // Error already handled in the function
-//   }
-// };
+  // Usage example - should be triggered by an event, not in useEffect
+  // const handleAddAttachments = async () => {
+  //   try {
+  //     await addAttachmentsToComment(attachmentsName,attachments);
+  //   } catch (error) {
+  //     // Error already handled in the function
+  //   }
+  // };
 
-//   const sendComment = async () => {
-//      const { email, username } = getUserInfo();
-//     if (!comment.trim()) {
-//       showToast("Please type your comment.", { type: "warning" });
-//       return;
-//     }
-//     setLoading(true);
-//     try {
-//     //  const response = await fetch(`${API_BASE_URL}/Comment`, {
+  //   const sendComment = async () => {
+  //      const { email, username } = getUserInfo();
+  //     if (!comment.trim()) {
+  //       showToast("Please type your comment.", { type: "warning" });
+  //       return;
+  //     }
+  //     setLoading(true);
+  //     try {
+  //     //  const response = await fetch(`${API_BASE_URL}/Comment`, {
 
-//       const response = await fetch(`${API_BASE_URL}/frappe.desk.form.utils.add_comment`, {
-//         method: "POST",
-//         headers: {
-//           Authorization: AUTH_TOKEN,
-//           "Content-Type": "application/json",
-//         },
-//         body: JSON.stringify({
-//          comment_by:username,
-//          comment_email:email,
-//          content:comment,
-//          reference_doctype:"CRM Lead",
-//          reference_name:lead.name,
-//          //attachments:attachments
-//           // comment_type: "Comment",
-//           // reference_doctype,
-//           // reference_name,
-//         }),
-//       });
-// console.log("12k",response)
-//       if (response.ok) {
-//           const responseData = await response.json();
-//             console.log("Full response:", responseData.message.name);
-//             setAttachmentsName(responseData.message.name)
-//           //  handleAddAttachments()
-//           await addAttachmentsToComment(attachmentsName,attachments);
-//         console.log("Comment added!", { type: "success" });
-//         // setComment("");
-//         // setAttachement([]);
-//           setUploadedFiles([]);  // Clears the displayed attachments
-//       setAttachments([]);    // Clears the attachment IDs
-//       setComment("");   
-//         await refreshEmails();
-//         if (onSuccess) onSuccess();
-//       } else {
-//         throw new Error("Failed to add comment");
-//       }
-//     } catch (error) {
-//       showToast("Failed to add comment", { type: "error" });
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
+  //       const response = await fetch(`${API_BASE_URL}/frappe.desk.form.utils.add_comment`, {
+  //         method: "POST",
+  //         headers: {
+  //           Authorization: AUTH_TOKEN,
+  //           "Content-Type": "application/json",
+  //         },
+  //         body: JSON.stringify({
+  //          comment_by:username,
+  //          comment_email:email,
+  //          content:comment,
+  //          reference_doctype:"CRM Lead",
+  //          reference_name:lead.name,
+  //          //attachments:attachments
+  //           // comment_type: "Comment",
+  //           // reference_doctype,
+  //           // reference_name,
+  //         }),
+  //       });
+  // console.log("12k",response)
+  //       if (response.ok) {
+  //           const responseData = await response.json();
+  //             console.log("Full response:", responseData.message.name);
+  //             setAttachmentsName(responseData.message.name)
+  //           //  handleAddAttachments()
+  //           await addAttachmentsToComment(attachmentsName,attachments);
+  //         console.log("Comment added!", { type: "success" });
+  //         // setComment("");
+  //         // setAttachement([]);
+  //           setUploadedFiles([]);  // Clears the displayed attachments
+  //       setAttachments([]);    // Clears the attachment IDs
+  //       setComment("");   
+  //         await refreshEmails();
+  //         if (onSuccess) onSuccess();
+  //       } else {
+  //         throw new Error("Failed to add comment");
+  //       }
+  //     } catch (error) {
+  //       showToast("Failed to add comment", { type: "error" });
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
 
-   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
 
-    const onEmojiClick = (emojiData: any) => {
+  const onEmojiClick = (emojiData: any) => {
     setComment(prev => prev + emojiData.emoji);
     setShowEmojiPicker(false);
   };
 
   const sendComment = async () => {
-  const { email, username } = getUserInfo();
-  if (!comment.trim()) {
-    console.log("Please type your comment.", { type: "warning" });
-    return;
-  }
-  
-  setLoading(true);
-  try {
-    // First create the comment without attachments
-    const response = await fetch(`${API_BASE_URL}/frappe.desk.form.utils.add_comment`, {
-      method: "POST",
-      headers: {
-        Authorization: AUTH_TOKEN,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        comment_by: username,
-        comment_email: email,
-        content: comment,
-        reference_doctype: "CRM Lead",
-        reference_name: lead.name,
-        // Remove attachments from here as this endpoint doesn't expect them
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error("Failed to add comment");
+    const { email, username } = getUserInfo();
+    if (!comment.trim()) {
+      console.log("Please type your comment.", { type: "warning" });
+      return;
     }
 
-    const responseData = await response.json();
-    const commentName = responseData.message.name;
-    
-    // Only proceed with attachments if there are any
-    if (attachments.length > 0) {
-      await addAttachmentsToComment(commentName, attachments);
-    }
-
-    console.log("Comment added successfully", { type: "success" });
-    setUploadedFiles([]);
-    setAttachments([]);
-    setComment("");
-    
-    await refreshEmails();
-    if (onSuccess) onSuccess();
-  } catch (error) {
-    console.error("Error adding comment:", error);
-    console.log(error.message || "Failed to add comment", { type: "error" });
-  } finally {
-    setLoading(false);
-  }
-};
-
-const addAttachmentsToComment = async (commentName: string, attachmentNames: string[]) => {
-  try {
-    const response = await fetch(
-      "https://api.erpnext.ai/api/method/crm.api.comment.add_attachments", 
-      {
+    setLoading(true);
+    try {
+      // First create the comment without attachments
+      const response = await fetch(`${API_BASE_URL}/frappe.desk.form.utils.add_comment`, {
         method: "POST",
         headers: {
-          "Authorization": AUTH_TOKEN,
+          Authorization: AUTH_TOKEN,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          name: commentName,  // Single string, not array
-          attachments: attachmentNames
+          comment_by: username,
+          comment_email: email,
+          content: comment,
+          reference_doctype: "CRM Lead",
+          reference_name: lead.name,
+          // Remove attachments from here as this endpoint doesn't expect them
         }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to add comment");
       }
-    );
 
-    const result = await response.json();
+      const responseData = await response.json();
+      const commentName = responseData.message.name;
 
-    if (!response.ok) {
-      const errorMsg = result.exc_type 
-        ? `${result.exc_type}: ${result.message}`
-        : result.message || "Failed to add attachments";
-      throw new Error(errorMsg);
+      // Only proceed with attachments if there are any
+      if (attachments.length > 0) {
+        await addAttachmentsToComment(commentName, attachments);
+      }
+
+      console.log("Comment added successfully", { type: "success" });
+      setUploadedFiles([]);
+      setAttachments([]);
+      setComment("");
+
+      await refreshEmails();
+      if (onSuccess) onSuccess();
+    } catch (error) {
+      console.error("Error adding comment:", error);
+      console.log(error.message || "Failed to add comment", { type: "error" });
+    } finally {
+      setLoading(false);
     }
+  };
 
-    return result;
-  } catch (error) {
-    console.error("Error adding attachments:", error);
-    throw error;
-  }
-};
+  const addAttachmentsToComment = async (commentName: string, attachmentNames: string[]) => {
+    try {
+      const response = await fetch(
+        "https://api.erpnext.ai/api/method/crm.api.comment.add_attachments",
+        {
+          method: "POST",
+          headers: {
+            "Authorization": AUTH_TOKEN,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: commentName,  // Single string, not array
+            attachments: attachmentNames
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        const errorMsg = result.exc_type
+          ? `${result.exc_type}: ${result.message}`
+          : result.message || "Failed to add attachments";
+        throw new Error(errorMsg);
+      }
+
+      return result;
+    } catch (error) {
+      console.error("Error adding attachments:", error);
+      throw error;
+    }
+  };
 
 
-const handleDiscard = () => {
-  // Clear all input states
-  setComment("");
-  setUploadedFiles([]);
-  setAttachments([]);
-  
-  // Close the modal if onClose is provided
-  if (onClose) {
-    onClose();
-  }
-};
+  const handleDiscard = () => {
+    // Clear all input states
+    setComment("");
+    setUploadedFiles([]);
+    setAttachments([]);
 
-// const handleDiscard = () => {
-//   // Clear all input states
-//   setComment("");
-//   setUploadedFiles([]);
-//   setAttachments([]);
-//    setShowCommentModal(false);
-//   // Close the modal if onClose is provided
-//   if (onClose) {
-//     onClose();
-//   }
-// };
-// const addAttachmentsToComment = async (commentName: string[], attachmentNames: string[]) => {
-//   try {
-//     const response = await fetch("https://api.erpnext.ai/api/method/crm.api.comment.add_attachments", {
-//       method: "POST",
-//       headers: {
-//         "Authorization": AUTH_TOKEN,
-//         "Content-Type": "application/json",
-//       },
-//       body: JSON.stringify({
-//         name: commentName,
-//         attachments: attachmentNames
-//       }),
-//     });
+    // Close the modal if onClose is provided
+    if (onClose) {
+      onClose();
+    }
+  };
 
-//     const result = await response.json();
+  // const handleDiscard = () => {
+  //   // Clear all input states
+  //   setComment("");
+  //   setUploadedFiles([]);
+  //   setAttachments([]);
+  //    setShowCommentModal(false);
+  //   // Close the modal if onClose is provided
+  //   if (onClose) {
+  //     onClose();
+  //   }
+  // };
+  // const addAttachmentsToComment = async (commentName: string[], attachmentNames: string[]) => {
+  //   try {
+  //     const response = await fetch("https://api.erpnext.ai/api/method/crm.api.comment.add_attachments", {
+  //       method: "POST",
+  //       headers: {
+  //         "Authorization": AUTH_TOKEN,
+  //         "Content-Type": "application/json",
+  //       },
+  //       body: JSON.stringify({
+  //         name: commentName,
+  //         attachments: attachmentNames
+  //       }),
+  //     });
 
-//     if (response.ok) {
-//       showToast(result.message || "Attachments added successfully", { type: "success" });
-//       return result.message;
-//     } else {
-//       showToast(result.message || "Failed to add attachments", { type: "error" });
-//       throw new Error(result.message || "Failed to add attachments");
-//     }
-//   } catch (error) {
-//     console.error("Error adding attachments:", error);
-//     showToast("Error adding attachments", { type: "error" });
-//     throw error;
-//   }
-// };
+  //     const result = await response.json();
 
-// useEffect(()=>{
-// addAttachmentsToComment(attachments,attachmentsName)
-// },[attachments,attachmentsName])
+  //     if (response.ok) {
+  //       showToast(result.message || "Attachments added successfully", { type: "success" });
+  //       return result.message;
+  //     } else {
+  //       showToast(result.message || "Failed to add attachments", { type: "error" });
+  //       throw new Error(result.message || "Failed to add attachments");
+  //     }
+  //   } catch (error) {
+  //     console.error("Error adding attachments:", error);
+  //     showToast("Error adding attachments", { type: "error" });
+  //     throw error;
+  //   }
+  // };
+
+  // useEffect(()=>{
+  // addAttachmentsToComment(attachments,attachmentsName)
+  // },[attachments,attachmentsName])
 
 
 
@@ -413,48 +413,48 @@ const handleDiscard = () => {
         <EmailComposerleads
           // deal={deal}
           onClose={() => setShowReply(false)} // <-- add this
-          deal={undefined}        />
+          deal={undefined} />
       ) : (
         <div>
-             {uploadedFiles.length > 0 && (
-                            <div className="flex flex-wrap gap-3 mt-3 mb-2">
-                                {uploadedFiles.map((file, index) => (
-                                    <div
-                                        key={index}
-                                        className="flex items-center border text-white px-3 py-1 rounded bg-white-31"
-                                    >
-                                        <span className="mr-2 flex items-center gap-1 truncate max-w-[200px]">
-                                            📎 {file.name}
-                                        </span>
-                                        <button
-                                            onClick={() => {
-                                                setUploadedFiles((prev) => prev.filter((_, i) => i !== index));
-                                                // setEmailForm((prev) => ({
-                                                //     ...prev,
-                                                //     message: prev.message.replace(file.url, ""),
-                                                // }));
-                                            }}
-                                            className="text-white text-lg leading-none"
-                                        >
-                                            ×
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
+          {uploadedFiles.length > 0 && (
+            <div className="flex flex-wrap gap-3 mt-3 mb-2">
+              {uploadedFiles.map((file, index) => (
+                <div
+                  key={index}
+                  className={`flex items-center border px-3 py-1 rounded ${theme === 'dark'
+                      ? 'bg-gray-700 border-gray-600 text-white'
+                      : 'bg-gray-100 !border-gray-300 text-gray-800'
+                    }`}
+                >
+                  <span className={`mr-2 flex items-center gap-1 truncate max-w-[200px] ${theme === 'dark' ? 'text-gray-200' : '!text-gray-700'
+                    }`}>
+                    📎 {file.name}
+                  </span>
+                  <button
+                    onClick={() => {
+                      setUploadedFiles((prev) => prev.filter((_, i) => i !== index));
+                    }}
+                    className={`text-lg leading-none ${theme === 'dark' ? 'text-gray-300 hover:text-white' : 'text-gray-500 hover:text-gray-700'
+                      }`}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
 
           <textarea
-            className={`w-full h-40 rounded-md p-3 text-sm focus:outline-none focus:ring-1 ${theme === 'dark'
-              ? 'bg-white-31 border-gray-600 text-white focus:ring-gray-500'
-              : 'bg-white border border-gray-300 text-gray-800 focus:ring-gray-300'
+            className={`w-full h-40 rounded-md p-3 text-sm focus:outline-none focus:ring-1 placeholder:font-normal ${theme === 'dark'
+              ? 'bg-white-31 border-gray-600 text-white focus:ring-gray-500 placeholder:text-gray-400'
+              : 'bg-white border border-gray-300 !text-gray-800 focus:ring-gray-300 placeholder:!text-gray-500'
               }`}
-            
             value={comment}
-            placeholder={isFocused?"":`Hi john\n \nCan you please provide more details on this...`}
+            placeholder={isFocused ? "" : `Hi john\n \nCan you please provide more details on this...`}
             onChange={e => setComment(e.target.value)}
             disabled={loading}
-             onFocus={() => setIsFocused(true)}
-             onBlur={()=>setIsFocused(false)}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
           ></textarea>
           {/* Action Buttons */}
           <div
@@ -464,43 +464,43 @@ const handleDiscard = () => {
             <div className="flex items-center gap-4">
               {/* <Paperclip className="cursor-pointer" size={18} />
               <Smile className="cursor-pointer" size={18} /> */}
-                
-            <div className="flex items-center gap-4 relative">
-              {/* <Paperclip className="cursor-pointer" size={18} /> */}
-               <>
-                                              <Paperclip
-                                                  className="cursor-pointer"
-                                                  size={18}
-                                                  onClick={() => fileInputRef?.current?.click()}
-                                              />
-                                              <input
-                                                  type="file"
-                                                  ref={fileInputRef}
-                                                  onChange={handleFileChange}
 
-                                                  multiple
-                                                  style={{ display: "none" }}
-                                              />
-                                          </>
-              <Smile 
-                className="cursor-pointer" 
-                size={18} 
-                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-              />
-              {showEmojiPicker && (
-                <div ref={emojiPickerRef} className="absolute bottom-8 left-8 z-10">
-                  <EmojiPicker
-                    onEmojiClick={onEmojiClick}
-                    width={300}
-                    height={350}
-                    skinTonesDisabled
-                    searchDisabled={false}
-                    previewConfig={{ showPreview: false }}
-                    theme={theme === "dark" ? "dark" : "light"}
+              <div className="flex items-center gap-4 relative">
+                {/* <Paperclip className="cursor-pointer" size={18} /> */}
+                <>
+                  <Paperclip
+                    className="cursor-pointer"
+                    size={18}
+                    onClick={() => fileInputRef?.current?.click()}
                   />
-                </div>
-              )}
-            </div>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+
+                    multiple
+                    style={{ display: "none" }}
+                  />
+                </>
+                <Smile
+                  className="cursor-pointer"
+                  size={18}
+                  onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                />
+                {showEmojiPicker && (
+                  <div ref={emojiPickerRef} className="absolute bottom-8 left-8 z-10">
+                    <EmojiPicker
+                      onEmojiClick={onEmojiClick}
+                      width={300}
+                      height={350}
+                      skinTonesDisabled
+                      searchDisabled={false}
+                      previewConfig={{ showPreview: false }}
+                      theme={theme === "dark" ? "dark" : "light"}
+                    />
+                  </div>
+                )}
+              </div>
 
             </div>
             <div className="flex items-center gap-3">
@@ -525,11 +525,10 @@ const handleDiscard = () => {
                 Discard
               </button>
               <button
-               // className="bg-purplebg text-base font-semibold text-white px-5 py-2 rounded-md flex items-center gap-1 hover:bg-purple-700"
-                className={`bg-purplebg text-base font-semibold text-white px-5 py-2 rounded-md flex items-center gap-1 hover:bg-purple-700 ${
-                                    !hasMessageContent ? "opacity-50 cursor-not-allowed" : ""
-                                }`}
-               onClick={sendComment}
+                // className="bg-purplebg text-base font-semibold text-white px-5 py-2 rounded-md flex items-center gap-1 hover:bg-purple-700"
+                className={`bg-purplebg text-base font-semibold text-white px-5 py-2 rounded-md flex items-center gap-1 hover:bg-purple-700 ${!hasMessageContent ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
+                onClick={sendComment}
                 disabled={loading}
                 type="button"
               >

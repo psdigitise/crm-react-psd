@@ -12,6 +12,7 @@ import { ConvertToDealPopup } from './LeadsPopup/ConvertToDealPopup';
 import { AUTH_TOKEN } from '../api/apiUrl';
 import { api } from '../api/apiService';
 import { ExportPopup } from './LeadsPopup/ExportPopup';
+import { LinkedItemsPopup } from './LeadsPopup/LinkedItemsPopup';
 import axios from 'axios';
 
 // Add toast notification component
@@ -120,7 +121,7 @@ const getStatusColor = (status: string) => {
 };
 
 const defaultColumns: ColumnConfig[] = [
-  { key: 'name', label: 'Name', visible: true, sortable: true },
+  { key: 'name', label: 'Lead Name', visible: true, sortable: true },
   { key: 'organization', label: 'Organization', visible: true, sortable: true },
   { key: 'status', label: 'Status', visible: true, sortable: true },
   { key: 'email', label: 'Email', visible: true, sortable: true },
@@ -145,6 +146,12 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
   const [isAssignPopupOpen, setIsAssignPopupOpen] = useState(false);
   const [isClearAssignmentPopupOpen, setIsClearAssignmentPopupOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [linkedItems, setLinkedItems] = useState<any[]>([]);
+  const [isLinkedItemsPopupOpen, setIsLinkedItemsPopupOpen] = useState(false);
+  const [isUnlinking, setIsUnlinking] = useState(false);
+  const [isCheckingLinkedItems, setIsCheckingLinkedItems] = useState(false);
+  const [showDeleteLinkedConfirm, setShowDeleteLinkedConfirm] = useState(false);
+  const [leadsToDelete, setLeadsToDelete] = useState<string[]>([]);
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -167,6 +174,9 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
   const [isExportPopupOpen, setIsExportPopupOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [exportFormat, setExportFormat] = useState<'Excel' | 'CSV'>('Excel');
+
+
+
 
   // Mobile dropdown state
   const [expandedLeads, setExpandedLeads] = useState<Set<string>>(new Set());
@@ -270,15 +280,15 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
 
     if (lead_score !== undefined && lead_summary) {
       await saveLeadScore(lead.id, lead_score, lead_summary);
-      
+
       setLeads(prev =>
         prev.map(l =>
           l.id === lead.id
-            ? { 
-                ...l, 
-                lead_score: lead_score.toString(), 
-                lead_summary: lead_summary
-              }
+            ? {
+              ...l,
+              lead_score: lead_score.toString(),
+              lead_summary: lead_summary
+            }
             : l
         )
       );
@@ -384,14 +394,14 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
 
   const shouldRefreshScore = (lead: any): boolean => {
     if (!lead.lead_score || lead.lead_score === 'null') return true;
-    
+
     if (lead.modified) {
       const modifiedDate = new Date(lead.modified);
       const now = new Date();
       const daysSinceModification = (now.getTime() - modifiedDate.getTime()) / (1000 * 3600 * 24);
       return daysSinceModification < 7;
     }
-    
+
     return false;
   };
 
@@ -409,8 +419,8 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
             <button
               onClick={() => setShowImportPopup(false)}
               className={`p-1 rounded ${theme === 'dark'
-                  ? 'text-gray-400 hover:text-white'
-                  : 'text-gray-500 hover:text-gray-700'
+                ? 'text-gray-400 hover:text-white'
+                : 'text-gray-500 hover:text-gray-700'
                 }`}
             >
               <X className="w-5 h-5" />
@@ -428,8 +438,8 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
                 onClick={handleDownloadTemplate}
                 disabled={importStatus === 'Downloading template...'}
                 className={`flex items-center justify-center space-x-2 px-4 py-3 border-2 rounded-lg transition-colors ${theme === 'dark'
-                    ? 'border-purple-500 text-purple-400 hover:bg-purple-900/30'
-                    : 'border-blue-500 text-blue-600 hover:bg-blue-50'
+                  ? 'border-purple-500 text-purple-400 hover:bg-purple-900/30'
+                  : 'border-blue-500 text-blue-600 hover:bg-blue-50'
                   } ${importStatus === 'Downloading template...' ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 <Download className="w-5 h-5" />
@@ -442,8 +452,8 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
               <button
                 onClick={handleAttachFile}
                 className={`flex items-center justify-center space-x-2 px-4 py-3 border-2 rounded-lg transition-colors ${theme === 'dark'
-                    ? 'border-green-500 text-green-400 hover:bg-green-900/30'
-                    : 'border-green-500 text-green-600 hover:bg-green-50'
+                  ? 'border-green-500 text-green-400 hover:bg-green-900/30'
+                  : 'border-green-500 text-green-600 hover:bg-green-50'
                   }`}
               >
                 <Upload className="w-5 h-5" />
@@ -490,13 +500,13 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
             "export_fields": {
               "CRM Lead": [
                 "first_name",
-                "status",
                 "last_name",
                 "email",
                 "mobile_no",
                 "organization",
                 "website",
-                "annual_revenue"
+                "annual_revenue",
+                "status"
               ]
             },
             "export_filters": null
@@ -832,8 +842,8 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
                   value={manualMappings[column.column_name] || ''}
                   onChange={(e) => handleMappingChange(column.column_name, e.target.value)}
                   className={`ml-4 px-3 py-2 border rounded ${theme === 'dark'
-                      ? 'bg-gray-700 border-gray-600 text-white'
-                      : 'bg-white border-gray-300 text-gray-900'
+                    ? 'bg-gray-700 border-gray-600 text-white'
+                    : 'bg-white border-gray-300 text-gray-900'
                     }`}
                 >
                   <option value="">Select Field</option>
@@ -851,8 +861,8 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
             <button
               onClick={handleCancel}
               className={`px-4 py-2 border rounded-lg transition-colors ${theme === 'dark'
-                  ? 'border-gray-600 text-white hover:bg-gray-700'
-                  : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                ? 'border-gray-600 text-white hover:bg-gray-700'
+                : 'border-gray-300 text-gray-700 hover:bg-gray-50'
                 }`}
             >
               Cancel Import
@@ -861,10 +871,10 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
               onClick={handleMappingSubmit}
               disabled={Object.keys(manualMappings).length !== unmappedColumns.length}
               className={`px-4 py-2 rounded-lg transition-colors ${Object.keys(manualMappings).length !== unmappedColumns.length
-                  ? 'bg-gray-400 cursor-not-allowed'
-                  : theme === 'dark'
-                    ? 'bg-purple-600 text-white hover:bg-purple-700'
-                    : 'bg-purple-600 text-white hover:bg-purple-700'
+                ? 'bg-gray-400 cursor-not-allowed'
+                : theme === 'dark'
+                  ? 'bg-purple-600 text-white hover:bg-purple-700'
+                  : 'bg-purple-600 text-white hover:bg-purple-700'
                 }`}
             >
               Continue Import
@@ -940,36 +950,41 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
     ));
   };
 
-  const handleDeleteSelected = async () => {
-    if (!window.confirm(`Delete ${selectedIds.length} selected lead(s)?`)) return;
+  // Updated handleDeleteAfterUnlink function - just shows confirmation
+  const handleDeleteAfterUnlink = async () => {
+    // Show confirmation popup
+    setShowDeleteLinkedConfirm(true);
+  };
 
-    setLoading(true);
-    setError(null);
+
+  const handleConfirmDeleteLinkedItems = async () => {
+    setIsDeleting(true);
 
     try {
-      const session = getUserSession();
-      for (const id of selectedIds) {
-        const apiUrl = `https://api.erpnext.ai/api/v2/document/CRM Lead/${id}`;
-        const response = await fetch(apiUrl, {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': AUTH_TOKEN
-          }
-        });
-        if (!response.ok) {
-          throw new Error(`Failed to delete lead ${id}: ${response.statusText}`);
-        }
-      }
-      setSelectedIds([]);
-      fetchLeads();
+      // Delete the leads using ONLY frappe.client.delete
+      await deleteLeadsDirectly(leadsToDelete);
+
+      setShowDeleteLinkedConfirm(false);
+      setIsLinkedItemsPopupOpen(false);
+      setLinkedItems([]);
+      setLeadsToDelete([]);
+      showToast('Leads deleted successfully!', 'success');
+
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to delete leads';
-      setError(errorMessage);
-      showToast(errorMessage);
+      console.error("Error deleting leads after unlinking:", error);
+      showToast("Failed to delete leads after unlinking", "error");
     } finally {
-      setLoading(false);
+      setIsDeleting(false);
     }
+  };
+
+  // Update your Delete button click handler
+  const handleDeleteSelected = async () => {
+    if (selectedIds.length === 0) {
+      showToast("No leads selected", "error");
+      return;
+    }
+    await checkLinkedItems();
   };
 
   const getFilteredAndSortedData = () => {
@@ -1406,140 +1421,326 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
     }
   };
 
-  const handleDeleteConfirmation = async () => {
+  // const handleDeleteConfirmation = async () => {
+  //   if (selectedIds.length === 0) {
+  //     console.error("No leads selected for deletion.");
+  //     setIsDeletePopupOpen(false);
+  //     return;
+  //   }
+
+  //   setIsDeleting(true);
+
+  //   try {
+  //     const requestBody = {
+  //       doctype: "CRM Lead",
+  //       items: JSON.stringify(selectedIds),
+  //     };
+
+  //     const response = await fetch(
+  //       "https://api.erpnext.ai/api/method/frappe.desk.reportview.delete_items",
+  //       {
+  //         method: 'POST',
+  //         headers: {
+  //           'Content-Type': 'application/json',
+  //           'Authorization': AUTH_TOKEN
+  //         },
+  //         body: JSON.stringify(requestBody)
+  //       }
+  //     );
+
+  //     if (!response.ok) {
+  //       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+  //     }
+
+  //     const result = await response.json();
+  //     console.log("Leads deleted successfully:", result);
+
+  //     if (result && result.message === "ok") {
+  //       setIsDeletePopupOpen(false);
+  //       setSelectedIds([]);
+  //       setShowDropdown(false);
+  //       await fetchLeads();
+  //       showToast('Leads deleted successfully!', 'success');
+  //     } else {
+  //       throw new Error("Cannot delete or cancel because CRM Lead is linked with CRM Notification");
+  //     }
+
+  //   } catch (error: any) {
+  //     console.log("=== ERROR DETAILS ===");
+  //     console.log("Full error:", error);
+  //     console.log("Error response:", error.response?.data);
+
+  //     let errorMessage = "Deletion failed";
+
+  //     if (error.response?.data?._server_messages) {
+  //       console.log("_server_messages found:", error.response.data._server_messages);
+
+  //       try {
+  //         const serverMessages = error.response.data._server_messages;
+  //         let parsedMessages;
+
+  //         if (typeof serverMessages === 'string') {
+  //           parsedMessages = JSON.parse(serverMessages);
+  //         } else if (Array.isArray(serverMessages)) {
+  //           parsedMessages = serverMessages;
+  //         } else {
+  //           parsedMessages = [serverMessages];
+  //         }
+
+  //         console.log("Parsed messages:", parsedMessages);
+
+  //         if (Array.isArray(parsedMessages) && parsedMessages.length > 0) {
+  //           const firstMessage = parsedMessages[0];
+
+  //           if (typeof firstMessage === 'string') {
+  //             const cleanedJsonString = firstMessage
+  //               .replace(/\\"/g, '"')
+  //               .replace(/\\\\/g, '\\')
+  //               .replace(/^"|"$/g, '');
+
+  //             console.log("Cleaned JSON string:", cleanedJsonString);
+
+  //             try {
+  //               const messageObj = JSON.parse(cleanedJsonString);
+  //               console.log("Message object:", messageObj);
+
+  //               if (messageObj.message) {
+  //                 errorMessage = messageObj.message;
+  //                 errorMessage = errorMessage.replace(/<[^>]*>/g, '');
+  //               }
+  //             } catch (innerParseError) {
+  //               console.log("Inner parse failed, using string as is:", cleanedJsonString);
+  //               errorMessage = cleanedJsonString;
+  //             }
+  //           } else if (firstMessage.message) {
+  //             errorMessage = firstMessage.message;
+  //             errorMessage = errorMessage.replace(/<[^>]*>/g, '');
+  //           }
+  //         }
+  //       } catch (parseError) {
+  //         console.log("Parse error, trying fallback extraction:", parseError);
+  //         try {
+  //           const rawString = typeof error.response?.data?._server_messages === 'string'
+  //             ? error.response.data._server_messages
+  //             : JSON.stringify(error.response?.data?._server_messages || '');
+
+  //           const regex = /"message":\s*"([^"]*)"/;
+  //           const match = rawString.match(regex);
+  //           if (match && match[1]) {
+  //             errorMessage = match[1]
+  //               .replace(/<[^>]*>/g, '')
+  //               .replace(/\\"/g, '"')
+  //               .replace(/\\\\/g, '\\');
+  //           }
+  //         } catch (fallbackError) {
+  //           console.log("Fallback also failed");
+  //         }
+  //       }
+  //     }
+  //     else if (error.response?.data?.message) {
+  //       errorMessage = error.response.data.message;
+  //       errorMessage = errorMessage.replace(/<[^>]*>/g, '');
+  //     }
+  //     else if (error.response?.data?.exception) {
+  //       errorMessage = error.response.data.exception;
+  //     }
+  //     else if (error.message) {
+  //       errorMessage = error.message;
+  //     }
+
+  //     console.log("Final message to display:", errorMessage);
+
+  //     setIsDeletePopupOpen(false);
+  //     showToast(`${errorMessage}`, 'error');
+  //   } finally {
+  //     setIsDeleting(false);
+  //   }
+  // };
+
+  // Updated checkLinkedItems function
+  const checkLinkedItems = async () => {
     if (selectedIds.length === 0) {
-      console.error("No leads selected for deletion.");
-      setIsDeletePopupOpen(false);
+      showToast("No leads selected", "error");
       return;
     }
 
-    setIsDeleting(true);
+    setIsCheckingLinkedItems(true);
 
     try {
-      const requestBody = {
-        doctype: "CRM Lead",
-        items: JSON.stringify(selectedIds),
-      };
+      // Store the leads that need to be deleted after unlinking
+      setLeadsToDelete(selectedIds);
 
-      const response = await fetch(
-        "https://api.erpnext.ai/api/method/frappe.desk.reportview.delete_items",
+      // Check linked items for the first selected lead
+      const leadId = selectedIds[0];
+      console.log(`Checking linked items for lead: ${leadId}`);
+
+      const linkedDocsResponse = await fetch(
+        "https://api.erpnext.ai/api/method/crm.api.doc.get_linked_docs_of_document",
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': AUTH_TOKEN
           },
-          body: JSON.stringify(requestBody)
+          body: JSON.stringify({
+            doctype: "CRM Lead",
+            docname: leadId
+          })
         }
       );
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
+      if (linkedDocsResponse.ok) {
+        const linkedDocsResult = await linkedDocsResponse.json();
+        const items = linkedDocsResult.message || [];
 
-      const result = await response.json();
-      console.log("Leads deleted successfully:", result);
-
-      if (result && result.message === "ok") {
-        setIsDeletePopupOpen(false);
-        setSelectedIds([]);
-        setShowDropdown(false);
-        await fetchLeads();
-        showToast('Leads deleted successfully!', 'success');
+        if (items.length > 0) {
+          setLinkedItems(items);
+          setIsLinkedItemsPopupOpen(true);
+        } else {
+          // No linked items, proceed directly to delete using frappe.client.delete
+          await deleteLeadsDirectly(selectedIds);
+        }
       } else {
-        throw new Error("Cannot delete or cancel because CRM Lead is linked with CRM Notification");
+        throw new Error("Failed to fetch linked items");
       }
+    } catch (error) {
+      console.error("Error checking linked items:", error);
+      showToast("Failed to check linked items", "error");
+    } finally {
+      setIsCheckingLinkedItems(false);
+    }
+  };
+
+  // Function to delete leads directly (when no linked items)
+  const deleteLeadsDirectly = async (leadIds: string[]) => {
+    setIsDeleting(true);
+
+    try {
+      // Delete each lead individually using ONLY frappe.client.delete
+      for (const leadId of leadIds) {
+        const deleteResponse = await fetch(
+          "https://api.erpnext.ai/api/method/frappe.client.delete",
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': AUTH_TOKEN
+            },
+            body: JSON.stringify({
+              doctype: "CRM Lead",
+              name: leadId
+            })
+          }
+        );
+
+        if (!deleteResponse.ok) {
+          const errorData = await deleteResponse.json();
+          throw new Error(errorData.message || `Failed to delete lead ${leadId}`);
+        }
+
+        const result = await deleteResponse.json();
+        console.log(`Lead ${leadId} deleted successfully:`, result);
+      }
+
+      setSelectedIds([]);
+      setShowDropdown(false);
+      await fetchLeads();
+      showToast('Leads deleted successfully!', 'success');
 
     } catch (error: any) {
-      console.log("=== ERROR DETAILS ===");
-      console.log("Full error:", error);
-      console.log("Error response:", error.response?.data);
-
-      let errorMessage = "Deletion failed";
-
-      if (error.response?.data?._server_messages) {
-        console.log("_server_messages found:", error.response.data._server_messages);
-
-        try {
-          const serverMessages = error.response.data._server_messages;
-          let parsedMessages;
-
-          if (typeof serverMessages === 'string') {
-            parsedMessages = JSON.parse(serverMessages);
-          } else if (Array.isArray(serverMessages)) {
-            parsedMessages = serverMessages;
-          } else {
-            parsedMessages = [serverMessages];
-          }
-
-          console.log("Parsed messages:", parsedMessages);
-
-          if (Array.isArray(parsedMessages) && parsedMessages.length > 0) {
-            const firstMessage = parsedMessages[0];
-
-            if (typeof firstMessage === 'string') {
-              const cleanedJsonString = firstMessage
-                .replace(/\\"/g, '"')
-                .replace(/\\\\/g, '\\')
-                .replace(/^"|"$/g, '');
-
-              console.log("Cleaned JSON string:", cleanedJsonString);
-
-              try {
-                const messageObj = JSON.parse(cleanedJsonString);
-                console.log("Message object:", messageObj);
-
-                if (messageObj.message) {
-                  errorMessage = messageObj.message;
-                  errorMessage = errorMessage.replace(/<[^>]*>/g, '');
-                }
-              } catch (innerParseError) {
-                console.log("Inner parse failed, using string as is:", cleanedJsonString);
-                errorMessage = cleanedJsonString;
-              }
-            } else if (firstMessage.message) {
-              errorMessage = firstMessage.message;
-              errorMessage = errorMessage.replace(/<[^>]*>/g, '');
-            }
-          }
-        } catch (parseError) {
-          console.log("Parse error, trying fallback extraction:", parseError);
-          try {
-            const rawString = typeof error.response?.data?._server_messages === 'string'
-              ? error.response.data._server_messages
-              : JSON.stringify(error.response?.data?._server_messages || '');
-
-            const regex = /"message":\s*"([^"]*)"/;
-            const match = rawString.match(regex);
-            if (match && match[1]) {
-              errorMessage = match[1]
-                .replace(/<[^>]*>/g, '')
-                .replace(/\\"/g, '"')
-                .replace(/\\\\/g, '\\');
-            }
-          } catch (fallbackError) {
-            console.log("Fallback also failed");
-          }
-        }
-      }
-      else if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
-        errorMessage = errorMessage.replace(/<[^>]*>/g, '');
-      }
-      else if (error.response?.data?.exception) {
-        errorMessage = error.response.data.exception;
-      }
-      else if (error.message) {
-        errorMessage = error.message;
-      }
-
-      console.log("Final message to display:", errorMessage);
-
-      setIsDeletePopupOpen(false);
-      showToast(`${errorMessage}`, 'error');
+      console.error("Delete error:", error);
+      showToast(`Deletion failed: ${error.message}`, 'error');
     } finally {
       setIsDeleting(false);
     }
+  };
+
+  const handleUnlinkAll = async (): Promise<void> => {
+  setIsUnlinking(true);
+
+  try {
+    // STEP 1: Unlink items using remove_linked_doc_reference WITHOUT deleting
+    const itemsToUnlink = linkedItems.map((item: any) => ({
+      doctype: item.reference_doctype,
+      docname: item.reference_docname
+    }));
+
+    if (itemsToUnlink.length > 0) {
+      const unlinkResponse = await fetch(
+        "https://api.erpnext.ai/api/method/crm.api.doc.remove_linked_doc_reference",
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': AUTH_TOKEN
+          },
+          body: JSON.stringify({
+            items: itemsToUnlink,
+            remove_contact: false,
+            delete: false
+          })
+        }
+      );
+
+      if (!unlinkResponse.ok) {
+        throw new Error("Failed to unlink items");
+      }
+
+      const unlinkResult = await unlinkResponse.json();
+      console.log("Unlink response:", unlinkResult);
+
+      // STEP 2: Verify unlinking was successful
+      const leadId = leadsToDelete[0];
+      const verifyResponse = await fetch(
+        "https://api.erpnext.ai/api/method/crm.api.doc.get_linked_docs_of_document",
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': AUTH_TOKEN
+          },
+          body: JSON.stringify({
+            doctype: "CRM Lead",
+            docname: leadId
+          })
+        }
+      );
+
+      if (verifyResponse.ok) {
+        const verifyResult = await verifyResponse.json();
+        const remainingItems = verifyResult.message || [];
+
+        if (remainingItems.length === 0) {
+          // STEP 3: All items unlinked successfully - close the popup and show toast
+          showToast('Items unlinked successfully!', 'success');
+          
+          // Close the LinkedItemsPopup automatically
+          setIsLinkedItemsPopupOpen(false);
+          setLinkedItems([]);
+          
+          return; // Resolve the promise
+        } else {
+          throw new Error("Some items could not be unlinked");
+        }
+      } else {
+        throw new Error("Failed to verify unlinking");
+      }
+    }
+  } catch (error) {
+    console.error("Error unlinking items:", error);
+    showToast("Failed to unlink items", "error");
+    throw error; // Re-throw the error
+  } finally {
+    setIsUnlinking(false);
+  }
+};
+
+  // Remove the old handleDeleteConfirmation function and replace it with:
+  const handleDeleteConfirmation = async () => {
+    // This function is now only called from DeleteLeadPopup
+    // It should directly delete without checking linked items
+    await deleteLeadsDirectly(selectedIds);
+    setIsDeletePopupOpen(false);
   };
 
   const transformApiData = (apiData: any[]): Lead[] => {
@@ -1616,6 +1817,56 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
         />
       )}
 
+      {showDeleteLinkedConfirm && (
+  <div className="fixed inset-0 z-[70] flex items-center justify-center overflow-y-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" />
+    <div className={`relative transform overflow-hidden rounded-lg text-left shadow-xl transition-all w-full max-w-md mx-4 ${theme === 'dark' ? 'bg-gray-900' : 'bg-white'
+      }`}>
+      <div className="p-6">
+        <h3 className={`text-lg font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+          }`}>
+          Delete Lead
+        </h3>
+        <p className={`text-sm mb-6 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+          }`}>
+          Are you sure you want to delete this Lead?
+        </p>
+
+        <div className="flex justify-end space-x-3">
+          <button
+            type="button"
+            onClick={() => setShowDeleteLinkedConfirm(false)}
+            className={`px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${theme === 'dark'
+              ? 'border-gray-600 text-white hover:bg-gray-700'
+              : 'border-gray-300 text-gray-700 hover:bg-gray-100'
+              }`}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleConfirmDeleteLinkedItems}
+            disabled={isDeleting}
+            className={`px-4 py-2 text-sm font-medium rounded-lg border transition-colors flex items-center ${theme === 'dark'
+              ? 'border-red-500 bg-red-600 text-white hover:bg-red-700'
+              : 'border-red-500 bg-red-600 text-white hover:bg-red-700'
+              } disabled:opacity-50 disabled:cursor-not-allowed`}
+          >
+            {isDeleting ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Deleting...
+              </>
+            ) : (
+              'Delete'
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+
       {/* Import Popup */}
       {showImportPopup && <ImportPopup />}
 
@@ -1684,7 +1935,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
               <div className="absolute right-0 bottom-10 bg-white dark:bg-gray-700 shadow-lg rounded-md border dark:border-gray-600 py-1 w-40 z-50">
                 <button
                   onClick={() => {
-                    setIsDeletePopupOpen(true);
+                    handleDeleteSelected();
                     setShowDropdown(false);
                   }}
                   className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">
@@ -1708,7 +1959,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
                 >
                   Clear Assignment
                 </button>
-                <button
+                {/* <button
                   onClick={() => {
                     setIsConvertToDealPopupOpen(true);
                     setShowDropdown(false);
@@ -1716,7 +1967,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
                   className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600"
                 >
                   Convert To Deal
-                </button>
+                </button> */}
               </div>
             )}
 
@@ -1764,12 +2015,15 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
           >
             <Download className="w-4 h-4" />
             <span>Import</span>
+
           </button>
 
           <div className="relative">
+
             <button
               onClick={() => setShowFilters(!showFilters)}
               className={`px-3 py-2 text-sm border rounded-lg transition-colors flex items-center space-x-1 ${Object.values(filters).some(arr => arr.length > 0)
+
                 ? theme === 'dark'
                   ? 'border-purple-500 bg-purplebg/30 text-purple-300'
                   : 'border-blue-500 bg-blue-50 text-blue-700'
@@ -1777,6 +2031,8 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
                   ? 'border-purple-500/30 text-white hover:bg-purple-800/50'
                   : 'border-gray-300 hover:bg-gray-50'
                 }`}
+
+
             >
               <Filter className="w-4 h-4" />
               <span>Filter</span>
@@ -1785,7 +2041,9 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
                   {Object.values(filters).reduce((sum, arr) => sum + arr.length, 0)}
                 </span>
               )}
+
             </button>
+
 
             {showFilters && (
               <div className={`absolute top-full left-0 mt-2 w-80 rounded-lg shadow-lg z-10 p-4 ${theme === 'dark'
@@ -1802,9 +2060,14 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
                     >
                       Clear All
                     </button>
+
                     <button
                       onClick={() => setShowFilters(false)}
-                      className={theme === 'dark' ? 'text-white hover:text-white' : 'text-white hover:text-gray-600'}
+                      // className={theme === 'dark' ? 'text-white hover:text-white' : 'text-white hover:text-gray-600'}
+                      className={`p-1 rounded ${theme === 'dark'
+                        ? 'text-gray-400 hover:text-white'
+                        : 'text-gray-500 hover:text-gray-700'
+                        }`}
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -1869,7 +2132,11 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
                   <h3 className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Manage Columns</h3>
                   <button
                     onClick={() => setShowColumnSettings(false)}
-                    className={theme === 'dark' ? 'text-white hover:text-white' : 'text-white hover:text-gray-600'}
+                    // className={theme === 'dark' ? 'text-white hover:text-white' : 'text-white hover:text-gray-600'}
+                    className={`p-1 rounded ${theme === 'dark'
+                      ? 'text-gray-400 hover:text-white'
+                      : 'text-gray-500 hover:text-gray-700'
+                      }`}
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -2238,10 +2505,28 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
       <DeleteLeadPopup
         isOpen={isDeletePopupOpen}
         onClose={() => setIsDeletePopupOpen(false)}
-        onConfirm={handleDeleteConfirmation}
+        onConfirm={handleDeleteConfirmation} // This now calls deleteLeadsDirectly
         isLoading={isDeleting}
         theme={theme}
       />
+      <LinkedItemsPopup
+        isOpen={isLinkedItemsPopupOpen}
+        onClose={() => {
+          setIsLinkedItemsPopupOpen(false);
+          setLinkedItems([]);
+          setLeadsToDelete([]);
+        }}
+        linkedItems={linkedItems}
+        onUnlinkAll={handleUnlinkAll}
+        isUnlinking={isUnlinking}
+        theme={theme}
+        selectedIds={leadsToDelete}
+        onDeleteAfterUnlink={() => {
+          // This will show the final delete confirmation popup after unlinking
+          setShowDeleteLinkedConfirm(true);
+        }}
+      />
+
       <AssignToPopup
         isOpen={isAssignPopupOpen}
         onClose={() => setIsAssignPopupOpen(false)}

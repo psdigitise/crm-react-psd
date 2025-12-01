@@ -8,7 +8,7 @@ interface DeleteAttachmentPopupProps {
         name: string;
     };
     theme?: 'light' | 'dark';
-    fetchAttachments: any,
+    fetchAttachments: any;
 }
 
 export const DeleteAttachmentPopup: React.FC<DeleteAttachmentPopupProps> = ({
@@ -27,7 +27,7 @@ export const DeleteAttachmentPopup: React.FC<DeleteAttachmentPopupProps> = ({
                 '/api/method/frappe.client.delete',
                 {
                     doctype: "File",
-                    name: attachment.name // Using the file ID from attachment object
+                    name: attachment.name
                 },
                 {
                     headers: {
@@ -43,84 +43,75 @@ export const DeleteAttachmentPopup: React.FC<DeleteAttachmentPopupProps> = ({
             }
         } catch (error) {
             console.error('Error deleting attachment:', error);
-            // You might want to show an error message here
         } finally {
             setIsDeleting(false);
         }
     };
+
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto">
-            {/* Overlay */}
-            <div 
-                className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" 
-                onClick={closePopup} 
-            />
-            
-            {/* Modal Content */}
-            <div 
-                className={`relative border border-gray-400 transform overflow-hidden rounded-lg text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg ${
-                    theme === 'dark' ? 'bg-dark-secondary' : 'bg-white'
-                }`}
-            >
-                <div className={`px-4 pt-5 pb-4 sm:p-6 sm:pb-4 ${
-                    theme === 'dark' ? 'bg-dark-secondary' : 'bg-white'
-                }`}>
-                    {/* Close Button */}
-                    <div className="absolute top-0 right-0 pt-4 pr-4">
-                        <button
-                            type="button"
-                            className={`rounded-md ${
-                                theme === 'dark' ? 'text-white' : 'text-gray-400'
-                            } hover:text-gray-500 focus:outline-none`}
-                            onClick={closePopup}
-                        >
-                            <IoCloseOutline size={24} />
-                        </button>
-                    </div>
-                    
-                    {/* Header */}
-                    <h3 className={`text-xl font-bold mb-4 ${
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className={`rounded-lg p-6 w-full max-w-md mx-4 ${
+                theme === 'dark' 
+                    ? 'bg-dark-accent border border-purple-500/30' 
+                    : 'bg-white border border-gray-200'
+            }`}>
+                {/* Header */}
+                <div className="flex items-center justify-between mb-4">
+                    <h2 className={`text-lg font-semibold ${
                         theme === 'dark' ? 'text-white' : 'text-gray-900'
                     }`}>
                         Delete Attachment
-                    </h3>
-                    
-                    {/* Content */}
-                    <div className="mt-2">
-                        <p className={`text-lg ${
-                            theme === 'dark' ? 'text-white' : 'text-gray-500'
-                        }`}>
-                            Are you sure you want to delete this attachment?
-                        </p>
-                    </div>
-                </div>
-                
-                {/* Footer with action buttons */}
-                <div className={`px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse ${
-                    theme === 'dark' ? 'bg-dark-tertiary' : 'bg-gray-50'
-                }`}>
+                    </h2>
                     <button
-                        type="button"
-                        onClick={handleDelete}
+                        onClick={closePopup}
+                        className={`p-1 rounded-full ${
+                            theme === 'dark' 
+                                ? 'text-white hover:bg-purple-800/50' 
+                                : 'text-gray-500 hover:bg-gray-100'
+                        }`}
                         disabled={isDeleting}
-                        className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50"
                     >
-                        {isDeleting ? 'Deleting...' : 'Delete'}
+                        <IoCloseOutline className="w-5 h-5" />
                     </button>
+                </div>
+
+                {/* Content */}
+                <div className="mb-6">
+                    <p className={`text-sm ${
+                        theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                    }`}>
+                        Are you sure you want to delete this attachment? This action cannot be undone.
+                    </p>
+                </div>
+
+                {/* Actions */}
+                <div className="flex justify-end space-x-3">
                     <button
-                        type="button"
                         onClick={closePopup}
                         disabled={isDeleting}
-                        className={`mt-3 w-full inline-flex justify-center rounded-md border shadow-sm px-4 py-2 text-base font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm ${
+                        className={`px-4 py-2 text-sm rounded-lg transition-colors ${
                             theme === 'dark'
-                                ? 'border-purple-500/30 bg-dark-accent text-white hover:bg-purple-800/50'
-                                : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                                ? 'text-white hover:bg-purple-800/50 border border-purple-500/30'
+                                : 'text-gray-700 hover:bg-gray-100 border border-gray-300'
                         }`}
                     >
                         Cancel
+                    </button>
+                    <button
+                        onClick={handleDelete}
+                        disabled={isDeleting}
+                        className={`px-4 py-2 text-sm rounded-lg transition-colors flex items-center space-x-2 ${
+                            theme === 'dark'
+                                ? 'bg-red-600 text-white hover:bg-red-700'
+                                : 'bg-red-600 text-white hover:bg-red-700'
+                        }`}
+                    >
+                        <span>{isDeleting ? 'Deleting...' : 'Delete'}</span>
                     </button>
                 </div>
             </div>
         </div>
     );
 };
+
+export default DeleteAttachmentPopup;

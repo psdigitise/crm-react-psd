@@ -67,10 +67,7 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
     const [isAddingNote, setIsAddingNote] = useState(false);
     const [isEditingNote, setIsEditingNote] = useState(false);
     const [isEditingTask, setIsEditingTask] = useState(false);
-    // const [note, setNote] = useState<Note | null>(null);
-    // Inside the CallDetailsPopup component
-    const [note, setNote] = useState(call._notes || []);// Changed to handle an array of notes
-    console.log("note", note)
+    const [note, setNote] = useState(call._notes || []);
     const [tasks, setTasks] = useState<Task[]>(call._tasks || []);
     const [isLoading, setIsLoading] = useState(false);
     const [taskForm, setTaskForm] = useState({
@@ -87,14 +84,13 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
         content: ''
     });
     const [userOptions, setUserOptions] = useState<{ value: string; label: string; }[]>([]);
-    // Fetches tasks and sets notes from props when the component mounts
+
     useEffect(() => {
         console.log("=== CallDetailsPopup Mount ===");
         console.log("Call prop:", call);
         console.log("Call._notes:", call._notes);
         console.log("Call._tasks:", call._tasks);
 
-        // Initialize with the data from props
         setNote(call._notes || []);
         setTasks(call._tasks || []);
     }, [call._notes, call._tasks]);
@@ -104,7 +100,6 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
 
         setIsLoading(true);
         try {
-            // --- First API Call: Insert the note ---
             const insertPayload = {
                 doc: {
                     doctype: "FCRM Note",
@@ -131,15 +126,11 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
             }
 
             const insertData = await insertResponse.json();
-            const createdNote = insertData.message; // This is the note object from the response
-
-            // --- Second API Call: Add note to call log ---
-            // This call is made only if the first one was successful
-            console.log("Preparing to add note to call log...");
+            const createdNote = insertData.message;
 
             const addToCallLogPayload = {
-                call_sid: call.name || "", // Using call.id from props as the call_sid
-                note: createdNote        // Using the full 'message' object from the first API response
+                call_sid: call.name || "",
+                note: createdNote
             };
 
             const addToCallLogResponse = await fetch('https://api.erpnext.ai/api/method/crm.integrations.api.add_note_to_call_log', {
@@ -158,9 +149,7 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
             }
 
             console.log("Successfully linked note to call log.");
-            // --- Both API calls were successful, now update the UI ---
-
-
+            
             setNoteForm({ name: '', title: '', content: '' });
             setIsAddingNote(false);
             onClose();
@@ -180,15 +169,13 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
         }
     };
 
-    // Inside the CallDetailsPopup component
-
     const handleEditNote = async () => {
         if (!noteForm.title || !note || note.length === 0) return;
 
         setIsLoading(true);
 
         try {
-            const noteToUpdate = note[0]; // Get the first note from the array
+            const noteToUpdate = note[0];
             const payload = {
                 doctype: "FCRM Note",
                 name: noteToUpdate.name,
@@ -216,22 +203,17 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
             const data = await response.json();
             console.log("Note updated successfully:", data.message);
 
-            // Update the local state with the edited note data
             const updatedNotes = note.map((n) =>
                 n.name === noteToUpdate.name ? { ...n, title: noteForm.title, content: noteForm.content } : n
             );
             setNote(updatedNotes);
 
-            // Reset form and state
             setNoteForm({ name: '', title: '', content: '' });
-            onClose(); // Close the popup after successful update
+            onClose();
             setIsEditingNote(false);
             if (fetchCallLogs && typeof fetchCallLogs === 'function') {
                 await fetchCallLogs();
             }
-
-
-
 
         } catch (error: any) {
             console.error("Error updating note:", error);
@@ -240,8 +222,6 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
             setIsLoading(false);
         }
     };
-
-    // ... rest of the component
 
     const handleEditTask = async () => {
         if (!taskForm.title || !tasks || tasks.length === 0) return;
@@ -295,7 +275,6 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
         }
     };
 
-
     const toggleMenu = () => setOpenMenu((prev) => !prev);
 
     const handleAddTaskClick = () => {
@@ -321,9 +300,8 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
         setIsAddingNote(false);
         setIsEditingNote(false);
 
-
-        if (tasks.length > 0) { // Check if there are any tasks
-            const firstTask = tasks[0]; // Get the first task
+        if (tasks.length > 0) {
+            const firstTask = tasks[0];
             const dueDate = firstTask.due_date ? firstTask.due_date.split(' ')[0] : '';
             setTaskForm({
                 title: firstTask.title,
@@ -348,7 +326,6 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
     const handleEditNoteClick = () => {
         setOpenMenu(false);
 
-        // Get the first note if there are multiple
         const firstNote = note && note.length > 0 ? note[0] : null;
 
         setNoteForm({
@@ -360,6 +337,36 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
         setIsAddingNote(false);
         setShowAddTask(false);
         setIsEditingTask(false);
+    };
+
+    // NEW: Handle clicking on existing note to edit
+    const handleNoteClick = (noteItem: Note) => {
+        setNoteForm({
+            name: noteItem.name,
+            title: noteItem.title,
+            content: noteItem.content
+        });
+        setIsEditingNote(true);
+        setIsAddingNote(false);
+        setShowAddTask(false);
+        setIsEditingTask(false);
+    };
+
+    // NEW: Handle clicking on existing task to edit
+    const handleTaskClick = (taskItem: Task) => {
+        const dueDate = taskItem.due_date ? taskItem.due_date.split(' ')[0] : '';
+        setTaskForm({
+            title: taskItem.title,
+            description: taskItem.description,
+            status: taskItem.status,
+            priority: taskItem.priority,
+            due_date: dueDate,
+            assigned_to: taskItem.assigned_to
+        });
+        setShowAddTask(true);
+        setIsEditingTask(true);
+        setIsAddingNote(false);
+        setIsEditingNote(false);
     };
 
     const handleTaskSubmit = async () => {
@@ -374,9 +381,6 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
         setIsLoading(true);
 
         try {
-
-
-            // First API Call: Create the task
             const payload = {
                 doc: {
                     doctype: "CRM Task",
@@ -409,11 +413,10 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
             const data = await response.json();
             console.log("Task created successfully:", data.message);
 
-            // Second API Call: Add task to call log
             try {
                 const addToCallLogPayload = {
-                    call_sid: call.name || "", // Use call.name as call_sid
-                    task: data.message // Pass the entire task object from the first API response
+                    call_sid: call.name || "",
+                    task: data.message
                 };
 
                 const addToCallLogResponse = await fetch('https://api.erpnext.ai/api/method/crm.integrations.api.add_task_to_call_log', {
@@ -438,7 +441,6 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
                 onClose();
                 if (onTaskCreated) onTaskCreated();
                 if (fetchCallLogs) await fetchCallLogs();
-
 
                 console.log("Successfully linked task to call log.");
             } catch (linkError: any) {
@@ -473,7 +475,6 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
                         txt: "",
                         doctype: "User",
                         filters: sessionCompany ? { company: sessionCompany } : null
-                        //company: sessionCompany
                     },
                     {
                         headers: {
@@ -481,19 +482,15 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
                             'Content-Type': 'application/json'
                         }
                     }
-                    // ... headers
                 );
 
                 const data = response.data;
-
-                // Map the response to the correct { value, label } format
                 const options = data.message.map((item: { value: string; description: string; }) => ({
-                    value: item.value,       // The email to send to the backend
-                    label: item.description  // The full name to show in the dropdown
+                    value: item.value,
+                    label: item.description
                 }));
 
-                setUserOptions(options); // Set the new state
-
+                setUserOptions(options);
             } catch (err) {
                 console.error('Error fetching users:', err);
                 showToast('Failed to load user list', { type: 'error' });
@@ -505,16 +502,13 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto">
-            {/* Overlay */}
             <div
                 className="fixed inset-0 bg-black bg-opacity-50"
                 onClick={onClose}
             />
 
-            {/* Modal */}
             <div className={`relative rounded-lg shadow-xl sm:my-8 sm:w-full sm:max-w-lg ${theme === 'dark' ? 'bg-dark-secondary' : 'bg-white'}`}>
 
-                {/* Top right controls */}
                 <div className="absolute top-0 right-0 flex items-center gap-2 p-4">
                     <button
                         type="button"
@@ -540,30 +534,34 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
                     </button>
                 </div>
 
-                {/* Dropdown menu */}
                 {openMenu && (
                     <div
                         className="absolute top-12 right-4 w-32 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-10"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        {tasks && tasks.length > 0 ? (
-                            <button
-                                onClick={handleEditTaskClick}
-                                className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 w-full text-left">
-                                <FaRegCheckCircle className="w-4 h-4 text-gray-600 dark:text-white" />
-                                <span className={`${theme === "dark" ? "text-white" : "text-gray-900"}`}>Edit Task</span>
-                            </button>
-                        ) : (
-                            <button
-                                onClick={handleAddTaskClick}
-                                className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 w-full text-left">
-                                <FaRegCheckCircle className="w-4 h-4 text-gray-600 dark:text-white" />
-                                <span className={`${theme === "dark" ? "text-white" : "text-gray-900"}`}>Add Task</span>
-                            </button>
-                        )}
+                        {/* Tasks Section */}
+                        <div className="border-b border-gray-200 dark:border-gray-700">
+                            {tasks && tasks.length > 0 ? (
+                                <button
+                                    onClick={handleEditTaskClick}
+                                    className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 w-full text-left"
+                                >
+                                    <FaRegCheckCircle className="w-4 h-4 text-gray-600 dark:text-white" />
+                                    <span className={`${theme === "dark" ? "text-white" : "text-gray-900"}`}>Edit Task</span>
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={handleAddTaskClick}
+                                    className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 w-full text-left"
+                                >
+                                    <FaRegCheckCircle className="w-4 h-4 text-gray-600 dark:text-white" />
+                                    <span className={`${theme === "dark" ? "text-white" : "text-gray-900"}`}>Add Task</span>
+                                </button>
+                            )}
+                        </div>
 
-                        <div className="flex justify-between items-center">
-                            {/* FIXED: Check if notes array has any items */}
+                        {/* Notes Section */}
+                        <div>
                             {note && note.length > 0 ? (
                                 <button
                                     onClick={handleEditNoteClick}
@@ -585,7 +583,6 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
                     </div>
                 )}
 
-                {/* Modal Content */}
                 <div className="p-6 pt-12">
                     <h3 className={`text-xl font-bold mb-4 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
                         {showAddTask ? (isEditingTask ? 'Edit Task' : 'Create Task') :
@@ -595,7 +592,6 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
                     {showAddTask ? (
                         <>
                             {/* Task Form */}
-                            {/* Title */}
                             <div className="mb-4">
                                 <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
                                     Title <span className="text-red-500">*</span>
@@ -612,7 +608,6 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
                                 />
                             </div>
 
-                            {/* Description */}
                             <div className="mb-4">
                                 <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
                                     Description
@@ -629,9 +624,7 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
                                 />
                             </div>
 
-                            {/* Fields Row */}
                             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                                {/* Status */}
                                 <div>
                                     <label className={`block text-sm font-medium mb-2  ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
                                         Status
@@ -667,7 +660,6 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
                                     </select>
                                 </div>
 
-                                {/* Priority */}
                                 <div>
                                     <label className={`block text-sm font-medium mb-2  ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
                                         Priority
@@ -695,23 +687,21 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
                                     </select>
                                 </div>
 
-                                {/* Due Date */}
                                 <div>
-                                    <label className={`block text-sm font-medium mb-2  ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                                    <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
                                         Date
                                     </label>
                                     <input
                                         type="date"
                                         value={taskForm.due_date}
                                         onChange={(e) => setTaskForm({ ...taskForm, due_date: e.target.value })}
-                                        className={`w-full px-2 py-2 rounded-lg ${theme === 'dark'
-                                            ? 'bg-gray-800 border border-gray-600 text-white'
-                                            : 'bg-gray-100 border border-gray-300 text-gray-900'
+                                        className={`w-full px-3 py-2 rounded-lg border focus:ring-2 focus:ring-purple-500 focus:border-transparent ${theme === 'dark'
+                                            ? 'bg-gray-800 border-gray-600 text-white [color-scheme:dark]'
+                                            : 'bg-white border-gray-300 text-gray-900 [color-scheme:light]'
                                             }`}
                                     />
                                 </div>
 
-                                {/* Assigned To */}
                                 <div>
                                     <label className={`block text-sm font-medium mb-2  ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
                                         Assigned To
@@ -732,17 +722,18 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
                                                 {user.label}
                                             </option>
                                         ))}
-
                                     </select>
                                 </div>
                             </div>
 
-                            {/* Create Button */}
                             <div className="mt-4">
                                 <button
                                     onClick={handleTaskSubmit}
                                     disabled={!taskForm.title || isLoading}
-                                    className="w-full py-3 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
+                                    className={`w-full py-3 rounded-lg font-medium transition-colors duration-200 ${theme === 'dark'
+                                            ? 'bg-purple-600 hover:bg-purple-700 text-white '
+                                            : 'bg-blue-600 hover:bg-blue-700 text-white '
+                                        } disabled:cursor-not-allowed`}
                                 >
                                     {isLoading ? 'Processing...' : (isEditingTask ? 'Update' : 'Create')}
                                 </button>
@@ -751,7 +742,6 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
                     ) : isAddingNote || isEditingNote ? (
                         <>
                             {/* Note Form */}
-                            {/* Title */}
                             <div className="mb-4">
                                 <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
                                     Title <span className="text-red-500">*</span>
@@ -761,14 +751,13 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
                                     value={noteForm.title}
                                     onChange={(e) => setNoteForm({ ...noteForm, title: e.target.value })}
                                     placeholder="Call with John Doe"
-                                    className={`w-full px-3 py-2 rounded-lg border focus:ring-2 focus:ring-purple-500 focus:border-transparent ${theme === 'dark'
-                                        ? 'bg-gray-800 border-gray-600 text-white'
-                                        : 'bg-white border-gray-300 text-gray-900'
-                                        }`}
+                                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
+                            ? 'bg-gray-800 border-gray-600 text-white !placeholder-gray-400'
+                            : 'bg-white border-gray-300 text-gray-900 !placeholder-gray-500'
+                            }`} 
                                 />
                             </div>
 
-                            {/* Content */}
                             <div className="mb-4">
                                 <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
                                     Content
@@ -778,19 +767,21 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
                                     onChange={(e) => setNoteForm({ ...noteForm, content: e.target.value })}
                                     placeholder="Took a call with John Doe and discussed the new project"
                                     rows={6}
-                                    className={`w-full px-3 py-2 rounded-lg border focus:ring-2 focus:ring-purple-500 focus:border-transparent ${theme === 'dark'
-                                        ? 'bg-gray-800 border-gray-600 text-white'
-                                        : 'bg-white border-gray-300 text-gray-900'
-                                        }`}
+                                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
+                            ? 'bg-gray-800 border-gray-600 text-white !placeholder-gray-400'
+                            : 'bg-white border-gray-300 text-gray-900 !placeholder-gray-500'
+                            }`}
                                 />
                             </div>
 
-                            {/* Create Button */}
                             <div className="mt-4">
                                 <button
                                     onClick={handleNoteSubmit}
                                     disabled={!noteForm.title || isLoading}
-                                    className="w-full py-3 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
+                                    className={`w-full py-3 rounded-lg font-medium transition-colors duration-200 ${theme === 'dark'
+                                            ? 'bg-purple-600 hover:bg-purple-700 text-white '
+                                            : 'bg-blue-600 hover:bg-blue-700 text-white '
+                                        } disabled:cursor-not-allowed`}
                                 >
                                     {isLoading ? 'Processing...' : (isEditingNote ? 'Update' : 'Create')}
                                 </button>
@@ -856,7 +847,8 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
                                     {note.map((noteItem) => (
                                         <div
                                             key={noteItem.name}
-                                            className={`flex items-start gap-3 p-3 rounded-lg ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-50'}`}
+                                            className={`flex items-start gap-3 p-3 rounded-lg ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-50'} cursor-pointer hover:opacity-80 transition-opacity`}
+                                            onClick={() => handleNoteClick(noteItem)}
                                         >
                                             <IoDocumentTextOutline className={`w-5 h-5 mt-1 flex-shrink-0 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`} />
                                             <div className="flex-1">
@@ -872,11 +864,6 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
                                 </div>
                             )}
 
-                            {/* Inside your CallDetailsPopup JSX */}
-
-
-                            {/* Tasks Section */}
-
                             {tasks.length > 0 && (
                                 <div className="border-t pt-4 border-gray-200 dark:border-gray-700 space-y-3">
                                     <h3 className={`text-sm font-bold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
@@ -885,7 +872,8 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
                                     {tasks.map((taskItem) => (
                                         <div
                                             key={taskItem.name}
-                                            className={`flex items-start gap-3 p-3 rounded-lg ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-50'}`}
+                                            className={`flex items-start gap-3 p-3 rounded-lg ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-50'} cursor-pointer hover:opacity-80 transition-opacity`}
+                                            onClick={() => handleTaskClick(taskItem)}
                                         >
                                             <SiTicktick className={`w-5 h-5 mt-1 flex-shrink-0 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`} />
                                             <div className="flex-1">
@@ -900,7 +888,6 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
                                     ))}
                                 </div>
                             )}
-
                         </div>
                     )}
                 </div>
