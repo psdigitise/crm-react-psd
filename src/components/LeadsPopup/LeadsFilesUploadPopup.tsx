@@ -40,7 +40,7 @@ const LeadsFilesUploadPopup: React.FC<LeadsFilesUploadPopupProps> = ({
   if (!show) return null;
 
   const isImageFile = (name: string) => /\.(jpg|jpeg|png|gif|webp)$/i.test(name);
-  
+
   const isValidLink = (url: string) => {
     try {
       const parsed = new URL(url);
@@ -136,13 +136,12 @@ const LeadsFilesUploadPopup: React.FC<LeadsFilesUploadPopupProps> = ({
 
           {/* Dropzone */}
           <div
-            className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-              isDragging
-                ? theme === "dark" 
-                  ? "border-purple-500 bg-purple-900/30" 
-                  : "border-purple-500 bg-purple-50"
-                : `${borderColor} ${dropzoneBgColor}`
-            }`}
+            className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${isDragging
+              ? theme === "dark"
+                ? "border-purple-500 bg-purple-900/30"
+                : "border-purple-500 bg-purple-50"
+              : `${borderColor} ${dropzoneBgColor}`
+              }`}
             onDragOver={(e) => e.preventDefault()}
             onDragEnter={() => setIsDragging(true)}
             onDragLeave={() => setIsDragging(false)}
@@ -187,19 +186,19 @@ const LeadsFilesUploadPopup: React.FC<LeadsFilesUploadPopupProps> = ({
                     key={i}
                     className={`flex items-center justify-between p-4 rounded-md shadow-sm border ${borderColor} ${bgColor}`}
                   >
-                    <div className="flex items-start gap-3">
+                    <div className="flex items-start gap-3 flex-1 min-w-0"> {/* Added flex constraints here */}
                       {isImageFile(f.file.name) ? (
                         <img
                           src={URL.createObjectURL(f.file)}
                           alt={f.file.name}
-                          className="w-14 h-14 object-cover rounded border border-gray-400"
+                          className="w-14 h-14 object-cover rounded border border-gray-400 flex-shrink-0"
                         />
                       ) : (
-                        <div className="w-14 h-14 flex items-center justify-center border border-gray-400 rounded">
+                        <div className="w-14 h-14 flex items-center justify-center border border-gray-400 rounded flex-shrink-0">
                           <IoDocument className={textSecondaryColor} size={20} />
                         </div>
                       )}
-                      <div>
+                      <div className="flex-1 min-w-0 overflow-hidden"> {/* Added overflow-hidden */}
                         <p className={`text-sm font-medium truncate ${textColor}`}>
                           {f.file.name}
                         </p>
@@ -219,9 +218,9 @@ const LeadsFilesUploadPopup: React.FC<LeadsFilesUploadPopupProps> = ({
                         </label>
                       </div>
                     </div>
-                    <button 
+                    <button
                       onClick={() => setFiles((prev) => prev.filter((_, j) => j !== i))}
-                      className={`p-2 rounded-md ${theme === "dark" ? "text-gray-400 hover:text-white hover:bg-gray-700" : "text-gray-500 hover:text-gray-700 hover:bg-gray-200"} transition-colors`}
+                      className={`p-2 rounded-md flex-shrink-0 ${theme === "dark" ? "text-gray-400 hover:text-white hover:bg-gray-700" : "text-gray-500 hover:text-gray-700 hover:bg-gray-200"} transition-colors`}
                     >
                       <Trash2 size={16} />
                     </button>
@@ -259,9 +258,8 @@ const LeadsFilesUploadPopup: React.FC<LeadsFilesUploadPopupProps> = ({
           <button
             onClick={handleUpload}
             disabled={(files.length === 0 && (!showLinkInput || !isValidLink(linkUrl))) || isUploading}
-            className={`px-4 py-2 rounded text-white text-sm font-medium ${
-              theme === "dark" ? "bg-purple-600 hover:bg-purple-700" : "bg-blue-600 hover:bg-blue-700"
-            } disabled:opacity-50 transition-colors`}
+            className={`px-4 py-2 rounded text-white text-sm font-medium ${theme === "dark" ? "bg-purple-600 hover:bg-purple-700" : "bg-blue-600 hover:bg-blue-700"
+              } disabled:opacity-50 transition-colors`}
           >
             {isUploading ? (
               <span className="flex items-center font-medium">

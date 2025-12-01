@@ -60,6 +60,7 @@ export default function EmailComposerleads({
     const isCommentMode = mode === "comment";
     const [emailForm, setEmailForm] = useState({
         recipient: "",
+        recipientInput: "",
         cc: "",
         bcc: "",
         subject: "",
@@ -142,15 +143,23 @@ export default function EmailComposerleads({
 
 
     const sendEmail = async () => {
-        if (!emailForm.recipient.trim() || !emailForm.message.trim() || !emailForm.subject.trim()) {
+        // Check if there are any recipients
+        const recipientEmails = emailForm.recipient
+            .split(',')
+            .map(email => email.trim())
+            .filter(email => email.length > 0);
+
+        if (recipientEmails.length === 0 || !emailForm.message.trim() || !emailForm.subject.trim()) {
             showToast("All required fields must be filled before proceeding.", { type: "error" });
             return;
         }
 
-        // Validate the main recipient's email
-        if (emailForm.recipient.trim() && !isValidEmail(emailForm.recipient)) {
-            showToast("Invalid email address in 'To' field.", { type: "error" });
-            return;
+        // Validate each recipient email
+        for (const email of recipientEmails) {
+            if (!isValidEmail(email)) {
+                showToast(`Invalid email address in 'To' field: ${email}`, { type: "error" });
+                return;
+            }
         }
 
         // Validate the CC emails (if any)
@@ -158,8 +167,7 @@ export default function EmailComposerleads({
             const ccEmails = emailForm.cc.split(',').map(email => email.trim());
             for (const email of ccEmails) {
                 if (!isValidEmail(email)) {
-                    // showToast(`Invalid email address in 'Cc' field: ${email}`, { type: "error" });
-                    showToast(`Invalid email address in 'Cc' field.`, { type: "error" });
+                    showToast(`Invalid email address in 'Cc' field: ${email}`, { type: "error" });
                     return;
                 }
             }
@@ -170,17 +178,10 @@ export default function EmailComposerleads({
             const bccEmails = emailForm.bcc.split(',').map(email => email.trim());
             for (const email of bccEmails) {
                 if (!isValidEmail(email)) {
-                    // showToast(`Invalid email address in 'Bcc' field: ${email}`, { type: "error" });
-                    showToast(`Invalid email address in 'Bcc' field,`, { type: "error" });
+                    showToast(`Invalid email address in 'Bcc' field: ${email}`, { type: "error" });
                     return;
                 }
             }
-        }
-
-        // This is your existing code
-        if (!emailForm.recipient.trim() || !emailForm.message.trim() || !emailForm.subject.trim()) {
-            showToast("Please fill all required fields", { type: "error" });
-            return;
         }
 
         setLoading(true);
@@ -188,7 +189,7 @@ export default function EmailComposerleads({
         try {
             const htmlMessage = `<div style="white-space: pre-wrap; font-family: sans-serif;">${emailForm.message}</div>`;
             const payload: any = {
-                recipients: emailForm.recipient,
+                recipients: emailForm.recipient, 
                 cc: emailForm.cc,
                 bcc: emailForm.bcc,
                 subject: emailForm.subject,
@@ -216,7 +217,14 @@ export default function EmailComposerleads({
             if (response.ok) {
                 setok("Email sent successfully");
                 console.log("Email sent successfully");
-                setEmailForm({ recipient: "", cc: "", bcc: "", subject: "", message: "" });
+                setEmailForm({
+                    recipient: "",
+                    recipientInput: "",
+                    cc: "",
+                    bcc: "",
+                    subject: "",
+                    message: ""
+                });
                 setUploadedFiles([]);
                 setAttachments([]);
                 await refreshEmails();
@@ -401,15 +409,7 @@ export default function EmailComposerleads({
         }
     };
 
-    const handleRecipientChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const value = e.target.value;
-        setEmailForm(f => ({ ...f, recipient: value }));
-        if (value.trim()) {
-            setShowSuggestions(true);
-        } else {
-            setShowSuggestions(false);
-        }
-    };
+
 
     const handleSuggestionClick = (user: User) => {
         setEmailForm(f => ({ ...f, recipient: user.value }));
@@ -557,46 +557,213 @@ export default function EmailComposerleads({
                         >
                             <span className={`w-12 font-medium ${theme === "dark" ? "text-gray-200" : "text-gray-700"}`}>To:</span>
                             <div className="relative flex-1">
-                                <input
-                                    ref={recipientInputRef}
-                                    type="email"
-                                    value={emailForm.recipient}
-                                    onChange={handleRecipientChange}
-                                    onKeyDown={handleRecipientKeyDown}
-                                    className={`px-2 py-1 rounded font-medium outline-none w-full placeholder:font-normal ${theme === "dark"
-                                            ? "bg-gray-700 text-white placeholder:text-gray-400 border border-gray-600 focus:border-gray-400"
-                                            : "bg-gray-50 !text-gray-800 placeholder:!text-gray-500 border border-gray-300 focus:border-gray-500"
+                                {/* Multi-select container */}
+                                <div
+                                    className={`flex flex-wrap gap-1 px-2 py-1 rounded min-h-[36px] ${theme === "dark"
+                                        ? "bg-gray-700 border border-gray-600 focus-within:border-gray-400"
+                                        : "bg-gray-50 border border-gray-300 focus-within:border-gray-500"
                                         }`}
-                                    placeholder="Enter recipient email address"
-                                />
+                                    onClick={() => recipientInputRef.current?.focus()}
+                                >
+                                    {/* Selected email chips */}
+                                    {emailForm.recipient
+                                        .split(',')
+                                        .map(email => email.trim())
+                                        .filter(email => email.length > 0)
+                                        .map((email, index) => (
+                                            <div
+                                                key={index}
+                                                className={`flex items-center gap-1 px-2 py-1 rounded-full text-sm ${theme === "dark"
+                                                    ? "bg-gray-600 text-white"
+                                                    : "bg-gray-200 text-gray-800"
+                                                    }`}
+                                            >
+                                                <span>{email}</span>
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        const emails = emailForm.recipient
+                                                            .split(',')
+                                                            .map(e => e.trim())
+                                                            .filter(e => e !== email);
+                                                        setEmailForm(f => ({ ...f, recipient: emails.join(', ') }));
+                                                    }}
+                                                    className={`text-xs ml-1 ${theme === "dark" ? "hover:text-gray-300" : "hover:text-gray-600"}`}
+                                                >
+                                                    ×
+                                                </button>
+                                            </div>
+                                        ))}
+
+                                    {/* Input for typing new emails */}
+                                    <input
+                                        ref={recipientInputRef}
+                                        type="text"
+                                        value={emailForm.recipientInput || ''}
+                                        onChange={(e) => {
+                                            const value = e.target.value;
+                                            setEmailForm(f => ({ ...f, recipientInput: value }));
+
+                                            // Show suggestions when typing
+                                            if (value.trim()) {
+                                                setShowSuggestions(true);
+                                                // Use recipientInput for suggestions, not recipient
+                                                const timeoutId = setTimeout(() => {
+                                                    fetchUserSuggestions(value);
+                                                }, 300);
+
+                                                // Cleanup
+                                                return () => clearTimeout(timeoutId);
+                                            } else {
+                                                setShowSuggestions(false);
+                                            }
+                                        }}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' && emailForm.recipientInput.trim()) {
+                                                e.preventDefault();
+                                                const newEmail = emailForm.recipientInput.trim();
+                                                if (isValidEmail(newEmail)) {
+                                                    const currentEmails = emailForm.recipient
+                                                        .split(',')
+                                                        .map(email => email.trim())
+                                                        .filter(email => email.length > 0);
+
+                                                    if (!currentEmails.includes(newEmail)) {
+                                                        const updatedEmails = [...currentEmails, newEmail].join(', ');
+                                                        setEmailForm(f => ({
+                                                            ...f,
+                                                            recipient: updatedEmails,
+                                                            recipientInput: ''
+                                                        }));
+                                                    } else {
+                                                        showToast("Email already added", { type: "info" });
+                                                    }
+                                                    setEmailForm(f => ({ ...f, recipientInput: '' }));
+                                                } else {
+                                                    showToast("Please enter a valid email address", { type: "error" });
+                                                }
+                                                setShowSuggestions(false);
+                                            } else if (e.key === 'Backspace' && !emailForm.recipientInput && emailForm.recipient) {
+                                                // Remove last email when backspace is pressed on empty input
+                                                const emails = emailForm.recipient
+                                                    .split(',')
+                                                    .map(email => email.trim())
+                                                    .filter(email => email.length > 0);
+
+                                                if (emails.length > 0) {
+                                                    emails.pop();
+                                                    setEmailForm(f => ({
+                                                        ...f,
+                                                        recipient: emails.join(', ')
+                                                    }));
+                                                }
+                                            } else if (e.key === 'Escape') {
+                                                setShowSuggestions(false);
+                                            } else if (e.key === ',') {
+                                                // Add email when comma is typed
+                                                e.preventDefault();
+                                                const newEmail = emailForm.recipientInput.replace(',', '').trim();
+                                                if (newEmail && isValidEmail(newEmail)) {
+                                                    const currentEmails = emailForm.recipient
+                                                        .split(',')
+                                                        .map(email => email.trim())
+                                                        .filter(email => email.length > 0);
+
+                                                    if (!currentEmails.includes(newEmail)) {
+                                                        const updatedEmails = [...currentEmails, newEmail].join(', ');
+                                                        setEmailForm(f => ({
+                                                            ...f,
+                                                            recipient: updatedEmails,
+                                                            recipientInput: ''
+                                                        }));
+                                                    }
+                                                    setShowSuggestions(false);
+                                                }
+                                            }
+                                        }}
+                                        onBlur={() => {
+                                            // Auto-add email when input loses focus (only if valid)
+                                            setTimeout(() => {
+                                                if (emailForm.recipientInput.trim() && isValidEmail(emailForm.recipientInput.trim())) {
+                                                    const currentEmails = emailForm.recipient
+                                                        .split(',')
+                                                        .map(email => email.trim())
+                                                        .filter(email => email.length > 0);
+
+                                                    const newEmail = emailForm.recipientInput.trim();
+                                                    if (!currentEmails.includes(newEmail)) {
+                                                        const updatedEmails = [...currentEmails, newEmail].join(', ');
+                                                        setEmailForm(f => ({
+                                                            ...f,
+                                                            recipient: updatedEmails,
+                                                            recipientInput: ''
+                                                        }));
+                                                    }
+                                                }
+                                                setShowSuggestions(false);
+                                            }, 200); // Small delay to allow clicking on suggestions
+                                        }}
+                                        className={`flex-1 min-w-[150px] bg-transparent outline-none text-sm ${theme === "dark"
+                                            ? "text-white placeholder:text-gray-400"
+                                            : "text-gray-800 placeholder:text-gray-500"
+                                            }`}
+                                        placeholder={emailForm.recipient.split(',').filter(e => e.trim()).length > 0 ? "" : "Enter recipient email addresses"}
+                                    />
+                                </div>
+
+                                {/* Suggestions dropdown */}
                                 {showSuggestions && (
-                                    <div ref={suggestionsRef} className={`absolute left-0 right-0 top-full mt-1 z-50 max-h-60 overflow-y-auto rounded-md shadow-lg ${theme === "dark"
+                                    <div
+                                        ref={suggestionsRef}
+                                        className={`absolute left-0 right-0 top-full mt-1 z-50 max-h-60 overflow-y-auto rounded-md shadow-lg ${theme === "dark"
                                             ? "bg-gray-800 border border-gray-700"
                                             : "bg-white border border-gray-300"
-                                        }`}>
+                                            }`}
+                                    >
                                         {searchLoading ? (
-                                            <div className={`px-3 py-2 text-sm font-normal ${theme === "dark" ? "text-gray-300" : "text-gray-600"
-                                                }`}>Loading...</div>
+                                            <div className={`px-3 py-2 text-sm font-normal ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`}>
+                                                Loading...
+                                            </div>
                                         ) : userSuggestions.length > 0 ? (
                                             userSuggestions.map((user, index) => (
                                                 <div
                                                     key={index}
                                                     className={`px-3 py-2 cursor-pointer hover:bg-opacity-50 text-sm border-b font-normal ${theme === "dark"
-                                                            ? "hover:bg-gray-700 border-gray-700 text-white"
-                                                            : "hover:bg-gray-100 border-gray-200 text-gray-800"
+                                                        ? "hover:bg-gray-700 border-gray-700 text-white"
+                                                        : "hover:bg-gray-100 border-gray-200 text-gray-800"
                                                         }`}
-                                                    onClick={() => handleSuggestionClick(user)}
+                                                    onClick={() => {
+                                                        const currentEmails = emailForm.recipient
+                                                            .split(',')
+                                                            .map(email => email.trim())
+                                                            .filter(email => email.length > 0);
+
+                                                        if (!currentEmails.includes(user.value)) {
+                                                            const updatedEmails = [...currentEmails, user.value].join(', ');
+                                                            setEmailForm(f => ({
+                                                                ...f,
+                                                                recipient: updatedEmails,
+                                                                recipientInput: ''
+                                                            }));
+                                                        } else {
+                                                            showToast("Email already added", { type: "info" });
+                                                        }
+                                                        setShowSuggestions(false);
+                                                    }}
                                                 >
                                                     <div className="font-medium">{user.value}</div>
                                                     {user.description && (
-                                                        <div className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"
-                                                            }`}>{user.description}</div>
+                                                        <div className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                                                            {user.description}
+                                                        </div>
                                                     )}
                                                 </div>
                                             ))
-                                        ) : emailForm.recipient.trim() && (
-                                            <div className={`px-3 py-2 text-sm font-normal ${theme === "dark" ? "text-gray-300" : "text-gray-600"
-                                                }`}>No users found</div>
+                                        ) : emailForm.recipientInput.trim() && (
+                                            <div className={`px-3 py-2 text-sm font-normal ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`}>
+                                                No users found
+                                            </div>
                                         )}
                                     </div>
                                 )}
@@ -613,8 +780,8 @@ export default function EmailComposerleads({
                                     value={emailForm.cc}
                                     onChange={e => setEmailForm(f => ({ ...f, cc: e.target.value }))}
                                     className={`px-2 py-1 rounded font-medium outline-none flex-1 placeholder:font-normal ${theme === "dark"
-                                            ? "bg-gray-700 text-white placeholder:text-gray-400 border border-gray-600 focus:border-gray-400"
-                                            : "bg-gray-50 !text-gray-800 placeholder:!text-gray-500 border border-gray-300 focus:border-gray-500"
+                                        ? "bg-gray-700 text-white placeholder:text-gray-400 border border-gray-600 focus:border-gray-400"
+                                        : "bg-gray-50 !text-gray-800 placeholder:!text-gray-500 border border-gray-300 focus:border-gray-500"
                                         }`}
                                     placeholder="Enter CC email addresses"
                                 />
@@ -631,8 +798,8 @@ export default function EmailComposerleads({
                                     value={emailForm.bcc}
                                     onChange={e => setEmailForm(f => ({ ...f, bcc: e.target.value }))}
                                     className={`px-2 py-1 rounded font-medium outline-none flex-1 placeholder:font-normal ${theme === "dark"
-                                            ? "bg-gray-700 text-white placeholder:text-gray-400 border border-gray-600 focus:border-gray-400"
-                                            : "bg-gray-50 !text-gray-800 placeholder:!text-gray-500 border border-gray-300 focus:border-gray-500"
+                                        ? "bg-gray-700 text-white placeholder:text-gray-400 border border-gray-600 focus:border-gray-400"
+                                        : "bg-gray-50 !text-gray-800 placeholder:!text-gray-500 border border-gray-300 focus:border-gray-500"
                                         }`}
                                     placeholder="Enter BCC email addresses"
                                 />
@@ -648,8 +815,8 @@ export default function EmailComposerleads({
                                 value={emailForm.subject}
                                 onChange={handleSubjectChange}
                                 className={`px-2 py-1 rounded font-medium outline-none flex-1 placeholder:font-normal ${theme === "dark"
-                                        ? "bg-gray-700 text-white placeholder:text-gray-400 border border-gray-600 focus:border-gray-400"
-                                        : "bg-gray-50 !text-gray-800 placeholder:!text-gray-500 border border-gray-300 focus:border-gray-500"
+                                    ? "bg-gray-700 text-white placeholder:text-gray-400 border border-gray-600 focus:border-gray-400"
+                                    : "bg-gray-50 !text-gray-800 placeholder:!text-gray-500 border border-gray-300 focus:border-gray-500"
                                     }`}
                                 placeholder="Enter email subject"
                             />
@@ -659,8 +826,8 @@ export default function EmailComposerleads({
                                     onClick={handleGenerateButtonClick}
                                     disabled={!emailForm.subject.trim()}
                                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${theme === 'dark'
-                                            ? 'bg-purple-600 hover:bg-purple-500 text-white'
-                                            : 'bg-purple-600 hover:bg-purple-700 text-white'
+                                        ? 'bg-purple-600 hover:bg-purple-500 text-white'
+                                        : 'bg-purple-600 hover:bg-purple-700 text-white'
                                         } disabled:opacity-50 disabled:cursor-not-allowed`}
                                 >
                                     <Sparkles size={16} />
@@ -679,7 +846,7 @@ export default function EmailComposerleads({
                                         className="flex items-center border text-white px-3 py-1 rounded bg-white-31"
                                     >
                                         <span className={`mr-2 flex items-center gap-1 truncate max-w-[200px] ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'
-                    }`}>
+                                            }`}>
                                             📎 {file.name}
                                         </span>
                                         <button
@@ -687,8 +854,8 @@ export default function EmailComposerleads({
                                                 setUploadedFiles((prev) => prev.filter((_, i) => i !== index));
                                                 setAttachments((prev) => prev.filter((_, i) => i !== index));
                                             }}
-                                             className={`text-lg leading-none ${theme === 'dark' ? 'text-gray-300 hover:text-white' : 'text-gray-500 hover:text-gray-700'
-                      }`}
+                                            className={`text-lg leading-none ${theme === 'dark' ? 'text-gray-300 hover:text-white' : 'text-gray-500 hover:text-gray-700'
+                                                }`}
                                         >
                                             ×
                                         </button>

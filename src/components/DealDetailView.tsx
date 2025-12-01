@@ -1932,6 +1932,10 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
           next_step: editedDeal.next_step,
           deal_owner: editedDeal.deal_owner,
           status: editedDeal.status,
+          first_name: editedDeal.first_name,
+          last_name: editedDeal.last_name,
+          email: editedDeal.email,
+          mobile_no: editedDeal.mobile_no,
           // NEW FIELDS
           expected_deal_value: editedDeal.expected_deal_value,
           expected_closure_date: editedDeal.expected_closure_date,
@@ -2315,7 +2319,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
       <div className="p-4 sm:p-6">
         {activeTab === 'overview' && (
           <div>
-            <div className="grid grid-cols-1 gap-6">
+            <div className="grid grid-cols-1 mb-5 gap-6">
               <div className="space-y-6">
                 <div className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} max-sm:p-3 p-6`}>
                   <div className="flex justify-between items-center mb-4">
@@ -2509,48 +2513,6 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                       />
                     </div>
 
-                    {/* Expected Deal Value (₹) - Mandatory */}
-                    <div>
-                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>
-                        Expected Deal Value (₹) <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="number"
-                        value={editedDeal.expected_deal_value || ''}
-                        onChange={(e) => {
-                          handleInputChange('expected_deal_value', e.target.value);
-                          if (errors.expected_deal_value) {
-                            setErrors(prev => ({ ...prev, expected_deal_value: '' }));
-                          }
-                        }}
-                        className={`mt-1 block w-full rounded-md border shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 ${theme === 'dark' ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'} ${errors.expected_deal_value ? 'border-red-500' : ''}`}
-                        placeholder="Enter expected deal value"
-                      />
-                      {errors.expected_deal_value && (
-                        <p className="text-sm text-red-500 mt-1">{errors.expected_deal_value}</p>
-                      )}
-                    </div>
-
-                    {/* Expected Closure Date - Mandatory */}
-                    <div>
-                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>
-                        Expected Closure Date <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="date"
-                        value={editedDeal.expected_closure_date?.split(' ')[0] || ''}
-                        onChange={(e) => {
-                          handleInputChange('expected_closure_date', e.target.value);
-                          if (errors.expected_closure_date) {
-                            setErrors(prev => ({ ...prev, expected_closure_date: '' }));
-                          }
-                        }}
-                        className={`mt-1 block w-full rounded-md border shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 ${theme === 'dark' ? 'bg-gray-800 border-gray-600 text-white [color-scheme:dark]' : 'bg-white border-gray-300 text-gray-900'}`}
-                      />
-                      {errors.expected_closure_date && (
-                        <p className="text-sm text-red-500 mt-1">{errors.expected_closure_date}</p>
-                      )}
-                    </div>
 
                     {/* Close Date */}
                     <div>
@@ -2566,19 +2528,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Date when the deal was closed</p>
                     </div>
 
-                    {/* Probability - Read-only */}
-                    <div>
-                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>
-                        Probability
-                      </label>
-                      <input
-                        type="number"
-                        value={editedDeal.probability || ''}
-                        readOnly
-                        className={`mt-1 block w-full border rounded-md shadow-sm sm:text-sm px-3 py-2 ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-gray-400 cursor-not-allowed' : 'bg-gray-100 border-gray-300 text-gray-500 cursor-not-allowed'}`}
-                      />
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">This field is automatically calculated</p>
-                    </div>
+
 
                     {/* Website */}
                     <div>
@@ -2751,12 +2701,12 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                       />
                     </div>
 
-                   
+
                     {/* Deal Owner */}
                     <div>
                       <label className={`block text-sm font-medium ${textSecondaryColor}`}>Deal Owner</label>
                       <Select
-                        
+
                         value={OwnersOptions.find(
                           (option) => option.value === editedDeal.deal_owner
                         )}
@@ -2770,17 +2720,168 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                         className="mt-1 w-full"
                         classNamePrefix="owner-select"
                         styles={theme === 'dark' ? darkSelectStyles : undefined}
-                       
+
                         formatOptionLabel={({ label, }) => (
                           <div className="flex flex-col">
                             <span className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>
-                              {label || value.split('@')[0]} 
+                              {label || value.split('@')[0]}
                             </span>
 
                           </div>
                         )}
                       />
                     </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 mb-5 gap-6">
+  <div className="space-y-6">
+    <div className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} max-sm:p-3 p-6`}>
+      <div className="flex justify-between items-center mb-4">
+        <h3 className={`text-lg font-semibold ${textColor}`}>Person Details</h3>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+        {/* First Name */}
+        <div>
+          <label className={`block text-sm font-medium ${textSecondaryColor}`}>
+            First Name
+          </label>
+          <input
+            type="text"
+            readOnly
+            value={editedDeal.first_name || ''}
+            onChange={(e) => handleInputChange('first_name', e.target.value)}
+           className={`mt-1 block w-full border rounded-md shadow-sm sm:text-sm px-3 py-2 ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-gray-400 cursor-not-allowed' : 'bg-gray-100 border-gray-300 text-gray-500 cursor-not-allowed'}`}
+            placeholder=""
+          />
+        </div>
+
+        {/* Last Name */}
+        <div>
+          <label className={`block text-sm font-medium ${textSecondaryColor}`}>
+            Last Name
+          </label>
+          <input
+            type="text"
+            readOnly
+            value={editedDeal.last_name || ''}
+            onChange={(e) => handleInputChange('last_name', e.target.value)}
+           className={`mt-1 block w-full border rounded-md shadow-sm sm:text-sm px-3 py-2 ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-gray-400 cursor-not-allowed' : 'bg-gray-100 border-gray-300 text-gray-500 cursor-not-allowed'}`}
+            placeholder=""
+          />
+        </div>
+
+        {/* Email */}
+        <div>
+          <label className={`block text-sm font-medium ${textSecondaryColor}`}>
+            Email
+          </label>
+          <input
+            type="email"
+            readOnly
+            value={editedDeal.email || ''}
+            onChange={(e) => handleInputChange('email', e.target.value)}
+            className={`mt-1 block w-full border rounded-md shadow-sm sm:text-sm px-3 py-2 ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-gray-400 cursor-not-allowed' : 'bg-gray-100 border-gray-300 text-gray-500 cursor-not-allowed'}`}
+            placeholder=""
+          />
+        </div>
+
+        {/* Mobile Number */}
+        <div>
+          <label className={`block text-sm font-medium ${textSecondaryColor}`}>
+            Mobile Number
+          </label>
+          <input
+            type="tel"
+            readOnly
+            value={editedDeal.mobile_no || ''}
+            onChange={(e) => handleInputChange('mobile_no', e.target.value)}
+             className={`mt-1 block w-full border rounded-md shadow-sm sm:text-sm px-3 py-2 ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-gray-400 cursor-not-allowed' : 'bg-gray-100 border-gray-300 text-gray-500 cursor-not-allowed'}`}
+                      
+          />
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+
+            <div className="grid grid-cols-1 gap-6">
+              <div className="space-y-6">
+                <div className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} max-sm:p-3 p-6`}>
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className={`text-lg font-semibold ${textColor}`}>Forecasted Sales</h3>
+
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+
+
+                    {/* Expected Deal Value (₹) - Mandatory */}
+                    <div>
+                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>
+                        Expected Deal Value (₹) <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="number"
+                        value={editedDeal.expected_deal_value || ''}
+                        onChange={(e) => {
+                          handleInputChange('expected_deal_value', e.target.value);
+                          if (errors.expected_deal_value) {
+                            setErrors(prev => ({ ...prev, expected_deal_value: '' }));
+                          }
+                        }}
+                        className={`mt-1 block w-full rounded-md border shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 ${theme === 'dark' ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'} ${errors.expected_deal_value ? 'border-red-500' : ''}`}
+                        placeholder="Enter expected deal value"
+                      />
+                      {errors.expected_deal_value && (
+                        <p className="text-sm text-red-500 mt-1">{errors.expected_deal_value}</p>
+                      )}
+                    </div>
+
+                    {/* Expected Closure Date - Mandatory */}
+                    <div>
+                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>
+                        Expected Closure Date <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="date"
+                        value={editedDeal.expected_closure_date?.split(' ')[0] || ''}
+                        onChange={(e) => {
+                          handleInputChange('expected_closure_date', e.target.value);
+                          if (errors.expected_closure_date) {
+                            setErrors(prev => ({ ...prev, expected_closure_date: '' }));
+                          }
+                        }}
+                        className={`mt-1 block w-full rounded-md border shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 ${theme === 'dark' ? 'bg-gray-800 border-gray-600 text-white [color-scheme:dark]' : 'bg-white border-gray-300 text-gray-900'}`}
+                      />
+                      {errors.expected_closure_date && (
+                        <p className="text-sm text-red-500 mt-1">{errors.expected_closure_date}</p>
+                      )}
+                    </div>
+
+                    {/* Probability - Read-only */}
+                    <div>
+                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>
+                        Probability
+                      </label>
+                      <input
+                        type="number"
+                        value={editedDeal.probability || ''}
+                        readOnly
+                        className={`mt-1 block w-full border rounded-md shadow-sm sm:text-sm px-3 py-2 ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-gray-400 cursor-not-allowed' : 'bg-gray-100 border-gray-300 text-gray-500 cursor-not-allowed'}`}
+                      />
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">This field is automatically calculated</p>
+                    </div>
+
+
+
+
+
                   </div>
                 </div>
               </div>
@@ -3289,7 +3390,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                         setErrors(prev => ({ ...prev, from: '' }));
                       }
                     }}
-                     className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
+                    className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
                       ? 'bg-gray-800 border-gray-600 text-white !placeholder-gray-400'
                       : 'bg-white border-gray-300 text-gray-900 !placeholder-gray-500'
                       }`}
@@ -4973,12 +5074,14 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
               isOpen={isUploadPopupOpen}
               dealName={deal.name}
               fetchAttachments={fetchAttachments}
+              theme={theme}
               onClose={() => setIsUploadPopupOpen(false)}
             />
             {attachmentToDelete && (
               <DeleteAttachmentPopup
                 closePopup={() => setAttachmentToDelete(null)}
                 attachment={attachmentToDelete}
+                theme={theme}
                 fetchAttachments={fetchAttachments}
               />
             )}
@@ -4986,6 +5089,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
               <AttachmentPrivatePopup
                 closePopup={() => setAttachmentToTogglePrivacy(null)}
                 attachment={attachmentToTogglePrivacy}
+                theme={theme}
                 fetchAttachments={fetchAttachments}
               />
             )}

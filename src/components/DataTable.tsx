@@ -122,6 +122,8 @@ const getStatusColor = (status: string) => {
 
 const defaultColumns: ColumnConfig[] = [
   { key: 'name', label: 'Lead Name', visible: true, sortable: true },
+  { key: 'firstName', label: 'First Name', visible: false, sortable: true },
+  { key: 'lastName', label: 'Last Name', visible: false, sortable: true },
   { key: 'organization', label: 'Organization', visible: true, sortable: true },
   { key: 'status', label: 'Status', visible: true, sortable: true },
   { key: 'email', label: 'Email', visible: true, sortable: true },
@@ -204,7 +206,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
     status: ['New', 'Contacted', 'Qualified', 'Lost', 'Unqualified', 'Junk', 'Nurture'],
     territory: [] as string[],
     industry: [] as string[],
-    assignedTo: [] as string[]
+    
   });
 
   const showToast = (message: string, type: 'error' | 'success' = 'error') => {
@@ -505,8 +507,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
                 "mobile_no",
                 "organization",
                 "website",
-                "annual_revenue",
-                "status"
+                "annual_revenue"
               ]
             },
             "export_filters": null
@@ -1070,6 +1071,18 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
   // Render cell function with updated assignedTo logic
   const renderCell = (lead: Lead, key: keyof Lead, theme: string) => {
     switch (key) {
+      case 'firstName':
+        return (
+          <div className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+            {lead.firstName || 'N/A'}
+          </div>
+        );
+      case 'lastName':
+        return (
+          <div className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+            {lead.lastName || 'N/A'}
+          </div>
+        );
       case 'name':
         return (
           <div className="flex items-center">
@@ -1280,140 +1293,224 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
   console.log("visibleColumns", visibleColumns)
   const filteredDataLength = getFilteredAndSortedData().length;
 
-  const handleExport = async (exportType: string = 'Excel', exportAll: boolean = true) => {
-    setIsExporting(true);
+  // Add this function to define export column order
+  const getExportColumnOrder = () => {
+    // Define the exact order you want columns to appear in export
+    const exportOrder = [
+      'name',
+      'firstName',
+      'lastName',
+      'organization',
+      'status',
+      'email',
+      'mobile',
+      'assignedTo',
+      'lastModified',
+      'territory',
+      'industry',
+      'website',
+      'leadId' // Add other fields as needed
+    ];
 
-    try {
-      const session = getUserSession();
-      const sessionCompany = session?.company;
-
-      const baseUrl =
-        "https://api.erpnext.ai/api/method/frappe.desk.reportview.export_query";
-
-      const exportFilters: any = {
-        company: sessionCompany,
-        converted: 0
-      };
-
-      if (filters.status.length > 0) {
-        exportFilters['status'] = ['in', filters.status];
-      }
-      if (filters.territory.length > 0) {
-        exportFilters['territory'] = ['in', filters.territory];
-      }
-      if (filters.industry.length > 0) {
-        exportFilters['industry'] = ['in', filters.industry];
-      }
-      if (filters.assignedTo.length > 0) {
-        exportFilters['_assign'] = ['in', filters.assignedTo];
-      }
-
-      const columnToFieldMap: Record<string, string> = {
-        'name': 'name',
-        'organization': 'organization',
-        'status': 'status',
-        'email': 'email',
-        'mobile': 'mobile_no',
-        'assignedTo': '_assign',
-        'lastModified': 'modified',
-        'territory': 'territory',
-        'industry': 'industry',
-        'website': 'website',
-        'firstName': 'first_name',
-        'lastName': 'last_name',
-        'leadId': 'name'
-      };
-
-      const visibleFields = visibleColumns
-        .map(col => columnToFieldMap[col.key] || col.key)
-        .filter((field, index, self) => self.indexOf(field) === index)
-        .map(field => `\`tabCRM Lead\`.\`${field}\``);
-
-      console.log('Export format:', exportType);
-      console.log('Export all records:', exportAll);
-
-      const params: any = {
-        file_format_type: exportType,
-        title: "CRM Lead",
-        doctype: "CRM Lead",
-        fields: JSON.stringify(visibleFields),
-        order_by: sortField
-          ? `\`tabCRM Lead\`.\`${columnToFieldMap[sortField] || sortField}\` ${sortDirection}`
-          : "`tabCRM Lead`.`modified` desc",
-        filters: JSON.stringify(exportFilters),
-        view: "Report",
-        with_comment_count: 1
-      };
-
-      if (!exportAll && selectedIds.length > 0) {
-        params.selected_items = JSON.stringify(selectedIds);
-        console.log('Exporting selected items:', selectedIds);
-      } else {
-        params.page_length = 500;
-        params.start = 0;
-        console.log('Exporting all filtered records');
-      }
-
-      console.log('Export params:', params);
-
-      const response = await axios.get(baseUrl, {
-        params,
-        headers: {
-          'Authorization': AUTH_TOKEN,
-          'Content-Type': 'application/json'
-        },
-        responseType: "blob"
-      });
-
-      if (response.data.type === 'application/json') {
-        const text = await response.data.text();
-        const errorData = JSON.parse(text);
-        throw new Error(errorData.message || errorData.exception || 'Export failed');
-      }
-
-      const fileExtension = exportType.toLowerCase() === 'csv' ? 'csv' : 'xlsx';
-      const mimeType = exportType.toLowerCase() === 'csv'
-        ? 'text/csv'
-        : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-
-      const blob = new Blob([response.data], {
-        type: mimeType
-      });
-
-      const downloadUrl = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = downloadUrl;
-
-      const scope = exportAll ? 'all' : 'selected';
-      a.download = `leads_${scope}_${new Date().toISOString().split("T")[0]}.${fileExtension}`;
-
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(downloadUrl);
-
-      setIsExportPopupOpen(false);
-      await fetchLeads();
-
-    } catch (error: any) {
-      console.error("Export failed:", error);
-      console.error("Error response:", error.response?.data);
-
-      if (error.response?.data instanceof Blob) {
-        try {
-          const text = await error.response.data.text();
-          const errorData = JSON.parse(text);
-          showToast(`Export failed: ${errorData.message || errorData.exception || 'Unknown error'}`);
-        } catch {
-          showToast(`Export failed: ${error.message}`);
-        }
-      } else {
-        showToast(`Export failed: ${error.response?.data?.message || error.message}`);
-      }
-    } finally {
-      setIsExporting(false);
-    }
+    return exportOrder;
   };
+
+  const handleExport = async (exportType: string = 'Excel', exportAll: boolean = true) => {
+  setIsExporting(true);
+
+  try {
+    const session = getUserSession();
+    const sessionCompany = session?.company;
+
+    const baseUrl = "https://api.erpnext.ai/api/method/frappe.desk.reportview.export_query";
+
+    const exportFilters: any = {
+      company: sessionCompany,
+      converted: 0
+    };
+
+    if (filters.status.length > 0) {
+      exportFilters['status'] = ['in', filters.status];
+    }
+    if (filters.territory.length > 0) {
+      exportFilters['territory'] = ['in', filters.territory];
+    }
+    if (filters.industry.length > 0) {
+      exportFilters['industry'] = ['in', filters.industry];
+    }
+    if (filters.assignedTo.length > 0) {
+      exportFilters['_assign'] = ['in', filters.assignedTo];
+    }
+
+    const columnToFieldMap: Record<string, string> = {
+      'name': 'name',
+      'firstName': 'first_name',
+      'lastName': 'last_name',
+      'organization': 'organization',
+      'status': 'status',
+      'email': 'email',
+      'mobile': 'mobile_no',
+      'assignedTo': '_assign',
+      'lastModified': 'modified',
+      'territory': 'territory',
+      'industry': 'industry',
+      'website': 'website',
+      'leadId': 'name',
+      'jobTitle': 'job_title',
+      'source': 'source',
+      'salutation': 'salutation'
+    };
+
+    // Define the desired export order
+    const preferredOrder = [
+      'name', 
+      'firstName', 
+      'lastName', 
+      'organization', 
+      
+      'email', 
+      'mobile', 
+      'assignedTo', 
+      'territory',
+      'industry',
+      'website',
+      'jobTitle',
+      'source',
+      'salutation',
+      'leadId',
+      'status', 
+      'lastModified',
+    ];
+
+    // Get visible columns from user settings
+    const visibleColumnsFromSettings = columns.filter(col => col.visible);
+    
+    // Add firstName and lastName to export even if they're not visible in the table
+    const exportColumns = [...visibleColumnsFromSettings];
+    
+    // Add firstName if not already in export columns
+    if (!exportColumns.find(col => col.key === 'firstName')) {
+      exportColumns.push({ key: 'firstName', label: 'First Name', visible: true, sortable: true });
+    }
+    
+    // Add lastName if not already in export columns
+    if (!exportColumns.find(col => col.key === 'lastName')) {
+      exportColumns.push({ key: 'lastName', label: 'Last Name', visible: true, sortable: true });
+    }
+
+    // Remove duplicates (in case firstName/lastName were already visible)
+    const uniqueColumns = exportColumns.filter((col, index, self) =>
+      index === self.findIndex((t) => t.key === col.key)
+    );
+
+    // Sort columns according to preferred order
+    const sortedColumns = uniqueColumns.sort((a, b) => {
+      const indexA = preferredOrder.indexOf(a.key);
+      const indexB = preferredOrder.indexOf(b.key);
+      // Put items not in preferredOrder at the end, maintaining their relative order
+      const posA = indexA === -1 ? 999 + exportColumns.indexOf(a) : indexA;
+      const posB = indexB === -1 ? 999 + exportColumns.indexOf(b) : indexB;
+      return posA - posB;
+    });
+
+    console.log('Export column order:', sortedColumns.map(col => `${col.key} (${col.label})`));
+
+    // Map to field names in the correct order
+    const visibleFields = sortedColumns
+      .map(col => columnToFieldMap[col.key] || col.key)
+      .filter((field, index, self) => self.indexOf(field) === index)
+      .map(field => `\`tabCRM Lead\`.\`${field}\``);
+
+    console.log('Export fields:', visibleFields);
+
+    // Build order_by parameter
+    let orderBy = "`tabCRM Lead`.`modified` desc";
+    if (sortField) {
+      const fieldName = columnToFieldMap[sortField] || sortField;
+      orderBy = `\`tabCRM Lead\`.\`${fieldName}\` ${sortDirection}`;
+    }
+
+    const params: any = {
+      file_format_type: exportType,
+      title: "CRM Lead",
+      doctype: "CRM Lead",
+      fields: JSON.stringify(visibleFields),
+      order_by: orderBy,
+      filters: JSON.stringify(exportFilters),
+      view: "Report",
+      with_comment_count: 1
+    };
+
+    if (!exportAll && selectedIds.length > 0) {
+      params.selected_items = JSON.stringify(selectedIds);
+      console.log('Exporting selected items:', selectedIds);
+    } else {
+      params.page_length = 500;
+      params.start = 0;
+      console.log('Exporting all filtered records');
+    }
+
+    console.log('Export params:', params);
+
+    const response = await axios.get(baseUrl, {
+      params,
+      headers: {
+        'Authorization': AUTH_TOKEN,
+        'Content-Type': 'application/json'
+      },
+      responseType: "blob"
+    });
+
+    if (response.data.type === 'application/json') {
+      const text = await response.data.text();
+      const errorData = JSON.parse(text);
+      throw new Error(errorData.message || errorData.exception || 'Export failed');
+    }
+
+    const fileExtension = exportType.toLowerCase() === 'csv' ? 'csv' : 'xlsx';
+    const mimeType = exportType.toLowerCase() === 'csv'
+      ? 'text/csv'
+      : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
+    const blob = new Blob([response.data], {
+      type: mimeType
+    });
+
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = downloadUrl;
+
+    const scope = exportAll ? 'all' : 'selected';
+    a.download = `leads_${scope}_${new Date().toISOString().split("T")[0]}.${fileExtension}`;
+
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(downloadUrl);
+
+    setIsExportPopupOpen(false);
+    await fetchLeads();
+    showToast('Export completed successfully!', 'success');
+
+  } catch (error: any) {
+    console.error("Export failed:", error);
+    console.error("Error response:", error.response?.data);
+
+    if (error.response?.data instanceof Blob) {
+      try {
+        const text = await error.response.data.text();
+        const errorData = JSON.parse(text);
+        showToast(`Export failed: ${errorData.message || errorData.exception || 'Unknown error'}`);
+      } catch {
+        showToast(`Export failed: ${error.message}`);
+      }
+    } else {
+      showToast(`Export failed: ${error.response?.data?.message || error.message}`);
+    }
+  } finally {
+    setIsExporting(false);
+  }
+};
 
   const handleFormatChange = (format: string) => {
     if (format === 'Excel' || format === 'CSV') {
@@ -1656,84 +1753,84 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
   };
 
   const handleUnlinkAll = async (): Promise<void> => {
-  setIsUnlinking(true);
+    setIsUnlinking(true);
 
-  try {
-    // STEP 1: Unlink items using remove_linked_doc_reference WITHOUT deleting
-    const itemsToUnlink = linkedItems.map((item: any) => ({
-      doctype: item.reference_doctype,
-      docname: item.reference_docname
-    }));
+    try {
+      // STEP 1: Unlink items using remove_linked_doc_reference WITHOUT deleting
+      const itemsToUnlink = linkedItems.map((item: any) => ({
+        doctype: item.reference_doctype,
+        docname: item.reference_docname
+      }));
 
-    if (itemsToUnlink.length > 0) {
-      const unlinkResponse = await fetch(
-        "https://api.erpnext.ai/api/method/crm.api.doc.remove_linked_doc_reference",
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': AUTH_TOKEN
-          },
-          body: JSON.stringify({
-            items: itemsToUnlink,
-            remove_contact: false,
-            delete: false
-          })
+      if (itemsToUnlink.length > 0) {
+        const unlinkResponse = await fetch(
+          "https://api.erpnext.ai/api/method/crm.api.doc.remove_linked_doc_reference",
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': AUTH_TOKEN
+            },
+            body: JSON.stringify({
+              items: itemsToUnlink,
+              remove_contact: false,
+              delete: false
+            })
+          }
+        );
+
+        if (!unlinkResponse.ok) {
+          throw new Error("Failed to unlink items");
         }
-      );
 
-      if (!unlinkResponse.ok) {
-        throw new Error("Failed to unlink items");
-      }
+        const unlinkResult = await unlinkResponse.json();
+        console.log("Unlink response:", unlinkResult);
 
-      const unlinkResult = await unlinkResponse.json();
-      console.log("Unlink response:", unlinkResult);
+        // STEP 2: Verify unlinking was successful
+        const leadId = leadsToDelete[0];
+        const verifyResponse = await fetch(
+          "https://api.erpnext.ai/api/method/crm.api.doc.get_linked_docs_of_document",
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': AUTH_TOKEN
+            },
+            body: JSON.stringify({
+              doctype: "CRM Lead",
+              docname: leadId
+            })
+          }
+        );
 
-      // STEP 2: Verify unlinking was successful
-      const leadId = leadsToDelete[0];
-      const verifyResponse = await fetch(
-        "https://api.erpnext.ai/api/method/crm.api.doc.get_linked_docs_of_document",
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': AUTH_TOKEN
-          },
-          body: JSON.stringify({
-            doctype: "CRM Lead",
-            docname: leadId
-          })
-        }
-      );
+        if (verifyResponse.ok) {
+          const verifyResult = await verifyResponse.json();
+          const remainingItems = verifyResult.message || [];
 
-      if (verifyResponse.ok) {
-        const verifyResult = await verifyResponse.json();
-        const remainingItems = verifyResult.message || [];
+          if (remainingItems.length === 0) {
+            // STEP 3: All items unlinked successfully - close the popup and show toast
+            showToast('Items unlinked successfully!', 'success');
 
-        if (remainingItems.length === 0) {
-          // STEP 3: All items unlinked successfully - close the popup and show toast
-          showToast('Items unlinked successfully!', 'success');
-          
-          // Close the LinkedItemsPopup automatically
-          setIsLinkedItemsPopupOpen(false);
-          setLinkedItems([]);
-          
-          return; // Resolve the promise
+            // Close the LinkedItemsPopup automatically
+            setIsLinkedItemsPopupOpen(false);
+            setLinkedItems([]);
+
+            return; // Resolve the promise
+          } else {
+            throw new Error("Some items could not be unlinked");
+          }
         } else {
-          throw new Error("Some items could not be unlinked");
+          throw new Error("Failed to verify unlinking");
         }
-      } else {
-        throw new Error("Failed to verify unlinking");
       }
+    } catch (error) {
+      console.error("Error unlinking items:", error);
+      showToast("Failed to unlink items", "error");
+      throw error; // Re-throw the error
+    } finally {
+      setIsUnlinking(false);
     }
-  } catch (error) {
-    console.error("Error unlinking items:", error);
-    showToast("Failed to unlink items", "error");
-    throw error; // Re-throw the error
-  } finally {
-    setIsUnlinking(false);
-  }
-};
+  };
 
   // Remove the old handleDeleteConfirmation function and replace it with:
   const handleDeleteConfirmation = async () => {
@@ -1818,54 +1915,54 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
       )}
 
       {showDeleteLinkedConfirm && (
-  <div className="fixed inset-0 z-[70] flex items-center justify-center overflow-y-auto">
-    <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" />
-    <div className={`relative transform overflow-hidden rounded-lg text-left shadow-xl transition-all w-full max-w-md mx-4 ${theme === 'dark' ? 'bg-gray-900' : 'bg-white'
-      }`}>
-      <div className="p-6">
-        <h3 className={`text-lg font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'
-          }`}>
-          Delete Lead
-        </h3>
-        <p className={`text-sm mb-6 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
-          }`}>
-          Are you sure you want to delete this Lead?
-        </p>
+        <div className="fixed inset-0 z-[70] flex items-center justify-center overflow-y-auto">
+          <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" />
+          <div className={`relative transform overflow-hidden rounded-lg text-left shadow-xl transition-all w-full max-w-md mx-4 ${theme === 'dark' ? 'bg-gray-900' : 'bg-white'
+            }`}>
+            <div className="p-6">
+              <h3 className={`text-lg font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                }`}>
+                Delete Lead
+              </h3>
+              <p className={`text-sm mb-6 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                }`}>
+                Are you sure you want to delete this Lead?
+              </p>
 
-        <div className="flex justify-end space-x-3">
-          <button
-            type="button"
-            onClick={() => setShowDeleteLinkedConfirm(false)}
-            className={`px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${theme === 'dark'
-              ? 'border-gray-600 text-white hover:bg-gray-700'
-              : 'border-gray-300 text-gray-700 hover:bg-gray-100'
-              }`}
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={handleConfirmDeleteLinkedItems}
-            disabled={isDeleting}
-            className={`px-4 py-2 text-sm font-medium rounded-lg border transition-colors flex items-center ${theme === 'dark'
-              ? 'border-red-500 bg-red-600 text-white hover:bg-red-700'
-              : 'border-red-500 bg-red-600 text-white hover:bg-red-700'
-              } disabled:opacity-50 disabled:cursor-not-allowed`}
-          >
-            {isDeleting ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Deleting...
-              </>
-            ) : (
-              'Delete'
-            )}
-          </button>
+              <div className="flex justify-end space-x-3">
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteLinkedConfirm(false)}
+                  className={`px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${theme === 'dark'
+                    ? 'border-gray-600 text-white hover:bg-gray-700'
+                    : 'border-gray-300 text-gray-700 hover:bg-gray-100'
+                    }`}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmDeleteLinkedItems}
+                  disabled={isDeleting}
+                  className={`px-4 py-2 text-sm font-medium rounded-lg border transition-colors flex items-center ${theme === 'dark'
+                    ? 'border-red-500 bg-red-600 text-white hover:bg-red-700'
+                    : 'border-red-500 bg-red-600 text-white hover:bg-red-700'
+                    } disabled:opacity-50 disabled:cursor-not-allowed`}
+                >
+                  {isDeleting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    'Delete'
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
-  </div>
-)}
+      )}
 
       {/* Import Popup */}
       {showImportPopup && <ImportPopup />}
@@ -2100,12 +2197,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
                     />
                   )}
 
-                  <FilterDropdown
-                    title="Assigned To"
-                    options={filterOptions.assignedTo}
-                    selected={filters.assignedTo}
-                    onChange={(value) => handleFilterChange('assignedTo', value)}
-                  />
+                  
                 </div>
               </div>
             )}
