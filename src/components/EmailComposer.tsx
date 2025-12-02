@@ -6,13 +6,15 @@ import {
   MessageSquare,
   Mail,
   Sparkles,
+  X,
+  ChevronDown,
 } from "lucide-react";
 import { useTheme } from "./ThemeProvider";
 import Commentemail from "./Commentemail";
 import Picker from '@emoji-mart/react'
 import data from '@emoji-mart/data'
 import { IoDocument } from "react-icons/io5";
-import { getUserSession } from "../utils/session"; // Update with correct path
+import { getUserSession } from "../utils/session";
 import axios from "axios";
 import { Deal } from "./DealDetailView";
 import { apiAxios, getAuthToken } from "../api/apiUrl";
@@ -22,19 +24,19 @@ import { ConfirmationPopup } from "./LeadsPopup/ConfirmationPopup";
 interface EmailComposerProps {
   mode: string;
   onClose: () => void;
-  dealName: string; // Add this prop
-  fetchEmails: () => void; // <- Add this line
-  selectedEmail?: any; // Add this line
+  dealName: string;
+  fetchEmails: () => void;
+  selectedEmail?: any;
   onSubjectChange?: (subject: string) => void;
   generatedContent?: string;
   generatingContent?: boolean;
-  clearSelectedEmail?: () => void; // Add this line
+  clearSelectedEmail?: () => void;
   fetchComments: () => void;
-  deal?: Deal; // Add this line
+  deal?: Deal;
 }
 
 const API_BASE_URL = "https://api.erpnext.ai/api/method/frappe.core.doctype.communication.email.make";
-const AUTH_TOKEN = getAuthToken(); // Replace with your actual token
+const AUTH_TOKEN = getAuthToken();
 const SEARCH_API_URL = "https://api.erpnext.ai/api/method/frappe.desk.search.search_link";
 
 interface User {
@@ -42,17 +44,28 @@ interface User {
   description: string;
 }
 
-export default function EmailOrCommentComposer({ deal, onClose, mode, dealName, fetchEmails, selectedEmail, clearSelectedEmail, fetchComments, onSubjectChange, generatedContent, generatingContent }: EmailComposerProps) {
+interface EmailRecipient {
+  id: string;
+  email: string;
+  label?: string;
+}
+
+export default function EmailOrCommentComposer({
+  deal,
+  onClose,
+  mode,
+  dealName,
+  fetchEmails,
+  selectedEmail,
+  clearSelectedEmail,
+  fetchComments,
+  onSubjectChange,
+  generatedContent,
+  generatingContent
+}: EmailComposerProps) {
   const { theme } = useTheme();
 
   const [showComment, setShowComment] = useState(false);
-  const [emailForm, setEmailForm] = useState({
-    recipient: "",
-    cc: "",
-    bcc: "",
-    subject: "",
-    message: "",
-  });
   const [loading, setLoading] = useState(false);
   const [showCC, setShowCC] = useState(false);
   const [showBCC, setShowBCC] = useState(false);
@@ -60,22 +73,39 @@ export default function EmailOrCommentComposer({ deal, onClose, mode, dealName, 
   const emojiPickerRef = useRef<HTMLDivElement | null>(null);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
 
-  // New states for autocomplete
+  // Multi-select states
+  const [toRecipients, setToRecipients] = useState<EmailRecipient[]>([]);
+  const [ccRecipients, setCcRecipients] = useState<EmailRecipient[]>([]);
+  const [bccRecipients, setBccRecipients] = useState<EmailRecipient[]>([]);
+  const [currentToInput, setCurrentToInput] = useState("");
+  const [currentCcInput, setCurrentCcInput] = useState("");
+  const [currentBccInput, setCurrentBccInput] = useState("");
+
+  // Autocomplete states
   const [userSuggestions, setUserSuggestions] = useState<User[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
-  const recipientInputRef = useRef<HTMLInputElement>(null);
+  const [suggestionsFor, setSuggestionsFor] = useState<"to" | "cc" | "bcc">("to");
+
+  const toInputRef = useRef<HTMLInputElement>(null);
+  const ccInputRef = useRef<HTMLInputElement>(null);
+  const bccInputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
+
+  const [emailForm, setEmailForm] = useState({
+    subject: "",
+    message: "",
+  });
+
   const [isSubjectEdited, setIsSubjectEdited] = useState(false);
   const [generating, setGenerating] = useState(false);
-  const [lastGeneratedSubject, setLastGeneratedSubject] = useState<string>("");
   const [showConfirmationPopup, setShowConfirmationPopup] = useState(false);
   const [subjectToGenerate, setSubjectToGenerate] = useState("");
+  const [quotedMessage, setQuotedMessage] = useState("");
 
   const userSession = getUserSession();
   const sessionfullname = userSession?.full_name;
   const senderUsername = userSession?.username || sessionfullname;
-  const [quotedMessage, setQuotedMessage] = useState("");
 
   const addEmoji = (emoji: { native: string; }) => {
     setEmailForm((prev) => ({
@@ -93,40 +123,40 @@ export default function EmailOrCommentComposer({ deal, onClose, mode, dealName, 
         setShowEmojiPicker(false);
       }
 
-      // Close suggestions when clicking outside
       if (
         suggestionsRef.current &&
         !suggestionsRef.current.contains(event.target as Node) &&
-        recipientInputRef.current &&
-        !recipientInputRef.current.contains(event.target as Node)
+        toInputRef.current &&
+        !toInputRef.current.contains(event.target as Node) &&
+        ccInputRef.current &&
+        !ccInputRef.current.contains(event.target as Node) &&
+        bccInputRef.current &&
+        !bccInputRef.current.contains(event.target as Node)
       ) {
         setShowSuggestions(false);
       }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showEmojiPicker]);
 
-  // Fetch user suggestions
   const fetchUserSuggestions = async (searchText: string) => {
     if (!searchText.trim()) {
       setUserSuggestions([]);
       setShowSuggestions(false);
       return;
     }
+    const session = getUserSession();
+    const sessionCompany = session?.company;
 
     setSearchLoading(true);
     try {
+
       const payload = {
         txt: searchText,
         doctype: "User",
-        filters: {
-          company: ""
-        }
+        filters: sessionCompany ? { company: sessionCompany } : null
       };
 
       const response = await axios.post(SEARCH_API_URL, payload, {
@@ -136,7 +166,7 @@ export default function EmailOrCommentComposer({ deal, onClose, mode, dealName, 
         },
       });
 
-      if (response.data && response.data.message) {
+      if (response.data?.message) {
         const suggestions = response.data.message.map((user: any) => ({
           value: user.value,
           description: user.description || user.value
@@ -153,57 +183,169 @@ export default function EmailOrCommentComposer({ deal, onClose, mode, dealName, 
     }
   };
 
-  // Debounced search function
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      fetchUserSuggestions(emailForm.recipient);
-    }, 300); // Wait 300ms after typing stops
+  const isValidEmail = (email: string) => {
+    const emailRegex = /^([^<>]+<)?[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(>)?$/;
+    return emailRegex.test(email.trim());
+  };
 
-    return () => clearTimeout(timeoutId);
-  }, [emailForm.recipient]);
+  const extractEmailFromDisplayString = (input: string): string => {
+    const match = input.match(/<([^>]+)>/);
+    return match ? match[1] : input;
+  };
 
-  const handleRecipientChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAddRecipient = (type: "to" | "cc" | "bcc", email: string) => {
+    if (!email.trim()) return;
+
+    const emailAddress = extractEmailFromDisplayString(email);
+
+    if (!isValidEmail(emailAddress)) {
+      showToast(`Invalid email address: ${email}`, { type: "error" });
+      return;
+    }
+
+    const newRecipient: EmailRecipient = {
+      id: Date.now().toString(),
+      email: emailAddress,
+      label: email.includes("<") ? email : undefined
+    };
+
+    switch (type) {
+      case "to":
+        if (!toRecipients.some(r => r.email === emailAddress)) {
+          setToRecipients(prev => [...prev, newRecipient]);
+        }
+        setCurrentToInput("");
+        break;
+      case "cc":
+        if (!ccRecipients.some(r => r.email === emailAddress)) {
+          setCcRecipients(prev => [...prev, newRecipient]);
+        }
+        setCurrentCcInput("");
+        break;
+      case "bcc":
+        if (!bccRecipients.some(r => r.email === emailAddress)) {
+          setBccRecipients(prev => [...prev, newRecipient]);
+        }
+        setCurrentBccInput("");
+        break;
+    }
+
+    setShowSuggestions(false);
+  };
+
+  const handleRemoveRecipient = (type: "to" | "cc" | "bcc", id: string) => {
+    switch (type) {
+      case "to":
+        setToRecipients(prev => prev.filter(r => r.id !== id));
+        break;
+      case "cc":
+        setCcRecipients(prev => prev.filter(r => r.id !== id));
+        break;
+      case "bcc":
+        setBccRecipients(prev => prev.filter(r => r.id !== id));
+        break;
+    }
+  };
+
+  const handleInputKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>,
+    type: "to" | "cc" | "bcc"
+  ) => {
+    const inputValue = type === "to" ? currentToInput :
+      type === "cc" ? currentCcInput : currentBccInput;
+
+    if (e.key === 'Enter' && inputValue.trim()) {
+      e.preventDefault();
+      handleAddRecipient(type, inputValue);
+    } else if (e.key === 'Backspace' && !inputValue) {
+      switch (type) {
+        case "to":
+          if (toRecipients.length > 0) {
+            setToRecipients(prev => prev.slice(0, -1));
+          }
+          break;
+        case "cc":
+          if (ccRecipients.length > 0) {
+            setCcRecipients(prev => prev.slice(0, -1));
+          }
+          break;
+        case "bcc":
+          if (bccRecipients.length > 0) {
+            setBccRecipients(prev => prev.slice(0, -1));
+          }
+          break;
+      }
+    } else if (e.key === 'Escape') {
+      setShowSuggestions(false);
+    }
+  };
+
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    type: "to" | "cc" | "bcc"
+  ) => {
     const value = e.target.value;
-    setEmailForm(f => ({ ...f, recipient: value }));
 
-    // Show suggestions only if there's text
+    switch (type) {
+      case "to":
+        setCurrentToInput(value);
+        break;
+      case "cc":
+        setCurrentCcInput(value);
+        break;
+      case "bcc":
+        setCurrentBccInput(value);
+        break;
+    }
+
     if (value.trim()) {
+      setSuggestionsFor(type);
       setShowSuggestions(true);
+      fetchUserSuggestions(value);
     } else {
       setShowSuggestions(false);
     }
   };
 
   const handleSuggestionClick = (user: User) => {
-    setEmailForm(f => ({ ...f, recipient: user.value }));
-    setShowSuggestions(false);
-  };
-
-  const handleRecipientKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Escape') {
-      setShowSuggestions(false);
-    } else if (e.key === 'ArrowDown' && userSuggestions.length > 0) {
-      e.preventDefault();
-      // Focus first suggestion (you can enhance this to navigate through suggestions)
-      const firstSuggestion = document.getElementById('suggestion-0');
-      if (firstSuggestion) {
-        (firstSuggestion as HTMLElement).focus();
-      }
+    switch (suggestionsFor) {
+      case "to":
+        handleAddRecipient("to", user.value);
+        break;
+      case "cc":
+        handleAddRecipient("cc", user.value);
+        break;
+      case "bcc":
+        handleAddRecipient("bcc", user.value);
+        break;
     }
   };
 
-  // const isValidEmail = (email: string) => {
-  //   // Simple regex for email validation
-  //   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  //   return emailRegex.test(email);
-  // };
-  const isValidEmail = (email: string) => {
-    // Allow both plain and display-name email formats
-    const emailRegex = /^([^<>]+<)?[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(>)?$/;
-    return emailRegex.test(email.trim());
+  const renderRecipientChips = (recipients: EmailRecipient[], type: "to" | "cc" | "bcc") => {
+    return recipients.map(recipient => (
+      <div
+        key={recipient.id}
+        className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium ${theme === "dark"
+          ? "bg-gray-700 text-gray-200 border border-gray-600"
+          : "bg-gray-100 text-gray-700 border border-gray-300"
+          }`}
+      >
+        <span className="truncate max-w-[120px] sm:max-w-[150px]">
+          {recipient.label || recipient.email}
+        </span>
+        <button
+          type="button"
+          onClick={() => handleRemoveRecipient(type, recipient.id)}
+          className={`ml-1 rounded-full p-0.5 hover:bg-opacity-20 ${theme === "dark"
+            ? "hover:bg-gray-500 text-gray-300"
+            : "hover:bg-gray-400 text-gray-500"
+            }`}
+        >
+          <X size={12} />
+        </button>
+      </div>
+    ));
   };
-
-
 
   const UPLOAD_API_URL = "https://api.erpnext.ai/api/method/upload_file";
 
@@ -213,10 +355,10 @@ export default function EmailOrCommentComposer({ deal, onClose, mode, dealName, 
     for (const file of files) {
       const formData = new FormData();
       formData.append("doctype", "CRM Deal");
-      formData.append("docname", dealName); // required to attach to a specific document
+      formData.append("docname", dealName);
       formData.append("type", "image");
       formData.append("file", file);
-      formData.append("is_private", "0"); // or "0" if public
+      formData.append("is_private", "0");
       formData.append("folder", "Home/Attachments");
 
       try {
@@ -227,7 +369,7 @@ export default function EmailOrCommentComposer({ deal, onClose, mode, dealName, 
           },
         });
 
-        const fileId = response.data?.message?.name; // or file_url
+        const fileId = response.data?.message?.name;
         if (fileId) uploadedFileIds.push(fileId);
       } catch (error) {
         console.error("File upload error:", error);
@@ -239,39 +381,26 @@ export default function EmailOrCommentComposer({ deal, onClose, mode, dealName, 
   }
 
   const sendEmail = async () => {
-
-    // Validate the main recipient's email
-    if (emailForm.recipient.trim() && !isValidEmail(emailForm.recipient)) {
-      showToast("Invalid email address in 'To' field.", { type: "error" });
+    if (toRecipients.length === 0) {
+      showToast("Please add at least one recipient in 'To' field.", { type: "error" });
       return;
     }
 
-    // Validate the CC emails (if any)
-    if (emailForm.cc.trim()) {
-      const ccEmails = emailForm.cc.split(',').map(email => email.trim());
-      for (const email of ccEmails) {
-        if (!isValidEmail(email)) {
-          // showToast(`Invalid email address in 'Cc' field: ${email}`, { type: "error" });
-          showToast(`Invalid email address in 'Cc' field.`, { type: "error" });
-          return;
-        }
+    for (const recipient of ccRecipients) {
+      if (!isValidEmail(recipient.email)) {
+        showToast(`Invalid email address in 'Cc' field.`, { type: "error" });
+        return;
       }
     }
 
-    // Validate the BCC emails (if any)
-    if (emailForm.bcc.trim()) {
-      const bccEmails = emailForm.bcc.split(',').map(email => email.trim());
-      for (const email of bccEmails) {
-        if (!isValidEmail(email)) {
-          // showToast(`Invalid email address in 'Bcc' field: ${email}`, { type: "error" });
-          showToast(`Invalid email address in 'Bcc' field,`, { type: "error" });
-          return;
-        }
+    for (const recipient of bccRecipients) {
+      if (!isValidEmail(recipient.email)) {
+        showToast(`Invalid email address in 'Bcc' field.`, { type: "error" });
+        return;
       }
     }
 
-
-    if (!emailForm.recipient.trim() || !emailForm.message.trim() || !emailForm.subject.trim()) {
+    if (!emailForm.message.trim() || !emailForm.subject.trim()) {
       showToast("Please fill all required fields", { type: "error" });
       return;
     }
@@ -281,28 +410,34 @@ export default function EmailOrCommentComposer({ deal, onClose, mode, dealName, 
     try {
       let attachmentIds: string[] = [];
 
-      // Step 1: Upload attachments
       if (uploadedFiles.length > 0) {
         attachmentIds = await uploadFiles(uploadedFiles);
       }
-      // Combine the new message with the quoted message if it exists
+
+      const recipientsString = toRecipients.map(r => r.email).join(", ");
+      const ccString = ccRecipients.map(r => r.email).join(", ");
+      const bccString = bccRecipients.map(r => r.email).join(", ");
+
+      // For the quoted message, keep it as plain text
+      // For the new message, wrap it in HTML
+      const newMessageHtml = `<div style="white-space: pre-wrap; font-family: sans-serif;">${emailForm.message}</div>`;
+      
       const fullMessage = quotedMessage
-        ? `${emailForm.message}\n\n---\n\n${quotedMessage}`
-        : emailForm.message;
-      const htmlMessage = `<div style="white-space: pre-wrap; font-family: sans-serif;">${fullMessage}</div>`;
-      // Step 2: Construct and send email
+        ? `${newMessageHtml}\n\n---\n\n${quotedMessage}`
+        : newMessageHtml;
+
       const payload = {
-        recipients: emailForm.recipient,
-        cc: emailForm.cc,
-        bcc: emailForm.bcc,
+        recipients: recipientsString,
+        cc: ccString,
+        bcc: bccString,
         subject: emailForm.subject,
-        content: htmlMessage,
+        content: fullMessage,
         send_email: 1,
         name: dealName,
         now: 1,
         doctype: "CRM Deal",
         sender_full_name: senderUsername,
-        attachments: attachmentIds, // pass uploaded file IDs
+        attachments: attachmentIds,
       };
 
       const response = await fetch(API_BASE_URL, {
@@ -315,8 +450,18 @@ export default function EmailOrCommentComposer({ deal, onClose, mode, dealName, 
       });
 
       if (response.ok) {
-        setEmailForm({ recipient: "", cc: "", bcc: "", subject: "", message: "" });
+        setToRecipients([]);
+        setCcRecipients([]);
+        setBccRecipients([]);
+        setCurrentToInput("");
+        setCurrentCcInput("");
+        setCurrentBccInput("");
+        setEmailForm({ subject: "", message: "" });
         setUploadedFiles([]);
+        setQuotedMessage("");
+        setShowCC(false);
+        setShowBCC(false);
+
         fetchEmails();
         onClose?.();
         if (clearSelectedEmail) clearSelectedEmail();
@@ -336,18 +481,65 @@ export default function EmailOrCommentComposer({ deal, onClose, mode, dealName, 
     setShowComment(mode === "comment");
   }, [mode]);
 
-
   useEffect(() => {
     if (selectedEmail && (mode === "reply" || mode === "reply-all")) {
-      const quoted = selectedEmail.content || "";
+      // Extract and clean the quoted message
+      let quoted = selectedEmail.content || "";
+      
+      // Remove HTML tags from the quoted message
+      if (quoted.includes('<')) {
+        // Create a temporary div to parse HTML
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = quoted;
+        quoted = tempDiv.textContent || tempDiv.innerText || "";
+      }
+      
+      // Clean up any remaining HTML entities
+      quoted = quoted
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        .trim();
 
-      setEmailForm({
-        recipient: selectedEmail.from || "",
-        cc: mode === "reply-all" ? selectedEmail.cc || "" : "",
-        bcc: mode === "reply-all" ? selectedEmail.bcc || "" : "",
-        subject: selectedEmail.subject?.startsWith("Re:") ? selectedEmail.subject : `Re: ${selectedEmail.subject}`,
-        message: "", // Leave main input empty
-      });
+      const recipientEmail = selectedEmail.from || "";
+      if (recipientEmail) {
+        setToRecipients([{
+          id: "1",
+          email: extractEmailFromDisplayString(recipientEmail),
+          label: recipientEmail.includes("<") ? recipientEmail : undefined
+        }]);
+      }
+
+      if (selectedEmail.cc && mode === "reply-all") {
+        const ccEmails = selectedEmail.cc.split(',').map((email: string) => email.trim());
+        const ccRecipients = ccEmails.map((email: string, index: number) => ({
+          id: `cc-${index}`,
+          email: extractEmailFromDisplayString(email),
+          label: email.includes("<") ? email : undefined
+        }));
+        setCcRecipients(ccRecipients);
+      }
+
+      if (selectedEmail.bcc && mode === "reply-all") {
+        const bccEmails = selectedEmail.bcc.split(',').map((email: string) => email.trim());
+        const bccRecipients = bccEmails.map((email: string, index: number) => ({
+          id: `bcc-${index}`,
+          email: extractEmailFromDisplayString(email),
+          label: email.includes("<") ? email : undefined
+        }));
+        setBccRecipients(bccRecipients);
+      }
+
+      setEmailForm(prev => ({
+        ...prev,
+        subject: selectedEmail.subject?.startsWith("Re:")
+          ? selectedEmail.subject
+          : `Re: ${selectedEmail.subject}`,
+        message: ""
+      }));
 
       setQuotedMessage(quoted);
       setShowCC(mode === "reply-all" && !!selectedEmail.cc);
@@ -357,7 +549,7 @@ export default function EmailOrCommentComposer({ deal, onClose, mode, dealName, 
 
   const handleSubjectChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const subject = e.target.value;
-    setEmailForm(f => ({ ...f, subject, message: subject.trim() === "" ? "" : f.message, }));
+    setEmailForm(f => ({ ...f, subject }));
 
     if (onSubjectChange) {
       onSubjectChange(subject);
@@ -379,36 +571,23 @@ export default function EmailOrCommentComposer({ deal, onClose, mode, dealName, 
 
   useEffect(() => {
     if (mode === "new") {
-      setEmailForm({
-        recipient: "",
-        cc: "",
-        bcc: "",
-        subject: "",
-        message: "",
-      });
+      setToRecipients([]);
+      setCcRecipients([]);
+      setBccRecipients([]);
+      setCurrentToInput("");
+      setCurrentCcInput("");
+      setCurrentBccInput("");
+      setEmailForm({ subject: "", message: "" });
       setUploadedFiles([]);
       setQuotedMessage("");
       setShowCC(false);
       setShowBCC(false);
-      setShowComment(false); // switch to "Reply" tab
+      setShowComment(false);
     }
   }, [mode]);
 
-  // Add this useEffect in your EmailComposer component
-  useEffect(() => {
-    if (emailForm.subject && emailForm.subject.trim() && onSubjectChange) {
-      // Debounce the API call to avoid too many requests
-      const timeoutId = setTimeout(() => {
-        onSubjectChange(emailForm.subject);
-      }, 1000); // Wait 1 second after typing stops
-
-      return () => clearTimeout(timeoutId);
-    }
-  }, [emailForm.subject, onSubjectChange]);
-
   useEffect(() => {
     if (mode === "new" && deal) {
-      // Set subject with deal name and ID
       setEmailForm(prev => ({
         ...prev,
         subject: dealName
@@ -416,13 +595,12 @@ export default function EmailOrCommentComposer({ deal, onClose, mode, dealName, 
     }
   }, [mode, deal]);
 
-  //Set Default message contents
   async function generateEmailFromSubject(subject: string) {
     try {
-      setGenerating(true); // start loading
+      setGenerating(true);
       const response = await apiAxios.post(
         "/api/method/customcrm.email.email_generator.generate_email",
-        { subject }, // request body
+        { subject },
         {
           headers: {
             Authorization: AUTH_TOKEN,
@@ -431,8 +609,7 @@ export default function EmailOrCommentComposer({ deal, onClose, mode, dealName, 
         }
       );
 
-      const generatedMessage = response.data?.message; // API response structure
-
+      const generatedMessage = response.data?.message;
       if (generatedMessage) {
         setEmailForm((prev) => ({ ...prev, message: generatedMessage }));
       }
@@ -440,10 +617,16 @@ export default function EmailOrCommentComposer({ deal, onClose, mode, dealName, 
       console.error("Error generating email:", error);
       showToast("Failed to generate email content", { type: "error" });
     } finally {
-      setGenerating(false); // stop loading
+      setGenerating(false);
     }
   }
 
+  const getActiveInputRef = () => {
+    if (suggestionsFor === "to" && toInputRef.current) return toInputRef;
+    if (suggestionsFor === "cc" && ccInputRef.current) return ccInputRef;
+    if (suggestionsFor === "bcc" && bccInputRef.current) return bccInputRef;
+    return toInputRef;
+  };
 
   return (
     <div
@@ -484,154 +667,149 @@ export default function EmailOrCommentComposer({ deal, onClose, mode, dealName, 
           <MessageSquare size={14} /> Comment
         </button>
       </div>
-      {/* Show only one: Email or Comment */}
+
       {showComment ? (
         <Commentemail
-          // reference_doctype="CRM Deal"
           fetchComments={fetchComments}
-          reference_name={dealName} // <-- pass it heres
+          reference_name={dealName}
           onClose={onClose}
         />
       ) : (
-        <div>
+        <div className="relative">
           {/* Email Form */}
-          <div className="space-y-5 text-sm">
+          <div className="space-y-4 text-sm">
+            {/* To Field */}
             <div
-              className={`flex items-start justify-between border-b pb-2 ${theme === "dark" ? "border-white" : "border-gray-300"
+              className={`flex items-start gap-4 border-b pb-2 ${theme === "dark" ? "border-white" : "border-gray-300"
                 }`}
             >
-              <span className={`w-12 ${theme === "dark" ? "text-white" : "text-gray-500"}`}>To:</span>
-              <div className="relative flex-1">
-                <input
-                  ref={recipientInputRef}
-                  type="email"
-                  value={emailForm.recipient}
-                  onChange={handleRecipientChange}
-                  onKeyDown={handleRecipientKeyDown}
-                  className={`px-2 py-1 rounded font-medium outline-none w-full ${theme === "dark" ? "bg-gray-700 text-white" : "bg-gray-100 text-gray-800"
-                    }`}
-                  placeholder="Recipient email"
-                />
-
-                {/* Suggestions Dropdown */}
-                {showSuggestions && (
-                  <div
-                    ref={suggestionsRef}
-                    className={`absolute left-0 right-0 top-full mt-1 z-50 max-h-60 overflow-y-auto rounded-md shadow-lg ${theme === "dark"
-                      ? "bg-gray-800 border border-gray-700"
-                      : "bg-white border border-gray-300"
-                      }`}
-                  >
-                    {searchLoading ? (
-                      <div className={`px-3 py-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`}>
-                        Loading...
-                      </div>
-                    ) : userSuggestions.length > 0 ? (
-                      userSuggestions.map((user, index) => (
-                        <div
-                          key={index}
-                          id={`suggestion-${index}`}
-                          className={`px-3 py-2 cursor-pointer hover:bg-opacity-50 text-sm border-b ${theme === "dark"
-                            ? "hover:bg-gray-700 border-gray-700 text-white"
-                            : "hover:bg-gray-100 border-gray-200 text-gray-800"
-                            }`}
-                          onClick={() => handleSuggestionClick(user)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              handleSuggestionClick(user);
-                            }
-                          }}
-                          tabIndex={0}
-                        >
-                          <div className="font-medium">{user.value}</div>
-                          {user.description && (
-                            <div className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                              {user.description}
-                            </div>
-                          )}
-                        </div>
-                      ))
-                    ) : emailForm.recipient.trim() && (
-                      <div className={`px-3 py-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`}>
-                        No users found
-                      </div>
-                    )}
-                  </div>
-                )}
+              <div className="flex items-center w-12">
+                <span className={`${theme === "dark" ? "text-white" : "text-gray-500"}`}>To:</span>
               </div>
-              <div className="flex gap-2 ml-2 mt-1">
-                <span
-                  className={`cursor-pointer select-none ${theme === "dark" ? "text-gray-300" : "text-gray-500"
-                    } hover:underline`}
+              <div className="flex-1">
+                <div className="flex flex-wrap gap-1 mb-1">
+                  {renderRecipientChips(toRecipients, "to")}
+                  <div className="relative flex-1 min-w-[200px]">
+                    <input
+                      ref={toInputRef}
+                      type="text"
+                      value={currentToInput}
+                      onChange={(e) => handleInputChange(e, "to")}
+                      onKeyDown={(e) => handleInputKeyDown(e, "to")}
+                      onFocus={() => setSuggestionsFor("to")}
+                      className={`w-full px-2 py-1 rounded font-medium outline-none ${theme === "dark"
+                        ? "bg-gray-700 text-white !placeholder-gray-400"
+                        : "bg-gray-100 text-gray-800 !placeholder-gray-500"
+                        }`}
+                      placeholder={toRecipients.length === 0 ? "Recipient email" : "Recipient email"}
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="flex gap-4">
+                <button
+                  type="button"
                   onClick={() => setShowCC((v) => !v)}
+                  className={`cursor-pointer select-none text-sm ${showCC
+                    ? theme === "dark" ? "text-white" : "text-gray-800"
+                    : theme === "dark" ? "text-gray-300" : "text-gray-500"
+                    } hover:underline flex items-center gap-1`}
                 >
                   CC
-                </span>
-                <span
-                  className={`cursor-pointer select-none ${theme === "dark" ? "text-gray-300" : "text-gray-500"
-                    } hover:underline`}
+                </button>
+                <button
+                  type="button"
                   onClick={() => setShowBCC((v) => !v)}
+                  className={`cursor-pointer select-none text-sm ${showBCC
+                    ? theme === "dark" ? "text-white" : "text-gray-800"
+                    : theme === "dark" ? "text-gray-300" : "text-gray-500"
+                    } hover:underline flex items-center gap-1`}
                 >
                   BCC
-                </span>
+                </button>
               </div>
             </div>
-            {/* CC Field - only shown when showCC is true */}
+
+            {/* CC Field */}
             {showCC && (
               <div
-                className={`flex items-center gap-2 border-b pb-2 ${theme === "dark" ? "border-white" : "border-gray-300"
+                className={`flex items-start gap-4 border-b pb-2 ${theme === "dark" ? "border-white" : "border-gray-300"
                   }`}
               >
-                <span className={`w-12 ${theme === "dark" ? "text-white" : "text-gray-500"
-                  }`}>CC:</span>
-                <input
-                  type="email"
-                  value={emailForm.cc}
-                  onChange={(e) =>
-                    setEmailForm((f) => ({ ...f, cc: e.target.value }))
-                  }
-                  className={`px-2 py-1 rounded font-medium outline-none flex-1 ${theme === "dark"
-                    ? "bg-gray-700 text-white"
-                    : "bg-gray-100 text-gray-800"
-                    }`}
-                  placeholder="CC email"
-                />
+                <div className="flex items-center w-12">
+                  <span className={`${theme === "dark" ? "text-white" : "text-gray-500"}`}>CC:</span>
+                </div>
+                <div className="flex-1">
+                  <div className="flex flex-wrap gap-1 mb-1">
+                    {renderRecipientChips(ccRecipients, "cc")}
+                    <div className="relative flex-1 min-w-[200px]">
+                      <input
+                        ref={ccInputRef}
+                        type="text"
+                        value={currentCcInput}
+                        onChange={(e) => handleInputChange(e, "cc")}
+                        onKeyDown={(e) => handleInputKeyDown(e, "cc")}
+                        onFocus={() => setSuggestionsFor("cc")}
+                        className={`w-full px-2 py-1 rounded font-medium outline-none ${theme === "dark"
+                          ? "bg-gray-700 text-white !placeholder-gray-400"
+                          : "bg-gray-100 text-gray-800 !placeholder-gray-500"
+                          }`}
+                        placeholder="CC email"
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
 
-            {/* BCC Field - only shown when showBCC is true */}
+            {/* BCC Field */}
             {showBCC && (
               <div
-                className={`flex items-center gap-2 border-b pb-2 ${theme === "dark" ? "border-white" : "border-gray-300"
+                className={`flex items-start gap-4 border-b pb-2 ${theme === "dark" ? "border-white" : "border-gray-300"
                   }`}
               >
-                <span className={`w-12 ${theme === "dark" ? "text-white" : "text-gray-500"
-                  }`}>BCC:</span>
-                <input
-                  type="email"
-                  value={emailForm.bcc}
-                  onChange={(e) =>
-                    setEmailForm((f) => ({ ...f, bcc: e.target.value }))
-                  }
-                  className={`px-2 py-1 rounded font-medium outline-none flex-1 ${theme === "dark"
-                    ? "bg-gray-700 text-white"
-                    : "bg-gray-100 text-gray-800"
-                    }`}
-                  placeholder="BCC email"
-                />
+                <div className="flex items-center w-12">
+                  <span className={`${theme === "dark" ? "text-white" : "text-gray-500"}`}>BCC:</span>
+                </div>
+                <div className="flex-1">
+                  <div className="flex flex-wrap gap-1 mb-1">
+                    {renderRecipientChips(bccRecipients, "bcc")}
+                    <div className="relative flex-1 min-w-[200px]">
+                      <input
+                        ref={bccInputRef}
+                        type="text"
+                        value={currentBccInput}
+                        onChange={(e) => handleInputChange(e, "bcc")}
+                        onKeyDown={(e) => handleInputKeyDown(e, "bcc")}
+                        onFocus={() => setSuggestionsFor("bcc")}
+                        className={`w-full px-2 py-1 rounded font-medium outline-none ${theme === "dark"
+                          ? "bg-gray-700 text-white !placeholder-gray-400"
+                          : "bg-gray-100 text-gray-800 !placeholder-gray-500"
+                          }`}
+                        placeholder="BCC email"
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
 
+            {/* Subject Field */}
             <div
-              className={`flex items-center gap-2 border-b pb-1 ${theme === "dark" ? "border-white" : "border-gray-300"
+              className={`flex items-center gap-4 border-b pb-2 ${theme === "dark" ? "border-white" : "border-gray-300"
                 }`}
             >
-              <span className={`w-12 ${theme === "dark" ? "text-white" : "text-gray-500"}`}>Subject:</span>
+              <div className="flex items-center w-12">
+                <span className={`${theme === "dark" ? "text-white" : "text-gray-500"}`}>Subject:</span>
+              </div>
               <input
                 type="text"
                 value={emailForm.subject}
                 onChange={handleSubjectChange}
-                className={`flex-1 bg-transparent outline-none ${theme === "dark" ? "text-white" : "text-gray-600"}`}
+               className={`w-full px-2 py-1 rounded font-medium outline-none ${theme === "dark"
+                          ? "bg-gray-700 text-white !placeholder-gray-400"
+                          : "bg-gray-100 text-gray-800 !placeholder-gray-500"
+                          }`}
                 placeholder="Subject"
               />
               {!selectedEmail && (
@@ -640,39 +818,87 @@ export default function EmailOrCommentComposer({ deal, onClose, mode, dealName, 
                   onClick={handleGenerateButtonClick}
                   disabled={!emailForm.subject.trim()}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${theme === 'dark'
-                      ? 'bg-purplebg hover:bg-purple-700 text-white'
-                      : 'bg-purplebg hover:bg-purple-700 text-white'
+                    ? 'bg-purplebg hover:bg-purple-700 text-white'
+                    : 'bg-purplebg hover:bg-purple-700 text-white'
                     } disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
                   <Sparkles size={16} />
                   <span className="hidden sm:inline">Generate</span>
                 </button>
-
               )}
             </div>
+
             {generatingContent && (
-              <div className="loading-indicator">Generating content...</div>
+              <div className={`text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`}>
+                Generating content...
+              </div>
             )}
 
             {generatedContent && (
-              <div className="generated-content">
-                <p>Suggested content:</p>
+              <div className={`text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`}>
+                <p className="font-medium mb-2">Suggested content:</p>
                 <div dangerouslySetInnerHTML={{ __html: generatedContent }} />
               </div>
             )}
           </div>
-          <div>
+
+          {/* Suggestions Dropdown */}
+          {showSuggestions && (
+            <div
+              ref={suggestionsRef}
+              className={`absolute z-50 max-h-60 overflow-y-auto rounded-md shadow-lg border ${theme === "dark"
+                ? "bg-gray-800 border-gray-700"
+                : "bg-white border-gray-300"
+                }`}
+              style={{
+                width: getActiveInputRef().current?.offsetWidth || '300px',
+                left: getActiveInputRef().current?.offsetLeft || 0,
+                top: (getActiveInputRef().current?.offsetTop || 0) + (getActiveInputRef().current?.offsetHeight || 0) + 2
+              }}
+            >
+              {searchLoading ? (
+                <div className={`px-3 py-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`}>
+                  Loading...
+                </div>
+              ) : userSuggestions.length > 0 ? (
+                userSuggestions.map((user, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    className={`w-full text-left px-3 py-2 cursor-pointer hover:bg-opacity-50 text-sm border-b last:border-b-0 ${theme === "dark"
+                      ? "hover:bg-gray-700 border-gray-700 text-white"
+                      : "hover:bg-gray-100 border-gray-200 text-gray-800"
+                      }`}
+                    onClick={() => handleSuggestionClick(user)}
+                  >
+                    <div className="font-medium truncate">{user.value}</div>
+                    {user.description && (
+                      <div className={`text-xs truncate ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                        {user.description}
+                      </div>
+                    )}
+                  </button>
+                ))
+              ) : (
+                <div className={`px-3 py-2 text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`}>
+                  No users found
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Message Area */}
+          <div className="mt-4">
             <textarea
-              className={`mt-3 w-full h-40 rounded-md p-3 text-sm focus:outline-none focus:ring-1 ${theme === "dark"
-                ? "bg-white-31 border-gray-600 text-white focus:ring-gray-500"
-                : "bg-white border border-gray-300 text-gray-800 focus:ring-gray-300"
+              className={`w-full h-40 rounded-md p-3 text-sm focus:outline-none focus:ring-1 ${theme === "dark"
+                ? "bg-white-31 border-gray-600 text-white focus:ring-gray-500 !placeholder-gray-400"
+                : "bg-white border border-gray-300 text-gray-800 focus:ring-gray-300 !placeholder-gray-500"
                 }`}
               placeholder="Hi John,
                
-Can you please provider more details on this..."
-              // value={emailForm.message}
+Can you please provide more details on this..."
               value={generating ? "Loading content..." : emailForm.message}
-              disabled={generating}  // disable editing while loading
+              disabled={generating}
               onChange={e => setEmailForm(f => ({ ...f, message: e.target.value }))}
             />
 
@@ -681,7 +907,7 @@ Can you please provider more details on this..."
                 className={`mt-4 border-l-4 pl-4 italic font-semibold text-sm ${theme === "dark" ? "border-gray-500 text-gray-300" : "border-gray-600 text-gray-700"
                   }`}
               >
-                “{quotedMessage}”
+                "{quotedMessage.length > 200 ? quotedMessage.substring(0, 200) + '...' : quotedMessage}"
               </div>
             )}
 
@@ -690,9 +916,12 @@ Can you please provider more details on this..."
                 {uploadedFiles.map((file, index) => (
                   <div
                     key={index}
-                    className="flex items-center border text-white px-3 py-1 rounded bg-white-31"
+                    className={`flex items-center border px-3 py-1 rounded-md ${theme === "dark"
+                      ? "bg-gray-800 border-gray-700 text-white"
+                      : "bg-gray-100 border-gray-300 text-gray-800"
+                      }`}
                   >
-                    <span className="mr-2 flex items-center gap-1 truncate max-w-[200px]">
+                    <span className="mr-2 flex items-center gap-1 truncate max-w-[150px]">
                       <IoDocument className="text-base" />
                       {file.name}
                     </span>
@@ -700,7 +929,8 @@ Can you please provider more details on this..."
                       onClick={() =>
                         setUploadedFiles((prev) => prev.filter((_, i) => i !== index))
                       }
-                      className="text-white text-lg leading-none"
+                      className={`text-lg leading-none ${theme === "dark" ? "text-gray-300 hover:text-white" : "text-gray-500 hover:text-gray-800"
+                        }`}
                     >
                       ×
                     </button>
@@ -710,20 +940,20 @@ Can you please provider more details on this..."
             )}
           </div>
 
+          {/* Action Buttons */}
           <div
-            className={`flex justify-between items-center text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-600"
+            className={`flex justify-between items-center text-sm mt-4 ${theme === "dark" ? "text-gray-300" : "text-gray-600"
               }`}
           >
             <div className="flex items-center gap-4">
               <label className="cursor-pointer">
-                <Paperclip size={18} />
+                <Paperclip size={18} className={theme === "dark" ? "text-gray-300 hover:text-white" : "text-gray-600 hover:text-gray-800"} />
                 <input
                   type="file"
                   className="hidden"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) {
-                      // Check if file with same name already exists
                       const isDuplicate = uploadedFiles.some(
                         existingFile => existingFile.name === file.name
                       );
@@ -733,8 +963,6 @@ Can you please provider more details on this..."
                       } else {
                         showToast("This file has already been attached", { type: "warning" });
                       }
-
-                      // Clear the input to allow selecting the same file again if needed
                       e.target.value = "";
                     }
                   }}
@@ -742,15 +970,14 @@ Can you please provider more details on this..."
               </label>
               <div className="relative">
                 <Smile
-                  className="cursor-pointer"
+                  className={`cursor-pointer ${theme === "dark" ? "text-gray-300 hover:text-white" : "text-gray-600 hover:text-gray-800"}`}
                   size={18}
                   onClick={() => setShowEmojiPicker((prev) => !prev)}
                 />
-
                 {showEmojiPicker && (
                   <div
                     ref={emojiPickerRef}
-                    className="absolute z-50 bottom-full left-0 mt-2"
+                    className="absolute z-50 bottom-full left-0 mb-2"
                   >
                     <Picker data={data} onEmojiSelect={addEmoji} />
                   </div>
@@ -759,10 +986,16 @@ Can you please provider more details on this..."
             </div>
             <div className="flex items-center gap-3">
               <button
-                className="text-red-500 text-base font-semibold px-5 py-2"
+                className={`text-base font-semibold px-5 py-2 ${theme === "dark" ? "text-red-400 hover:text-red-300" : "text-red-500 hover:text-red-700"
+                  }`}
                 onClick={() => {
-                  // Reset all form-related states
-                  setEmailForm({ recipient: "", cc: "", bcc: "", subject: "", message: "" });
+                  setToRecipients([]);
+                  setCcRecipients([]);
+                  setBccRecipients([]);
+                  setCurrentToInput("");
+                  setCurrentCcInput("");
+                  setCurrentBccInput("");
+                  setEmailForm({ subject: "", message: "" });
                   setUploadedFiles([]);
                   setQuotedMessage("");
                   setShowCC(false);
@@ -771,7 +1004,6 @@ Can you please provider more details on this..."
                   setUserSuggestions([]);
                   setShowSuggestions(false);
 
-                  // Optional cleanup
                   if (clearSelectedEmail) clearSelectedEmail();
                   if (onClose) onClose();
                 }}
@@ -782,21 +1014,21 @@ Can you please provider more details on this..."
 
               <button
                 className={`text-base font-semibold px-5 py-2 rounded-md flex items-center gap-1
-    ${loading || !emailForm.message.trim()
+                  ${loading || !emailForm.message.trim() || toRecipients.length === 0
                     ? "bg-gray-400 text-white cursor-not-allowed"
                     : "bg-purplebg text-white hover:bg-purple-700"
                   }`}
                 onClick={sendEmail}
-                disabled={loading || !emailForm.message.trim()}
+                disabled={loading || !emailForm.message.trim() || toRecipients.length === 0}
                 type="button"
               >
                 {loading ? "Sending..." : "Send"}
               </button>
-
             </div>
           </div>
         </div>
       )}
+
       <ConfirmationPopup
         show={showConfirmationPopup}
         onConfirm={handleConfirmGenerate}

@@ -30,6 +30,8 @@ import { SiTicktick } from "react-icons/si";
 import { FiChevronDown } from "react-icons/fi";
 import { CreateOrganizationPopup } from './DealPopups/CreateOrganizationPopup';
 import { CreateTerritoryPopup } from './DealPopups/CreateTerritoryPopup';
+import { Building2 } from "lucide-react";
+import { RefreshCw } from 'lucide-react';
 
 // Add these new interfaces
 interface UserInfo {
@@ -260,6 +262,12 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
   console.log("showTaskModal", showTaskModal)
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [emailModalMode, setEmailModalMode] = useState("reply");
+
+  // Add to state variables
+  const [companyIntelligence, setCompanyIntelligence] = useState<any>(null);
+  const [intelligenceLoading, setIntelligenceLoading] = useState(false);
+  const [intelligenceError, setIntelligenceError] = useState<string | null>(null);
+
   // Replace your existing email state with these tab-specific states
   const [showEmailModalActivity, setShowEmailModalActivity] = useState(false);
   const [showEmailModalEmails, setShowEmailModalEmails] = useState(false);
@@ -346,8 +354,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
     { id: 'tasks', label: 'Tasks', icon: SiTicktick },
     { id: 'notes', label: 'Notes', icon: FileText },
     { id: 'attachments', label: 'Attachments', icon: Paperclip },
-
-    // { id: 'attachments', label: 'Attachments', icon: <Paperclip className="w-4 h-4" /> },
+    { id: 'intelligence', label: 'Company Intelligence', icon: Building2 }, // New tab
   ];
 
   // Updated color scheme variables
@@ -720,6 +727,50 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
       return dateString;
     }
   };
+
+  const fetchCompanyIntelligence = useCallback(async () => {
+    setIntelligenceLoading(true);
+    setIntelligenceError(null);
+
+    try {
+      const response = await apiAxios.post(
+        '/api/method/frappe.client.get',
+        {
+          doctype: "CRM Deal",
+          name: deal.name
+        },
+        {
+          headers: {
+            'Authorization': AUTH_TOKEN,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      const dealData = response.data.message;
+
+      if (dealData && dealData.company_info) {
+        try {
+          // Parse the JSON string if it's stored as a string
+          const companyInfo = typeof dealData.company_info === 'string'
+            ? JSON.parse(dealData.company_info)
+            : dealData.company_info;
+
+          setCompanyIntelligence(companyInfo);
+        } catch (parseError) {
+          console.error('Error parsing company info:', parseError);
+          setIntelligenceError('Failed to parse company intelligence data');
+        }
+      } else {
+        setIntelligenceError('No company intelligence data available for this deal');
+      }
+    } catch (error) {
+      console.error('Error fetching company intelligence:', error);
+      setIntelligenceError('Failed to fetch company intelligence');
+    } finally {
+      setIntelligenceLoading(false);
+    }
+  }, [deal.name]);
 
   const addNote = async () => {
     setNotesLoading(true);
@@ -1755,7 +1806,6 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
   // Add to useEffect
   // Replace your existing useEffect with this one
   useEffect(() => {
-    // Define which tabs should trigger the all-in-one fetch
     const activityTabs: TabType[] = ['activity', 'notes', 'calls', 'comments', 'tasks', 'emails'];
 
     if (activityTabs.includes(activeTab)) {
@@ -1764,11 +1814,10 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
     if (activeTab === 'overview') {
       fetchOrganizations();
     }
-
-    // You can keep separate fetches for things not in the main activity feed, like attachments
-
-  }, [activeTab, fetchAllActivities]); // Add fetchAttachments to dependency array
-
+    if (activeTab === 'intelligence') {
+      fetchCompanyIntelligence();
+    }
+  }, [activeTab, fetchAllActivities, fetchCompanyIntelligence]);
   // Add to state variables
   const [currentPage, setCurrentPage] = useState(1);
   const activityPerPage = 5;
@@ -2369,11 +2418,13 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
       <div className="p-4 sm:p-6">
         {activeTab === 'overview' && (
           <div>
+
+
             <div className="grid grid-cols-1 mb-5 gap-6">
               <div className="space-y-6">
                 <div className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} max-sm:p-3 p-6`}>
                   <div className="flex justify-between items-center mb-4">
-                    <h3 className={`text-lg font-semibold ${textColor}`}>Data</h3>
+                    <h3 className={`text-lg font-semibold ${textColor}`}>Person Details</h3>
                     <button
                       onClick={handleSave}
                       className={`px-4 py-2 rounded-lg flex items-center space-x-2 text-white  ${theme === 'dark' ? 'bg-purple-600 hover:bg-purple-700' : 'bg-blue-600 hover:bg-blue-700'}`}
@@ -2385,6 +2436,213 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                         </>
                       ) : 'Save'}
                     </button>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                    {/* First Name */}
+                    <div>
+                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>
+                        First Name
+                      </label>
+                      <input
+                        type="text"
+                        readOnly
+                        value={editedDeal.first_name || ''}
+                        onChange={(e) => handleInputChange('first_name', e.target.value)}
+                        className={`mt-1 block w-full border rounded-md shadow-sm sm:text-sm px-3 py-2 ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-gray-400 cursor-not-allowed' : 'bg-gray-100 border-gray-300 text-gray-500 cursor-not-allowed'}`}
+                        placeholder=""
+                      />
+                    </div>
+
+                    {/* Last Name */}
+                    <div>
+                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>
+                        Last Name
+                      </label>
+                      <input
+                        type="text"
+                        readOnly
+                        value={editedDeal.last_name || ''}
+                        onChange={(e) => handleInputChange('last_name', e.target.value)}
+                        className={`mt-1 block w-full border rounded-md shadow-sm sm:text-sm px-3 py-2 ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-gray-400 cursor-not-allowed' : 'bg-gray-100 border-gray-300 text-gray-500 cursor-not-allowed'}`}
+                        placeholder=""
+                      />
+                    </div>
+
+                    {/* Email */}
+                    <div>
+                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>
+                        Email
+                      </label>
+                      <input
+                        type="email"
+                        readOnly
+                        value={editedDeal.email || ''}
+                        onChange={(e) => handleInputChange('email', e.target.value)}
+                        className={`mt-1 block w-full border rounded-md shadow-sm sm:text-sm px-3 py-2 ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-gray-400 cursor-not-allowed' : 'bg-gray-100 border-gray-300 text-gray-500 cursor-not-allowed'}`}
+                        placeholder=""
+                      />
+                    </div>
+
+                    {/* Mobile Number */}
+                    <div>
+                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>
+                        Mobile Number
+                      </label>
+                      <input
+                        type="tel"
+                        readOnly
+                        value={editedDeal.mobile_no || ''}
+                        onChange={(e) => handleInputChange('mobile_no', e.target.value)}
+                        className={`mt-1 block w-full border rounded-md shadow-sm sm:text-sm px-3 py-2 ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-gray-400 cursor-not-allowed' : 'bg-gray-100 border-gray-300 text-gray-500 cursor-not-allowed'}`}
+
+                      />
+                    </div>
+
+                  </div>
+                </div>
+              </div>
+            </div>
+
+
+            <div className="grid grid-cols-1 mb-5 gap-6">
+              <div className="space-y-6">
+                <div className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} max-sm:p-3 p-6`}>
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className={`text-lg font-semibold ${textColor}`}>Forecasted Sales</h3>
+
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                    {/* Expected Deal Value (€) */}
+                    <div>
+                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>
+                        Expected Deal Value (€) <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="number"
+                        value={editedDeal.expected_deal_value || ''}
+                        onChange={(e) => {
+                          handleInputChange('expected_deal_value', e.target.value);
+                          if (errors.expected_deal_value) {
+                            setErrors(prev => ({ ...prev, expected_deal_value: '' }));
+                          }
+                        }}
+                        className={`mt-1 block w-full rounded-md border shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 ${theme === 'dark'
+                          ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400'
+                          : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                          } ${errors.expected_deal_value ? 'border-red-500' : ''}`}
+                        placeholder="2000"
+                      />
+                      {errors.expected_deal_value && (
+                        <p className="text-sm text-red-500 mt-1">{errors.expected_deal_value}</p>
+                      )}
+                    </div>
+
+                    {/* Expected Closure Date */}
+                    <div>
+                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>
+                        Expected Closure Date <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="date"
+                        value={editedDeal.expected_closure_date?.split(' ')[0] || ''}
+                        onChange={(e) => {
+                          handleInputChange('expected_closure_date', e.target.value);
+                          if (errors.expected_closure_date) {
+                            setErrors(prev => ({ ...prev, expected_closure_date: '' }));
+                          }
+                        }}
+                        className={`mt-1 block w-full rounded-md border shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 ${theme === 'dark'
+                          ? 'bg-gray-800 border-gray-600 text-white [color-scheme:dark]'
+                          : 'bg-white border-gray-300 text-gray-900'
+                          }`}
+                      />
+                      {errors.expected_closure_date && (
+                        <p className="text-sm text-red-500 mt-1">{errors.expected_closure_date}</p>
+                      )}
+                    </div>
+
+                    {/* Probability Field - Takes full width below the two inputs */}
+                    <div className="md:col-span-2">
+                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>
+                        Probability
+                      </label>
+
+
+                      <div className="mt-2">
+                        {/* Static Probability Display - No interactive slider */}
+                        <div className="relative">
+                          {/* Static Slider Track (read-only) */}
+                          <div className={`h-2 rounded-full ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'}`}>
+                            {/* Static Progress Fill */}
+                            <div
+                              className={`h-2 rounded-full transition-all cursor-not-allowed duration-300 ${parseInt(editedDeal.probability || '0') >= 80 ? 'bg-green-500' :
+                                parseInt(editedDeal.probability || '0') >= 60 ? 'bg-blue-500' :
+                                  parseInt(editedDeal.probability || '0') >= 40 ? 'bg-yellow-500' :
+                                    parseInt(editedDeal.probability || '0') >= 20 ? 'bg-orange-500' :
+                                      'bg-red-500'
+                                }`}
+                              style={{ width: `${parseInt(editedDeal.probability || '0')}%` }}
+                            />
+                          </div>
+
+                          {/* Static Percentage Indicators */}
+                          <div className="flex justify-between mt-1">
+                            {/* 0% at left */}
+                            <div className="flex flex-col items-center">
+                              <div className={`w-1 h-1 rounded-full ${theme === 'dark' ? 'bg-gray-600' : 'bg-gray-400'}`} />
+                              <span className={`text-xs mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
+                                0%
+                              </span>
+                            </div>
+
+                            {/* Static Current value indicator */}
+                            <div
+                              className={`absolute flex flex-col items-center -translate-x-1/2 transition-all duration-300`}
+                              style={{ left: `${parseInt(editedDeal.probability || '0')}%` }}
+                            >
+                              {/* Static Current value marker */}
+                              <div className={`w-4 h-4 rounded-full -mt-1.5 z-10 ${parseInt(editedDeal.probability || '0') >= 80 ? 'bg-green-500' :
+                                parseInt(editedDeal.probability || '0') >= 60 ? 'bg-blue-500' :
+                                  parseInt(editedDeal.probability || '0') >= 40 ? 'bg-yellow-500' :
+                                    parseInt(editedDeal.probability || '0') >= 20 ? 'bg-orange-500' :
+                                      'bg-red-500'
+                                }`} />
+
+                              {/* Static Current value label */}
+                              <div className={`mt-2 px-2 py-1 rounded-md text-xs font-semibold ${theme === 'dark'
+                                ? 'bg-gray-800 text-white border border-gray-700'
+                                : 'bg-white text-gray-900 border border-gray-300'
+                                } shadow-sm`}>
+                                {editedDeal.probability || '0'}%
+                              </div>
+                            </div>
+
+                            {/* 100% at right */}
+                            <div className="flex flex-col items-center">
+                              <div className={`w-1 h-1 rounded-full ${theme === 'dark' ? 'bg-gray-600' : 'bg-gray-400'}`} />
+                              <span className={`text-xs mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
+                                100%
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1  gap-6">
+              <div className="space-y-6">
+                <div className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} max-sm:p-3 p-6`}>
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className={`text-lg font-semibold ${textColor}`}>Data</h3>
+
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
@@ -2739,19 +2997,6 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                       />
                     </div>
 
-                    {/* Next Step */}
-                    <div>
-                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>Next Step</label>
-                      <input
-                        type="text"
-                        value={editedDeal.next_step || ''}
-                        onChange={(e) => handleInputChange('next_step', e.target.value)}
-                        className={`mt-1 block w-full rounded-md border shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 ${theme === 'dark' ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'}`}
-                        placeholder="Enter next step"
-                      />
-                    </div>
-
-
                     {/* Deal Owner */}
                     <div>
                       <label className={`block text-sm font-medium ${textSecondaryColor}`}>Deal Owner</label>
@@ -2781,154 +3026,18 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                         )}
                       />
                     </div>
-                  </div>
-                </div>
-              </div>
-            </div>
 
-            <div className="grid grid-cols-1 mb-5 gap-6">
-              <div className="space-y-6">
-                <div className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} max-sm:p-3 p-6`}>
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className={`text-lg font-semibold ${textColor}`}>Person Details</h3>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-                    {/* First Name */}
+                    {/* Next Step */}
                     <div>
-                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>
-                        First Name
-                      </label>
+                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>Next Step</label>
                       <input
                         type="text"
-                        readOnly
-                        value={editedDeal.first_name || ''}
-                        onChange={(e) => handleInputChange('first_name', e.target.value)}
-                        className={`mt-1 block w-full border rounded-md shadow-sm sm:text-sm px-3 py-2 ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-gray-400 cursor-not-allowed' : 'bg-gray-100 border-gray-300 text-gray-500 cursor-not-allowed'}`}
-                        placeholder=""
+                        value={editedDeal.next_step || ''}
+                        onChange={(e) => handleInputChange('next_step', e.target.value)}
+                        className={`mt-1 block w-full rounded-md border shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 ${theme === 'dark' ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'}`}
+                        placeholder="Enter next step"
                       />
                     </div>
-
-                    {/* Last Name */}
-                    <div>
-                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>
-                        Last Name
-                      </label>
-                      <input
-                        type="text"
-                        readOnly
-                        value={editedDeal.last_name || ''}
-                        onChange={(e) => handleInputChange('last_name', e.target.value)}
-                        className={`mt-1 block w-full border rounded-md shadow-sm sm:text-sm px-3 py-2 ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-gray-400 cursor-not-allowed' : 'bg-gray-100 border-gray-300 text-gray-500 cursor-not-allowed'}`}
-                        placeholder=""
-                      />
-                    </div>
-
-                    {/* Email */}
-                    <div>
-                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>
-                        Email
-                      </label>
-                      <input
-                        type="email"
-                        readOnly
-                        value={editedDeal.email || ''}
-                        onChange={(e) => handleInputChange('email', e.target.value)}
-                        className={`mt-1 block w-full border rounded-md shadow-sm sm:text-sm px-3 py-2 ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-gray-400 cursor-not-allowed' : 'bg-gray-100 border-gray-300 text-gray-500 cursor-not-allowed'}`}
-                        placeholder=""
-                      />
-                    </div>
-
-                    {/* Mobile Number */}
-                    <div>
-                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>
-                        Mobile Number
-                      </label>
-                      <input
-                        type="tel"
-                        readOnly
-                        value={editedDeal.mobile_no || ''}
-                        onChange={(e) => handleInputChange('mobile_no', e.target.value)}
-                        className={`mt-1 block w-full border rounded-md shadow-sm sm:text-sm px-3 py-2 ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-gray-400 cursor-not-allowed' : 'bg-gray-100 border-gray-300 text-gray-500 cursor-not-allowed'}`}
-
-                      />
-                    </div>
-
-                  </div>
-                </div>
-              </div>
-            </div>
-
-
-            <div className="grid grid-cols-1 gap-6">
-              <div className="space-y-6">
-                <div className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} max-sm:p-3 p-6`}>
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className={`text-lg font-semibold ${textColor}`}>Forecasted Sales</h3>
-
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-
-
-                    {/* Expected Deal Value (₹) - Mandatory */}
-                    <div>
-                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>
-                        Expected Deal Value (₹) <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="number"
-                        value={editedDeal.expected_deal_value || ''}
-                        onChange={(e) => {
-                          handleInputChange('expected_deal_value', e.target.value);
-                          if (errors.expected_deal_value) {
-                            setErrors(prev => ({ ...prev, expected_deal_value: '' }));
-                          }
-                        }}
-                        className={`mt-1 block w-full rounded-md border shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 ${theme === 'dark' ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'} ${errors.expected_deal_value ? 'border-red-500' : ''}`}
-                        placeholder="Enter expected deal value"
-                      />
-                      {errors.expected_deal_value && (
-                        <p className="text-sm text-red-500 mt-1">{errors.expected_deal_value}</p>
-                      )}
-                    </div>
-
-                    {/* Expected Closure Date - Mandatory */}
-                    <div>
-                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>
-                        Expected Closure Date <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="date"
-                        value={editedDeal.expected_closure_date?.split(' ')[0] || ''}
-                        onChange={(e) => {
-                          handleInputChange('expected_closure_date', e.target.value);
-                          if (errors.expected_closure_date) {
-                            setErrors(prev => ({ ...prev, expected_closure_date: '' }));
-                          }
-                        }}
-                        className={`mt-1 block w-full rounded-md border shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 ${theme === 'dark' ? 'bg-gray-800 border-gray-600 text-white [color-scheme:dark]' : 'bg-white border-gray-300 text-gray-900'}`}
-                      />
-                      {errors.expected_closure_date && (
-                        <p className="text-sm text-red-500 mt-1">{errors.expected_closure_date}</p>
-                      )}
-                    </div>
-
-                    {/* Probability - Read-only */}
-                    <div>
-                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>
-                        Probability
-                      </label>
-                      <input
-                        type="number"
-                        value={editedDeal.probability || ''}
-                        readOnly
-                        className={`mt-1 block w-full border rounded-md shadow-sm sm:text-sm px-3 py-2 ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-gray-400 cursor-not-allowed' : 'bg-gray-100 border-gray-300 text-gray-500 cursor-not-allowed'}`}
-                      />
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">This field is automatically calculated</p>
-                    </div>
-
-
 
 
 
@@ -3614,7 +3723,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
 
               {commentsLoading ? (
                 <div className="text-center py-8">
-                  <span>loading comments</span>
+                  <span className={`${textSecondaryColor}`}>Loading comments...</span>
                 </div>
               ) : comments.length === 0 ? (
                 <div className="text-center py-8">
@@ -3629,7 +3738,9 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                         composerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                       }, 100);
                     }}
-                    className="text-white cursor-pointer bg-gray-400 rounded-md inline-block text-center px-6 py-2"
+                    className={`mt-2 px-6 py-2 rounded-md cursor-pointer transition-colors ${theme === 'dark'
+                      ? 'bg-gray-700 text-white hover:bg-gray-600'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
                   >
                     New Comment
                   </span>
@@ -3637,26 +3748,30 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
               ) : (
                 <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
                   {comments.slice().reverse().map((comment) => (
-                    <div key={comment.name} className="relative ">
+                    <div key={comment.name} className="relative">
                       <div className="flex justify-between items-center mb-2">
                         <div className="flex items-center gap-4">
-                          <div className="mt-1 text-white text-lg">
+                          <div className={`mt-1 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
                             <FaRegComment size={18} />
                           </div>
-                          <div className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-500 text-white text-sm font-semibold">
+                          <div className={`w-8 h-8 flex items-center justify-center rounded-full ${theme === 'dark'
+                            ? 'bg-gray-700 text-gray-200'
+                            : 'bg-gray-200 text-gray-700'} text-sm font-semibold`}>
                             {comment.owner?.charAt(0).toUpperCase() || "?"}
                           </div>
                           <p className={`text-sm font-medium ${textSecondaryColor}`}>
                             {getFullname(comment.owner)} added a {comment.comment_type}
                           </p>
                         </div>
-                        <p className="text-sm text-white">
+                        <p className={`text-sm ${textSecondaryColor}`}>
                           {getRelativeTime(comment.creation)}
                         </p>
                       </div>
 
-                      <div className={`border border-gray-600 rounded-lg p-4 mb-8 ml-9 mt-2`}>
-                        <div className={`${theme === 'dark' ? 'text-white' : 'text-gray-600'} mb-2 whitespace-pre-wrap`}>
+                      <div className={`border ${borderColor} rounded-lg p-4 mb-8 ml-9 mt-2 ${theme === 'dark'
+                        ? 'bg-gray-800/50'
+                        : 'bg-gray-50'}`}>
+                        <div className={`${textColor} mb-2 whitespace-pre-wrap`}>
                           {comment.content.replace(/<[^>]+>/g, '')}
                         </div>
 
@@ -3680,10 +3795,12 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                                         setSelectedAttachment({ url: fullURL, name: attachment.file_name, isImage });
                                         setShowAttachmentModal(true);
                                       }}
-                                      className="flex items-center border border-gray-600 text-black dark:text-white px-3 py-1 rounded bg-white-31 hover:bg-gray-600 hover:text-white transition-colors"
+                                      className={`flex items-center border ${borderColor} px-3 py-1 rounded transition-colors ${theme === 'dark'
+                                        ? 'bg-gray-700 text-gray-200 hover:bg-gray-600 hover:text-white'
+                                        : 'bg-white text-gray-700 hover:bg-gray-100 hover:text-gray-900'}`}
                                     >
                                       <span className="mr-2 flex items-center gap-1 truncate max-w-[200px]">
-                                        <IoDocument className="w-3 h-3 mr-1" />
+                                        <IoDocument className={`w-3 h-3 mr-1 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`} />
                                         {attachment.file_name}
                                       </span>
                                     </button>
@@ -3701,34 +3818,36 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
             </div>
 
             {/* Composer */}
-            <div ref={composerRef}
-              //  className={`${cardBgColor} border-t ${borderColor} w-[-webkit-fill-available] pt-4 pb-4 absolute bottom-0 overflow-hidden`}
+            <div
+              ref={composerRef}
               className={`
-                ${cardBgColor} border-t ${borderColor} overflow-hidden z-50
-                fixed bottom-0 left-0 w-full px-4 py-3
-                sm:absolute sm:w-[-webkit-fill-available] sm:pt-4 
-              `}
+        ${cardBgColor} border-t ${borderColor} overflow-hidden z-50
+        fixed bottom-0 left-0 w-full px-4 py-3
+        sm:absolute sm:w-[-webkit-fill-available] sm:pt-4 
+      `}
             >
               {!showEmailModalComments ? (
                 <div className="flex gap-4">
                   <button
-                    className={`flex items-center gap-1 ${theme === "dark" ? "text-white" : "text-gray-600"}`}
+                    className={`flex items-center gap-1 ${theme === "dark" ? "text-gray-300 hover:text-white" : "text-gray-600 hover:text-gray-900"}`}
                     onClick={() => {
                       setEmailModalModeComments("new");
                       setShowEmailModalComments(true);
                       setSelectedEmailComments(null);
                     }}
                   >
-                    <Mail size={14} /> Reply
+                    <Mail size={16} className={`mr-1 ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`} />
+                    Reply
                   </button>
                   <button
-                    className={`flex items-center gap-1 ${theme === "dark" ? "text-white" : "text-gray-400"}`}
+                    className={`flex items-center gap-1 ${theme === "dark" ? "text-gray-300 hover:text-white" : "text-gray-600 hover:text-gray-900"}`}
                     onClick={() => {
                       setEmailModalModeComments("comment");
                       setShowEmailModalComments(true);
                     }}
                   >
-                    <FaRegComment size={14} /> Comment
+                    <FaRegComment size={14} className={`mr-1 ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`} />
+                    Comment
                   </button>
                 </div>
               ) : (
@@ -3749,25 +3868,29 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
             {/* Attachment Preview Modal */}
             {showAttachmentModal && selectedAttachment && (
               <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-60 z-50">
-                <div className="bg-gray-800 p-4 rounded-lg max-w-3xl w-full relative">
+                <div className={`p-4 rounded-lg max-w-3xl w-full relative ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}`}>
                   <button
-                    className="absolute top-5 right-8 text-white"
+                    className={`absolute top-5 right-8 ${theme === 'dark' ? 'text-white hover:text-gray-300' : 'text-gray-700 hover:text-gray-900'}`}
                     onClick={() => setShowAttachmentModal(false)}
                   >
                     ✕
                   </button>
-                  <h3 className="text-lg font-semibold text-white mb-4"> {selectedAttachment.name}</h3>
-                  <div className='border-b mb-4'></div>
+                  <h3 className={`text-lg font-semibold mb-4 ${textColor}`}>
+                    {selectedAttachment.name}
+                  </h3>
+                  <div className={`border-b mb-4 ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}></div>
                   {selectedAttachment.isImage ? (
                     <img src={selectedAttachment.url} alt={selectedAttachment.name} className="max-h-[70vh] mx-auto rounded" />
                   ) : (
-                    <div className="text-center text-white">
-                      <IoDocument className="mx-auto mb-2 w-8 h-8" />
+                    <div className={`text-center ${textColor}`}>
+                      <IoDocument className={`mx-auto mb-2 w-8 h-8 ${textSecondaryColor}`} />
                       <p>{selectedAttachment.name}</p>
                       <a
                         href={selectedAttachment.url}
                         download
-                        className="mt-3 inline-block bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+                        className={`mt-3 inline-block px-4 py-2 rounded transition-colors ${theme === 'dark'
+                          ? 'bg-purple-600 hover:bg-purple-700 text-white'
+                          : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
                       >
                         Download File
                       </a>
@@ -4347,7 +4470,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                       setSelectedEmailEmails(null);
                     }}
                   >
-                    <Mail size={14} /> Reply
+                    <Mail size={16} /> Reply
                   </button>
                   <button
                     className={`flex items-center gap-1 ${theme === "dark" ? "text-white" : "text-gray-400"}`}
@@ -4379,17 +4502,17 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
 
         {activeTab === 'activity' && (
           <div className="h-full">
-            <div className={`relative h-full rounded-lg shadow-sm border p-4 max-sm:p-3 pb-5 ${theme === 'dark' ? `bg-gray-900 border-gray-700` : 'bg-white border-gray-200'}`}>
+            <div className={`relative h-full rounded-lg shadow-sm border p-4 max-sm:p-3 pb-5 ${theme === 'dark' ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'}`}>
               <h3 className={`text-lg font-semibold mb-6 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Activity</h3>
 
               {activityLoading ? (
                 <div className="flex items-center justify-center py-8">
-                  <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+                  <Loader2 className={`w-6 h-6 animate-spin ${theme === 'dark' ? 'text-blue-400' : 'text-blue-600'}`} />
                 </div>
               ) : activities.length === 0 ? (
                 <div className="text-center py-8">
-                  <RiShining2Line className={`w-12 h-12 ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'} mx-auto mb-4`} />
-                  <p className={`${theme === 'dark' ? 'text-white' : 'text-gray-500'}`}>No activities yet</p>
+                  <RiShining2Line className={`w-12 h-12 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-300'} mx-auto mb-4`} />
+                  <p className={`${theme === 'dark' ? 'text-gray-300' : 'text-gray-500'}`}>No activities yet</p>
                 </div>
               ) : (
                 <>
@@ -4404,10 +4527,13 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                             <div className="flex items-center justify-between mb-3">
                               <div className="flex items-center">
                                 <div
-                                  className={`p-2 rounded-full mr-3 flex items-center justify-center
-                                  ${callData.type === 'Incoming' || callData.type === 'Incoming'
-                                      ? 'bg-blue-100 text-blue-600'
-                                      : 'bg-green-100 text-green-600'
+                                  className={`p-2 rounded-full mr-3 flex items-center justify-center ${callData.type === 'Incoming' || callData.type === 'Incoming'
+                                    ? theme === 'dark'
+                                      ? 'bg-blue-900/30 text-blue-300 border border-blue-700/30'
+                                      : 'bg-blue-100 text-blue-600 border border-blue-200'
+                                    : theme === 'dark'
+                                      ? 'bg-green-900/30 text-green-300 border border-green-700/30'
+                                      : 'bg-green-100 text-green-600 border border-green-200'
                                     }`}
                                   style={{ width: '32px', height: '32px' }}
                                 >
@@ -4418,16 +4544,16 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                                   )}
                                 </div>
                                 <div
-                                  className={`p-2 rounded-full flex items-center justify-center mr-3 ${theme === 'dark' ? 'bg-gray-700 text-gray-200' : 'bg-gray-200 text-gray-700'} font-medium`}
+                                  className={`p-2 rounded-full flex items-center justify-center mr-3 ${theme === 'dark' ? 'bg-gray-700 text-gray-200 border border-gray-600' : 'bg-gray-200 text-gray-700 border border-gray-300'} font-medium`}
                                   style={{ width: '32px', height: '32px' }}
                                 >
                                   {(callData._caller?.label || callData.from)?.charAt(0).toUpperCase() || "U"}
                                 </div>
-                                <span className={`ml-2  text-sm ${textColor}`}>
+                                <span className={`ml-2 text-sm ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'}`}>
                                   {callData._caller?.label || callData.from} has reached out
                                 </span>
                               </div>
-                              <p className={`text-xs w-max d-flex flex-none ${textSecondaryColor}`}>
+                              <p className={`text-xs w-max d-flex flex-none ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
                                 {getRelativeTime(activity.timestamp)}
                               </p>
                             </div>
@@ -4435,26 +4561,32 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                             {/* Card body with call details */}
                             <div
                               onClick={() => handleLabelClick(callData, true)}
-                              className={`relative w-auto border ${borderColor} rounded-lg ml-12 p-4 flex flex-col`}>
+                              className={`relative w-auto border ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'} rounded-lg ml-12 p-4 flex flex-col cursor-pointer hover:${theme === 'dark' ? 'bg-gray-800/50' : 'bg-gray-50'} transition-colors`}>
                               <div className="flex items-center justify-between mb-2">
-                                <p className={`text-lg font-medium ${textColor}`}>
+                                <p className={`text-lg font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
                                   {callData.type} Call
                                 </p>
                               </div>
-                              <div className="flex items-start justify-start mt-2 gap-4">
-                                <p className={`text-sm ${textSecondaryColor} flex items-center`}>
+                              <div className="flex items-start justify-start mt-2 gap-4 flex-wrap">
+                                <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'} flex items-center`}>
                                   <IoIosCalendar className="mr-1" />
                                   {formatDateRelative(callData.creation)}
                                 </p>
-                                <p className={`text-sm ${textSecondaryColor}`}>
+                                <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
                                   {callData.duration}
                                 </p>
                                 <span
                                   className={`text-xs px-2 py-1 rounded ${callData.status === 'Completed'
-                                    ? 'bg-green-100 text-green-800'
+                                    ? theme === 'dark'
+                                      ? 'bg-green-900/30 text-green-300 border border-green-700/30'
+                                      : 'bg-green-100 text-green-800 border border-green-200'
                                     : callData.status === 'Ringing'
-                                      ? 'bg-yellow-100 text-yellow-800'
-                                      : 'bg-gray-100 text-gray-800'
+                                      ? theme === 'dark'
+                                        ? 'bg-yellow-900/30 text-yellow-300 border border-yellow-700/30'
+                                        : 'bg-yellow-100 text-yellow-800 border border-yellow-200'
+                                      : theme === 'dark'
+                                        ? 'bg-gray-700 text-gray-300 border border-gray-600'
+                                        : 'bg-gray-100 text-gray-800 border border-gray-300'
                                     }`}
                                 >
                                   {callData.status}
@@ -4464,7 +4596,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                               <div className="absolute right-4 top-1/2 max-sm:top-[25%] -translate-y-1/2 flex -space-x-4">
                                 <div
                                   onClick={() => handleLabelClick(callData)}
-                                  className={`p-2 rounded-full flex items-center justify-center cursor-pointer ${theme === 'dark' ? 'bg-gray-600 text-gray-100' : 'bg-gray-400 text-gray-800'} font-medium`}
+                                  className={`p-2 rounded-full flex items-center justify-center cursor-pointer ${theme === 'dark' ? 'bg-gray-600 text-gray-100 border border-gray-500' : 'bg-gray-400 text-gray-800 border border-gray-300'} font-medium`}
                                   style={{ width: '32px', height: '32px' }}
                                   title={callData._caller?.label || callData.from}
                                 >
@@ -4472,7 +4604,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                                 </div>
                                 <div
                                   onClick={() => handleLabelClick(callData)}
-                                  className={`p-2 rounded-full flex items-center justify-center cursor-pointer ${theme === 'dark' ? 'bg-gray-600 text-gray-100' : 'bg-gray-400 text-gray-800'} font-medium`}
+                                  className={`p-2 rounded-full flex items-center justify-center cursor-pointer ${theme === 'dark' ? 'bg-gray-600 text-gray-100 border border-gray-500' : 'bg-gray-400 text-gray-800 border border-gray-300'} font-medium`}
                                   style={{ width: '32px', height: '32px' }}
                                   title={callData._receiver?.label || callData.to}
                                 >
@@ -4483,66 +4615,6 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                           </div>
                         );
                       }
-                      // else if (activity.type === 'note') {
-                      //   const noteData = notes.find(n => n.name === activity.id);
-                      //   if (!noteData) return null;
-
-                      //   return (
-                      //     <div key={activity.id} className="flex items-start space-x-3">
-                      //       {/* Icon */}
-                      //       <div className={`p-2 rounded-full ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-100'}`}>
-                      //         {activity.icon}
-                      //       </div>
-                      //       {/* Note Card */}
-                      //       <div className={`flex-1 border ${borderColor} rounded-lg p-4 relative`}>
-                      //         <div className="flex items-center justify-between mb-2">
-                      //           <h4 className={`text-lg font-semibold ${textColor}`}>{noteData.title}</h4>
-                      //           <div className="relative">
-                      //             <button
-                      //               onClick={(e) => {
-                      //                 e.stopPropagation();
-                      //                 setOpenMenuId(openMenuId === noteData.name ? null : noteData.name);
-                      //               }}
-                      //               className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600"
-                      //             >
-                      //               <BsThreeDots className="w-4 h-4" />
-                      //             </button>
-                      //             {/* Dropdown Menu for the note */}
-                      //             {openMenuId === noteData.name && (
-                      //               <div className={`absolute right-0 mt-2 w-28 rounded-lg shadow-lg z-10 ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border'}`}>
-                      //                 <button
-                      //                   onClick={(e) => {
-                      //                     e.stopPropagation();
-                      //                     // deleteNote(noteData.name); // Ensure you have this function
-                      //                     setOpenMenuId(null);
-                      //                   }}
-                      //                   className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 w-full text-left text-red-500"
-                      //                 >
-                      //                   <Trash2 className="w-4 h-4" />
-                      //                   <span>Delete</span>
-                      //                 </button>
-                      //               </div>
-                      //             )}
-                      //           </div>
-                      //         </div>
-                      //         <p className={`text-base font-semibold ${textSecondaryColor} whitespace-pre-wrap`}>
-                      //           {noteData.content}
-                      //         </p>
-                      //         <div className="flex justify-between items-center mt-4 pt-2 border-t dark:border-gray-700 text-sm gap-2">
-                      //           <div className="flex items-center gap-2">
-                      //             <span className="flex items-center justify-center w-6 h-6 rounded-full bg-gray-500 text-white font-bold text-xs">
-                      //               {noteData.owner?.charAt(0).toUpperCase() || "-"}
-                      //             </span>
-                      //             <span className={textSecondaryColor}>{noteData.owner}</span>
-                      //           </div>
-                      //           <span className={`${textSecondaryColor} font-medium`}>
-                      //             {getRelativeTime(noteData.creation)}
-                      //           </span>
-                      //         </div>
-                      //       </div>
-                      //     </div>
-                      //   );
-                      // }
                       else if (activity.type === 'comment') {
                         const commentData = comments.find(c => c.name === activity.id);
                         if (!commentData) return null;
@@ -4551,22 +4623,22 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                           <div key={activity.id} className="relative">
                             <div className="flex justify-between items-center mb-2">
                               <div className="flex items-center gap-4">
-                                <div className="mt-1 text-gray-400">
-                                  <FaRegComment size={18} />
+                                <div className={`p-2 rounded-full flex items-center justify-center ${theme === 'dark' ? 'bg-gray-800 text-gray-300 border border-gray-700' : 'bg-gray-100 text-gray-700 border border-gray-200'}`}>
+                                  <FaRegComment size={14} />
                                 </div>
-                                <div className={`w-8 h-8 flex items-center justify-center rounded-full ${theme === 'dark' ? 'bg-gray-400' : 'bg-gray-200'} text-sm font-semibold`}>
+                                <div className={`w-8 h-8 flex items-center justify-center rounded-full ${theme === 'dark' ? 'bg-gray-600 text-gray-200 border border-gray-500' : 'bg-gray-200 text-gray-700 border border-gray-300'} text-sm font-semibold`}>
                                   {commentData.owner?.charAt(0).toUpperCase() || "?"}
                                 </div>
-                                <p className={`text-sm font-medium ${textSecondaryColor}`}>
+                                <p className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
                                   {getFullname(commentData.owner)} added a comment
                                 </p>
                               </div>
-                              <p className={`text-xs ${textSecondaryColor}`}>
+                              <p className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
                                 {getRelativeTime(commentData.creation)}
                               </p>
                             </div>
-                            <div className={`border ${borderColor} rounded-lg p-4 ml-9 mt-2`}>
-                              <div className={`${textColor} mb-2 whitespace-pre-wrap`}>
+                            <div className={`border ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'} rounded-lg p-4 ml-9 mt-2 ${theme === 'dark' ? 'bg-gray-800/50' : 'bg-gray-50'}`}>
+                              <div className={`${theme === 'dark' ? 'text-gray-200' : 'text-gray-800'} mb-2 whitespace-pre-wrap`}>
                                 {commentData.content.replace(/<[^>]+>/g, '')}
                               </div>
                               {/* Attachments Section */}
@@ -4584,10 +4656,10 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                                           href={fullURL}
                                           target="_blank"
                                           rel="noopener noreferrer"
-                                          className={`flex items-center border ${borderColor} px-3 py-1 rounded-md ${theme === 'dark' ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-50 hover:bg-gray-100'} transition-colors`}
+                                          className={`flex items-center border ${theme === 'dark' ? 'border-gray-600' : 'border-gray-300'} px-3 py-1 rounded-md ${theme === 'dark' ? 'bg-gray-700 hover:bg-gray-600 text-gray-200' : 'bg-gray-50 hover:bg-gray-100 text-gray-700'} transition-colors`}
                                         >
                                           <span className="mr-2 flex items-center gap-1 truncate max-w-[200px] text-sm">
-                                            <IoDocument className="w-3 h-3 mr-1" />
+                                            <IoDocument className={`w-3 h-3 mr-1 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`} />
                                             {attachment.file_name}
                                           </span>
                                         </a>
@@ -4600,40 +4672,36 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                           </div>
                         );
                       }
-
                       else if (activity.type === 'attachments') {
-                        // Find the corresponding attachment data
                         const attachmentData = activity.attachmentData;
                         if (!attachmentData) return null;
 
                         return (
                           <div key={activity.id} className="flex items-start space-x-3">
-                            <div className={`p-2 rounded-full text-white ${theme === 'dark' ? 'bg-gray-600' : 'bg-gray-100'}`}>
+                            <div className={`p-2 rounded-full flex items-center justify-center ${theme === 'dark' ? 'bg-gray-800 text-gray-300 border border-gray-700' : 'bg-gray-100 text-gray-700 border border-gray-200'}`}>
                               <Paperclip className="w-4 h-4" />
                             </div>
                             <div className="flex-1 min-w-0 pt-1.5">
                               <div className="flex items-center justify-between">
-                                <p className={`text-sm ${textColor}`}>
+                                <p className={`text-sm ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'}`}>
                                   <span className="font-medium">{activity.user}</span> added an attachment
                                 </p>
-                                <p className={`text-xs ${textSecondaryColor}`}>
+                                <p className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
                                   {getRelativeTime(activity.timestamp)}
                                 </p>
                               </div>
 
                               {/* Attachment preview */}
-                              <div className={`mt-2 border ${borderColor} rounded-lg p-3`}>
+                              <div className={`mt-2 border ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'} rounded-lg p-3 ${theme === 'dark' ? 'bg-gray-800/50' : 'bg-gray-50'}`}>
                                 <div className="flex items-center justify-between">
                                   <div className="flex max-sm:w-min items-center">
                                     {isImageFile(attachmentData.file_name) ? (
-                                      // Show original image with fallback for private images
                                       <div className="relative">
                                         <img
                                           src={`https://api.erpnext.ai${attachmentData.file_url}`}
                                           alt={attachmentData.file_name}
                                           className="w-12 h-12 mr-3 object-cover rounded border border-gray-400"
                                           onError={(e) => {
-                                            // Fallback to document icon if image fails to load (private images)
                                             e.target.style.display = 'none';
                                             const fallback = e.target.nextSibling;
                                             if (fallback) fallback.style.display = 'flex';
@@ -4641,20 +4709,20 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                                         />
                                         {/* Fallback for private images */}
                                         <div
-                                          className="w-12 h-12 mr-3 flex items-center justify-center border border-gray-400 rounded bg-gray-200"
+                                          className={`w-12 h-12 mr-3 flex items-center justify-center border border-gray-400 rounded ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-100'}`}
                                           style={{ display: 'none' }}
                                         >
                                           <IoDocument className={`w-6 h-6 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`} />
                                         </div>
                                       </div>
                                     ) : (
-                                      <div className="w-12 h-12 mr-3 flex items-center justify-center border border-gray-400 rounded">
+                                      <div className={`w-12 h-12 mr-3 flex items-center justify-center border border-gray-400 rounded ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-100'}`}>
                                         <IoDocument className={`w-6 h-6 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`} />
                                       </div>
                                     )}
                                     <div>
-                                      <p className={`font-medium ${textColor}`}>{attachmentData.file_name}</p>
-                                      <p className={`text-sm ${textSecondaryColor}`}>
+                                      <p className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{attachmentData.file_name}</p>
+                                      <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
                                         {attachmentData.file_size ? formatFileSize(attachmentData.file_size) : 'Unknown size'}
                                         {attachmentData.is_private === 1 && ' • Private'}
                                       </p>
@@ -4672,10 +4740,10 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                                       href={`https://api.erpnext.ai${attachmentData.file_url}`}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className={`p-1.5 rounded-full ${theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-200'}`}
+                                      className={`p-1.5 rounded-full ${theme === 'dark' ? 'hover:bg-gray-700 text-gray-400 hover:text-gray-300' : 'hover:bg-gray-200 text-gray-500 hover:text-gray-700'}`}
                                       onClick={(e) => e.stopPropagation()}
                                     >
-                                      <LuUpload className={`w-4 h-4 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`} />
+                                      <LuUpload className="w-4 h-4" />
                                     </a>
                                   </div>
                                 </div>
@@ -4685,28 +4753,27 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                         );
                       }
                       else if (activity.type === 'email') {
-                        // Find the corresponding detailed email data
                         const emailData = emails.find(e => e.id === activity.id);
-                        if (!emailData) return null; // Fallback if data not found
+                        if (!emailData) return null;
 
                         return (
                           <div key={emailData.id} className="flex items-start w-full">
                             {/* Avatar Circle */}
-                            <div className={`w-8 h-8 flex flex-shrink-0 items-center justify-center rounded-full ${theme === 'dark' ? 'bg-gray-400' : 'bg-gray-200'} text-sm font-semibold`}>
+                            <div className={`w-8 h-8 flex flex-shrink-0 items-center justify-center rounded-full ${theme === 'dark' ? 'bg-gray-600 text-gray-200 border border-gray-500' : 'bg-gray-200 text-gray-700 border border-gray-300'} text-sm font-semibold`}>
                               {emailData.fromName?.charAt(0).toUpperCase() || "?"}
                             </div>
 
                             {/* Email Card */}
-                            <div className={`flex-1 border ${borderColor} rounded-lg p-4 hover:shadow-md transition-shadow`}>
+                            <div className={`flex-1 border ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'} rounded-lg p-4 hover:shadow-md transition-shadow ml-3 ${theme === 'dark' ? 'bg-gray-800/50 hover:bg-gray-800' : 'bg-gray-50 hover:bg-gray-100'}`}>
                               <div className="flex flex-col justify-between items-start mb-2">
-                                <h4 className={`font-medium ${textColor}`}>
+                                <h4 className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
                                   {emailData.fromName} &lt;{emailData.from}&gt;
                                 </h4>
 
                                 {/* Right-side controls */}
                                 <div className="flex items-center gap-3 ml-auto">
-                                  <span className={`text-xs ${textSecondaryColor}`}>
-                                    {getRelativeTime(emailData.creation)} {/* Use your existing formatDate function */}
+                                  <span className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
+                                    {getRelativeTime(emailData.creation)}
                                   </span>
                                   <button
                                     onClick={() => {
@@ -4714,7 +4781,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                                       setEmailModalModeActivity("reply");
                                       setShowEmailModalActivity(true);
                                     }}
-                                    className={`${textColor}`}
+                                    className={`p-1 rounded-full ${theme === 'dark' ? 'text-gray-400 hover:text-white hover:bg-gray-700' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200'}`}
                                     title="Reply"
                                   >
                                     <LuReply className="w-4 h-4" />
@@ -4725,7 +4792,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                                       setEmailModalModeActivity("reply-all");
                                       setShowEmailModalActivity(true);
                                     }}
-                                    className={`${textColor}`}
+                                    className={`p-1 rounded-full ${theme === 'dark' ? 'text-gray-400 hover:text-white hover:bg-gray-700' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200'}`}
                                     title="Reply All"
                                   >
                                     <LuReplyAll className="w-4 h-4" />
@@ -4733,17 +4800,17 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                                 </div>
                               </div>
 
-                              <h4 className={`font-medium ${textColor}`}>{emailData.subject}</h4>
+                              <h4 className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{emailData.subject}</h4>
 
                               <div className="mb-2">
-                                <span className={`text-sm ${textColor}`}>
+                                <span className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
                                   <strong>To:</strong> {emailData.to}
                                 </span>
                               </div>
 
                               <div className={`mt-4 pt-2 border-t ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'} flex flex-col items-start`}>
                                 <div
-                                  className={`${textColor} mb-2 whitespace-pre-wrap mt-4 w-full`}
+                                  className={`${theme === 'dark' ? 'text-gray-200' : 'text-gray-800'} mb-2 whitespace-pre-wrap mt-4 w-full`}
                                   dangerouslySetInnerHTML={{
                                     __html: emailData.content.includes('\n\n---\n\n')
                                       ? emailData.content.split('\n\n---\n\n')[1]
@@ -4756,8 +4823,14 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                                   const baseURL = "https://api.erpnext.ai";
                                   const fullURL = attachment.file_url.startsWith("http") ? attachment.file_url : `${baseURL}${attachment.file_url}`;
                                   return (
-                                    <a key={index} href={fullURL} target="_blank" rel="noopener noreferrer" className={`px-3 py-1 border ${borderColor} rounded-md text-sm flex items-center ${theme === "dark" ? "bg-gray-700 text-white" : "bg-gray-200 text-gray-800"}`}>
-                                      <IoDocument className="w-3 h-3 mr-1" />
+                                    <a
+                                      key={index}
+                                      href={fullURL}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className={`px-3 py-1 border ${theme === 'dark' ? 'border-gray-600' : 'border-gray-300'} rounded-md text-sm flex items-center mt-2 ${theme === "dark" ? "bg-gray-700 hover:bg-gray-600 text-gray-200" : "bg-gray-200 hover:bg-gray-300 text-gray-800"}`}
+                                    >
+                                      <IoDocument className={`w-3 h-3 mr-1 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`} />
                                       {attachment.file_name}
                                     </a>
                                   );
@@ -4767,7 +4840,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                                 {emailData.content.includes('\n\n---\n\n') && (
                                   <div className="mt-2">
                                     <button
-                                      className={`text-sm ${textColor} inline-flex items-center justify-center w-10 h-6 rounded-full ${theme === "dark" ? "bg-gray-700" : "bg-gray-200"}`}
+                                      className={`text-sm ${theme === 'dark' ? 'text-gray-300 hover:text-white' : 'text-gray-700 hover:text-gray-900'} inline-flex items-center justify-center w-10 h-6 rounded-full ${theme === "dark" ? "bg-gray-700 hover:bg-gray-600" : "bg-gray-200 hover:bg-gray-300"}`}
                                       onClick={() => setExpandedEmailId(prev => (prev === emailData.id ? null : emailData.id))}
                                       title="Show original message"
                                     >
@@ -4777,7 +4850,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                                     {/* Conditionally show original content */}
                                     {expandedEmailId === emailData.id && (
                                       <div
-                                        className={`mt-4 border-l-4 pl-4 italic font-semibold text-sm ${theme === "dark" ? "border-gray-500 text-gray-300" : "border-gray-600 text-gray-700"}`}
+                                        className={`mt-4 border-l-4 pl-4 italic font-semibold text-sm ${theme === "dark" ? "border-gray-500 text-gray-300" : "border-gray-300 text-gray-600"}`}
                                         dangerouslySetInnerHTML={{ __html: emailData.content.split('\n\n---\n\n')[0] }}
                                       />
                                     )}
@@ -4788,129 +4861,72 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                           </div>
                         );
                       }
-                      // else if (activity.type === 'task') {
-                      //   // Find the corresponding detailed task data from the `tasks` state
-                      //   const taskData = tasks.find(t => t.name === activity.id);
-                      //   if (!taskData) return null; // Fallback if data not found
-
-                      //   return (
-                      //     <div key={taskData.name} className="flex items-start w-full space-x-3">
-                      //       {/* Icon on the left */}
-                      //       <div className={`p-2 rounded-full mt-1 ${theme === 'dark' ? 'bg-orange-900' : 'bg-orange-100'}`}>
-                      //         <SiTicktick className="w-4 h-4 text-white" />
-                      //       </div>
-
-                      //       {/* Detailed Task Card */}
-                      //       <div
-                      //         onClick={() => {
-                      //           // Your existing logic to open the edit modal
-                      //           setTaskForm({
-                      //             title: taskData.title,
-                      //             description: taskData.description,
-                      //             status: taskData.status,
-                      //             priority: taskData.priority,
-                      //             due_date: taskData.due_date ? taskData.due_date.split(' ')[0] : '',
-                      //             assigned_to: taskData.assigned_to,
-                      //           });
-                      //           setIsEditMode(true);
-                      //           setCurrentTaskId(taskData.name);
-                      //           setShowTaskModal(true);
-                      //         }}
-                      //         className={`flex-1 border ${borderColor} rounded-lg p-4 cursor-pointer hover:shadow-md`}
-                      //       >
-                      //         <div className="flex justify-between items-start mb-2">
-                      //           <h4 className={`font-medium ${textColor}`}>{taskData.title}</h4>
-                      //         </div>
-
-                      //         <div className="mt-1 text-sm flex justify-between items-center flex-wrap gap-2">
-                      //           {/* Left side: Assignee, Date, Priority */}
-                      //           <div className="flex items-center gap-4 flex-wrap">
-                      //             <div className="flex items-center gap-1">
-                      //               <div className={`w-8 h-8 flex items-center justify-center rounded-full ${theme === 'dark' ? 'bg-gray-400' : 'bg-gray-200'} text-sm font-semibold`}>
-                      //                 {taskData.assigned_to?.charAt(0).toUpperCase() || "U"}
-                      //               </div>
-                      //               <span className={textSecondaryColor}>{taskData.assigned_to || 'Unassigned'}</span>
-                      //             </div>
-
-                      //             {taskData.due_date && (
-                      //               <span className={`flex items-center gap-1 ${textSecondaryColor}`}>
-                      //                 <LuCalendar className="w-3.5 h-3.5" />
-                      //                 {formatDate(taskData.due_date)}
-                      //               </span>
-                      //             )}
-
-                      //             <span className="flex items-center gap-1.5">
-                      //               <span className={`w-2.5 h-2.5 rounded-full ${taskData.priority === 'High' ? 'bg-red-500'
-                      //                 : taskData.priority === 'Medium' ? 'bg-yellow-500'
-                      //                   : 'bg-gray-400'
-                      //                 }`}></span>
-                      //               <span className={`text-xs font-medium ${textSecondaryColor}`}>{taskData.priority}</span>
-                      //             </span>
-                      //           </div>
-
-                      //           {/* Right side: Status and Menu */}
-                      //           <div className="flex items-center gap-2">
-                      //             <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${taskData.status === 'Done'
-                      //               ? (theme === 'dark' ? 'bg-green-900 text-green-200' : 'bg-green-100 text-green-800')
-                      //               : (theme === 'dark' ? 'bg-blue-900 text-blue-200' : 'bg-blue-100 text-blue-800')
-                      //               }`}>
-                      //               {taskData.status}
-                      //             </span>
-                      //             <div className="relative">
-                      //               <button
-                      //                 onClick={(e) => {
-                      //                   e.stopPropagation();
-                      //                   setOpenMenuId(openMenuId === taskData.name ? null : taskData.name);
-                      //                 }}
-                      //                 className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full"
-                      //               >
-                      //                 <BsThreeDots className={`w-4 h-4 ${textColor}`} />
-                      //               </button>
-                      //               {openMenuId === taskData.name && (
-                      //                 <div className="absolute right-0 mt-2 w-28 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-10">
-                      //                   {/* Your delete button logic here */}
-                      //                 </div>
-                      //               )}
-                      //             </div>
-                      //           </div>
-                      //         </div>
-                      //       </div>
-                      //     </div>
-                      //   );
-                      // }
                       else if (activity.type === 'grouped_change') {
                         const isExpanded = expandedGroup === activity.id;
                         const changeCount = activity.changes.length;
-
-                        // Map username to fullname using your docinfo structure
                         const userFullname = docinfo.user_info[activity.user]?.fullname || activity.user;
 
                         return (
                           <div key={activity.id} className="flex items-start space-x-3">
-                            {/* Icon */}
-                            <div className={`p-2 rounded-full text-white ${theme === 'dark' ? 'bg-gray-600' : 'bg-gray-100'}`}>
-                              {activity.icon}
+                            {/* Icon - Fixed with better contrast */}
+                            <div className={`p-2 rounded-full flex items-center justify-center ${theme === 'light'
+                              ? 'bg-gray-800 !text-gray-300 border '
+                              : 'bg-gray-800 !text-gray-300  border '}`}>
+                              {/* Use a fallback icon if activity.icon is not provided */}
+                              {activity.icon || (
+                                <svg
+                                  className={`w-4 h-4 ${theme === 'dark' ? '!text-gray-300' : '!text-gray-700'}`}
+                                  fill="currentColor"
+                                  viewBox="0 0 20 20"
+                                  xmlns="http://www.w3.org/2000/svg"
+                                >
+                                  <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
+                                </svg>
+                              )}
                             </div>
 
                             {/* Content */}
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center justify-between">
-                                <button onClick={() => setExpandedGroup(isExpanded ? null : activity.id)} className={`text-sm text-left ${textColor} flex items-center gap-2`}>
+                                <button
+                                  onClick={() => setExpandedGroup(isExpanded ? null : activity.id)}
+                                  className={`text-sm text-left flex items-center gap-2 ${theme === 'dark'
+                                    ? '!text-gray-200 hover:text-white'
+                                    : '!text-gray-700 hover:text-gray-900'}`}
+                                >
                                   {isExpanded ? 'Hide' : 'Show'} +{changeCount} changes from <span className="font-medium">{getFullname(userFullname)}</span>
-                                  <FiChevronDown className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                                  <FiChevronDown className={`transition-transform ${isExpanded ? 'rotate-180' : ''} ${theme === 'dark'
+                                    ? 'text-gray-400'
+                                    : 'text-gray-500'}`} />
                                 </button>
-                                <p className={`text-xs ${textSecondaryColor}`}>{getRelativeTime(activity.timestamp)}</p>
+                                <p className={`text-xs ${theme === 'dark'
+                                  ? 'text-gray-400'
+                                  : 'text-gray-500'}`}>
+                                  {getRelativeTime(activity.timestamp)}
+                                </p>
                               </div>
 
                               {/* Expanded List of Changes */}
                               {isExpanded && (
-                                <div className="mt-2 pl-4 border-l-2 border-gray-300 dark:border-gray-700 space-y-1">
+                                <div className={`mt-2 pl-4 border-l-2 ${theme === 'dark'
+                                  ? 'border-gray-600'
+                                  : 'border-gray-300'} space-y-1`}>
                                   {activity.changes.map((change: any) => (
-                                    <p key={change.creation} className={`text-sm ${textSecondaryColor}`}>
-                                      <span className="font-semibold text-gray-700 dark:text-gray-300">{change.data.field_label}:</span>
+                                    <p key={change.creation} className={`text-sm ${theme === 'dark'
+                                      ? 'text-gray-400'
+                                      : 'text-gray-500'}`}>
+                                      <span className={`font-semibold ${theme === 'dark'
+                                        ? 'text-gray-300'
+                                        : 'text-gray-700'}`}>
+                                        {change.data.field_label}:
+                                      </span>
                                       {change.data.old_value != null
-                                        ? <> Changed from '{change.data.old_value}' to <span className="font-semibold text-gray-700 dark:text-gray-300">'{change.data.value}'</span></>
-                                        : <> Added <span className="font-semibold text-gray-700 dark:text-gray-300">'{change.data.value}'</span></>
+                                        ? <> Changed from '{change.data.old_value}' to <span className={`font-semibold ${theme === 'dark'
+                                          ? 'text-gray-300'
+                                          : 'text-gray-700'}`}>'{change.data.value}'</span></>
+                                        : <> Added <span className={`font-semibold ${theme === 'dark'
+                                          ? 'text-gray-300'
+                                          : 'text-gray-700'}`}>'{change.data.value}'</span></>
                                       }
                                     </p>
                                   ))}
@@ -4921,20 +4937,43 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                         );
                       }
                       else {
-                        // Default style for all other activities (Notes, Tasks, Comments, etc.)
+                        // Default style for all other activities (including "Task Created: vvv")
                         return (
                           <div key={activity.id} className="flex items-start space-x-3">
-                            <div className={`p-2 rounded-full text-white  ${theme === 'dark' ? 'bg-gray-600' : 'bg-gray-100'}`}>
-                              {React.isValidElement(activity.icon)
-                                ? React.cloneElement(activity.icon, { style: { color: 'white' } })
-                                : activity.icon}
+                            <div className={`p-2 rounded-full flex items-center justify-center ${theme === 'dark'
+                              ? 'bg-gray-800 text-gray-300 border border-gray-700'
+                              : 'bg-gray-100 text-gray-700 border border-gray-200'}`}>
+                              {React.isValidElement(activity.icon) ? (
+                                React.cloneElement(activity.icon, {
+                                  className: `w-4 h-4 ${theme === 'dark'
+                                    ? 'text-gray-300'
+                                    : 'text-gray-700'}`
+                                })
+                              ) : activity.icon ? (
+                                <div className={`w-4 h-4 flex items-center justify-center ${theme === 'dark'
+                                  ? 'text-gray-300'
+                                  : 'text-gray-700'}`}>
+                                  {activity.icon}
+                                </div>
+                              ) : (
+                                // Fallback icon for activities without an icon
+                                <svg className={`w-4 h-4 ${theme === 'dark'
+                                  ? 'text-gray-300'
+                                  : 'text-gray-700'}`} fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
+                                </svg>
+                              )}
                             </div>
                             <div className="flex-1 min-w-0 pt-1.5">
                               <div className="flex items-center justify-between">
-                                <p className={`text-sm ${textColor}`}>
+                                <p className={`text-sm ${theme === 'dark'
+                                  ? 'text-gray-200'
+                                  : 'text-gray-700'}`}>
                                   {activity.description || activity.title}
                                 </p>
-                                <p className={`text-xs ${textSecondaryColor}`}>
+                                <p className={`text-xs ${theme === 'dark'
+                                  ? 'text-gray-400'
+                                  : 'text-gray-500'}`}>
                                   {getRelativeTime(activity.timestamp)}
                                 </p>
                               </div>
@@ -4944,69 +4983,42 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                       }
                     })}
                   </div>
-
-                  {/* <div className="flex justify-between items-center">
-                    <button
-                      onClick={handlePrevious}
-                      disabled={currentPage === 1}
-                      className={`text-sm px-3 py-1 border rounded-md ${theme === 'dark'
-                        ? 'text-white bg-dark-accent hover:bg-purple-800/50 border-purple-500/30'
-                        : 'text-gray-700 bg-gray-100 hover:bg-gray-200 border-gray-300'
-                        } disabled:opacity-50`}
-                    >
-                      Previous
-                    </button>
-
-                    <p className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>
-                      Page {currentPage} of {totalPages}
-                    </p>
-
-                    <button
-                      onClick={handleNext}
-                      disabled={currentPage === totalPages}
-                      className={`text-sm px-3 py-1 border rounded-md ${theme === 'dark'
-                        ? 'text-white bg-dark-accent hover:bg-purple-800/50 border-purple-500/30'
-                        : 'text-gray-700 bg-gray-100 hover:bg-gray-200 border-gray-300'
-                        } disabled:opacity-50`}
-                    >
-                      Next
-                    </button>
-                  </div> */}
                 </>
               )}
-
-
             </div>
             {/* Sticky Action Footer */}
             <div
               ref={composerRef}
-              // className={`${cardBgColor} border-t ${borderColor} w-[-webkit-fill-available] pt-4 pb-4 absolute bottom-0 overflow-hidden`}
               className={`
-                ${cardBgColor} border-t ${borderColor} overflow-hidden z-50
-                fixed bottom-0 left-0 w-full px-4 py-3
-                sm:absolute sm:w-[-webkit-fill-available] sm:pt-4 
-              `}
+        ${theme === 'dark' ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'} border-t overflow-hidden z-50
+        fixed bottom-0 left-0 w-full px-4 py-3
+        sm:absolute sm:w-[-webkit-fill-available] sm:pt-4 
+      `}
             >
               {!showEmailModalActivity ? (
                 <div className="flex gap-4">
                   <button
-                    className={`flex items-center gap-2 px-3 py-1 rounded-md text-md ${theme === "dark" ? "text-gray-300 hover:bg-gray-700" : "text-gray-600 hover:bg-gray-200"}`}
+                    className={`flex items-center gap-1 ${theme === "dark"
+                      ? "text-gray-300   "
+                      : "text-gray-600    "}`}
                     onClick={() => {
                       setEmailModalModeActivity("reply");
                       setShowEmailModalActivity(true);
                       setSelectedEmailActivity(null);
                     }}
                   >
-                    <Mail size={16} /> Reply
+                    <Mail size={16} className={`mr-1 ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`} /> Reply
                   </button>
                   <button
-                    className={`flex items-center gap-2 px-3 py-1 rounded-md text-sm ${theme === "dark" ? "text-gray-300 hover:bg-gray-700" : "text-gray-400 hover:bg-gray-200"}`}
+                    className={`flex items-center gap-1 ${theme === "dark"
+                      ? "text-gray-300   "
+                      : "text-gray-600    "}`}
                     onClick={() => {
                       setEmailModalModeActivity("comment");
                       setShowEmailModalActivity(true);
                     }}
                   >
-                    <FaRegComment size={14} /> Comment
+                    <FaRegComment size={14} className={`mr-1 ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`} /> Comment
                   </button>
                 </div>
               ) : (
@@ -5024,9 +5036,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                 />
               )}
             </div>
-
           </div>
-
         )}
 
 
@@ -5168,6 +5178,561 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
             )}
           </div>
         )}
+
+        {activeTab === 'intelligence' && (
+  <div className="space-y-4 sm:space-y-6">
+    <div className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} max-sm:p-3 p-4 sm:p-6`}>
+     
+
+      {intelligenceError && (
+        <div className={`p-3 sm:p-4 rounded-lg mb-4 ${theme === 'dark' ? 'bg-red-900/30 text-red-300 border border-red-700' : 'bg-red-100 text-red-800'}`}>
+          {intelligenceError}
+        </div>
+      )}
+
+      {intelligenceLoading ? (
+        <div className="flex flex-col items-center justify-center py-8 sm:py-16">
+          <Loader2 className="w-8 h-8 sm:w-12 sm:h-12 animate-spin text-blue-600 mb-3 sm:mb-4" />
+          <p className={`text-base sm:text-lg font-medium ${textColor} mb-2 text-center`}>
+            Generating Company Intelligence Report
+          </p>
+          <p className={`text-xs sm:text-sm ${textSecondaryColor} text-center max-w-md px-4`}>
+            Please wait while we analyze and generate a comprehensive company intelligence report...
+          </p>
+        </div>
+      ) : !companyIntelligence ? (
+        <div className="text-center py-8 sm:py-12">
+          <Building2 className={`w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 ${textSecondaryColor}`} />
+          <h4 className={`text-base sm:text-lg font-semibold mb-2 ${textColor}`}>
+            No Company Intelligence Report
+          </h4>
+          <p className={`text-sm ${textSecondaryColor} px-4`}>
+            {!editedDeal.organization
+              ? 'Please set an organization name in the Data tab to generate company intelligence.'
+              : 'Company intelligence report will be generated automatically.'
+            }
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-4 sm:space-y-6">
+          {/* Overall Scorecard */}
+          {companyIntelligence.json?.scorecard && (
+            <div className={`rounded-lg border p-4 sm:p-6 ${theme === 'dark'
+              ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
+              : 'bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200'
+              }`}>
+              <div className="flex flex-col sm:flex-row sm:items-start justify-between mb-4 sm:mb-6 gap-3">
+                <div className="flex-1">
+                  <h4 className={`text-lg sm:text-xl font-bold ${textColor} mb-2`}>
+                    Overall Scorecard
+                  </h4>
+                  <p className={`text-xs sm:text-sm ${textSecondaryColor}`}>
+                    AI-powered assessment of the company's potential and compatibility
+                  </p>
+                </div>
+                <div className="text-right">
+                  <div className={`text-2xl sm:text-3xl font-bold mb-1 ${companyIntelligence.json.scorecard.final_percentage >= 80
+                    ? 'text-green-500' :
+                    companyIntelligence.json.scorecard.final_percentage >= 60
+                      ? 'text-yellow-500' :
+                      'text-red-500'
+                    }`}>
+                    {companyIntelligence.json.scorecard.final_percentage || 0}%
+                  </div>
+                  <span className={`text-xs sm:text-sm px-2 py-1 sm:px-3 sm:py-1 rounded-full font-medium ${companyIntelligence.json.scorecard.final_percentage >= 80
+                    ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300' :
+                    companyIntelligence.json.scorecard.final_percentage >= 60
+                      ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300' :
+                      'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300'
+                    }`}>
+                    {companyIntelligence.json.scorecard.final_percentage >= 80 ? 'Very High' :
+                      companyIntelligence.json.scorecard.final_percentage >= 60 ? 'High' :
+                        companyIntelligence.json.scorecard.final_percentage >= 40 ? 'Medium' : 'Low'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-8">
+                <div className="flex flex-col items-center">
+                  <div className="relative w-24 h-24 sm:w-32 sm:h-32">
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="text-center">
+                        <span className={`text-2xl sm:text-4xl font-bold block ${companyIntelligence.json.scorecard.final_percentage >= 80 ? 'text-green-500' :
+                          companyIntelligence.json.scorecard.final_percentage >= 60 ? 'text-yellow-500' :
+                            'text-red-500'
+                          }`}>
+                          {companyIntelligence.json.scorecard.final_percentage || 0}
+                        </span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">SCORE</span>
+                      </div>
+                    </div>
+                    <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                      <circle
+                        cx="50"
+                        cy="50"
+                        r="45"
+                        stroke={theme === 'dark' ? '#374151' : '#e5e7eb'}
+                        strokeWidth="8"
+                        fill="none"
+                      />
+                      <circle
+                        cx="50"
+                        cy="50"
+                        r="45"
+                        stroke={
+                          companyIntelligence.json.scorecard.final_percentage >= 80 ? '#10b981' :
+                            companyIntelligence.json.scorecard.final_percentage >= 60 ? '#f59e0b' :
+                              '#ef4444'
+                        }
+                        strokeWidth="8"
+                        fill="none"
+                        strokeDasharray={283}
+                        strokeDashoffset={283 * (1 - (companyIntelligence.json.scorecard.final_percentage || 0) / 100)}
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  </div>
+                </div>
+
+                <div className="flex-1 grid grid-cols-2 gap-3 sm:gap-4">
+                  <div className={`p-3 sm:p-4 rounded-lg ${theme === 'dark' ? 'bg-gray-700/50' : 'bg-white'
+                    }`}>
+                    <span className={`text-xs sm:text-sm font-medium ${textSecondaryColor}`}>Tier</span>
+                    <p className={`text-sm sm:text-lg font-semibold ${textColor} mt-1`}>
+                      {companyIntelligence.json.scorecard.tier || 'Not Available'}
+                    </p>
+                  </div>
+                  <div className={`p-3 sm:p-4 rounded-lg ${theme === 'dark' ? 'bg-gray-700/50' : 'bg-white'
+                    }`}>
+                    <span className={`text-xs sm:text-sm font-medium ${textSecondaryColor}`}>Overall Score</span>
+                    <p className={`text-sm sm:text-lg font-semibold ${textColor} mt-1`}>
+                      {companyIntelligence.json.scorecard.final_weighted_score || 0}/10
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Score Details Breakdown */}
+          {companyIntelligence.json?.scorecard && (
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
+              {[
+                { key: 'identity_overview', label: 'Firmographics', desc: 'Company Profile' },
+                { key: 'key_people_visibility', label: 'Key Personnel', desc: 'Leadership Team' },
+                { key: 'business_strategy', label: 'Buying Intent', desc: 'Business Strategy' },
+                { key: 'technology_landscape', label: 'Tech Stack', desc: 'Technology' }
+              ].map((item, index) => {
+                const score = companyIntelligence.json.scorecard[item.key] || 0;
+                return (
+                  <div key={index} className={`p-3 sm:p-4 rounded-lg border ${theme === 'dark'
+                    ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
+                    : 'bg-white border-gray-200'
+                    } transition-colors`}>
+                    <div className="flex items-center justify-between mb-1 sm:mb-2">
+                      <span className={`text-xs sm:text-sm font-medium ${textColor}`}>{item.label}</span>
+                      <div className={`w-2 h-2 rounded-full ${score >= 8 ? 'bg-green-500' :
+                        score >= 6 ? 'bg-yellow-500' :
+                          'bg-red-500'
+                        }`} />
+                    </div>
+                    <p className={`text-xl sm:text-2xl font-bold ${score >= 8 ? 'text-green-500' :
+                      score >= 6 ? 'text-yellow-500' :
+                        'text-red-500'
+                      }`}>
+                      {score}
+                    </p>
+                    <p className={`text-xs ${textSecondaryColor} mt-1`}>{item.desc}</p>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Identity & Overview */}
+          {companyIntelligence.json?.identity_and_overview && (
+            <div className={`rounded-lg border ${theme === 'dark'
+              ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
+              : 'bg-white border-gray-200'
+              } p-4 sm:p-6`}>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2">
+                <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>
+                  Identity & Overview
+                </h4>
+                <span className={`text-base sm:text-xl px-2 py-1 sm:px-3 sm:py-2 rounded-full font-semibold ${theme === 'dark' ? 'bg-green-900/40 text-green-300' : 'bg-green-100 text-green-800'
+                  }`}>
+                  {companyIntelligence.json.scorecard?.identity_overview || 0}/10
+                </span>
+              </div>
+              <p className={`${textSecondaryColor} leading-relaxed mb-4 sm:mb-6 text-sm sm:text-base`}>
+                {companyIntelligence.json.identity_and_overview}
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-6 mb-4 sm:mb-6">
+                <div className={`p-3 sm:p-4 rounded-lg ${theme === 'dark' ? 'bg-gray-700/50' : 'bg-gray-50'
+                  }`}>
+                  <span className={`text-xs sm:text-sm font-medium ${textSecondaryColor}`}>Industry</span>
+                  <p className={`text-sm sm:text-base font-semibold ${textColor} mt-1`}>
+                    {companyIntelligence.json.Industry || 'Not Available'}
+                  </p>
+                </div>
+                <div className={`p-3 sm:p-4 rounded-lg ${theme === 'dark' ? 'bg-gray-700/50' : 'bg-gray-50'
+                  }`}>
+                  <span className={`text-xs sm:text-sm font-medium ${textSecondaryColor}`}>Company Size</span>
+                  <p className={`text-sm sm:text-base font-semibold ${textColor} mt-1`}>
+                    {companyIntelligence.json.company_size || 'Not Available'}
+                  </p>
+                </div>
+                <div className={`p-3 sm:p-4 rounded-lg ${theme === 'dark' ? 'bg-gray-700/50' : 'bg-gray-50'
+                  }`}>
+                  <span className={`text-xs sm:text-sm font-medium ${textSecondaryColor}`}>Headquarters</span>
+                  <p className={`text-sm sm:text-base font-semibold ${textColor} mt-1`}>
+                    {companyIntelligence.json.Presence || 'Not Available'}
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <h5 className={`text-sm sm:text-md font-semibold mb-2 sm:mb-3 ${textColor}`}>Key Highlights</h5>
+                <ul className={`space-y-1 sm:space-y-2 ${textSecondaryColor} text-sm sm:text-base`}>
+                  {[
+                    companyIntelligence.json.key_highlights1,
+                    companyIntelligence.json.key_highlights2,
+                    companyIntelligence.json.key_highlights3
+                  ].filter(Boolean).map((highlight, index) => (
+                    <li key={index} className="flex items-start">
+                      <span className="text-green-500 mr-2 mt-1">•</span>
+                      <span>{highlight}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
+
+          {/* Company Snapshot */}
+          {companyIntelligence.json?.Company_Snapshot && (
+            <div className={`rounded-lg border ${theme === 'dark'
+              ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
+              : 'bg-white border-gray-200'
+              } p-4 sm:p-6`}>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2">
+                <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>Company SnapShot</h4>
+                <span className={`text-base sm:text-xl px-2 py-1 sm:px-3 sm:py-2 rounded-full font-semibold ${theme === 'dark' ? 'bg-green-900/40 text-green-300' : 'bg-green-100 text-green-800'
+                  }`}>
+                  {companyIntelligence.json.scorecard?.Company_Snapshot || 0}/10
+                </span>
+              </div>
+              <div className={`${textSecondaryColor} leading-relaxed text-sm sm:text-base`}>
+                {companyIntelligence.json.Company_Snapshot}
+              </div>
+            </div>
+          )}
+
+          {/* Business & Strategy */}
+          {companyIntelligence.json?.business_and_strategy && (
+            <div className={`rounded-lg border ${theme === 'dark'
+              ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
+              : 'bg-white border-gray-200'
+              } p-4 sm:p-6`}>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2">
+                <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>Business Overview & Segments</h4>
+                <span className={`text-base sm:text-xl px-2 py-1 sm:px-3 sm:py-2 rounded-full font-semibold ${theme === 'dark' ? 'bg-green-900/40 text-green-300' : 'bg-green-100 text-green-800'
+                  }`}>
+                  {companyIntelligence.json.scorecard?.business_strategy || 0}/10
+                </span>
+              </div>
+              <ul className={`space-y-2 sm:space-y-3 ${textSecondaryColor} text-sm sm:text-base`}>
+                {companyIntelligence.json.business_and_strategy.map((item: string, index: number) => (
+                  <li key={index} className="flex items-start">
+                    <span className="text-blue-500 mr-2 mt-1">•</span>
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Markets & Geographic Footprint */}
+          {companyIntelligence.json?.markets_and_geographic_footprint && (
+            <div className={`rounded-lg border ${theme === 'dark'
+              ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
+              : 'bg-white border-gray-200'
+              } p-4 sm:p-6`}>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2">
+                <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>Markets & Geographic Footprint</h4>
+                <span className={`text-base sm:text-xl px-2 py-1 sm:px-3 sm:py-2 rounded-full font-semibold ${theme === 'dark' ? 'bg-green-900/40 text-green-300' : 'bg-green-100 text-green-800'
+                  }`}>
+                  {companyIntelligence.json.scorecard?.markets_and_geographic_footprint || 0}/10
+                </span>
+              </div>
+              <div className={`${textSecondaryColor} leading-relaxed text-sm sm:text-base`}>
+                {companyIntelligence.json.markets_and_geographic_footprint}
+              </div>
+            </div>
+          )}
+
+          {/* Key Leadership */}
+          {companyIntelligence.json?.key_leadership && (
+            <div className={`rounded-lg border ${theme === 'dark'
+              ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
+              : 'bg-white border-gray-200'
+              } p-4 sm:p-6`}>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2">
+                <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>Key Leadership & Decision-Makers</h4>
+                <span className={`text-base sm:text-xl px-2 py-1 sm:px-3 sm:py-2 rounded-full font-semibold ${theme === 'dark' ? 'bg-green-900/40 text-green-300' : 'bg-green-100 text-green-800'
+                  }`}>
+                  {companyIntelligence.json.scorecard?.key_people_visibility || 0}/10
+                </span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                {companyIntelligence.json.key_leadership.slice(0, 10).map((leader: any, index: number) => (
+                  <div key={index} className={`p-3 sm:p-4 rounded-lg ${theme === 'dark' ? 'bg-gray-700/50 hover:bg-gray-600/50' : 'bg-gray-50 hover:bg-gray-100'
+                    } transition-colors`}>
+                    <p className={`text-sm sm:text-base font-semibold ${textColor} mb-1`}>{leader.name}</p>
+                    <p className={`text-xs sm:text-sm ${textSecondaryColor} mb-2`}>{leader.designation}</p>
+                    {leader.linkedin && leader.linkedin !== "Not Available" && (
+                      <a
+                        href={leader.linkedin}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-500 text-xs hover:underline"
+                      >
+                        LinkedIn Profile
+                      </a>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Technology Landscape */}
+          {companyIntelligence.json?.technology_landscape && (
+            <div className={`rounded-lg border ${theme === 'dark'
+              ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
+              : 'bg-white border-gray-200'
+              } p-4 sm:p-6`}>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2">
+                <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>Technology Landscape</h4>
+                <span className={`text-base sm:text-xl px-2 py-1 sm:px-3 sm:py-2 rounded-full font-semibold ${theme === 'dark' ? 'bg-green-900/40 text-green-300' : 'bg-green-100 text-green-800'
+                  }`}>
+                  {companyIntelligence.json.scorecard?.technology_landscape || 0}/10
+                </span>
+              </div>
+              <ul className={`space-y-2 sm:space-y-3 ${textSecondaryColor} text-sm sm:text-base`}>
+                {companyIntelligence.json.technology_landscape.map((item: string, index: number) => (
+                  <li key={index} className="flex items-start">
+                    <span className="text-purple-500 mr-2 mt-1">•</span>
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Digital Transformation Readiness */}
+          {companyIntelligence.json?.digital_transformation_readiness && (
+            <div className={`rounded-lg border ${theme === 'dark'
+              ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
+              : 'bg-white border-gray-200'
+              } p-4 sm:p-6`}>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2">
+                <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>Digital Transformation Readiness</h4>
+                <span className={`text-base sm:text-xl px-2 py-1 sm:px-3 sm:py-2 rounded-full font-semibold ${theme === 'dark' ? 'bg-green-900/40 text-green-300' : 'bg-green-100 text-green-800'
+                  }`}>
+                  {companyIntelligence.json.scorecard?.digital_transformation_readiness || 0}/10
+                </span>
+              </div>
+              <div className={`${textSecondaryColor} leading-relaxed text-sm sm:text-base`}>
+                {companyIntelligence.json.digital_transformation_readiness}
+              </div>
+            </div>
+          )}
+
+          {/* AI Capabilities & Adoption */}
+          {companyIntelligence.json?.ai_capabilities_adoption && (
+            <div className={`rounded-lg border ${theme === 'dark'
+              ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
+              : 'bg-white border-gray-200'
+              } p-4 sm:p-6`}>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2">
+                <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>AI Capabilities & AI Adoption Maturity</h4>
+                <span className={`text-base sm:text-xl px-2 py-1 sm:px-3 sm:py-2 rounded-full font-semibold ${theme === 'dark' ? 'bg-green-900/40 text-green-300' : 'bg-green-100 text-green-800'
+                  }`}>
+                  {companyIntelligence.json.scorecard?.ai_capabilities || 0}/10
+                </span>
+              </div>
+              <div className={`${textSecondaryColor} leading-relaxed text-sm sm:text-base`}>
+                {companyIntelligence.json.ai_capabilities_adoption}
+              </div>
+            </div>
+          )}
+
+          {/* Integration & Enterprise Systems */}
+          {companyIntelligence.json?.integration_and_enterprise_systems && (
+            <div className={`rounded-lg border ${theme === 'dark'
+              ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
+              : 'bg-white border-gray-200'
+              } p-4 sm:p-6`}>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2">
+                <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>Integration & Enterprise Systems</h4>
+                <span className={`text-base sm:text-xl px-2 py-1 sm:px-3 sm:py-2 rounded-full font-semibold ${theme === 'dark' ? 'bg-green-900/40 text-green-300' : 'bg-green-100 text-green-800'
+                  }`}>
+                  {companyIntelligence.json.scorecard?.integration_and_enterprise_systems || 0}/10
+                </span>
+              </div>
+              <div className={`${textSecondaryColor} leading-relaxed text-sm sm:text-base`}>
+                {companyIntelligence.json.integration_and_enterprise_systems}
+              </div>
+            </div>
+          )}
+
+          {/* Financial Health */}
+          {companyIntelligence.json?.financial_health && (
+            <div className={`rounded-lg border ${theme === 'dark'
+              ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
+              : 'bg-white border-gray-200'
+              } p-4 sm:p-6`}>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2">
+                <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>Financial Health</h4>
+                <span className={`text-base sm:text-xl px-2 py-1 sm:px-3 sm:py-2 rounded-full font-semibold ${theme === 'dark' ? 'bg-green-900/40 text-green-300' : 'bg-green-100 text-green-800'
+                  }`}>
+                  {companyIntelligence.json.scorecard?.financial_health || 0}/10
+                </span>
+              </div>
+              <ul className={`space-y-2 sm:space-y-3 ${textSecondaryColor} text-sm sm:text-base`}>
+                {companyIntelligence.json.financial_health.map((item: string, index: number) => (
+                  <li key={index} className="flex items-start">
+                    <span className="text-orange-500 mr-2 mt-1">•</span>
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Social, News & Events Signals */}
+          {companyIntelligence.json?.social_event_signals && (
+            <div className={`rounded-lg border ${theme === 'dark'
+              ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
+              : 'bg-white border-gray-200'
+              } p-4 sm:p-6`}>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2">
+                <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>Social, News & Events Signals</h4>
+                <span className={`text-base sm:text-xl px-2 py-1 sm:px-3 sm:py-2 rounded-full font-semibold ${theme === 'dark' ? 'bg-green-900/40 text-green-300' : 'bg-green-100 text-green-800'
+                  }`}>
+                  {companyIntelligence.json.scorecard?.social_event_signals || 0}/10
+                </span>
+              </div>
+              <div className={`${textSecondaryColor} leading-relaxed text-sm sm:text-base`}>
+                {companyIntelligence.json.social_event_signals}
+              </div>
+            </div>
+          )}
+
+          {/* Competitor & Peer Comparison */}
+          {companyIntelligence.json?.Competitor_and_peer_comparison && (
+            <div className={`rounded-lg border ${theme === 'dark'
+              ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
+              : 'bg-white border-gray-200'
+              } p-4 sm:p-6`}>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2">
+                <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>Competitor & Peer Comparison</h4>
+                <span className={`text-base sm:text-xl px-2 py-1 sm:px-3 sm:py-2 rounded-full font-semibold ${theme === 'dark' ? 'bg-green-900/40 text-green-300' : 'bg-green-100 text-green-800'
+                  }`}>
+                  {companyIntelligence.json.scorecard?.Competitor_and_peer_comparison || 0}/10
+                </span>
+              </div>
+              <div className={`${textSecondaryColor} leading-relaxed text-sm sm:text-base`}>
+                {companyIntelligence.json.Competitor_and_peer_comparison}
+              </div>
+            </div>
+          )}
+
+          {/* Opportunities for Improvement */}
+          {companyIntelligence.json?.opportunities_for_improvement && (
+            <div className={`rounded-lg border ${theme === 'dark'
+              ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
+              : 'bg-white border-gray-200'
+              } p-4 sm:p-6`}>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2">
+                <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>Opportunities for Improvement</h4>
+                <span className={`text-base sm:text-xl px-2 py-1 sm:px-3 sm:py-2 rounded-full font-semibold ${theme === 'dark' ? 'bg-green-900/40 text-green-300' : 'bg-green-100 text-green-800'
+                  }`}>
+                  {companyIntelligence.json.scorecard?.opportunities_for_improvement || 0}/10
+                </span>
+              </div>
+              <div className={`${textSecondaryColor} leading-relaxed text-sm sm:text-base`}>
+                {companyIntelligence.json.opportunities_for_improvement}
+              </div>
+            </div>
+          )}
+
+          {/* Strengths */}
+          {companyIntelligence.json?.strengths && (
+            <div className={`rounded-lg border ${theme === 'dark'
+              ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
+              : 'bg-white border-gray-200'
+              } p-4 sm:p-6`}>
+              <div className="flex items-center justify-between mb-3 sm:mb-4">
+                <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>Strengths</h4>
+              </div>
+              <ul className={`space-y-2 sm:space-y-3 ${textSecondaryColor} text-sm sm:text-base`}>
+                {companyIntelligence.json.strengths.map((item: string, index: number) => (
+                  <li key={index} className="flex items-start">
+                    <span className="text-green-500 mr-2 mt-1">•</span>
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Risks */}
+          {companyIntelligence.json?.risks && (
+            <div className={`rounded-lg border ${theme === 'dark'
+              ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
+              : 'bg-white border-gray-200'
+              } p-4 sm:p-6`}>
+              <div className="flex items-center justify-between mb-3 sm:mb-4">
+                <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>Risks</h4>
+              </div>
+              <ul className={`space-y-2 sm:space-y-3 ${textSecondaryColor} text-sm sm:text-base`}>
+                {companyIntelligence.json.risks.map((item: string, index: number) => (
+                  <li key={index} className="flex items-start">
+                    <span className="text-red-500 mr-2 mt-1">•</span>
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Recommendations */}
+          {companyIntelligence.json?.recommendations && (
+            <div className={`rounded-lg border ${theme === 'dark'
+              ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
+              : 'bg-white border-gray-200'
+              } p-4 sm:p-6`}>
+              <div className="flex items-center justify-between mb-3 sm:mb-4">
+                <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>Recommendations</h4>
+              </div>
+              <ul className={`space-y-2 sm:space-y-3 ${textSecondaryColor} text-sm sm:text-base`}>
+                {companyIntelligence.json.recommendations.map((item: string, index: number) => (
+                  <li key={index} className="flex items-start">
+                    <span className="text-blue-500 mr-2 mt-1">•</span>
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  </div>
+)}
       </div>
       {showCallDetailsPopup && (editingCall || editingCallFromActivity) && (
         <CallDetailsPopup

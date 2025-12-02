@@ -196,8 +196,8 @@ export default function Commentemail({
         <div>
           <textarea
             className={`w-full h-40 rounded-md p-3 text-sm focus:outline-none focus:ring-1 ${theme === 'dark'
-              ? 'bg-white-31 border-gray-600 text-white focus:ring-gray-500'
-              : 'bg-white border border-gray-300 text-gray-800 focus:ring-gray-300'
+              ? 'bg-white-31 border-gray-600 text-white !placeholder-gray-400 focus:ring-gray-500'
+              : 'bg-white border border-gray-300 text-gray-800 !placeholder-gray-400 focus:ring-gray-300'
               }`}
             placeholder="@John, Can you please check this?"
             value={comment}

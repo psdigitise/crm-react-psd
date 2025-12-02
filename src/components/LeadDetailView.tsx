@@ -1822,6 +1822,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
     deal?: any;
     existing_contact?: string;
     existing_organization?: string;
+    company_info?: string;
   }) => {
     try {
       setLoading(true);
@@ -1831,7 +1832,8 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
         lead: leadName,
         deal: dealData = {},
         existing_contact,
-        existing_organization
+        existing_organization,
+        company_info
       } = params;
 
       // Include the expected_deal_value and expected_closure_date in the deal data
@@ -1853,7 +1855,8 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
           deal: dealWithValues, // Use the updated deal data with the new fields
           company: sessionCompany,
           existing_contact,
-          existing_organization
+          existing_organization,
+          company_info: company_info
         })
       });
 
@@ -3217,22 +3220,33 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
                       />
                     </div>
 
-                    {/* New Closure Date Field */}
                     <div className="mb-6">
-                      <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                        Expected Closure Date <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="date"
-                        value={expectedClosureDate}
-                        onChange={(e) => setExpectedClosureDate(e.target.value)}
-                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
-                          ? 'bg-gray-800 border-gray-600 text-white'
-                          : 'bg-white border-gray-300 text-gray-900'
-                          }`}
-                        required
-                      />
-                    </div>
+  <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+    Expected Closure Date <span className="text-red-500">*</span>
+  </label>
+  <div className="relative">
+    <input
+      type="date"
+      value={expectedClosureDate}
+      onChange={(e) => setExpectedClosureDate(e.target.value)}
+      className={`
+        w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent
+        appearance-none
+        ${theme === 'dark'
+          ? 'bg-gray-800 border-gray-600 text-white'
+          : 'bg-white border-gray-300 text-gray-900'
+        }
+      `}
+      required
+    />
+    {/* Custom calendar icon */}
+    <div className={`absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+      </svg>
+    </div>
+  </div>
+</div>
 
                     <button
                       onClick={() => handleConvert({
@@ -3242,7 +3256,8 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
                           expected_closure_date: expectedClosureDate
                         },
                         existing_contact: selectedContact,
-                        existing_organization: orgToggle ? selectedOrganization : undefined
+                        existing_organization: orgToggle ? selectedOrganization : undefined,
+                        company_info: companyIntelligence ? JSON.stringify(companyIntelligence) : undefined
                       })}
                       className={`mt-4 w-full py-2 rounded transition-colors ${theme === 'dark'
                         ? 'bg-purple-600 hover:bg-purple-700 text-white'

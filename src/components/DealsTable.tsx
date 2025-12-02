@@ -97,7 +97,7 @@ const defaultColumns: ColumnConfig[] = [
   { key: 'mobileNo', label: 'Mobile No', visible: true, sortable: true },
   { key: 'assignedTo', label: 'Assigned To', visible: true, sortable: true },
   { key: 'lastModified', label: 'Last Modified', visible: true, sortable: true },
-  { key: 'closeDate', label: 'Close Date', visible: true, sortable: true },
+  
   { key: 'territory', label: 'Territory', visible: false, sortable: true },
   { key: 'industry', label: 'Industry', visible: false, sortable: true },
   { key: 'website', label: 'Website', visible: false, sortable: true }
@@ -240,7 +240,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
         "title_field": "",
         "kanban_columns": "[]",
         "kanban_fields": "[]",
-        "columns": "[{\"label\": \"Organization\", \"type\": \"Link\", \"key\": \"organization\", \"options\": \"CRM Organization\", \"width\": \"11rem\"}, {\"label\": \"First Name\", \"type\": \"Data\", \"key\": \"first_name\", \"width\": \"10rem\", \"align\": \"left\"}, {\"label\": \"Annual Revenue\", \"type\": \"Currency\", \"key\": \"annual_revenue\", \"align\": \"right\", \"width\": \"9rem\"}, {\"label\": \"Status\", \"type\": \"Select\", \"key\": \"status\", \"width\": \"10rem\"}, {\"label\": \"Email\", \"type\": \"Data\", \"key\": \"email\", \"width\": \"12rem\"}, {\"label\": \"Mobile No\", \"type\": \"Data\", \"key\": \"mobile_no\", \"width\": \"11rem\"}, {\"label\": \"Assigned To\", \"type\": \"Text\", \"key\": \"_assign\", \"width\": \"10rem\"}, {\"label\": \"Last Modified\", \"type\": \"Datetime\", \"key\": \"modified\", \"width\": \"8rem\"}, {\"label\": \"Close Date\", \"type\": \"Date\", \"key\": \"close_date\", \"width\": \"10rem\", \"align\": \"left\"}]",
+        "columns": "[{\"label\": \"Organization\", \"type\": \"Link\", \"key\": \"organization\", \"options\": \"CRM Organization\", \"width\": \"11rem\"}, {\"label\": \"First Name\", \"type\": \"Data\", \"key\": \"first_name\", \"width\": \"10rem\", \"align\": \"left\"}, {\"label\": \"Annual Revenue\", \"type\": \"Currency\", \"key\": \"annual_revenue\", \"align\": \"right\", \"width\": \"9rem\"}, {\"label\": \"Status\", \"type\": \"Select\", \"key\": \"status\", \"width\": \"10rem\"}, {\"label\": \"Email\", \"type\": \"Data\", \"key\": \"email\", \"width\": \"12rem\"}, {\"label\": \"Mobile No\", \"type\": \"Data\", \"key\": \"mobile_no\", \"width\": \"11rem\"}, {\"label\": \"Assigned To\", \"type\": \"Text\", \"key\": \"_assign\", \"width\": \"10rem\"}, {\"label\": \"Last Modified\", \"type\": \"Datetime\", \"key\": \"modified\", \"width\": \"8rem\"}]",
         "rows": "[\"name\", \"organization\", \"annual_revenue\", \"status\", \"email\", \"currency\", \"mobile_no\", \"deal_owner\", \"sla_status\", \"response_by\", \"first_response_time\", \"first_responded_on\", \"modified\", \"_assign\", \"owner\", \"creation\", \"modified_by\", \"_liked_by\", null, \"first_name\"]",
         "page_length": 20,
         "page_length_count": 20
@@ -376,17 +376,16 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
             "export_records": "blank_template",
             "export_fields": {
               "CRM Deal": [
-                "status",
-                "expected_deal_value",
-                "expected_closure_date",
                 "first_name",
                 "last_name",
                 "email",
                 "mobile_no",
                 "gender",
-                "website",
                 "organization_name",
-                "annual_revenue"
+                "website",
+                "annual_revenue",
+                "expected_deal_value",
+                "expected_closure_date"
               ]
             },
             "export_filters": null
@@ -705,7 +704,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
     // Available CRM Deal fields for mapping
     const crmDealFields = [
       'name', 'organization', 'annual_revenue', 'status', 'email',
-      'mobile_no', 'deal_owner', 'close_date', 'territory', 'industry',
+      'mobile_no', 'deal_owner', 'territory', 'industry',
       'website', 'first_name', 'last_name', 'salutation', 'no_of_employees',
       'description', 'probability', 'expected_value', 'next_step'
     ];
@@ -915,151 +914,87 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
   };
 
   // Export to Excel
-  const handleExport = async (exportType: string = 'Excel', exportAll: boolean = true) => {
-    setIsExporting(true);
+  // Alternative approach using axios
+const handleExport = async (exportType: string = 'Excel', exportAll: boolean = true) => {
+  setIsExporting(true);
 
-    try {
-      const session = getUserSession();
-      const sessionCompany = session?.company;
+  try {
+    const session = getUserSession();
+    const sessionCompany = session?.company;
 
-      const baseUrl = "https://api.erpnext.ai/api/method/frappe.desk.reportview.export_query";
+    const baseUrl = "https://api.erpnext.ai/api/method/frappe.desk.reportview.export_query";
 
-      // Build filters object
-      const exportFilters: any = {
-        company: sessionCompany
-      };
+    // Simple field list
+    const fields = ['organization', 'email', 'mobile_no', 'annual_revenue', 'status', 'owner', 'modified'];
 
-      // Add active filters
-      if (filters.status.length > 0) {
-        exportFilters['status'] = ['in', filters.status];
-      }
-      if (filters.territory.length > 0) {
-        exportFilters['territory'] = ['in', filters.territory];
-      }
-      if (filters.industry.length > 0) {
-        exportFilters['industry'] = ['in', filters.industry];
-      }
-      if (filters.assignedTo.length > 0) {
-        exportFilters['deal_owner'] = ['in', filters.assignedTo];
-      }
+    const params: any = {
+      file_format_type: exportType,
+      doctype: 'CRM Deal',
+      fields: JSON.stringify(fields),
+      filters: JSON.stringify({ company: sessionCompany }),
+      order_by: 'modified desc',
+      view: 'Report'
+    };
 
-      // Map visible column keys to actual database field names
-      const columnToFieldMap: Record<string, string> = {
-        'organization': 'organization',
-        'name': 'name',
-        'annualRevenue': 'annual_revenue',
-        'status': 'status',
-        'email': 'email',
-        'mobileNo': 'mobile_no',
-        'assignedTo': 'deal_owner',
-        'lastModified': 'modified',
-        'closeDate': 'close_date',
-        'territory': 'territory',
-        'industry': 'industry',
-        'website': 'website',
-        'first_name': 'first_name'
-      };
-
-      // Get visible columns and map to database fields
-      const visibleFields = getVisibleColumns()
-        .map(col => columnToFieldMap[col.key] || col.key)
-        .filter((field, index, self) => self.indexOf(field) === index)
-        .map(field => `\`tabCRM Deal\`.\`${field}\``);
-
-      console.log('Export format:', exportType);
-      console.log('Export all records:', exportAll);
-
-      // Prepare request parameters
-      const params: any = {
-        file_format_type: exportType,
-        title: "CRM Deal",
-        doctype: "CRM Deal",
-        fields: JSON.stringify(visibleFields),
-        order_by: sortField
-          ? `\`tabCRM Deal\`.\`${columnToFieldMap[sortField] || sortField}\` ${sortDirection}`
-          : "`tabCRM Deal`.`modified` desc",
-        filters: JSON.stringify(exportFilters),
-        view: "Report",
-        with_comment_count: 1
-      };
-
-      // Handle export scope
-      if (!exportAll && selectedDeals.length > 0) {
-        // Export only selected items
-        params.selected_items = JSON.stringify(selectedDeals);
-        console.log('Exporting selected deals:', selectedDeals);
-      } else {
-        // Export all filtered records
-        params.page_length = 500;
-        params.start = 0;
-        console.log('Exporting all filtered deals');
-      }
-
-      console.log('Export params:', params);
-
-      // Make the GET request
-      const response = await axios.get(baseUrl, {
-        params,
-        headers: {
-          'Authorization': AUTH_TOKEN,
-          'Content-Type': 'application/json'
-        },
-        responseType: "blob"
-      });
-
-      // Check if the response is actually an error in JSON format
-      if (response.data.type === 'application/json') {
-        const text = await response.data.text();
-        const errorData = JSON.parse(text);
-        throw new Error(errorData.message || errorData.exception || 'Export failed');
-      }
-
-      // Determine file extension and MIME type based on export format
-      const fileExtension = exportType.toLowerCase() === 'csv' ? 'csv' : 'xlsx';
-      const mimeType = exportType.toLowerCase() === 'csv'
-        ? 'text/csv'
-        : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-
-      // Create and download the file
-      const blob = new Blob([response.data], {
-        type: mimeType
-      });
-
-      const downloadUrl = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = downloadUrl;
-
-      // Create descriptive filename
-      const scope = exportAll ? 'all' : 'selected';
-      a.download = `deals_${scope}_${new Date().toISOString().split("T")[0]}.${fileExtension}`;
-
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(downloadUrl);
-
-      setIsExportPopupOpen(false);
-      await fetchDeals();
-    } catch (error: any) {
-      console.error("Export failed:", error);
-      console.error("Error response:", error.response?.data);
-
-      // Try to extract error message from blob if it's JSON
-      if (error.response?.data instanceof Blob) {
-        try {
-          const text = await error.response.data.text();
-          const errorData = JSON.parse(text);
-          showToast(`Export failed: ${errorData.message || errorData.exception || 'Unknown error'}`);
-        } catch {
-          showToast(`Export failed: ${error.message}`);
-        }
-      } else {
-        showToast(`Export failed: ${error.response?.data?.message || error.message}`);
-      }
-    } finally {
-      setIsExporting(false);
+    if (!exportAll && selectedDeals.length > 0) {
+      params.selected_items = JSON.stringify(selectedDeals);
     }
-  };
+
+    console.log('Export params:', params);
+
+    const response = await axios.get(baseUrl, {
+      params,
+      headers: {
+        'Authorization': AUTH_TOKEN
+      },
+      responseType: 'blob'
+    });
+
+    // Get content type from response
+    const contentType = response.headers['content-type'] || '';
+    console.log('Content-Type:', contentType);
+    
+    // Determine file extension based on content type
+    let fileExtension = 'xlsx';
+    if (contentType.includes('csv')) {
+      fileExtension = 'csv';
+    } else if (contentType.includes('excel') || contentType.includes('spreadsheet')) {
+      fileExtension = 'xlsx';
+    } else if (exportType === 'CSV') {
+      fileExtension = 'csv';
+    }
+
+    const scope = exportAll ? 'all' : 'selected';
+    const dateStr = new Date().toISOString().split('T')[0];
+    const filename = `deals_${scope}_${dateStr}.${fileExtension}`;
+
+    // Create blob with the correct MIME type
+    const blob = new Blob([response.data], {
+      type: contentType || (exportType === 'Excel' 
+        ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+        : 'text/csv')
+    });
+
+    // Download file
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+
+    setIsExportPopupOpen(false);
+    showToast('Export completed!', 'success');
+
+  } catch (error: any) {
+    console.error('Export error:', error);
+    showToast(`Export failed: ${error.message || 'Unknown error'}`);
+  } finally {
+    setIsExporting(false);
+  }
+};
 
   // Add format change handler
   const handleFormatChange = (format: string) => {
