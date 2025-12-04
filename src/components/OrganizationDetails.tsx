@@ -627,7 +627,7 @@ export default function OrganizationDetails({
         
       } catch (error) {
         console.error('Error fetching organization:', error);
-        showToast('Failed to load organization', { type: 'error' });
+       
       } finally {
         setFetchLoading(false);
       }
@@ -941,11 +941,11 @@ export default function OrganizationDetails({
     const isLoading = getDropdownLoadingState(field as string);
 
     return (
-      <div key={field} className="text-sm flex gap-1 group">
-        <p className={`w-32 max-sm:w-[50%] ${isDark ? "text-white/80" : "text-gray-600"}`}>{label}:</p>
+      <div key={field} className="text-sm flex gap-1 items-center group min-w-0">
+        <p className={`w-32 max-sm:w-24 shrink-0 ${isDark ? "text-white/80" : "text-gray-600"}`}>{label}:</p>
         {isEditing ? (
           isDropdown ? (
-            <div className="flex-1 relative">
+            <div className="flex-1 min-w-0">
               {isLoading ? (
                 <div className={`flex items-center justify-center px-2 py-1 border rounded ${isDark
                   ? 'bg-dark-secondary text-white border-white/20'
@@ -960,10 +960,10 @@ export default function OrganizationDetails({
                   onChange={(e) => setEditValue(e.target.value)}
                   onBlur={() => handleBlur(field as string)}
                   onKeyDown={(e) => handleKeyDown(e, field as string)}
-                  className={`w-full px-2 py-1 border rounded ${isDark
+                  className={`w-full px-2 py-1 border rounded text-sm ${isDark
                     ? 'bg-dark-secondary text-white border-white/20 focus:border-purple-400'
                     : 'bg-white text-gray-800 border-gray-300 focus:border-blue-400'
-                    } focus:outline-none`}
+                    } focus:outline-none max-w-[200px]`}
                   disabled={loading}
                 >
                   <option value="">Select {label.toLowerCase()}...</option>
@@ -980,34 +980,38 @@ export default function OrganizationDetails({
               )}
             </div>
           ) : (
-            <input
-              ref={inputRef}
-              type="text"
-              value={editValue}
-              onChange={(e) => setEditValue(e.target.value)}
-              onBlur={() => handleBlur(field as string)}
-              onKeyDown={(e) => handleKeyDown(e, field as string)}
-              className={`flex-1 px-2 py-1 border rounded ${isDark
-                ? 'bg-dark-secondary text-white border-white/20 focus:border-purple-400'
-                : 'bg-white text-gray-800 border-gray-300 focus:border-blue-400'
-                } focus:outline-none`}
-              disabled={loading}
-            />
+            <div className="flex-1 min-w-0">
+              <input
+                ref={inputRef}
+                type="text"
+                value={editValue}
+                onChange={(e) => setEditValue(e.target.value)}
+                onBlur={() => handleBlur(field as string)}
+                onKeyDown={(e) => handleKeyDown(e, field as string)}
+                className={`w-full px-2 py-1 border rounded text-sm ${isDark
+                  ? 'bg-dark-secondary text-white border-white/20 focus:border-purple-400'
+                  : 'bg-white text-gray-800 border-gray-300 focus:border-blue-400'
+                  } focus:outline-none max-w-[200px]`}
+                disabled={loading}
+              />
+            </div>
           )
         ) : (
-          <p
-            className={`flex-1 cursor-pointer px-2 py-1 rounded transition-colors hover:bg-opacity-50 ${isDark
-              ? "text-white hover:bg-white/10"
-              : "text-gray-800 hover:bg-gray-100"
-              } ${!value || value === 'N/A' ? 'italic opacity-60' : ''}`}
-            onClick={() => handleClick(field)}
-            title="Click to edit"
-          >
-            {value || `Add ${label.toLowerCase()}...`}
-          </p>
+          <div className="flex-1 min-w-0">
+            <p
+              className={`cursor-pointer px-2 py-1 rounded text-sm transition-colors hover:bg-opacity-50 truncate ${isDark
+                ? "text-white hover:bg-white/10"
+                : "text-gray-800 hover:bg-gray-100"
+                } ${!value || value === 'N/A' ? 'italic opacity-60' : ''}`}
+              onClick={() => handleClick(field)}
+              title={value || `Add ${label.toLowerCase()}...`}
+            >
+              {value || `Add ${label.toLowerCase()}...`}
+            </p>
+          </div>
         )}
         {loading && editingField === field && (
-          <Loader2 className="w-4 h-4 animate-spin text-purple-600 ml-1" />
+          <Loader2 className="w-4 h-4 animate-spin text-purple-600 ml-1 shrink-0" />
         )}
       </div>
     );
@@ -1171,7 +1175,7 @@ export default function OrganizationDetails({
 
   return (
     <>
-      <div className={`min-h-screen overflow-x-auto flex-col sm:flex-row flex ${theme === "dark" ? "bg-transparent text-white" : "bg-white text-gray-800"}`}>
+      <div className={`h-screen flex flex-col sm:flex-row ${isDark ? "bg-transparent text-white" : "bg-white text-gray-800"}`}>
         {fetchLoading && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white dark:bg-gray-800 p-4 rounded-lg flex items-center gap-3">
@@ -1184,19 +1188,19 @@ export default function OrganizationDetails({
         <DeleteConfirmationPopup />
 
         {/* Sidebar */}
-        <div className={`w-80 max-sm:w-[100%] border-r max-sm:border-none ${isDark ? "border-white bg-transparent" : "border-gray-300 bg-white"}`}>
+        <div className={`w-80 max-sm:w-full border-r max-sm:border-none max-sm:h-auto flex-shrink-0 ${isDark ? "border-white/20 bg-transparent" : "border-gray-300 bg-white"}`}>
           {/* Header */}
           <div className={`p-4 border-b ${isDark ? "border-white/20" : "border-gray-300"}`}>
             <div className="flex items-center gap-3 mb-4">
               <ImageDisplay />
-              <div>
-                <h2 className="text-lg font-semibold">{organization.organization_name || 'No name'}</h2>
-                <span className="text-xs text-gray-400 block">{organization.industry || 'No industry'}</span>
+              <div className="min-w-0">
+                <h2 className="text-lg font-semibold truncate">{organization.organization_name || 'No name'}</h2>
+                <span className="text-xs text-gray-400 block truncate">{organization.industry || 'No industry'}</span>
               </div>
             </div>
 
             {/* Actions */}
-            <div className="flex flex-wrap gap-2 mb-4 transition-all duration-300">
+            <div className="flex flex-wrap gap-2 mb-4">
               <button
                 onClick={handleDeleteClick}
                 disabled={loading}
@@ -1208,8 +1212,8 @@ export default function OrganizationDetails({
           </div>
 
           {/* Details */}
-          <div className="p-4 space-y-3">
-            <h3 className="text-sm font-semibold mb-1">Details</h3>
+          <div className="p-4 space-y-3 overflow-y-auto max-h-[calc(100vh-180px)]">
+            <h3 className="text-sm font-semibold mb-1 sticky top-0 bg-inherit z-10 py-1">Details</h3>
             {renderEditableField("Organization Name", "organization_name")}
             {renderEditableField("Website", "website")}
             {renderEditableField("Territory", "territory")}
@@ -1222,9 +1226,9 @@ export default function OrganizationDetails({
         </div>
 
         {/* Main Content */}
-        <div className="flex-1">
+        <div className="flex-1 flex flex-col overflow-hidden">
           {/* Tabs */}
-          <div className={`flex items-center gap-6 border-b p-6 ${isDark ? "border-white/20" : "border-gray-300"}`}>
+          <div className={`flex items-center gap-6 border-b p-6 flex-shrink-0 ${isDark ? "border-white/20" : "border-gray-300"}`}>
             <button
               onClick={() => setSelectedTab('deals')}
               className={`flex items-center gap-1 font-medium relative ${selectedTab === 'deals' ? '' : 'text-gray-500'
@@ -1249,23 +1253,23 @@ export default function OrganizationDetails({
             </button>
           </div>
 
-          {/* Table Data */}
-          <div className="p-6 overflow-x-auto">
+          {/* Table Data - Scrollable area */}
+          <div className="flex-1  p-6">
             {selectedTab === 'deals' ? (
               deals.length > 0 ? (
-                <div>
+                <div className="h-full flex flex-col">
                   {/* Desktop Table View */}
-                  <div className="hidden md:block overflow-x-auto">
+                  <div className="hidden md:block overflow-x-auto ">
                     <table className="min-w-full text-sm border-collapse">
                       <thead>
-                        <tr className={`${isDark ? "bg-white/10" : "bg-gray-100"} text-left`}>
-                          <th className="p-3 font-medium">Organization</th>
-                          <th className="p-3 font-medium">Amount</th>
-                          <th className="p-3 font-medium">Status</th>
-                          <th className="p-3 font-medium">Email</th>
-                          <th className="p-3 font-medium">Mobile No</th>
-                          <th className="p-3 font-medium">Deal Owner</th>
-                          <th className="p-3 font-medium">Last Modified</th>
+                        <tr className={`${isDark ? "bg-white/10" : "bg-gray-100"} text-left sticky top-0 z-10`}>
+                          <th className="p-3 font-medium min-w-[150px]">Organization</th>
+                          <th className="p-3 font-medium min-w-[100px]">Amount</th>
+                          <th className="p-3 font-medium min-w-[120px]">Status</th>
+                          <th className="p-3 font-medium min-w-[180px]">Email</th>
+                          <th className="p-3 font-medium min-w-[130px]">Mobile No</th>
+                          <th className="p-3 font-medium min-w-[150px]">Deal Owner</th>
+                          <th className="p-3 font-medium min-w-[130px]">Last Modified</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1275,13 +1279,15 @@ export default function OrganizationDetails({
                             className={`border-t ${isDark ? 'border-white/10' : 'border-gray-200'} hover:bg-opacity-50 ${isDark ? 'hover:bg-white/5' : 'hover:bg-gray-50'} cursor-pointer transition-colors`}
                             onClick={() => handleDealClick(deal)}
                           >
-                            <td className="p-3">{deal.organization}</td>
-                            <td className="p-3">
-                              <span className="font-medium">{deal.currency} {deal.annual_revenue?.toLocaleString() || '0.00'}</span>
+                            <td className="p-3 min-w-[150px]">
+                              <div className="truncate">{deal.organization}</div>
                             </td>
-                            <td className="p-3">
+                            <td className="p-3 min-w-[100px]">
+                              <span className="font-medium whitespace-nowrap">{deal.currency} {deal.annual_revenue?.toLocaleString() || '0.00'}</span>
+                            </td>
+                            <td className="p-3 min-w-[120px]">
                               <div className="flex items-center gap-2">
-                                <div className={`w-3 h-3 rounded-full ${deal.status === 'Qualification' ? 'bg-blue-500' :
+                                <div className={`w-3 h-3 rounded-full flex-shrink-0 ${deal.status === 'Qualification' ? 'bg-blue-500' :
                                   deal.status === 'Demo/Making' ? 'bg-yellow-500' :
                                     deal.status === 'Proposal/Quotation' ? 'bg-orange-500' :
                                       deal.status === 'Negotiation' ? 'bg-purple-500' :
@@ -1289,33 +1295,33 @@ export default function OrganizationDetails({
                                           deal.status === 'Lost' ? 'bg-red-500' :
                                             'bg-gray-500'
                                   }`}></div>
-                                <span className="text-sm">{deal.status || 'Qualification'}</span>
+                                <span className="text-sm truncate">{deal.status || 'Qualification'}</span>
                               </div>
                             </td>
-                            <td className="p-3">
+                            <td className="p-3 min-w-[180px]">
                               <div className="flex items-center gap-2">
-                                <Mail size={14} className="text-blue-500" />
-                                <span className={`text-sm ${deal.email !== 'N/A' ? 'text-blue-500' : 'text-gray-400'}`}>
+                                <Mail size={14} className="text-blue-500 flex-shrink-0" />
+                                <span className={`text-sm truncate ${deal.email !== 'N/A' ? 'text-blue-500' : 'text-gray-400'}`}>
                                   {deal.email || 'N/A'}
                                 </span>
                               </div>
                             </td>
-                            <td className="p-3">
+                            <td className="p-3 min-w-[130px]">
                               <div className="flex items-center gap-2">
-                                <Phone size={14} className="text-green-500" />
-                                <span className="text-sm">{deal.mobile_no || 'N/A'}</span>
+                                <Phone size={14} className="text-green-500 flex-shrink-0" />
+                                <span className="text-sm truncate">{deal.mobile_no || 'N/A'}</span>
                               </div>
                             </td>
-                            <td className="p-3">
+                            <td className="p-3 min-w-[150px]">
                               <div className="flex items-center gap-2">
-                                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${isDark ? 'bg-gray-600' : 'bg-gray-400'} text-white`}>
+                                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${isDark ? 'bg-gray-600' : 'bg-gray-400'} text-white flex-shrink-0`}>
                                   {deal.deal_owner?.[0]?.toUpperCase() || 'U'}
                                 </div>
-                                <span className="text-sm">{deal.deal_owner || 'Unassigned'}</span>
+                                <span className="text-sm truncate">{deal.deal_owner || 'Unassigned'}</span>
                               </div>
                             </td>
-                            <td className="p-3">
-                              <span className="text-sm text-gray-500">
+                            <td className="p-3 min-w-[130px]">
+                              <span className="text-sm text-gray-500 whitespace-nowrap">
                                 {formatDate(deal.modified)}
                               </span>
                             </td>
@@ -1326,22 +1332,22 @@ export default function OrganizationDetails({
                   </div>
 
                   {/* Mobile Card View */}
-                  <div className="block md:hidden space-y-4">
+                  <div className="block md:hidden space-y-4 overflow-auto flex-1">
                     {deals.map((deal, idx) => (
                       <div
                         key={idx}
                         className={`p-4 rounded-lg border ${isDark
-                            ? 'bg-purplebg border-transparent'
-                            : 'bg-white border-gray-200'
+                          ? 'bg-purplebg border-transparent'
+                          : 'bg-white border-gray-200'
                           } shadow-sm`}
                       >
                         <div className="flex justify-between items-center">
                           <div 
-                            className="flex items-center flex-1 cursor-pointer"
+                            className="flex items-center flex-1 cursor-pointer min-w-0"
                             onClick={() => handleDealClick(deal)}
                           >
                             <div
-                              className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 ${isDark ? 'bg-purple-600' : 'bg-gray-300'
+                              className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 flex-shrink-0 ${isDark ? 'bg-purple-600' : 'bg-gray-300'
                                 }`}
                             >
                               <span
@@ -1351,14 +1357,14 @@ export default function OrganizationDetails({
                                 {deal.organization?.[0]?.toUpperCase() || 'O'}
                               </span>
                             </div>
-                            <div>
+                            <div className="min-w-0">
                               <h3
-                                className={`text-base font-semibold ${isDark ? 'text-white' : 'text-gray-700'
+                                className={`text-base font-semibold truncate ${isDark ? 'text-white' : 'text-gray-700'
                                   }`}
                               >
                                 {deal.organization}
                               </h3>
-                              <p className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-500'
+                              <p className={`text-xs truncate ${isDark ? 'text-gray-300' : 'text-gray-500'
                                   }`}>{deal.name}</p>
                             </div>
                           </div>
@@ -1368,7 +1374,7 @@ export default function OrganizationDetails({
                               e.stopPropagation();
                               toggleDealDetails(deal.id);
                             }}
-                            className={`p-1 rounded transition-transform ${isDark ? 'hover:bg-purple-700' : 'hover:bg-gray-100'
+                            className={`p-1 rounded transition-transform flex-shrink-0 ${isDark ? 'hover:bg-purple-700' : 'hover:bg-gray-100'
                               }`}
                           >
                             <svg 
@@ -1419,8 +1425,8 @@ export default function OrganizationDetails({
                                 Email:
                               </span>
                               <div className="flex items-center gap-2">
-                                <Mail size={12} className="text-blue-500" />
-                                <span className={`font-semibold ${deal.email !== 'N/A' ? 'text-blue-500' : 'text-gray-400'}`}>
+                                <Mail size={12} className="text-blue-500 flex-shrink-0" />
+                                <span className={`font-semibold truncate ${deal.email !== 'N/A' ? 'text-blue-500' : 'text-gray-400'}`}>
                                   {deal.email || 'N/A'}
                                 </span>
                               </div>
@@ -1431,8 +1437,8 @@ export default function OrganizationDetails({
                                 Mobile No:
                               </span>
                               <div className="flex items-center gap-2">
-                                <Phone size={12} className="text-green-500" />
-                                <span className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                                <Phone size={12} className="text-green-500 flex-shrink-0" />
+                                <span className={`font-semibold truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>
                                   {deal.mobile_no || 'N/A'}
                                 </span>
                               </div>
@@ -1445,11 +1451,11 @@ export default function OrganizationDetails({
                               <div className="flex items-center gap-2">
                                 <div
                                   className={`w-4 h-4 rounded-full flex items-center justify-center text-xs font-bold ${isDark ? 'bg-gray-600' : 'bg-gray-400'
-                                    } text-white`}
+                                    } text-white flex-shrink-0`}
                                 >
                                   {deal.deal_owner?.[0]?.toUpperCase() || 'U'}
                                 </div>
-                                <span className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                                <span className={`font-semibold truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>
                                   {deal.deal_owner || 'Unassigned'}
                                 </span>
                               </div>
@@ -1470,7 +1476,7 @@ export default function OrganizationDetails({
                   </div>
                 </div>
               ) : (
-                <div className="flex items-center justify-center min-h-[calc(100vh-250px)]">
+                <div className="flex items-center justify-center h-full">
                   <div className="flex flex-col items-center gap-2 p-8 text-gray-500">
                     <Zap className="w-8 h-8 text-gray-400" />
                     <p>No Deals Found</p>
@@ -1479,18 +1485,18 @@ export default function OrganizationDetails({
               )
             ) : (
               contacts.length > 0 ? (
-                <div>
+                <div className="h-full flex flex-col">
                   {/* Desktop Table View */}
-                  <div className="hidden md:block overflow-x-auto">
+                  <div className="hidden md:block overflow-auto flex-1">
                     <table className="min-w-full text-sm border-collapse">
                       <thead>
-                        <tr className={`${isDark ? "bg-white/10" : "bg-gray-100"} text-left`}>
-                          <th className="p-3 font-medium">Name</th>
-                          <th className="p-3 font-medium">Full Name</th>
-                          <th className="p-3 font-medium">Email</th>
-                          <th className="p-3 font-medium">Phone</th>
-                          <th className="p-3 font-medium">Company</th>
-                          <th className="p-3 font-medium">Last Modified</th>
+                        <tr className={`${isDark ? "bg-white/10" : "bg-gray-100"} text-left sticky top-0 z-10`}>
+                          <th className="p-3 font-medium min-w-[150px]">Name</th>
+                          <th className="p-3 font-medium min-w-[150px]">Full Name</th>
+                          <th className="p-3 font-medium min-w-[180px]">Email</th>
+                          <th className="p-3 font-medium min-w-[130px]">Phone</th>
+                          <th className="p-3 font-medium min-w-[150px]">Company</th>
+                          <th className="p-3 font-medium min-w-[130px]">Last Modified</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1500,13 +1506,13 @@ export default function OrganizationDetails({
                             className={`border-t ${isDark ? 'border-white/10' : 'border-gray-200'} hover:bg-opacity-50 ${isDark ? 'hover:bg-white/5' : 'hover:bg-gray-50'} cursor-pointer transition-colors`}
                             onClick={() => handleContactClick(contact)}
                           >
-                            <td className="p-3">
+                            <td className="p-3 min-w-[150px]">
                               <div className="flex items-center gap-2">
                                 {contact.image ? (
                                   <img 
                                     src={getFullImageUrl(contact.image)} 
                                     alt="Contact" 
-                                    className="w-8 h-8 rounded-full object-cover"
+                                    className="w-8 h-8 rounded-full object-cover flex-shrink-0"
                                     onError={(e) => {
                                       const target = e.target as HTMLImageElement;
                                       target.style.display = 'none';
@@ -1515,30 +1521,34 @@ export default function OrganizationDetails({
                                     }}
                                   />
                                 ) : null}
-                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${isDark ? 'bg-purple-600' : 'bg-gray-300'} text-white ${contact.image ? 'hidden' : 'flex'}`}>
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${isDark ? 'bg-purple-600' : 'bg-gray-300'} text-white ${contact.image ? 'hidden' : 'flex'} flex-shrink-0`}>
                                   {contact.name?.[0]?.toUpperCase() || 'C'}
                                 </div>
-                                <span className="font-medium">{contact.name}</span>
+                                <span className="font-medium truncate">{contact.name}</span>
                               </div>
                             </td>
-                            <td className="p-3">{contact.full_name}</td>
-                            <td className="p-3">
+                            <td className="p-3 min-w-[150px]">
+                              <div className="truncate">{contact.full_name}</div>
+                            </td>
+                            <td className="p-3 min-w-[180px]">
                               <div className="flex items-center gap-2">
-                                <Mail size={14} className="text-blue-500" />
-                                <span className={`text-sm ${contact.email_id ? 'text-blue-500' : 'text-gray-400'}`}>
+                                <Mail size={14} className="text-blue-500 flex-shrink-0" />
+                                <span className={`text-sm truncate ${contact.email_id ? 'text-blue-500' : 'text-gray-400'}`}>
                                   {contact.email_id || 'N/A'}
                                 </span>
                               </div>
                             </td>
-                            <td className="p-3">
+                            <td className="p-3 min-w-[130px]">
                               <div className="flex items-center gap-2">
-                                <Phone size={14} className="text-green-500" />
-                                <span className="text-sm">{contact.mobile_no || 'N/A'}</span>
+                                <Phone size={14} className="text-green-500 flex-shrink-0" />
+                                <span className="text-sm truncate">{contact.mobile_no || 'N/A'}</span>
                               </div>
                             </td>
-                            <td className="p-3">{contact.company_name}</td>
-                            <td className="p-3">
-                              <span className="text-sm text-gray-500">
+                            <td className="p-3 min-w-[150px]">
+                              <div className="truncate">{contact.company_name}</div>
+                            </td>
+                            <td className="p-3 min-w-[130px]">
+                              <span className="text-sm text-gray-500 whitespace-nowrap">
                                 {formatDate(contact.modified)}
                               </span>
                             </td>
@@ -1549,25 +1559,25 @@ export default function OrganizationDetails({
                   </div>
 
                   {/* Mobile Card View */}
-                  <div className="block md:hidden space-y-4">
+                  <div className="block md:hidden space-y-4 overflow-auto flex-1">
                     {contacts.map((contact, idx) => (
                       <div
                         key={idx}
                         className={`p-4 rounded-lg border ${isDark
-                            ? 'bg-purplebg border-transparent'
-                            : 'bg-white border-gray-200'
+                          ? 'bg-purplebg border-transparent'
+                          : 'bg-white border-gray-200'
                           } shadow-sm`}
                       >
                         <div className="flex justify-between items-center">
                           <div 
-                            className="flex items-center flex-1 cursor-pointer"
+                            className="flex items-center flex-1 cursor-pointer min-w-0"
                             onClick={() => handleContactClick(contact)}
                           >
                             {contact.image ? (
                               <img 
                                 src={getFullImageUrl(contact.image)} 
                                 alt="Contact" 
-                                className="w-8 h-8 rounded-full object-cover mr-3"
+                                className="w-8 h-8 rounded-full object-cover mr-3 flex-shrink-0"
                                 onError={(e) => {
                                   const target = e.target as HTMLImageElement;
                                   target.style.display = 'none';
@@ -1576,7 +1586,7 @@ export default function OrganizationDetails({
                                 }}
                               />
                             ) : null}
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 ${isDark ? 'bg-purple-600' : 'bg-gray-300'
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 flex-shrink-0 ${isDark ? 'bg-purple-600' : 'bg-gray-300'
                                 } ${contact.image ? 'hidden' : 'flex'}`}
                             >
                               <span
@@ -1586,14 +1596,14 @@ export default function OrganizationDetails({
                                 {contact.name?.[0]?.toUpperCase() || 'C'}
                               </span>
                             </div>
-                            <div>
+                            <div className="min-w-0">
                               <h3
-                                className={`text-base font-semibold ${isDark ? 'text-white' : 'text-gray-700'
+                                className={`text-base font-semibold truncate ${isDark ? 'text-white' : 'text-gray-700'
                                   }`}
                               >
                                 {contact.name}
                               </h3>
-                              <p className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-500'
+                              <p className={`text-xs truncate ${isDark ? 'text-gray-300' : 'text-gray-500'
                                   }`}>{contact.full_name}</p>
                             </div>
                           </div>
@@ -1603,7 +1613,7 @@ export default function OrganizationDetails({
                               e.stopPropagation();
                               toggleContactDetails(contact.id);
                             }}
-                            className={`p-1 rounded transition-transform ${isDark ? 'hover:bg-purple-700' : 'hover:bg-gray-100'
+                            className={`p-1 rounded transition-transform flex-shrink-0 ${isDark ? 'hover:bg-purple-700' : 'hover:bg-gray-100'
                               }`}
                           >
                             <svg 
@@ -1625,7 +1635,7 @@ export default function OrganizationDetails({
                               <span className={`font-medium ${isDark ? 'text-gray-300' : 'text-gray-500'}`}>
                                 Full Name:
                               </span>
-                              <span className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                              <span className={`font-semibold truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>
                                 {contact.full_name}
                               </span>
                             </div>
@@ -1635,8 +1645,8 @@ export default function OrganizationDetails({
                                 Email:
                               </span>
                               <div className="flex items-center gap-2">
-                                <Mail size={12} className="text-blue-500" />
-                                <span className={`font-semibold ${contact.email_id ? 'text-blue-500' : 'text-gray-400'}`}>
+                                <Mail size={12} className="text-blue-500 flex-shrink-0" />
+                                <span className={`font-semibold truncate ${contact.email_id ? 'text-blue-500' : 'text-gray-400'}`}>
                                   {contact.email_id || 'N/A'}
                                 </span>
                               </div>
@@ -1647,8 +1657,8 @@ export default function OrganizationDetails({
                                 Phone:
                               </span>
                               <div className="flex items-center gap-2">
-                                <Phone size={12} className="text-green-500" />
-                                <span className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                                <Phone size={12} className="text-green-500 flex-shrink-0" />
+                                <span className={`font-semibold truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>
                                   {contact.mobile_no || 'N/A'}
                                 </span>
                               </div>
@@ -1658,7 +1668,7 @@ export default function OrganizationDetails({
                               <span className={`font-medium ${isDark ? 'text-gray-300' : 'text-gray-500'}`}>
                                 Company:
                               </span>
-                              <span className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                              <span className={`font-semibold truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>
                                 {contact.company_name}
                               </span>
                             </div>
@@ -1678,7 +1688,7 @@ export default function OrganizationDetails({
                   </div>
                 </div>
               ) : (
-                <div className="flex items-center justify-center min-h-[calc(100vh-250px)]">
+                <div className="flex items-center justify-center h-full">
                   <div className="flex flex-col items-center gap-2 p-8 text-gray-500">
                     <User2 className="w-8 h-8 text-gray-400" />
                     <p>No Contacts Found</p>

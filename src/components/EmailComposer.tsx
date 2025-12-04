@@ -7,7 +7,6 @@ import {
   Mail,
   Sparkles,
   X,
-  ChevronDown,
 } from "lucide-react";
 import { useTheme } from "./ThemeProvider";
 import Commentemail from "./Commentemail";
@@ -38,6 +37,7 @@ interface EmailComposerProps {
 const API_BASE_URL = "https://api.erpnext.ai/api/method/frappe.core.doctype.communication.email.make";
 const AUTH_TOKEN = getAuthToken();
 const SEARCH_API_URL = "https://api.erpnext.ai/api/method/frappe.desk.search.search_link";
+const AI_GENERATE_API = "https://api.erpnext.ai/api/method/customcrm.email.email_generator.generate_email";
 
 interface User {
   value: string;
@@ -95,6 +95,7 @@ export default function EmailOrCommentComposer({
   const [emailForm, setEmailForm] = useState({
     subject: "",
     message: "",
+    aiPrompt: "", // New AI prompt field
   });
 
   const [isSubjectEdited, setIsSubjectEdited] = useState(false);
@@ -102,6 +103,7 @@ export default function EmailOrCommentComposer({
   const [showConfirmationPopup, setShowConfirmationPopup] = useState(false);
   const [subjectToGenerate, setSubjectToGenerate] = useState("");
   const [quotedMessage, setQuotedMessage] = useState("");
+  const [isFocused, setIsFocused] = useState(false);
 
   const userSession = getUserSession();
   const sessionfullname = userSession?.full_name;
@@ -456,7 +458,7 @@ export default function EmailOrCommentComposer({
         setCurrentToInput("");
         setCurrentCcInput("");
         setCurrentBccInput("");
-        setEmailForm({ subject: "", message: "" });
+        setEmailForm({ subject: "", message: "", aiPrompt: "" });
         setUploadedFiles([]);
         setQuotedMessage("");
         setShowCC(false);
@@ -538,7 +540,8 @@ export default function EmailOrCommentComposer({
         subject: selectedEmail.subject?.startsWith("Re:")
           ? selectedEmail.subject
           : `Re: ${selectedEmail.subject}`,
-        message: ""
+        message: "",
+        aiPrompt: ""
       }));
 
       setQuotedMessage(quoted);
@@ -577,7 +580,7 @@ export default function EmailOrCommentComposer({
       setCurrentToInput("");
       setCurrentCcInput("");
       setCurrentBccInput("");
-      setEmailForm({ subject: "", message: "" });
+      setEmailForm({ subject: "", message: "", aiPrompt: "" });
       setUploadedFiles([]);
       setQuotedMessage("");
       setShowCC(false);
@@ -621,6 +624,72 @@ export default function EmailOrCommentComposer({
     }
   }
 
+  // NEW FUNCTION: Generate email from AI prompt
+  const generateEmailFromPrompt = async () => {
+    if (!emailForm.aiPrompt.trim()) {
+      showToast("Please enter a prompt for AI generation", { type: "error" });
+      return;
+    }
+
+    try {
+      setGenerating(true);
+      const response = await apiAxios.post(
+        AI_GENERATE_API,
+        { purpose: emailForm.aiPrompt.trim() },
+        {
+          headers: {
+            Authorization: AUTH_TOKEN,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      const data = response.data;
+      
+      let generatedSubject = "";
+      let generatedBody = "";
+      
+      if (data.message && typeof data.message === 'object') {
+        if (data.message.message && typeof data.message.message === 'object') {
+          generatedSubject = data.message.message.subject || "";
+          generatedBody = data.message.message.body || "";
+        } else if (data.message.subject && data.message.body) {
+          generatedSubject = data.message.subject;
+          generatedBody = data.message.body;
+        } else if (data.message.generated_content) {
+          generatedBody = data.message.generated_content;
+          generatedSubject = emailForm.subject || `Re: ${dealName || ""}`;
+        }
+      } else if (data.message && typeof data.message === 'string') {
+        generatedBody = data.message;
+        generatedSubject = emailForm.subject || `Re: ${dealName || ""}`;
+      } else if (data.generated_content) {
+        generatedBody = data.generated_content;
+        generatedSubject = emailForm.subject || `Re: ${dealName || ""}`;
+      }
+
+      if (generatedBody) {
+        setEmailForm(prev => ({
+          ...prev,
+          subject: generatedSubject || prev.subject || `Re: ${dealName || ""}`,
+          message: generatedBody,
+        }));
+        setIsSubjectEdited(true);
+        showToast("Email content generated successfully!", { type: "success" });
+        
+        // Clear the AI prompt after successful generation
+        setEmailForm(prev => ({ ...prev, aiPrompt: "" }));
+      } else {
+        showToast("Failed to generate email content. Please try again.", { type: "error" });
+      }
+    } catch (error: any) {
+      console.error("Error generating email:", error);
+      showToast(`Failed to generate email content: ${error.message}`, { type: "error" });
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   const getActiveInputRef = () => {
     if (suggestionsFor === "to" && toInputRef.current) return toInputRef;
     if (suggestionsFor === "cc" && ccInputRef.current) return ccInputRef;
@@ -641,31 +710,74 @@ export default function EmailOrCommentComposer({
           }`}
       >
         <button
-          className={`flex items-center gap-1 border-b-2 pb-1 ${!showComment
+          className={`flex items-center gap-1 pb-2 transition-colors ${!showComment
             ? theme === "dark"
-              ? "border-white"
-              : "border-gray-800"
-            : "border-transparent"
+              ? "px-2 py-2 rounded-xl bg-slate-500 text-white"
+              : "text-gray-800 border-b-2 border-gray-800"
+            : theme === "dark"
+              ? "text-gray-400"
+              : "text-gray-500"
             }`}
           type="button"
           onClick={() => setShowComment(false)}
         >
-          <Mail size={14} /> Reply
+          <Mail
+            size={20}
+            className={
+              !showComment
+                ? theme === "dark"
+                  ? "text-white"
+                  : "text-gray-800"
+                : theme === "dark"
+                  ? "text-gray-400"
+                  : "text-gray-500"
+            }
+          />
+          Reply
         </button>
         <button
-          className={`flex items-center gap-1 ${showComment
+          className={`flex items-center gap-1 pb-2 max-sm:pb-0 transition-colors ${showComment
             ? theme === "dark"
-              ? "text-white border-b-2 border-white pb-1"
-              : "text-gray-800 border-b-2 border-gray-800 pb-1"
+              ? "px-2 py-2 rounded-xl bg-slate-500 text-white"
+              : "text-gray-800 border-b-2 border-gray-800"
             : theme === "dark"
-              ? "text-white"
-              : "text-gray-400"
+              ? "text-gray-400"
+              : "text-gray-500"
             }`}
           type="button"
           onClick={() => setShowComment(true)}
         >
-          <MessageSquare size={14} /> Comment
+          <MessageSquare
+            size={20}
+            className={
+              showComment
+                ? theme === "dark"
+                  ? "text-white"
+                  : "text-gray-800"
+                : theme === "dark"
+                  ? "text-gray-400"
+                  : "text-gray-500"
+            }
+          />
+          Comment
         </button>
+
+        {!showComment && (
+          <div className="flex gap-5 justify-end ml-auto mr-10">
+            <button
+              className={`text-xl font-medium ${showCC ? (theme === "dark" ? "text-white" : "text-gray-800") : ""}`}
+              onClick={() => setShowCC(!showCC)}
+            >
+              Cc
+            </button>
+            <button
+              className={`text-xl font-medium ${showBCC ? (theme === "dark" ? "text-white" : "text-gray-800") : ""}`}
+              onClick={() => setShowBCC(!showBCC)}
+            >
+              Bcc
+            </button>
+          </div>
+        )}
       </div>
 
       {showComment ? (
@@ -680,11 +792,11 @@ export default function EmailOrCommentComposer({
           <div className="space-y-4 text-sm">
             {/* To Field */}
             <div
-              className={`flex items-start gap-4 border-b pb-2 ${theme === "dark" ? "border-white" : "border-gray-300"
+              className={`flex items-start gap-4 border-b pb-2 ${theme === "dark" ? "border-gray-600" : "border-gray-300"
                 }`}
             >
               <div className="flex items-center w-12">
-                <span className={`${theme === "dark" ? "text-white" : "text-gray-500"}`}>To:</span>
+                <span className={`${theme === "dark" ? "text-white" : "text-gray-700"}`}>To:</span>
               </div>
               <div className="flex-1">
                 <div className="flex flex-wrap gap-1 mb-1">
@@ -697,35 +809,51 @@ export default function EmailOrCommentComposer({
                       onChange={(e) => handleInputChange(e, "to")}
                       onKeyDown={(e) => handleInputKeyDown(e, "to")}
                       onFocus={() => setSuggestionsFor("to")}
-                      className={`w-full px-2 py-1 rounded font-medium outline-none ${theme === "dark"
-                        ? "bg-gray-700 text-white !placeholder-gray-400"
-                        : "bg-gray-100 text-gray-800 !placeholder-gray-500"
+                      className={`w-full px-2 py-1 rounded font-medium outline-none placeholder:font-normal ${theme === "dark"
+                        ? "bg-gray-700 text-white placeholder:text-gray-400 border border-gray-600 focus:border-gray-400"
+                        : "bg-gray-50 text-gray-800 placeholder:text-gray-500 border border-gray-300 focus:border-gray-500"
                         }`}
-                      placeholder={toRecipients.length === 0 ? "Recipient email" : "Recipient email"}
+                      placeholder={toRecipients.length === 0 ? "Recipient email" : ""}
                     />
                   </div>
                 </div>
               </div>
-              <div className="flex gap-4">
+            </div>
+
+            {/* AI Assist Field - ALWAYS VISIBLE below To field */}
+            <div
+              className={`flex items-center gap-2 border-b pb-2 ${theme === "dark" ? "border-gray-600" : "border-gray-300"}`}
+            >
+              <span className={`w-16 font-medium flex items-center gap-2 ${theme === "dark" ? "text-white" : "text-gray-700"}`}>
+                AI Assist:
+              </span>
+              <div className="flex-1 flex items-center gap-2">
+                <input
+                  type="text"
+                  value={emailForm.aiPrompt}
+                  onChange={(e) => setEmailForm(f => ({ ...f, aiPrompt: e.target.value }))}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      generateEmailFromPrompt();
+                    }
+                  }}
+                  className={`px-2 py-1 rounded font-medium outline-none flex-1 placeholder:font-normal ${theme === "dark"
+                    ? "bg-gray-700 text-white placeholder:text-gray-400 border border-gray-600 focus:border-gray-400"
+                    : "bg-gray-50 text-gray-800 placeholder:text-gray-500 border border-gray-300 focus:border-gray-500"
+                    }`}
+                  placeholder="Describe the email you want to write (e.g., 'client followup reminder')"
+                />
                 <button
                   type="button"
-                  onClick={() => setShowCC((v) => !v)}
-                  className={`cursor-pointer select-none text-sm ${showCC
-                    ? theme === "dark" ? "text-white" : "text-gray-800"
-                    : theme === "dark" ? "text-gray-300" : "text-gray-500"
-                    } hover:underline flex items-center gap-1`}
+                  onClick={generateEmailFromPrompt}
+                  disabled={generating || !emailForm.aiPrompt.trim()}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${theme === 'dark'
+                    ? 'bg-purple-600 hover:bg-purple-500 text-white disabled:bg-purple-800'
+                    : 'bg-purplebg hover:bg-purple-700 text-white disabled:bg-purple-300'
+                    }`}
                 >
-                  CC
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowBCC((v) => !v)}
-                  className={`cursor-pointer select-none text-sm ${showBCC
-                    ? theme === "dark" ? "text-white" : "text-gray-800"
-                    : theme === "dark" ? "text-gray-300" : "text-gray-500"
-                    } hover:underline flex items-center gap-1`}
-                >
-                  BCC
+                  <span>{generating ? "Generating..." : "Generate"}</span>
                 </button>
               </div>
             </div>
@@ -733,11 +861,11 @@ export default function EmailOrCommentComposer({
             {/* CC Field */}
             {showCC && (
               <div
-                className={`flex items-start gap-4 border-b pb-2 ${theme === "dark" ? "border-white" : "border-gray-300"
+                className={`flex items-start gap-4 border-b pb-2 ${theme === "dark" ? "border-gray-600" : "border-gray-300"
                   }`}
               >
                 <div className="flex items-center w-12">
-                  <span className={`${theme === "dark" ? "text-white" : "text-gray-500"}`}>CC:</span>
+                  <span className={`${theme === "dark" ? "text-white" : "text-gray-700"}`}>CC:</span>
                 </div>
                 <div className="flex-1">
                   <div className="flex flex-wrap gap-1 mb-1">
@@ -750,9 +878,9 @@ export default function EmailOrCommentComposer({
                         onChange={(e) => handleInputChange(e, "cc")}
                         onKeyDown={(e) => handleInputKeyDown(e, "cc")}
                         onFocus={() => setSuggestionsFor("cc")}
-                        className={`w-full px-2 py-1 rounded font-medium outline-none ${theme === "dark"
-                          ? "bg-gray-700 text-white !placeholder-gray-400"
-                          : "bg-gray-100 text-gray-800 !placeholder-gray-500"
+                        className={`w-full px-2 py-1 rounded font-medium outline-none placeholder:font-normal ${theme === "dark"
+                          ? "bg-gray-700 text-white placeholder:text-gray-400 border border-gray-600 focus:border-gray-400"
+                          : "bg-gray-50 text-gray-800 placeholder:text-gray-500 border border-gray-300 focus:border-gray-500"
                           }`}
                         placeholder="CC email"
                       />
@@ -765,11 +893,11 @@ export default function EmailOrCommentComposer({
             {/* BCC Field */}
             {showBCC && (
               <div
-                className={`flex items-start gap-4 border-b pb-2 ${theme === "dark" ? "border-white" : "border-gray-300"
+                className={`flex items-start gap-4 border-b pb-2 ${theme === "dark" ? "border-gray-600" : "border-gray-300"
                   }`}
               >
                 <div className="flex items-center w-12">
-                  <span className={`${theme === "dark" ? "text-white" : "text-gray-500"}`}>BCC:</span>
+                  <span className={`${theme === "dark" ? "text-white" : "text-gray-700"}`}>BCC:</span>
                 </div>
                 <div className="flex-1">
                   <div className="flex flex-wrap gap-1 mb-1">
@@ -782,9 +910,9 @@ export default function EmailOrCommentComposer({
                         onChange={(e) => handleInputChange(e, "bcc")}
                         onKeyDown={(e) => handleInputKeyDown(e, "bcc")}
                         onFocus={() => setSuggestionsFor("bcc")}
-                        className={`w-full px-2 py-1 rounded font-medium outline-none ${theme === "dark"
-                          ? "bg-gray-700 text-white !placeholder-gray-400"
-                          : "bg-gray-100 text-gray-800 !placeholder-gray-500"
+                        className={`w-full px-2 py-1 rounded font-medium outline-none placeholder:font-normal ${theme === "dark"
+                          ? "bg-gray-700 text-white placeholder:text-gray-400 border border-gray-600 focus:border-gray-400"
+                          : "bg-gray-50 text-gray-800 placeholder:text-gray-500 border border-gray-300 focus:border-gray-500"
                           }`}
                         placeholder="BCC email"
                       />
@@ -794,38 +922,24 @@ export default function EmailOrCommentComposer({
               </div>
             )}
 
-            {/* Subject Field */}
+            {/* Subject Field - REMOVED the Generate button */}
             <div
-              className={`flex items-center gap-4 border-b pb-2 ${theme === "dark" ? "border-white" : "border-gray-300"
+              className={`flex items-center gap-2 border-b pb-1 ${theme === "dark" ? "border-gray-600" : "border-gray-300"
                 }`}
             >
               <div className="flex items-center w-12">
-                <span className={`${theme === "dark" ? "text-white" : "text-gray-500"}`}>Subject:</span>
+                <span className={`${theme === "dark" ? "text-white" : "text-gray-700"}`}>Subject:</span>
               </div>
               <input
                 type="text"
                 value={emailForm.subject}
                 onChange={handleSubjectChange}
-               className={`w-full px-2 py-1 rounded font-medium outline-none ${theme === "dark"
-                          ? "bg-gray-700 text-white !placeholder-gray-400"
-                          : "bg-gray-100 text-gray-800 !placeholder-gray-500"
-                          }`}
-                placeholder="Subject"
+                className={`px-2 py-1 rounded font-medium outline-none flex-1 placeholder:font-normal ${theme === "dark"
+                  ? "bg-gray-700 text-white placeholder:text-gray-400 border border-gray-600 focus:border-gray-400"
+                  : "bg-gray-50 text-gray-800 placeholder:text-gray-500 border border-gray-300 focus:border-gray-500"
+                  }`}
+                placeholder="Enter email subject"
               />
-              {!selectedEmail && (
-                <button
-                  type="button"
-                  onClick={handleGenerateButtonClick}
-                  disabled={!emailForm.subject.trim()}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${theme === 'dark'
-                    ? 'bg-purplebg hover:bg-purple-700 text-white'
-                    : 'bg-purplebg hover:bg-purple-700 text-white'
-                    } disabled:opacity-50 disabled:cursor-not-allowed`}
-                >
-                  <Sparkles size={16} />
-                  <span className="hidden sm:inline">Generate</span>
-                </button>
-              )}
             </div>
 
             {generatingContent && (
@@ -894,11 +1008,11 @@ export default function EmailOrCommentComposer({
                 ? "bg-white-31 border-gray-600 text-white focus:ring-gray-500 !placeholder-gray-400"
                 : "bg-white border border-gray-300 text-gray-800 focus:ring-gray-300 !placeholder-gray-500"
                 }`}
-              placeholder="Hi John,
-               
-Can you please provide more details on this..."
-              value={generating ? "Loading content..." : emailForm.message}
+              placeholder={isFocused ? "" : "@John,can you please check this?"}
+              value={generating ? "Generating email content..." : emailForm.message}
               disabled={generating}
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setIsFocused(false)}
               onChange={e => setEmailForm(f => ({ ...f, message: e.target.value }))}
             />
 
@@ -986,7 +1100,7 @@ Can you please provide more details on this..."
             </div>
             <div className="flex items-center gap-3">
               <button
-                className={`text-base font-semibold px-5 py-2 ${theme === "dark" ? "text-red-400 hover:text-red-300" : "text-red-500 hover:text-red-700"
+                className={`text-base font-semibold px-5 py-2 transition-colors ${theme === "dark" ? "text-red-400 hover:text-red-300" : "text-red-500 hover:text-red-600"
                   }`}
                 onClick={() => {
                   setToRecipients([]);
@@ -995,7 +1109,7 @@ Can you please provide more details on this..."
                   setCurrentToInput("");
                   setCurrentCcInput("");
                   setCurrentBccInput("");
-                  setEmailForm({ subject: "", message: "" });
+                  setEmailForm({ subject: "", message: "", aiPrompt: "" });
                   setUploadedFiles([]);
                   setQuotedMessage("");
                   setShowCC(false);
@@ -1013,10 +1127,14 @@ Can you please provide more details on this..."
               </button>
 
               <button
-                className={`text-base font-semibold px-5 py-2 rounded-md flex items-center gap-1
+                className={`text-base font-semibold px-5 py-2 rounded-md flex items-center gap-1 transition-colors
+                  ${theme === "dark"
+                    ? "bg-purple-600 hover:bg-purple-500 text-white"
+                    : "bg-purplebg hover:bg-purple-700 text-white"
+                  }
                   ${loading || !emailForm.message.trim() || toRecipients.length === 0
-                    ? "bg-gray-400 text-white cursor-not-allowed"
-                    : "bg-purplebg text-white hover:bg-purple-700"
+                    ? "opacity-50 cursor-not-allowed"
+                    : ""
                   }`}
                 onClick={sendEmail}
                 disabled={loading || !emailForm.message.trim() || toRecipients.length === 0}

@@ -4,14 +4,10 @@ import { showToast } from '../utils/toast';
 import { Header } from './Header';
 import { useTheme } from './ThemeProvider';
 import { getUserSession } from '../utils/session';
-import { DealDetailView } from './DealDetailView';
-import { LeadDetailView } from './LeadDetailView';
 import { formatDistanceToNow } from 'date-fns';
 import { AUTH_TOKEN } from '../api/apiUrl';
 import { api } from '../api/apiService';
-//import { CreateNoteModalNew } from './CreateNoteModalNew';
 import DOMPurify from 'dompurify';
-
 
 interface Note {
   name: string;
@@ -96,6 +92,8 @@ interface NotesPageProps {
   onMenuToggle: () => void;
   refreshTrigger: number;
   searchTerm: string;
+  onNavigateToDeal?: (dealName: string) => void;
+  onNavigateToLead?: (leadName: string) => void;
 }
 
 interface EditModalProps {
@@ -207,9 +205,16 @@ const EditModal: React.FC<EditModalProps> = ({ show, theme, editForm, setEditFor
   );
 };
 
-export function NotesPage({ onCreateNote, leadName, onMenuToggle, refreshTrigger, searchTerm }: NotesPageProps) {
+export function NotesPage({ 
+  onCreateNote, 
+  leadName, 
+  onMenuToggle, 
+  refreshTrigger, 
+  searchTerm,
+  onNavigateToDeal,
+  onNavigateToLead 
+}: NotesPageProps) {
   const { theme } = useTheme();
-  //const [searchTerm, setSearchTerm] = useState('');
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
@@ -217,26 +222,13 @@ export function NotesPage({ onCreateNote, leadName, onMenuToggle, refreshTrigger
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
   const [formData, setFormData] = useState<Note | null>(null);
   const [editForm, setEditForm] = useState({ title: '', content: '' });
-  // const [refreshTrigger, setRefreshTrigger] = useState(0);
-  // // Add state for create modal
-  // const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  // Add state for deal and lead navigation
-  const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
-  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [dealLoading, setDealLoading] = useState(false);
   const [leadLoading, setLeadLoading] = useState(false);
-  // Add state for dropdown menu
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
 
-  // const handleNoteCreated = () => {
-  //   // This will trigger a refresh of the notes list
-  //   setRefreshTrigger(prev => prev + 1);
-  // };
-
-  // Update useEffect to include refreshTrigger
   useEffect(() => {
     fetchNotes();
-  }, [leadName, refreshTrigger]); // Add refreshTrigger here
+  }, [leadName, refreshTrigger]);
 
   const fetchNotes = async () => {
     try {
@@ -299,7 +291,6 @@ export function NotesPage({ onCreateNote, leadName, onMenuToggle, refreshTrigger
   };
 
   const handleNoteClick = (note: Note, event?: React.MouseEvent) => {
-    // Don't open edit modal if clicking on dropdown or its children
     if (event && (event.target as HTMLElement).closest('.dropdown-menu')) {
       return;
     }
@@ -313,7 +304,6 @@ export function NotesPage({ onCreateNote, leadName, onMenuToggle, refreshTrigger
 
   function formatRelativeDate(dateStr?: string | null) {
     if (!dateStr) return '';
-    // Just parse directly
     const parsed = new Date(dateStr.replace(' ', 'T'));
     if (isNaN(parsed.getTime())) return '';
     return formatDistanceToNow(parsed, { addSuffix: true });
@@ -325,223 +315,70 @@ export function NotesPage({ onCreateNote, leadName, onMenuToggle, refreshTrigger
     setOpenDropdown(null);
   };
 
-  // Function to fetch deal details
-  const fetchDealDetails = async (dealName: string): Promise<Deal | null> => {
-    try {
-      setDealLoading(true);
+  // Update the handleOpenRecord function to use the correct base path
+const handleOpenRecord = async () => {
+  console.log('handleOpenRecord called');
+  console.log('editingNote:', editingNote);
+  console.log('editingNote?.reference_docname:', editingNote?.reference_docname);
+  console.log('editingNote?.reference_doctype:', editingNote?.reference_doctype);
 
-      const session = getUserSession();
-      if (!session) {
-        showToast('Session not found', { type: 'error' });
-        return null;
-      }
+  if (!editingNote) {
+    console.error('No editing note available');
+    showToast('No note selected', { type: 'error' });
+    return;
+  }
 
-      const response = await fetch(`https://api.erpnext.ai/api/method/frappe.client.get`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
-        },
-        body: JSON.stringify({
-          doctype: "CRM Deal",
-          name: dealName
-        })
-      });
+  if (!editingNote.reference_docname) {
+    console.error('No reference docname in editing note');
+    showToast('This note is not linked to any record', { type: 'error' });
+    return;
+  }
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
+  if (!editingNote.reference_doctype) {
+    console.error('No reference doctype in editing note');
+    showToast('Unknown record type for this note', { type: 'error' });
+    return;
+  }
 
-      const data = await response.json();
-      const dealData = data.message;
+  console.log('Opening record:', editingNote.reference_doctype, editingNote.reference_docname);
 
-      if (!dealData) {
-        throw new Error('Deal data not found');
-      }
+  // Close the edit modal first
+  setShowEditModal(false);
+  setEditingNote(null);
 
-      const transformedDeal: Deal = {
-        name: dealData.name,
-        id: dealData.name,
-        organization: dealData.organization || '',
-        currency: dealData.currency || '',
-        annual_revenue: dealData.annual_revenue || 0,
-        status: dealData.status || '',
-        email: dealData.email || '',
-        mobile_no: dealData.mobile_no || '',
-        mobileNo: dealData.mobile_no || '',
-        deal_owner: dealData.deal_owner || '',
-        assignedTo: dealData.deal_owner || '',
-        modified: dealData.modified || '',
-        lastModified: dealData.modified || '',
-        annualRevenue: dealData.annual_revenue?.toString() || '0',
-        organization_name: dealData.organization_name,
-        website: dealData.website,
-        no_of_employees: dealData.no_of_employees,
-        territory: dealData.territory,
-        industry: dealData.industry,
-        salutation: dealData.salutation,
-        first_name: dealData.first_name,
-        last_name: dealData.last_name,
-        gender: dealData.gender,
-        close_date: dealData.close_date,
-        probability: dealData.probability,
-        next_step: dealData.next_step
-      };
+  // Get the current base path from window location
+  const currentPath = window.location.pathname;
+  let basePath = '/';
+  
+  // Check if we're under a specific path like /login/
+  if (currentPath.includes('/login/')) {
+    basePath = '/login/';
+  }
 
-      return transformedDeal;
-    } catch (error) {
-      console.error('Error fetching deal details:', error);
-      showToast('Failed to fetch deal details', { type: 'error' });
-      return null;
-    } finally {
-      setDealLoading(false);
-    }
-  };
-
-  // Function to fetch lead details
-  const fetchLeadDetails = async (leadName: string): Promise<Lead | null> => {
-    try {
-      setLeadLoading(true);
-      console.log('Fetching lead details for:', leadName); // Debug log
-
-      const session = getUserSession();
-      if (!session) {
-        showToast('Session not found', { type: 'error' });
-        return null;
-      }
-
-      const response = await fetch(`https://api.erpnext.ai/api/method/frappe.client.get`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
-        },
-        body: JSON.stringify({
-          doctype: "CRM Lead",
-          name: leadName
-        })
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Lead fetch error response:', errorText);
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      console.log('Lead API response:', data); // Debug log
-
-      const leadData = data.message;
-
-      if (!leadData) {
-        console.error('Lead data is null or undefined');
-        throw new Error('Lead data not found');
-      }
-
-      console.log('Lead data received:', leadData); // Debug log
-
-      // Transform the lead data to match LeadDetailView interface
-      const transformedLead: Lead = {
-        id: leadData.name || '',
-        name: leadData.name || '',
-        leadId: leadData.name || '',
-        firstName: leadData.first_name || '',
-        lastName: leadData.last_name || '',
-        organization: leadData.organization || '',
-        status: leadData.status || '',
-        email: leadData.email || '',
-        mobile: leadData.mobile_no || '',
-        mobile_no: leadData.mobile_no || '',
-        assignedTo: leadData.lead_owner || '',
-        lead_owner: leadData.lead_owner || '',
-        lastModified: leadData.modified || '',
-        modified: leadData.modified || '',
-        creation: leadData.creation || '',
-        website: leadData.website || '',
-        territory: leadData.territory || '',
-        industry: leadData.industry || '',
-        jobTitle: leadData.job_title || '',
-        source: leadData.source || '',
-        salutation: leadData.salutation || '',
-        owner: leadData.owner || '',
-        modified_by: leadData.modified_by || '',
-        docstatus: leadData.docstatus || 0,
-        idx: leadData.idx || 0,
-        naming_series: leadData.naming_series || '',
-        lead_name: leadData.lead_name || `${leadData.first_name || ''} ${leadData.last_name || ''}`.trim(),
-        gender: leadData.gender || '',
-        no_of_employees: leadData.no_of_employees || '',
-        annual_revenue: leadData.annual_revenue || 0,
-        image: leadData.image || '',
-        first_name: leadData.first_name || '',
-        last_name: leadData.last_name || '',
-        converted: leadData.converted || ''
-      };
-
-      console.log('Transformed lead:', transformedLead); // Debug log
-      return transformedLead;
-    } catch (error: any) {
-      console.error('Error fetching lead details:', error);
-      showToast(`Failed to fetch lead details: ${error.message}`, { type: 'error' });
-      return null;
-    } finally {
-      setLeadLoading(false);
-    }
-  };
-
-  const handleOpenRecord = async () => {
-    console.log('handleOpenRecord called');
-    console.log('editingNote:', editingNote);
-    console.log('editingNote?.reference_docname:', editingNote?.reference_docname);
-    console.log('editingNote?.reference_doctype:', editingNote?.reference_doctype);
-
-    if (!editingNote) {
-      console.error('No editing note available');
-      showToast('No note selected', { type: 'error' });
-      return;
-    }
-
-    if (!editingNote.reference_docname) {
-      console.error('No reference docname in editing note');
-      showToast('This note is not linked to any record', { type: 'error' });
-      return;
-    }
-
-    if (!editingNote.reference_doctype) {
-      console.error('No reference doctype in editing note');
-      showToast('Unknown record type for this note', { type: 'error' });
-      return;
-    }
-
-    console.log('Opening record:', editingNote.reference_doctype, editingNote.reference_docname);
-
-    // Handle opening the related record
-    if (editingNote.reference_doctype === 'CRM Deal') {
-      console.log('Opening Deal:', editingNote.reference_docname);
-
-      const dealDetails = await fetchDealDetails(editingNote.reference_docname);
-      if (dealDetails) {
-        console.log('Setting selected deal:', dealDetails);
-        setSelectedDeal(dealDetails);
-        setShowEditModal(false);
-      }
-    } else if (editingNote.reference_doctype === 'CRM Lead') {
-      console.log('Opening Lead:', editingNote.reference_docname);
-
-      const leadDetails = await fetchLeadDetails(editingNote.reference_docname);
-      if (leadDetails) {
-        console.log('Setting selected lead:', leadDetails);
-        setSelectedLead(leadDetails);
-        setShowEditModal(false);
-      } else {
-        console.error('Failed to fetch lead details');
-        showToast('Failed to load lead details', { type: 'error' });
-      }
+  // Navigate to the respective page with correct base path
+  if (editingNote.reference_doctype === 'CRM Deal') {
+    console.log('Navigating to Deal:', editingNote.reference_docname);
+    
+    if (onNavigateToDeal) {
+      onNavigateToDeal(editingNote.reference_docname);
     } else {
-      console.warn('Unknown reference doctype:', editingNote.reference_doctype);
-      showToast(`Unsupported record type: ${editingNote.reference_doctype}`, { type: 'error' });
+      // Use correct base path for navigation
+      window.location.href = `${basePath}deals/${editingNote.reference_docname}`;
     }
-  };
+  } else if (editingNote.reference_doctype === 'CRM Lead') {
+    console.log('Navigating to Lead:', editingNote.reference_docname);
+    
+    if (onNavigateToLead) {
+      onNavigateToLead(editingNote.reference_docname);
+    } else {
+      // Use correct base path for navigation
+      window.location.href = `${basePath}leads/${editingNote.reference_docname}`;
+    }
+  } else {
+    console.warn('Unknown reference doctype:', editingNote.reference_doctype);
+    showToast(`Unsupported record type: ${editingNote.reference_doctype}`, { type: 'error' });
+  }
+};
 
   const handleUpdate = async () => {
     try {
@@ -610,49 +447,12 @@ export function NotesPage({ onCreateNote, leadName, onMenuToggle, refreshTrigger
     }
   };
 
-  // Handle deal save from DealDetailView
-  const handleDealSave = (updatedDeal: Deal) => {
-    setSelectedDeal(updatedDeal);
-    showToast('Deal updated successfully', { type: 'success' });
-  };
-
-  // Handle lead save from LeadDetailView
-  const handleLeadSave = (updatedLead: Lead) => {
-    setSelectedLead(updatedLead);
-    showToast('Lead updated successfully', { type: 'success' });
-  };
-
-  // Handle back from deal detail view
-  const handleBackFromDeal = () => {
-    setSelectedDeal(null);
-  };
-
-  // Handle back from lead detail view
-  const handleBackFromLead = () => {
-    setSelectedLead(null);
-  };
-
-  // Update the Header props to open create modal
-  // const handleCreateNoteClick = () => {
-  //   setIsCreateModalOpen(true);
-  // };
-
   const filteredNotes = notes.filter(note =>
     Object.values(note).some(value =>
       value?.toString().toLowerCase().includes(searchTerm.toLowerCase())
     )
   );
 
-  // Debug logs for state changes
-  useEffect(() => {
-    console.log('Selected deal changed:', selectedDeal);
-  }, [selectedDeal]);
-
-  useEffect(() => {
-    console.log('Selected lead changed:', selectedLead);
-  }, [selectedLead]);
-
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (!((event.target as HTMLElement).closest('.dropdown-menu'))) {
@@ -671,49 +471,12 @@ export function NotesPage({ onCreateNote, leadName, onMenuToggle, refreshTrigger
     return ownerEmail.split('@')[0];
   };
 
-  // If a deal is selected, show DealDetailView
-  if (selectedDeal) {
-    console.log('Rendering DealDetailView with:', selectedDeal);
-    return (
-      <DealDetailView
-        deal={selectedDeal}
-        onBack={handleBackFromDeal}
-        onSave={handleDealSave}
-      />
-    );
-  }
-
-  // If a lead is selected, show LeadDetailView
-  if (selectedLead) {
-    console.log('Rendering LeadDetailView with:', selectedLead);
-    return (
-      <LeadDetailView
-        lead={selectedLead}
-        onBack={handleBackFromLead}
-        onSave={handleLeadSave}
-      />
-    );
-  }
-
   if (loading) {
     return (
       <div className={`min-h-screen ${theme === 'dark'
         ? 'bg-gradient-to-br from-dark-primary via-dark-secondary to-dark-tertiary'
         : 'bg-gray-50'
         }`}>
-        <Header
-          title="Notes"
-          subtitle={leadName ? `For Lead: ${leadName}` : undefined}
-          onRefresh={fetchNotes}
-          onFilter={() => { }}
-          onSort={() => { }}
-          onColumns={() => { }}
-          //onCreate={handleCreateNoteClick}
-          searchValue={searchTerm}
-          onSearchChange={() => {}}
-          viewMode={viewMode}
-          onViewModeChange={setViewMode}
-        />
         <div className="p-4 sm:p-6">
           <div className="flex items-center justify-center">
             <div className={theme === 'dark' ? 'text-white' : 'text-gray-600'}>Loading notes...</div>
@@ -728,28 +491,6 @@ export function NotesPage({ onCreateNote, leadName, onMenuToggle, refreshTrigger
       ? 'bg-gradient-to-br from-dark-primary via-dark-secondary to-dark-tertiary'
       : 'bg-gray-50'
       }`}>
-      {/* <div className="p-4 sm:p-6 lg:hidden">
-        <button
-          onClick={onMenuToggle}
-          className={`p-2 rounded-lg transition-colors ${theme === 'dark' ? 'hover:bg-purple-800/50' : 'hover:bg-gray-100'}`}
-        >
-          <Menu className={`w-6 h-6 ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`} />
-        </button>
-      </div>
-      <Header
-        title="Notes"
-        subtitle={leadName ? `For Lead: ${leadName}` : undefined}
-        onRefresh={fetchNotes}
-        onFilter={() => { }}
-        onSort={() => { }}
-        onColumns={() => { }}
-        onCreate={handleCreateNoteClick}
-        searchValue={searchTerm}
-        onSearchChange={setSearchTerm}
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-      /> */}
-
       <div className="p-4 sm:p-6">
         {/* Notes Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -834,15 +575,6 @@ export function NotesPage({ onCreateNote, leadName, onMenuToggle, refreshTrigger
           </div>
         )}
       </div>
-
-      {/* Create Note Modal */}
-      {/* <CreateNoteModalNew
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        onSubmit={(data) => console.log(data)}
-        onNoteCreated={handleNoteCreated}
-        leadName={leadName}
-      /> */}
 
       {/* Edit Note Modal */}
       <EditModal

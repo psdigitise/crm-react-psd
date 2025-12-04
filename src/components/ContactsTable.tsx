@@ -1499,7 +1499,10 @@ export function ContactsTable({ searchTerm, onContactClick, onRefresh }: Contact
                   <h3 className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Manage Columns</h3>
                   <button
                     onClick={() => setShowColumnSettings(false)}
-                    className={theme === 'dark' ? 'text-white hover:text-white' : 'text-gray-500 hover:text-gray-600'}
+                    className={`p-1 rounded ${theme === 'dark'
+                      ? 'text-gray-400 hover:text-white'
+                      : 'text-gray-500 hover:text-gray-700'
+                      }`}
                   >
                     <X className="w-4 h-4" />
                   </button>

@@ -1818,29 +1818,34 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
   }, []);
 
   const handleConvert = async (params: {
-    lead: string;
-    deal?: any;
-    existing_contact?: string;
-    existing_organization?: string;
-    company_info?: string;
-  }) => {
-    try {
-      setLoading(true);
-      const session = getUserSession();
-      const sessionCompany = session?.company || 'PSD-branch2';
-      const {
-        lead: leadName,
-        deal: dealData = {},
-        existing_contact,
-        existing_organization,
-        company_info
-      } = params;
+  lead: string;
+  deal?: any;
+  existing_contact?: string;
+  existing_organization?: string;
+  company_info?: string;
+}) => {
+  try {
+    setLoading(true);
+    const session = getUserSession();
+    const sessionCompany = session?.company || 'PSD-branch2';
+    const {
+      lead: leadName,
+      deal: dealData = {},
+      existing_contact,
+      existing_organization,
+      company_info
+    } = params;
+
+      const companyInfoData = company_info || (editedLead.company_info 
+      ? JSON.stringify(editedLead.company_info) 
+      : undefined);
 
       // Include the expected_deal_value and expected_closure_date in the deal data
       const dealWithValues = {
         ...dealData,
         expected_deal_value: dealData.expected_deal_value,
-        expected_closure_date: dealData.expected_closure_date
+        expected_closure_date: dealData.expected_closure_date,
+        ...(companyInfoData && { company_info: companyInfoData })
       };
 
       // --- 1. First API Call: Convert the Lead to a Deal ---
@@ -5726,12 +5731,12 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
                     <Paperclip className={`w-16 h-16 mx-auto mb-4 ${textSecondaryColor}`} />
                     <p className={`text-lg font-medium ${textColor} mb-2`}>No attachments yet</p>
                     <p className={`text-sm ${textSecondaryColor} mb-6`}>Upload files to share with your team</p>
-                    <button
+                    {/* <button
                       onClick={() => setShowFileModal(true)}
                       className={`px-6 py-2 rounded-lg font-medium text-white ${theme === 'dark' ? 'bg-purple-600 hover:bg-purple-700' : 'bg-blue-600 hover:bg-blue-700'} transition-colors`}
                     >
                       Upload Your First File
-                    </button>
+                    </button> */}
                   </div>
                 ) : (
                   <div className="space-y-3">

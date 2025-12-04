@@ -103,7 +103,7 @@ const statusColors = {
   'Queued': '!text-blue-500 dark:bg-blue-900/30 dark:text-blue-300',
   'Initiated': '!text-purple-500 dark:bg-purple-900/30 dark:text-purple-300',
   'In Progress': '!text-orange-500 dark:bg-orange-900/30 dark:text-orange-300',
-  'Canceled': 'text-gray-800 dark:bg-gray-900/30 dark:text-white'
+  'Canceled': '!bg-white !text-black dark:bg-white dark:!text-black',
 };
 
 const typeColors = {
@@ -1074,19 +1074,7 @@ export function CallLogsPage({ onCreateCallLog, leadName, refreshTrigger = 0, on
         ? 'bg-gradient-to-br from-dark-primary via-dark-secondary to-dark-tertiary'
         : 'bg-gray-50'
         }`}>
-        <Header
-          title="Call Logs"
-          subtitle={leadName ? `For Lead: ${leadName}` : undefined}
-          onRefresh={fetchCallLogs}
-          onFilter={() => { }}
-          onSort={() => { }}
-          onColumns={() => { }}
-          onCreate={onCreateCallLog}
-          searchValue={searchTerm}
-          onSearchChange={() => { }}
-          viewMode={viewMode}
-          onViewModeChange={setViewMode}
-        />
+        
         <div className="p-4 sm:p-6">
           <div className="flex items-center justify-center">
             <div className={theme === 'dark' ? 'text-white' : 'text-gray-600'}>Loading call logs...</div>
@@ -1138,7 +1126,10 @@ export function CallLogsPage({ onCreateCallLog, leadName, refreshTrigger = 0, on
                     <h3 className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Manage Columns</h3>
                     <button
                       onClick={() => setShowColumnSettings(false)}
-                      className={theme === 'dark' ? 'text-white hover:text-white' : 'text-white hover:text-gray-600'}
+                      className={`p-1 rounded ${theme === 'dark'
+                      ? 'text-gray-400 hover:text-white'
+                      : 'text-gray-500 hover:text-gray-700'
+                      }`}
                     >
                       <X className="w-4 h-4" />
                     </button>

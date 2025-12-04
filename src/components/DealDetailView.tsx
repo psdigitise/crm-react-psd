@@ -278,6 +278,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
   const [selectedEmailActivity, setSelectedEmailActivity] = useState<Email | null>(null);
   const [selectedEmailEmails, setSelectedEmailEmails] = useState<Email | null>(null);
   const [selectedEmailComments, setSelectedEmailComments] = useState<Email | null>(null);
+  const [isGeneratingIntelligence, setIsGeneratingIntelligence] = useState(false);
   // Add to state variables
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [activityLoading, setActivityLoading] = useState(false);
@@ -451,6 +452,142 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
       setNotesLoading(false);
     }
   }, [deal.name]);
+
+
+
+
+  // Replace your current fetchCompanyIntelligence function with this:
+
+  const generateAndFetchCompanyIntelligence = async () => {
+    if (!editedDeal.organization_name) {
+      showToast('Organization name is required to generate company intelligence', { type: 'error' });
+      return;
+    }
+
+    setIsGeneratingIntelligence(true);
+    setIntelligenceError(null);
+
+    try {
+      // Step 1: Generate company intelligence report
+      const generateResponse = await apiAxios.post(
+        '/api/method/customcrm.email.generate_companyinfo.generate_company_report',
+        {
+          company_name: editedDeal.organization_name
+        },
+        {
+          headers: {
+            'Authorization': AUTH_TOKEN,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (!generateResponse.data || !generateResponse.data.message) {
+        throw new Error('Failed to generate company intelligence report');
+      }
+
+      const companyIntelligenceData = generateResponse.data.message;
+
+      // Step 2: Save the generated data to the deal
+      const saveResponse = await apiAxios.post(
+        '/api/method/frappe.client.set_value',
+        {
+          doctype: "CRM Deal",
+          name: deal.name,
+          fieldname: {
+            company_info: JSON.stringify(companyIntelligenceData)
+          }
+        },
+        {
+          headers: {
+            'Authorization': AUTH_TOKEN,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (saveResponse.data && saveResponse.data.message) {
+        // Step 3: Update local state with the new data
+        setCompanyIntelligence(companyIntelligenceData);
+        showToast('Company intelligence generated and saved successfully!', { type: 'success' });
+      } else {
+        throw new Error('Failed to save company intelligence data');
+      }
+
+    } catch (error: any) {
+      console.error('Error generating company intelligence:', error);
+
+      // If generation fails, try to fetch existing data
+      await fetchExistingCompanyIntelligence();
+
+      // Show appropriate error message
+      if (error.response?.data?.message) {
+        setIntelligenceError(`Generation failed: ${error.response.data.message}`);
+      } else {
+        setIntelligenceError('Failed to generate company intelligence. Please try again.');
+      }
+    } finally {
+      setIsGeneratingIntelligence(false);
+    }
+  };
+
+  // Separate function to fetch existing data
+  const fetchExistingCompanyIntelligence = async () => {
+    try {
+      const response = await apiAxios.post(
+        '/api/method/frappe.client.get',
+        {
+          doctype: "CRM Deal",
+          name: deal.name
+        },
+        {
+          headers: {
+            'Authorization': AUTH_TOKEN,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      const dealData = response.data.message;
+
+      if (dealData && dealData.company_info) {
+        try {
+          const companyInfo = typeof dealData.company_info === 'string'
+            ? JSON.parse(dealData.company_info)
+            : dealData.company_info;
+          setCompanyIntelligence(companyInfo);
+        } catch (parseError) {
+          console.error('Error parsing company info:', parseError);
+          setIntelligenceError('Failed to parse company intelligence data');
+        }
+      } else {
+        setCompanyIntelligence(null);
+        setIntelligenceError('No company intelligence data available. Click "Generate Report" to create one.');
+      }
+    } catch (error) {
+      console.error('Error fetching company intelligence:', error);
+      setIntelligenceError('Failed to fetch company intelligence');
+    }
+  };
+
+  // Updated useEffect for intelligence tab
+  useEffect(() => {
+    if (activeTab === 'intelligence') {
+      // Only fetch existing data when tab is opened
+      fetchExistingCompanyIntelligence();
+    }
+  }, [activeTab]);
+
+  // Update the refresh button in the UI
+  const handleIntelligenceButtonClick = async () => {
+    if (!companyIntelligence) {
+      // If no data exists, generate new report
+      await generateAndFetchCompanyIntelligence();
+    } else {
+      // If data exists, allow refresh (generate new report)
+      await generateAndFetchCompanyIntelligence();
+    }
+  };
 
 
   const fetchCallLogs = useCallback(async () => {
@@ -1750,6 +1887,30 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
       const allActivities = [...callActivities, ...taskActivities, ...timelineActivities, ...attachmentActivities];
       allActivities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
       setActivities(allActivities);
+
+      const filteredActivities = allActivities.filter(activity => {
+        // Skip filtering for non-text based activities
+        if (!activity.description && !activity.title) return true;
+
+        const description = (activity.description || '').toLowerCase();
+        const title = (activity.title || '').toLowerCase();
+
+        const isCompanyIntelligence =
+          description.includes('company intelligence') ||
+          description.includes('company_info') ||
+          description.includes('intelligence report') ||
+          description.includes('intelligence generated') ||
+          description.includes('company information') ||
+          title.includes('company intelligence') ||
+          title.includes('intelligence report') ||
+          // Add more keywords as needed
+          false;
+
+        return !isCompanyIntelligence;
+      });
+
+      filteredActivities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      setActivities(filteredActivities);
 
     } catch (error) {
       console.error("Error fetching activities:", error);
@@ -5180,559 +5341,604 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         )}
 
         {activeTab === 'intelligence' && (
-  <div className="space-y-4 sm:space-y-6">
-    <div className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} max-sm:p-3 p-4 sm:p-6`}>
-     
+          <div className="space-y-4 sm:space-y-6">
+            <div className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} max-sm:p-3 p-4 sm:p-6`}>
+              <div className="flex justify-between items-center mb-4 sm:mb-6">
+                <h3 className={`text-lg sm:text-xl font-semibold ${textColor}`}>Company Intelligence</h3>
 
-      {intelligenceError && (
-        <div className={`p-3 sm:p-4 rounded-lg mb-4 ${theme === 'dark' ? 'bg-red-900/30 text-red-300 border border-red-700' : 'bg-red-100 text-red-800'}`}>
-          {intelligenceError}
-        </div>
-      )}
+                <div className="flex items-center gap-2">
+                  {/* Show Generate button ONLY when there's NO company intelligence data */}
+                  {!companyIntelligence && !isGeneratingIntelligence && (
+                    <button
+                      onClick={handleIntelligenceButtonClick}
+                      disabled={!editedDeal.organization_name}
+                      className={`px-4 py-2 rounded-lg flex items-center space-x-2 text-white ${theme === 'dark' ? 'bg-purple-600 hover:bg-purple-700' : 'bg-blue-600 hover:bg-blue-700'} disabled:opacity-50`}
+                      title={!editedDeal.organization_name ? "Organization name is required" : "Generate company intelligence report"}
+                    >
+                      <RxLightningBolt className="w-4 h-4" />
+                      <span>Generate Report</span>
+                    </button>
+                  )}
 
-      {intelligenceLoading ? (
-        <div className="flex flex-col items-center justify-center py-8 sm:py-16">
-          <Loader2 className="w-8 h-8 sm:w-12 sm:h-12 animate-spin text-blue-600 mb-3 sm:mb-4" />
-          <p className={`text-base sm:text-lg font-medium ${textColor} mb-2 text-center`}>
-            Generating Company Intelligence Report
-          </p>
-          <p className={`text-xs sm:text-sm ${textSecondaryColor} text-center max-w-md px-4`}>
-            Please wait while we analyze and generate a comprehensive company intelligence report...
-          </p>
-        </div>
-      ) : !companyIntelligence ? (
-        <div className="text-center py-8 sm:py-12">
-          <Building2 className={`w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 ${textSecondaryColor}`} />
-          <h4 className={`text-base sm:text-lg font-semibold mb-2 ${textColor}`}>
-            No Company Intelligence Report
-          </h4>
-          <p className={`text-sm ${textSecondaryColor} px-4`}>
-            {!editedDeal.organization
-              ? 'Please set an organization name in the Data tab to generate company intelligence.'
-              : 'Company intelligence report will be generated automatically.'
-            }
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-4 sm:space-y-6">
-          {/* Overall Scorecard */}
-          {companyIntelligence.json?.scorecard && (
-            <div className={`rounded-lg border p-4 sm:p-6 ${theme === 'dark'
-              ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
-              : 'bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200'
-              }`}>
-              <div className="flex flex-col sm:flex-row sm:items-start justify-between mb-4 sm:mb-6 gap-3">
-                <div className="flex-1">
-                  <h4 className={`text-lg sm:text-xl font-bold ${textColor} mb-2`}>
-                    Overall Scorecard
-                  </h4>
-                  <p className={`text-xs sm:text-sm ${textSecondaryColor}`}>
-                    AI-powered assessment of the company's potential and compatibility
-                  </p>
-                </div>
-                <div className="text-right">
-                  <div className={`text-2xl sm:text-3xl font-bold mb-1 ${companyIntelligence.json.scorecard.final_percentage >= 80
-                    ? 'text-green-500' :
-                    companyIntelligence.json.scorecard.final_percentage >= 60
-                      ? 'text-yellow-500' :
-                      'text-red-500'
-                    }`}>
-                    {companyIntelligence.json.scorecard.final_percentage || 0}%
-                  </div>
-                  <span className={`text-xs sm:text-sm px-2 py-1 sm:px-3 sm:py-1 rounded-full font-medium ${companyIntelligence.json.scorecard.final_percentage >= 80
-                    ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300' :
-                    companyIntelligence.json.scorecard.final_percentage >= 60
-                      ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300' :
-                      'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300'
-                    }`}>
-                    {companyIntelligence.json.scorecard.final_percentage >= 80 ? 'Very High' :
-                      companyIntelligence.json.scorecard.final_percentage >= 60 ? 'High' :
-                        companyIntelligence.json.scorecard.final_percentage >= 40 ? 'Medium' : 'Low'}
-                  </span>
+                  {/* Show loading state when generating */}
+                  {isGeneratingIntelligence && (
+                    <button
+                      disabled
+                      className={`px-4 py-2 rounded-lg flex items-center space-x-2 ${theme === 'dark' ? 'bg-purple-600 text-white' : 'bg-blue-600 text-white'} opacity-50`}
+                    >
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Generating...</span>
+                    </button>
+                  )}
+
+                  {/* NO BUTTON shows when companyIntelligence exists */}
                 </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-8">
-                <div className="flex flex-col items-center">
-                  <div className="relative w-24 h-24 sm:w-32 sm:h-32">
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="text-center">
-                        <span className={`text-2xl sm:text-4xl font-bold block ${companyIntelligence.json.scorecard.final_percentage >= 80 ? 'text-green-500' :
-                          companyIntelligence.json.scorecard.final_percentage >= 60 ? 'text-yellow-500' :
-                            'text-red-500'
-                          }`}>
-                          {companyIntelligence.json.scorecard.final_percentage || 0}
-                        </span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">SCORE</span>
+              {/* Warning if organization name is not set */}
+              {!editedDeal.organization_name && (
+                <div className={`p-3 mb-4 rounded-lg ${theme === 'dark' ? 'bg-yellow-900/30 text-yellow-300 border border-yellow-700' : 'bg-yellow-100 text-yellow-800 border border-yellow-300'}`}>
+                  <div className="flex items-center gap-2">
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    <span>Please set an organization name in the Data tab to generate company intelligence.</span>
+                  </div>
+                </div>
+              )}
+
+              {isGeneratingIntelligence ? (
+                <div className="flex flex-col items-center justify-center py-8 sm:py-16">
+                  <Loader2 className="w-8 h-8 sm:w-12 sm:h-12 animate-spin text-blue-600 mb-3 sm:mb-4" />
+                  <p className={`text-base sm:text-lg font-medium ${textColor} mb-2 text-center`}>
+                    Generating Company Intelligence Report
+                  </p>
+                  <p className={`text-xs sm:text-sm ${textSecondaryColor} text-center max-w-md px-4`}>
+                    Analyzing company data and generating comprehensive intelligence report...
+                    This may take a few moments.
+                  </p>
+                </div>
+              ) : !companyIntelligence ? (
+                <div className="text-center py-8 sm:py-12">
+                  <Building2 className={`w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 ${textSecondaryColor}`} />
+                  <h4 className={`text-base sm:text-lg font-semibold mb-2 ${textColor}`}>
+                    No Company Intelligence Report Generated
+                  </h4>
+                  <p className={`text-sm ${textSecondaryColor} px-4 mb-6 max-w-md mx-auto`}>
+                    Generate a comprehensive company intelligence report to get insights about the organization's business, technology, leadership, and market position.
+                  </p>
+                  {!editedDeal.organization_name && (
+                    <p className={`text-xs ${textSecondaryColor} mt-3`}>
+                      Set organization name in Data tab first
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-4 sm:space-y-6">
+                  {/* Overall Scorecard */}
+                  {companyIntelligence.json?.scorecard && (
+                    <div className={`rounded-lg border p-4 sm:p-6 ${theme === 'dark'
+                      ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
+                      : 'bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200'
+                      }`}>
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between mb-4 sm:mb-6 gap-3">
+                        <div className="flex-1">
+                          <h4 className={`text-lg sm:text-xl font-bold ${textColor} mb-2`}>
+                            Overall Scorecard
+                          </h4>
+                          <p className={`text-xs sm:text-sm ${textSecondaryColor}`}>
+                            AI-powered assessment of the company's potential and compatibility
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <div className={`text-2xl sm:text-3xl font-bold mb-1 ${companyIntelligence.json.scorecard.final_percentage >= 80
+                            ? 'text-green-500' :
+                            companyIntelligence.json.scorecard.final_percentage >= 60
+                              ? 'text-yellow-500' :
+                              'text-red-500'
+                            }`}>
+                            {companyIntelligence.json.scorecard.final_percentage || 0}%
+                          </div>
+                          <span className={`text-xs sm:text-sm px-2 py-1 sm:px-3 sm:py-1 rounded-full font-medium ${companyIntelligence.json.scorecard.final_percentage >= 80
+                            ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300' :
+                            companyIntelligence.json.scorecard.final_percentage >= 60
+                              ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300' :
+                              'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300'
+                            }`}>
+                            {companyIntelligence.json.scorecard.final_percentage >= 80 ? 'Very High' :
+                              companyIntelligence.json.scorecard.final_percentage >= 60 ? 'High' :
+                                companyIntelligence.json.scorecard.final_percentage >= 40 ? 'Medium' : 'Low'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-8">
+                        <div className="flex flex-col items-center">
+                          <div className="relative w-24 h-24 sm:w-32 sm:h-32">
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <div className="text-center">
+                                <span className={`text-2xl sm:text-4xl font-bold block ${companyIntelligence.json.scorecard.final_percentage >= 80 ? 'text-green-500' :
+                                  companyIntelligence.json.scorecard.final_percentage >= 60 ? 'text-yellow-500' :
+                                    'text-red-500'
+                                  }`}>
+                                  {companyIntelligence.json.scorecard.final_percentage || 0}
+                                </span>
+                                <span className="text-xs text-gray-500 dark:text-gray-400">SCORE</span>
+                              </div>
+                            </div>
+                            <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                              <circle
+                                cx="50"
+                                cy="50"
+                                r="45"
+                                stroke={theme === 'dark' ? '#374151' : '#e5e7eb'}
+                                strokeWidth="8"
+                                fill="none"
+                              />
+                              <circle
+                                cx="50"
+                                cy="50"
+                                r="45"
+                                stroke={
+                                  companyIntelligence.json.scorecard.final_percentage >= 80 ? '#10b981' :
+                                    companyIntelligence.json.scorecard.final_percentage >= 60 ? '#f59e0b' :
+                                      '#ef4444'
+                                }
+                                strokeWidth="8"
+                                fill="none"
+                                strokeDasharray={283}
+                                strokeDashoffset={283 * (1 - (companyIntelligence.json.scorecard.final_percentage || 0) / 100)}
+                                strokeLinecap="round"
+                              />
+                            </svg>
+                          </div>
+                        </div>
+
+                        <div className="flex-1 grid grid-cols-2 gap-3 sm:gap-4">
+                          <div className={`p-3 sm:p-4 rounded-lg ${theme === 'dark' ? 'bg-gray-700/50' : 'bg-white'
+                            }`}>
+                            <span className={`text-xs sm:text-sm font-medium ${textSecondaryColor}`}>Tier</span>
+                            <p className={`text-sm sm:text-lg font-semibold ${textColor} mt-1`}>
+                              {companyIntelligence.json.scorecard.tier || 'Not Available'}
+                            </p>
+                          </div>
+                          <div className={`p-3 sm:p-4 rounded-lg ${theme === 'dark' ? 'bg-gray-700/50' : 'bg-white'
+                            }`}>
+                            <span className={`text-xs sm:text-sm font-medium ${textSecondaryColor}`}>Overall Score</span>
+                            <p className={`text-sm sm:text-lg font-semibold ${textColor} mt-1`}>
+                              {companyIntelligence.json.scorecard.final_weighted_score || 0}/10
+                            </p>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                    <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                      <circle
-                        cx="50"
-                        cy="50"
-                        r="45"
-                        stroke={theme === 'dark' ? '#374151' : '#e5e7eb'}
-                        strokeWidth="8"
-                        fill="none"
-                      />
-                      <circle
-                        cx="50"
-                        cy="50"
-                        r="45"
-                        stroke={
-                          companyIntelligence.json.scorecard.final_percentage >= 80 ? '#10b981' :
-                            companyIntelligence.json.scorecard.final_percentage >= 60 ? '#f59e0b' :
-                              '#ef4444'
-                        }
-                        strokeWidth="8"
-                        fill="none"
-                        strokeDasharray={283}
-                        strokeDashoffset={283 * (1 - (companyIntelligence.json.scorecard.final_percentage || 0) / 100)}
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                  </div>
-                </div>
+                  )}
 
-                <div className="flex-1 grid grid-cols-2 gap-3 sm:gap-4">
-                  <div className={`p-3 sm:p-4 rounded-lg ${theme === 'dark' ? 'bg-gray-700/50' : 'bg-white'
-                    }`}>
-                    <span className={`text-xs sm:text-sm font-medium ${textSecondaryColor}`}>Tier</span>
-                    <p className={`text-sm sm:text-lg font-semibold ${textColor} mt-1`}>
-                      {companyIntelligence.json.scorecard.tier || 'Not Available'}
-                    </p>
-                  </div>
-                  <div className={`p-3 sm:p-4 rounded-lg ${theme === 'dark' ? 'bg-gray-700/50' : 'bg-white'
-                    }`}>
-                    <span className={`text-xs sm:text-sm font-medium ${textSecondaryColor}`}>Overall Score</span>
-                    <p className={`text-sm sm:text-lg font-semibold ${textColor} mt-1`}>
-                      {companyIntelligence.json.scorecard.final_weighted_score || 0}/10
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Score Details Breakdown */}
-          {companyIntelligence.json?.scorecard && (
-            <div className="grid grid-cols-2 gap-3 sm:gap-4">
-              {[
-                { key: 'identity_overview', label: 'Firmographics', desc: 'Company Profile' },
-                { key: 'key_people_visibility', label: 'Key Personnel', desc: 'Leadership Team' },
-                { key: 'business_strategy', label: 'Buying Intent', desc: 'Business Strategy' },
-                { key: 'technology_landscape', label: 'Tech Stack', desc: 'Technology' }
-              ].map((item, index) => {
-                const score = companyIntelligence.json.scorecard[item.key] || 0;
-                return (
-                  <div key={index} className={`p-3 sm:p-4 rounded-lg border ${theme === 'dark'
-                    ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
-                    : 'bg-white border-gray-200'
-                    } transition-colors`}>
-                    <div className="flex items-center justify-between mb-1 sm:mb-2">
-                      <span className={`text-xs sm:text-sm font-medium ${textColor}`}>{item.label}</span>
-                      <div className={`w-2 h-2 rounded-full ${score >= 8 ? 'bg-green-500' :
-                        score >= 6 ? 'bg-yellow-500' :
-                          'bg-red-500'
-                        }`} />
+                  {/* Score Details Breakdown */}
+                  {companyIntelligence.json?.scorecard && (
+                    <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                      {[
+                        { key: 'identity_overview', label: 'Firmographics', desc: 'Company Profile' },
+                        { key: 'key_people_visibility', label: 'Key Personnel', desc: 'Leadership Team' },
+                        { key: 'business_strategy', label: 'Buying Intent', desc: 'Business Strategy' },
+                        { key: 'technology_landscape', label: 'Tech Stack', desc: 'Technology' }
+                      ].map((item, index) => {
+                        const score = companyIntelligence.json.scorecard[item.key] || 0;
+                        return (
+                          <div key={index} className={`p-3 sm:p-4 rounded-lg border ${theme === 'dark'
+                            ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
+                            : 'bg-white border-gray-200'
+                            } transition-colors`}>
+                            <div className="flex items-center justify-between mb-1 sm:mb-2">
+                              <span className={`text-xs sm:text-sm font-medium ${textColor}`}>{item.label}</span>
+                              <div className={`w-2 h-2 rounded-full ${score >= 8 ? 'bg-green-500' :
+                                score >= 6 ? 'bg-yellow-500' :
+                                  'bg-red-500'
+                                }`} />
+                            </div>
+                            <p className={`text-xl sm:text-2xl font-bold ${score >= 8 ? 'text-green-500' :
+                              score >= 6 ? 'text-yellow-500' :
+                                'text-red-500'
+                              }`}>
+                              {score}
+                            </p>
+                            <p className={`text-xs ${textSecondaryColor} mt-1`}>{item.desc}</p>
+                          </div>
+                        );
+                      })}
                     </div>
-                    <p className={`text-xl sm:text-2xl font-bold ${score >= 8 ? 'text-green-500' :
-                      score >= 6 ? 'text-yellow-500' :
-                        'text-red-500'
-                      }`}>
-                      {score}
-                    </p>
-                    <p className={`text-xs ${textSecondaryColor} mt-1`}>{item.desc}</p>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+                  )}
 
-          {/* Identity & Overview */}
-          {companyIntelligence.json?.identity_and_overview && (
-            <div className={`rounded-lg border ${theme === 'dark'
-              ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
-              : 'bg-white border-gray-200'
-              } p-4 sm:p-6`}>
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2">
-                <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>
-                  Identity & Overview
-                </h4>
-                <span className={`text-base sm:text-xl px-2 py-1 sm:px-3 sm:py-2 rounded-full font-semibold ${theme === 'dark' ? 'bg-green-900/40 text-green-300' : 'bg-green-100 text-green-800'
-                  }`}>
-                  {companyIntelligence.json.scorecard?.identity_overview || 0}/10
-                </span>
-              </div>
-              <p className={`${textSecondaryColor} leading-relaxed mb-4 sm:mb-6 text-sm sm:text-base`}>
-                {companyIntelligence.json.identity_and_overview}
-              </p>
+                  {/* Identity & Overview */}
+                  {companyIntelligence.json?.identity_and_overview && (
+                    <div className={`rounded-lg border ${theme === 'dark'
+                      ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
+                      : 'bg-white border-gray-200'
+                      } p-4 sm:p-6`}>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2">
+                        <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>
+                          Identity & Overview
+                        </h4>
+                        <span className={`text-base sm:text-xl px-2 py-1 sm:px-3 sm:py-2 rounded-full font-semibold ${theme === 'dark' ? 'bg-green-900/40 text-green-300' : 'bg-green-100 text-green-800'
+                          }`}>
+                          {companyIntelligence.json.scorecard?.identity_overview || 0}/10
+                        </span>
+                      </div>
+                      <p className={`${textSecondaryColor} leading-relaxed mb-4 sm:mb-6 text-sm sm:text-base`}>
+                        {companyIntelligence.json.identity_and_overview}
+                      </p>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-6 mb-4 sm:mb-6">
-                <div className={`p-3 sm:p-4 rounded-lg ${theme === 'dark' ? 'bg-gray-700/50' : 'bg-gray-50'
-                  }`}>
-                  <span className={`text-xs sm:text-sm font-medium ${textSecondaryColor}`}>Industry</span>
-                  <p className={`text-sm sm:text-base font-semibold ${textColor} mt-1`}>
-                    {companyIntelligence.json.Industry || 'Not Available'}
-                  </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-6 mb-4 sm:mb-6">
+                        <div className={`p-3 sm:p-4 rounded-lg ${theme === 'dark' ? 'bg-gray-700/50' : 'bg-gray-50'
+                          }`}>
+                          <span className={`text-xs sm:text-sm font-medium ${textSecondaryColor}`}>Industry</span>
+                          <p className={`text-sm sm:text-base font-semibold ${textColor} mt-1`}>
+                            {companyIntelligence.json.Industry || 'Not Available'}
+                          </p>
+                        </div>
+                        <div className={`p-3 sm:p-4 rounded-lg ${theme === 'dark' ? 'bg-gray-700/50' : 'bg-gray-50'
+                          }`}>
+                          <span className={`text-xs sm:text-sm font-medium ${textSecondaryColor}`}>Company Size</span>
+                          <p className={`text-sm sm:text-base font-semibold ${textColor} mt-1`}>
+                            {companyIntelligence.json.company_size || 'Not Available'}
+                          </p>
+                        </div>
+                        <div className={`p-3 sm:p-4 rounded-lg ${theme === 'dark' ? 'bg-gray-700/50' : 'bg-gray-50'
+                          }`}>
+                          <span className={`text-xs sm:text-sm font-medium ${textSecondaryColor}`}>Headquarters</span>
+                          <p className={`text-sm sm:text-base font-semibold ${textColor} mt-1`}>
+                            {companyIntelligence.json.Presence || 'Not Available'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h5 className={`text-sm sm:text-md font-semibold mb-2 sm:mb-3 ${textColor}`}>Key Highlights</h5>
+                        <ul className={`space-y-1 sm:space-y-2 ${textSecondaryColor} text-sm sm:text-base`}>
+                          {[
+                            companyIntelligence.json.key_highlights1,
+                            companyIntelligence.json.key_highlights2,
+                            companyIntelligence.json.key_highlights3
+                          ].filter(Boolean).map((highlight, index) => (
+                            <li key={index} className="flex items-start">
+                              <span className="text-green-500 mr-2 mt-1">•</span>
+                              <span>{highlight}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Company Snapshot */}
+                  {companyIntelligence.json?.Company_Snapshot && (
+                    <div className={`rounded-lg border ${theme === 'dark'
+                      ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
+                      : 'bg-white border-gray-200'
+                      } p-4 sm:p-6`}>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2">
+                        <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>Company SnapShot</h4>
+                        <span className={`text-base sm:text-xl px-2 py-1 sm:px-3 sm:py-2 rounded-full font-semibold ${theme === 'dark' ? 'bg-green-900/40 text-green-300' : 'bg-green-100 text-green-800'
+                          }`}>
+                          {companyIntelligence.json.scorecard?.Company_Snapshot || 0}/10
+                        </span>
+                      </div>
+                      <div className={`${textSecondaryColor} leading-relaxed text-sm sm:text-base`}>
+                        {companyIntelligence.json.Company_Snapshot}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Business & Strategy */}
+                  {companyIntelligence.json?.business_and_strategy && (
+                    <div className={`rounded-lg border ${theme === 'dark'
+                      ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
+                      : 'bg-white border-gray-200'
+                      } p-4 sm:p-6`}>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2">
+                        <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>Business Overview & Segments</h4>
+                        <span className={`text-base sm:text-xl px-2 py-1 sm:px-3 sm:py-2 rounded-full font-semibold ${theme === 'dark' ? 'bg-green-900/40 text-green-300' : 'bg-green-100 text-green-800'
+                          }`}>
+                          {companyIntelligence.json.scorecard?.business_strategy || 0}/10
+                        </span>
+                      </div>
+                      <ul className={`space-y-2 sm:space-y-3 ${textSecondaryColor} text-sm sm:text-base`}>
+                        {companyIntelligence.json.business_and_strategy.map((item: string, index: number) => (
+                          <li key={index} className="flex items-start">
+                            <span className="text-blue-500 mr-2 mt-1">•</span>
+                            <span>{item}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Markets & Geographic Footprint */}
+                  {companyIntelligence.json?.markets_and_geographic_footprint && (
+                    <div className={`rounded-lg border ${theme === 'dark'
+                      ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
+                      : 'bg-white border-gray-200'
+                      } p-4 sm:p-6`}>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2">
+                        <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>Markets & Geographic Footprint</h4>
+                        <span className={`text-base sm:text-xl px-2 py-1 sm:px-3 sm:py-2 rounded-full font-semibold ${theme === 'dark' ? 'bg-green-900/40 text-green-300' : 'bg-green-100 text-green-800'
+                          }`}>
+                          {companyIntelligence.json.scorecard?.markets_and_geographic_footprint || 0}/10
+                        </span>
+                      </div>
+                      <div className={`${textSecondaryColor} leading-relaxed text-sm sm:text-base`}>
+                        {companyIntelligence.json.markets_and_geographic_footprint}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Key Leadership */}
+                  {companyIntelligence.json?.key_leadership && (
+                    <div className={`rounded-lg border ${theme === 'dark'
+                      ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
+                      : 'bg-white border-gray-200'
+                      } p-4 sm:p-6`}>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2">
+                        <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>Key Leadership & Decision-Makers</h4>
+                        <span className={`text-base sm:text-xl px-2 py-1 sm:px-3 sm:py-2 rounded-full font-semibold ${theme === 'dark' ? 'bg-green-900/40 text-green-300' : 'bg-green-100 text-green-800'
+                          }`}>
+                          {companyIntelligence.json.scorecard?.key_people_visibility || 0}/10
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                        {companyIntelligence.json.key_leadership.slice(0, 10).map((leader: any, index: number) => (
+                          <div key={index} className={`p-3 sm:p-4 rounded-lg ${theme === 'dark' ? 'bg-gray-700/50 hover:bg-gray-600/50' : 'bg-gray-50 hover:bg-gray-100'
+                            } transition-colors`}>
+                            <p className={`text-sm sm:text-base font-semibold ${textColor} mb-1`}>{leader.name}</p>
+                            <p className={`text-xs sm:text-sm ${textSecondaryColor} mb-2`}>{leader.designation}</p>
+                            {leader.linkedin && leader.linkedin !== "Not Available" && (
+                              <a
+                                href={leader.linkedin}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-500 text-xs hover:underline"
+                              >
+                                LinkedIn Profile
+                              </a>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Technology Landscape */}
+                  {companyIntelligence.json?.technology_landscape && (
+                    <div className={`rounded-lg border ${theme === 'dark'
+                      ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
+                      : 'bg-white border-gray-200'
+                      } p-4 sm:p-6`}>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2">
+                        <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>Technology Landscape</h4>
+                        <span className={`text-base sm:text-xl px-2 py-1 sm:px-3 sm:py-2 rounded-full font-semibold ${theme === 'dark' ? 'bg-green-900/40 text-green-300' : 'bg-green-100 text-green-800'
+                          }`}>
+                          {companyIntelligence.json.scorecard?.technology_landscape || 0}/10
+                        </span>
+                      </div>
+                      <ul className={`space-y-2 sm:space-y-3 ${textSecondaryColor} text-sm sm:text-base`}>
+                        {companyIntelligence.json.technology_landscape.map((item: string, index: number) => (
+                          <li key={index} className="flex items-start">
+                            <span className="text-purple-500 mr-2 mt-1">•</span>
+                            <span>{item}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Digital Transformation Readiness */}
+                  {companyIntelligence.json?.digital_transformation_readiness && (
+                    <div className={`rounded-lg border ${theme === 'dark'
+                      ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
+                      : 'bg-white border-gray-200'
+                      } p-4 sm:p-6`}>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2">
+                        <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>Digital Transformation Readiness</h4>
+                        <span className={`text-base sm:text-xl px-2 py-1 sm:px-3 sm:py-2 rounded-full font-semibold ${theme === 'dark' ? 'bg-green-900/40 text-green-300' : 'bg-green-100 text-green-800'
+                          }`}>
+                          {companyIntelligence.json.scorecard?.digital_transformation_readiness || 0}/10
+                        </span>
+                      </div>
+                      <div className={`${textSecondaryColor} leading-relaxed text-sm sm:text-base`}>
+                        {companyIntelligence.json.digital_transformation_readiness}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* AI Capabilities & Adoption */}
+                  {companyIntelligence.json?.ai_capabilities_adoption && (
+                    <div className={`rounded-lg border ${theme === 'dark'
+                      ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
+                      : 'bg-white border-gray-200'
+                      } p-4 sm:p-6`}>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2">
+                        <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>AI Capabilities & AI Adoption Maturity</h4>
+                        <span className={`text-base sm:text-xl px-2 py-1 sm:px-3 sm:py-2 rounded-full font-semibold ${theme === 'dark' ? 'bg-green-900/40 text-green-300' : 'bg-green-100 text-green-800'
+                          }`}>
+                          {companyIntelligence.json.scorecard?.ai_capabilities || 0}/10
+                        </span>
+                      </div>
+                      <div className={`${textSecondaryColor} leading-relaxed text-sm sm:text-base`}>
+                        {companyIntelligence.json.ai_capabilities_adoption}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Integration & Enterprise Systems */}
+                  {companyIntelligence.json?.integration_and_enterprise_systems && (
+                    <div className={`rounded-lg border ${theme === 'dark'
+                      ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
+                      : 'bg-white border-gray-200'
+                      } p-4 sm:p-6`}>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2">
+                        <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>Integration & Enterprise Systems</h4>
+                        <span className={`text-base sm:text-xl px-2 py-1 sm:px-3 sm:py-2 rounded-full font-semibold ${theme === 'dark' ? 'bg-green-900/40 text-green-300' : 'bg-green-100 text-green-800'
+                          }`}>
+                          {companyIntelligence.json.scorecard?.integration_and_enterprise_systems || 0}/10
+                        </span>
+                      </div>
+                      <div className={`${textSecondaryColor} leading-relaxed text-sm sm:text-base`}>
+                        {companyIntelligence.json.integration_and_enterprise_systems}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Financial Health */}
+                  {companyIntelligence.json?.financial_health && (
+                    <div className={`rounded-lg border ${theme === 'dark'
+                      ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
+                      : 'bg-white border-gray-200'
+                      } p-4 sm:p-6`}>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2">
+                        <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>Financial Health</h4>
+                        <span className={`text-base sm:text-xl px-2 py-1 sm:px-3 sm:py-2 rounded-full font-semibold ${theme === 'dark' ? 'bg-green-900/40 text-green-300' : 'bg-green-100 text-green-800'
+                          }`}>
+                          {companyIntelligence.json.scorecard?.financial_health || 0}/10
+                        </span>
+                      </div>
+                      <ul className={`space-y-2 sm:space-y-3 ${textSecondaryColor} text-sm sm:text-base`}>
+                        {companyIntelligence.json.financial_health.map((item: string, index: number) => (
+                          <li key={index} className="flex items-start">
+                            <span className="text-orange-500 mr-2 mt-1">•</span>
+                            <span>{item}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Social, News & Events Signals */}
+                  {companyIntelligence.json?.social_event_signals && (
+                    <div className={`rounded-lg border ${theme === 'dark'
+                      ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
+                      : 'bg-white border-gray-200'
+                      } p-4 sm:p-6`}>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2">
+                        <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>Social, News & Events Signals</h4>
+                        <span className={`text-base sm:text-xl px-2 py-1 sm:px-3 sm:py-2 rounded-full font-semibold ${theme === 'dark' ? 'bg-green-900/40 text-green-300' : 'bg-green-100 text-green-800'
+                          }`}>
+                          {companyIntelligence.json.scorecard?.social_event_signals || 0}/10
+                        </span>
+                      </div>
+                      <div className={`${textSecondaryColor} leading-relaxed text-sm sm:text-base`}>
+                        {companyIntelligence.json.social_event_signals}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Competitor & Peer Comparison */}
+                  {companyIntelligence.json?.Competitor_and_peer_comparison && (
+                    <div className={`rounded-lg border ${theme === 'dark'
+                      ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
+                      : 'bg-white border-gray-200'
+                      } p-4 sm:p-6`}>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2">
+                        <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>Competitor & Peer Comparison</h4>
+                        <span className={`text-base sm:text-xl px-2 py-1 sm:px-3 sm:py-2 rounded-full font-semibold ${theme === 'dark' ? 'bg-green-900/40 text-green-300' : 'bg-green-100 text-green-800'
+                          }`}>
+                          {companyIntelligence.json.scorecard?.Competitor_and_peer_comparison || 0}/10
+                        </span>
+                      </div>
+                      <div className={`${textSecondaryColor} leading-relaxed text-sm sm:text-base`}>
+                        {companyIntelligence.json.Competitor_and_peer_comparison}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Opportunities for Improvement */}
+                  {companyIntelligence.json?.opportunities_for_improvement && (
+                    <div className={`rounded-lg border ${theme === 'dark'
+                      ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
+                      : 'bg-white border-gray-200'
+                      } p-4 sm:p-6`}>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2">
+                        <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>Opportunities for Improvement</h4>
+                        <span className={`text-base sm:text-xl px-2 py-1 sm:px-3 sm:py-2 rounded-full font-semibold ${theme === 'dark' ? 'bg-green-900/40 text-green-300' : 'bg-green-100 text-green-800'
+                          }`}>
+                          {companyIntelligence.json.scorecard?.opportunities_for_improvement || 0}/10
+                        </span>
+                      </div>
+                      <div className={`${textSecondaryColor} leading-relaxed text-sm sm:text-base`}>
+                        {companyIntelligence.json.opportunities_for_improvement}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Strengths */}
+                  {companyIntelligence.json?.strengths && (
+                    <div className={`rounded-lg border ${theme === 'dark'
+                      ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
+                      : 'bg-white border-gray-200'
+                      } p-4 sm:p-6`}>
+                      <div className="flex items-center justify-between mb-3 sm:mb-4">
+                        <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>Strengths</h4>
+                      </div>
+                      <ul className={`space-y-2 sm:space-y-3 ${textSecondaryColor} text-sm sm:text-base`}>
+                        {companyIntelligence.json.strengths.map((item: string, index: number) => (
+                          <li key={index} className="flex items-start">
+                            <span className="text-green-500 mr-2 mt-1">•</span>
+                            <span>{item}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Risks */}
+                  {companyIntelligence.json?.risks && (
+                    <div className={`rounded-lg border ${theme === 'dark'
+                      ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
+                      : 'bg-white border-gray-200'
+                      } p-4 sm:p-6`}>
+                      <div className="flex items-center justify-between mb-3 sm:mb-4">
+                        <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>Risks</h4>
+                      </div>
+                      <ul className={`space-y-2 sm:space-y-3 ${textSecondaryColor} text-sm sm:text-base`}>
+                        {companyIntelligence.json.risks.map((item: string, index: number) => (
+                          <li key={index} className="flex items-start">
+                            <span className="text-red-500 mr-2 mt-1">•</span>
+                            <span>{item}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Recommendations */}
+                  {companyIntelligence.json?.recommendations && (
+                    <div className={`rounded-lg border ${theme === 'dark'
+                      ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
+                      : 'bg-white border-gray-200'
+                      } p-4 sm:p-6`}>
+                      <div className="flex items-center justify-between mb-3 sm:mb-4">
+                        <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>Recommendations</h4>
+                      </div>
+                      <ul className={`space-y-2 sm:space-y-3 ${textSecondaryColor} text-sm sm:text-base`}>
+                        {companyIntelligence.json.recommendations.map((item: string, index: number) => (
+                          <li key={index} className="flex items-start">
+                            <span className="text-blue-500 mr-2 mt-1">•</span>
+                            <span>{item}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Last Generated Info
+          <div className={`text-xs ${textSecondaryColor} text-center pt-4 border-t ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
+            <p>Report generated on {companyIntelligence.generated_date ? new Date(companyIntelligence.generated_date).toLocaleString() : 'Unknown date'}</p>
+            <p className="mt-1">Organization: {editedDeal.organization_name}</p>
+          </div> */}
                 </div>
-                <div className={`p-3 sm:p-4 rounded-lg ${theme === 'dark' ? 'bg-gray-700/50' : 'bg-gray-50'
-                  }`}>
-                  <span className={`text-xs sm:text-sm font-medium ${textSecondaryColor}`}>Company Size</span>
-                  <p className={`text-sm sm:text-base font-semibold ${textColor} mt-1`}>
-                    {companyIntelligence.json.company_size || 'Not Available'}
-                  </p>
-                </div>
-                <div className={`p-3 sm:p-4 rounded-lg ${theme === 'dark' ? 'bg-gray-700/50' : 'bg-gray-50'
-                  }`}>
-                  <span className={`text-xs sm:text-sm font-medium ${textSecondaryColor}`}>Headquarters</span>
-                  <p className={`text-sm sm:text-base font-semibold ${textColor} mt-1`}>
-                    {companyIntelligence.json.Presence || 'Not Available'}
-                  </p>
-                </div>
-              </div>
-
-              <div>
-                <h5 className={`text-sm sm:text-md font-semibold mb-2 sm:mb-3 ${textColor}`}>Key Highlights</h5>
-                <ul className={`space-y-1 sm:space-y-2 ${textSecondaryColor} text-sm sm:text-base`}>
-                  {[
-                    companyIntelligence.json.key_highlights1,
-                    companyIntelligence.json.key_highlights2,
-                    companyIntelligence.json.key_highlights3
-                  ].filter(Boolean).map((highlight, index) => (
-                    <li key={index} className="flex items-start">
-                      <span className="text-green-500 mr-2 mt-1">•</span>
-                      <span>{highlight}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              )}
             </div>
-          )}
-
-          {/* Company Snapshot */}
-          {companyIntelligence.json?.Company_Snapshot && (
-            <div className={`rounded-lg border ${theme === 'dark'
-              ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
-              : 'bg-white border-gray-200'
-              } p-4 sm:p-6`}>
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2">
-                <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>Company SnapShot</h4>
-                <span className={`text-base sm:text-xl px-2 py-1 sm:px-3 sm:py-2 rounded-full font-semibold ${theme === 'dark' ? 'bg-green-900/40 text-green-300' : 'bg-green-100 text-green-800'
-                  }`}>
-                  {companyIntelligence.json.scorecard?.Company_Snapshot || 0}/10
-                </span>
-              </div>
-              <div className={`${textSecondaryColor} leading-relaxed text-sm sm:text-base`}>
-                {companyIntelligence.json.Company_Snapshot}
-              </div>
-            </div>
-          )}
-
-          {/* Business & Strategy */}
-          {companyIntelligence.json?.business_and_strategy && (
-            <div className={`rounded-lg border ${theme === 'dark'
-              ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
-              : 'bg-white border-gray-200'
-              } p-4 sm:p-6`}>
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2">
-                <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>Business Overview & Segments</h4>
-                <span className={`text-base sm:text-xl px-2 py-1 sm:px-3 sm:py-2 rounded-full font-semibold ${theme === 'dark' ? 'bg-green-900/40 text-green-300' : 'bg-green-100 text-green-800'
-                  }`}>
-                  {companyIntelligence.json.scorecard?.business_strategy || 0}/10
-                </span>
-              </div>
-              <ul className={`space-y-2 sm:space-y-3 ${textSecondaryColor} text-sm sm:text-base`}>
-                {companyIntelligence.json.business_and_strategy.map((item: string, index: number) => (
-                  <li key={index} className="flex items-start">
-                    <span className="text-blue-500 mr-2 mt-1">•</span>
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* Markets & Geographic Footprint */}
-          {companyIntelligence.json?.markets_and_geographic_footprint && (
-            <div className={`rounded-lg border ${theme === 'dark'
-              ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
-              : 'bg-white border-gray-200'
-              } p-4 sm:p-6`}>
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2">
-                <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>Markets & Geographic Footprint</h4>
-                <span className={`text-base sm:text-xl px-2 py-1 sm:px-3 sm:py-2 rounded-full font-semibold ${theme === 'dark' ? 'bg-green-900/40 text-green-300' : 'bg-green-100 text-green-800'
-                  }`}>
-                  {companyIntelligence.json.scorecard?.markets_and_geographic_footprint || 0}/10
-                </span>
-              </div>
-              <div className={`${textSecondaryColor} leading-relaxed text-sm sm:text-base`}>
-                {companyIntelligence.json.markets_and_geographic_footprint}
-              </div>
-            </div>
-          )}
-
-          {/* Key Leadership */}
-          {companyIntelligence.json?.key_leadership && (
-            <div className={`rounded-lg border ${theme === 'dark'
-              ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
-              : 'bg-white border-gray-200'
-              } p-4 sm:p-6`}>
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2">
-                <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>Key Leadership & Decision-Makers</h4>
-                <span className={`text-base sm:text-xl px-2 py-1 sm:px-3 sm:py-2 rounded-full font-semibold ${theme === 'dark' ? 'bg-green-900/40 text-green-300' : 'bg-green-100 text-green-800'
-                  }`}>
-                  {companyIntelligence.json.scorecard?.key_people_visibility || 0}/10
-                </span>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                {companyIntelligence.json.key_leadership.slice(0, 10).map((leader: any, index: number) => (
-                  <div key={index} className={`p-3 sm:p-4 rounded-lg ${theme === 'dark' ? 'bg-gray-700/50 hover:bg-gray-600/50' : 'bg-gray-50 hover:bg-gray-100'
-                    } transition-colors`}>
-                    <p className={`text-sm sm:text-base font-semibold ${textColor} mb-1`}>{leader.name}</p>
-                    <p className={`text-xs sm:text-sm ${textSecondaryColor} mb-2`}>{leader.designation}</p>
-                    {leader.linkedin && leader.linkedin !== "Not Available" && (
-                      <a
-                        href={leader.linkedin}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-500 text-xs hover:underline"
-                      >
-                        LinkedIn Profile
-                      </a>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Technology Landscape */}
-          {companyIntelligence.json?.technology_landscape && (
-            <div className={`rounded-lg border ${theme === 'dark'
-              ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
-              : 'bg-white border-gray-200'
-              } p-4 sm:p-6`}>
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2">
-                <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>Technology Landscape</h4>
-                <span className={`text-base sm:text-xl px-2 py-1 sm:px-3 sm:py-2 rounded-full font-semibold ${theme === 'dark' ? 'bg-green-900/40 text-green-300' : 'bg-green-100 text-green-800'
-                  }`}>
-                  {companyIntelligence.json.scorecard?.technology_landscape || 0}/10
-                </span>
-              </div>
-              <ul className={`space-y-2 sm:space-y-3 ${textSecondaryColor} text-sm sm:text-base`}>
-                {companyIntelligence.json.technology_landscape.map((item: string, index: number) => (
-                  <li key={index} className="flex items-start">
-                    <span className="text-purple-500 mr-2 mt-1">•</span>
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* Digital Transformation Readiness */}
-          {companyIntelligence.json?.digital_transformation_readiness && (
-            <div className={`rounded-lg border ${theme === 'dark'
-              ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
-              : 'bg-white border-gray-200'
-              } p-4 sm:p-6`}>
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2">
-                <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>Digital Transformation Readiness</h4>
-                <span className={`text-base sm:text-xl px-2 py-1 sm:px-3 sm:py-2 rounded-full font-semibold ${theme === 'dark' ? 'bg-green-900/40 text-green-300' : 'bg-green-100 text-green-800'
-                  }`}>
-                  {companyIntelligence.json.scorecard?.digital_transformation_readiness || 0}/10
-                </span>
-              </div>
-              <div className={`${textSecondaryColor} leading-relaxed text-sm sm:text-base`}>
-                {companyIntelligence.json.digital_transformation_readiness}
-              </div>
-            </div>
-          )}
-
-          {/* AI Capabilities & Adoption */}
-          {companyIntelligence.json?.ai_capabilities_adoption && (
-            <div className={`rounded-lg border ${theme === 'dark'
-              ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
-              : 'bg-white border-gray-200'
-              } p-4 sm:p-6`}>
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2">
-                <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>AI Capabilities & AI Adoption Maturity</h4>
-                <span className={`text-base sm:text-xl px-2 py-1 sm:px-3 sm:py-2 rounded-full font-semibold ${theme === 'dark' ? 'bg-green-900/40 text-green-300' : 'bg-green-100 text-green-800'
-                  }`}>
-                  {companyIntelligence.json.scorecard?.ai_capabilities || 0}/10
-                </span>
-              </div>
-              <div className={`${textSecondaryColor} leading-relaxed text-sm sm:text-base`}>
-                {companyIntelligence.json.ai_capabilities_adoption}
-              </div>
-            </div>
-          )}
-
-          {/* Integration & Enterprise Systems */}
-          {companyIntelligence.json?.integration_and_enterprise_systems && (
-            <div className={`rounded-lg border ${theme === 'dark'
-              ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
-              : 'bg-white border-gray-200'
-              } p-4 sm:p-6`}>
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2">
-                <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>Integration & Enterprise Systems</h4>
-                <span className={`text-base sm:text-xl px-2 py-1 sm:px-3 sm:py-2 rounded-full font-semibold ${theme === 'dark' ? 'bg-green-900/40 text-green-300' : 'bg-green-100 text-green-800'
-                  }`}>
-                  {companyIntelligence.json.scorecard?.integration_and_enterprise_systems || 0}/10
-                </span>
-              </div>
-              <div className={`${textSecondaryColor} leading-relaxed text-sm sm:text-base`}>
-                {companyIntelligence.json.integration_and_enterprise_systems}
-              </div>
-            </div>
-          )}
-
-          {/* Financial Health */}
-          {companyIntelligence.json?.financial_health && (
-            <div className={`rounded-lg border ${theme === 'dark'
-              ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
-              : 'bg-white border-gray-200'
-              } p-4 sm:p-6`}>
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2">
-                <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>Financial Health</h4>
-                <span className={`text-base sm:text-xl px-2 py-1 sm:px-3 sm:py-2 rounded-full font-semibold ${theme === 'dark' ? 'bg-green-900/40 text-green-300' : 'bg-green-100 text-green-800'
-                  }`}>
-                  {companyIntelligence.json.scorecard?.financial_health || 0}/10
-                </span>
-              </div>
-              <ul className={`space-y-2 sm:space-y-3 ${textSecondaryColor} text-sm sm:text-base`}>
-                {companyIntelligence.json.financial_health.map((item: string, index: number) => (
-                  <li key={index} className="flex items-start">
-                    <span className="text-orange-500 mr-2 mt-1">•</span>
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* Social, News & Events Signals */}
-          {companyIntelligence.json?.social_event_signals && (
-            <div className={`rounded-lg border ${theme === 'dark'
-              ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
-              : 'bg-white border-gray-200'
-              } p-4 sm:p-6`}>
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2">
-                <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>Social, News & Events Signals</h4>
-                <span className={`text-base sm:text-xl px-2 py-1 sm:px-3 sm:py-2 rounded-full font-semibold ${theme === 'dark' ? 'bg-green-900/40 text-green-300' : 'bg-green-100 text-green-800'
-                  }`}>
-                  {companyIntelligence.json.scorecard?.social_event_signals || 0}/10
-                </span>
-              </div>
-              <div className={`${textSecondaryColor} leading-relaxed text-sm sm:text-base`}>
-                {companyIntelligence.json.social_event_signals}
-              </div>
-            </div>
-          )}
-
-          {/* Competitor & Peer Comparison */}
-          {companyIntelligence.json?.Competitor_and_peer_comparison && (
-            <div className={`rounded-lg border ${theme === 'dark'
-              ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
-              : 'bg-white border-gray-200'
-              } p-4 sm:p-6`}>
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2">
-                <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>Competitor & Peer Comparison</h4>
-                <span className={`text-base sm:text-xl px-2 py-1 sm:px-3 sm:py-2 rounded-full font-semibold ${theme === 'dark' ? 'bg-green-900/40 text-green-300' : 'bg-green-100 text-green-800'
-                  }`}>
-                  {companyIntelligence.json.scorecard?.Competitor_and_peer_comparison || 0}/10
-                </span>
-              </div>
-              <div className={`${textSecondaryColor} leading-relaxed text-sm sm:text-base`}>
-                {companyIntelligence.json.Competitor_and_peer_comparison}
-              </div>
-            </div>
-          )}
-
-          {/* Opportunities for Improvement */}
-          {companyIntelligence.json?.opportunities_for_improvement && (
-            <div className={`rounded-lg border ${theme === 'dark'
-              ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
-              : 'bg-white border-gray-200'
-              } p-4 sm:p-6`}>
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2">
-                <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>Opportunities for Improvement</h4>
-                <span className={`text-base sm:text-xl px-2 py-1 sm:px-3 sm:py-2 rounded-full font-semibold ${theme === 'dark' ? 'bg-green-900/40 text-green-300' : 'bg-green-100 text-green-800'
-                  }`}>
-                  {companyIntelligence.json.scorecard?.opportunities_for_improvement || 0}/10
-                </span>
-              </div>
-              <div className={`${textSecondaryColor} leading-relaxed text-sm sm:text-base`}>
-                {companyIntelligence.json.opportunities_for_improvement}
-              </div>
-            </div>
-          )}
-
-          {/* Strengths */}
-          {companyIntelligence.json?.strengths && (
-            <div className={`rounded-lg border ${theme === 'dark'
-              ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
-              : 'bg-white border-gray-200'
-              } p-4 sm:p-6`}>
-              <div className="flex items-center justify-between mb-3 sm:mb-4">
-                <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>Strengths</h4>
-              </div>
-              <ul className={`space-y-2 sm:space-y-3 ${textSecondaryColor} text-sm sm:text-base`}>
-                {companyIntelligence.json.strengths.map((item: string, index: number) => (
-                  <li key={index} className="flex items-start">
-                    <span className="text-green-500 mr-2 mt-1">•</span>
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* Risks */}
-          {companyIntelligence.json?.risks && (
-            <div className={`rounded-lg border ${theme === 'dark'
-              ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
-              : 'bg-white border-gray-200'
-              } p-4 sm:p-6`}>
-              <div className="flex items-center justify-between mb-3 sm:mb-4">
-                <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>Risks</h4>
-              </div>
-              <ul className={`space-y-2 sm:space-y-3 ${textSecondaryColor} text-sm sm:text-base`}>
-                {companyIntelligence.json.risks.map((item: string, index: number) => (
-                  <li key={index} className="flex items-start">
-                    <span className="text-red-500 mr-2 mt-1">•</span>
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* Recommendations */}
-          {companyIntelligence.json?.recommendations && (
-            <div className={`rounded-lg border ${theme === 'dark'
-              ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
-              : 'bg-white border-gray-200'
-              } p-4 sm:p-6`}>
-              <div className="flex items-center justify-between mb-3 sm:mb-4">
-                <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>Recommendations</h4>
-              </div>
-              <ul className={`space-y-2 sm:space-y-3 ${textSecondaryColor} text-sm sm:text-base`}>
-                {companyIntelligence.json.recommendations.map((item: string, index: number) => (
-                  <li key={index} className="flex items-start">
-                    <span className="text-blue-500 mr-2 mt-1">•</span>
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  </div>
-)}
+          </div>
+        )}
       </div>
       {showCallDetailsPopup && (editingCall || editingCallFromActivity) && (
         <CallDetailsPopup
