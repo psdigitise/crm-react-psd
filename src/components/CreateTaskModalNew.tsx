@@ -255,12 +255,12 @@ export function CreateTaskModalNew({
         onClick={onClose}
       />
 
-      <div className={`relative transform overflow-hidden rounded-lg text-left shadow-xl transition-all sm:my-8 sm:w-11/12 sm:max-w-[600px] border ${theme === 'dark' ? 'border-gray-600 bg-dark-secondary' : 'border-gray-400 bg-white'}`}>
+      <div className={`relative transform overflow-hidden rounded-lg text-left shadow-xl transition-all sm:my-8 sm:w-11/12 sm:max-w-[600px] border ${theme === 'dark' ? 'border-gray-700 bg-dark-secondary' : 'border-gray-200 bg-white'}`}>
         <div className={`px-6 pt-6 pb-4 sm:p-8 sm:pb-6 ${theme === 'dark' ? 'bg-dark-secondary' : 'bg-white'}`}>
           <div className="absolute top-0 right-0 pt-6 pr-6">
             <button
               type="button"
-              className={`rounded-md ${theme === 'dark' ? 'text-white' : 'text-gray-400'} hover:text-gray-500 focus:outline-none`}
+              className={`rounded-md ${theme === 'dark' ? 'text-gray-300 hover:text-white' : 'text-gray-400 hover:text-gray-600'} focus:outline-none`}
               onClick={onClose}
             >
               <X size={24} />
@@ -273,7 +273,7 @@ export function CreateTaskModalNew({
 
           <div className="space-y-6">
             <div>
-              <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+              <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'}`}>
                 Title <span className='text-red-500'>*</span>
               </label>
               <input
@@ -282,8 +282,8 @@ export function CreateTaskModalNew({
                 onChange={(e) => handleInputChange('title', e.target.value)}
                 className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                   theme === 'dark'
-                    ? 'bg-gray-800 border-gray-600 text-white'
-                    : 'bg-white border-gray-300 text-gray-900'
+                    ? 'bg-gray-800 border-gray-700 text-white !placeholder-gray-400'
+                    : 'bg-white border-gray-300 text-gray-900 !placeholder-gray-500'
                 } ${
                   validationErrors.title ? 'border-red-500 focus:ring-red-500' : ''
                 }`}
@@ -295,7 +295,7 @@ export function CreateTaskModalNew({
             </div>
 
             <div>
-              <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+              <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'}`}>
                 Description
               </label>
               <textarea
@@ -304,8 +304,8 @@ export function CreateTaskModalNew({
                 rows={6}
                 className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                   theme === 'dark'
-                    ? 'bg-gray-800 border-gray-600 text-white'
-                    : 'bg-white border-gray-300 text-gray-900'
+                    ? 'bg-gray-800 border-gray-700 text-white !placeholder-gray-400'
+                    : 'bg-white border-gray-300 text-gray-900 !placeholder-gray-500'
                 }`}
                 placeholder="Task description"
               />
@@ -313,7 +313,7 @@ export function CreateTaskModalNew({
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
-                <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'}`}>
                   Status
                 </label>
                 <select
@@ -321,21 +321,21 @@ export function CreateTaskModalNew({
                   onChange={(e) => handleInputChange('status', e.target.value)}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                     theme === 'dark'
-                      ? 'bg-gray-800 border-gray-600 text-white'
+                      ? 'bg-gray-800 border-gray-700 text-white'
                       : 'bg-white border-gray-300 text-gray-900'
                   }`}
                 >
-                  <option className={theme === 'dark' ? 'bg-gray-800 text-white' : ''} value="Backlog">Backlog</option>
-                  <option className={theme === 'dark' ? 'bg-gray-800 text-white' : ''} value="Todo">Todo</option>
-                  <option className={theme === 'dark' ? 'bg-gray-800 text-white' : ''} value="In Progress">In Progress</option>
-                  <option className={theme === 'dark' ? 'bg-gray-800 text-white' : ''} value="Done">Done</option>
-                  <option className={theme === 'dark' ? 'bg-gray-800 text-white' : ''} value="Canceled">Canceled</option>
-                  <option className={theme === 'dark' ? 'bg-gray-800 text-white' : ''} value="Open">Open</option>
+                  <option className={theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'} value="Backlog">Backlog</option>
+                  <option className={theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'} value="Todo">Todo</option>
+                  <option className={theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'} value="In Progress">In Progress</option>
+                  <option className={theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'} value="Done">Done</option>
+                  <option className={theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'} value="Canceled">Canceled</option>
+                  <option className={theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'} value="Open">Open</option>
                 </select>
               </div>
 
               <div>
-                <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'}`}>
                   Priority
                 </label>
                 <select
@@ -343,18 +343,18 @@ export function CreateTaskModalNew({
                   onChange={(e) => handleInputChange('priority', e.target.value)}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                     theme === 'dark'
-                      ? 'bg-gray-800 border-gray-600 text-white'
+                      ? 'bg-gray-800 border-gray-700 text-white'
                       : 'bg-white border-gray-300 text-gray-900'
                   }`}
                 >
-                  <option className={theme === 'dark' ? 'bg-gray-800 text-white' : ''} value="Low">Low</option>
-                  <option className={theme === 'dark' ? 'bg-gray-800 text-white' : ''} value="Medium">Medium</option>
-                  <option className={theme === 'dark' ? 'bg-gray-800 text-white' : ''} value="High">High</option>
+                  <option className={theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'} value="Low">Low</option>
+                  <option className={theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'} value="Medium">Medium</option>
+                  <option className={theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'} value="High">High</option>
                 </select>
               </div>
 
               <div>
-                <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'}`}>
                   Due Date
                 </label>
                 <input
@@ -363,8 +363,8 @@ export function CreateTaskModalNew({
                   onChange={(e) => handleInputChange('due_date', e.target.value)}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                     theme === 'dark'
-                      ? 'bg-gray-800 border-gray-600 text-white'
-                      : 'bg-white border-gray-300 text-gray-900'
+                      ? 'bg-gray-800 border-gray-700 text-white [color-scheme:dark]'
+                      : 'bg-white border-gray-300 text-gray-900 [color-scheme:light]'
                   } ${
                     validationErrors.due_date ? 'border-red-500 focus:ring-red-500' : ''
                   }`}
@@ -375,7 +375,7 @@ export function CreateTaskModalNew({
               </div>
 
               <div>
-                <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'}`}>
                   Assigned To
                 </label>
                 <select
@@ -383,16 +383,16 @@ export function CreateTaskModalNew({
                   onChange={(e) => handleInputChange('assigned_to', e.target.value)}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                     theme === 'dark'
-                      ? 'bg-gray-800 border-gray-600 text-white'
+                      ? 'bg-gray-800 border-gray-700 text-white'
                       : 'bg-white border-gray-300 text-gray-900'
                   }`}
                 >
-                  <option className={theme === 'dark' ? 'bg-gray-800 text-white' : ''} value="">Select Assign</option>
+                  <option className={theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'} value="">Select Assign</option>
                   {users.map((user) => (
                     <option 
                       key={user.value} 
                       value={user.value}
-                      className={theme === 'dark' ? 'bg-gray-800 text-white' : ''}
+                      className={theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}
                     >
                       {user.description}
                     </option>
@@ -421,8 +421,8 @@ export function CreateTaskModalNew({
               disabled={tasksLoading || !isFormValid}
               className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-3 text-base font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 sm:text-sm ${
                 theme === 'dark'
-                  ? 'bg-purple-600 text-white hover:bg-purple-700 focus:ring-purple-500'
-                  : 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500'
+                  ? 'bg-purple-600 text-white hover:bg-purple-700 focus:ring-purple-500 focus:ring-offset-gray-900'
+                  : 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500 focus:ring-offset-white'
               } ${
                 tasksLoading || !isFormValid ? 'opacity-50 cursor-not-allowed' : ''
               }`}

@@ -591,10 +591,11 @@ export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0, onMenuTo
                   type="text"
                   value={editForm.title}
                   onChange={(e) => handleChange("title", e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
-                    ? 'bg-gray-800 border-gray-600 text-white'
-                    : 'bg-white border-gray-300 text-gray-900'
-                    }`}
+                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  theme === 'dark'
+                    ? 'bg-gray-800 border-gray-700 text-white !placeholder-gray-400'
+                    : 'bg-white border-gray-300 text-gray-900 !placeholder-gray-500'
+                }`}
                   placeholder="Task title"
                 />
               </div>
@@ -607,10 +608,11 @@ export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0, onMenuTo
                   value={editForm.description}
                   onChange={(e) => handleChange("description", e.target.value)}
                   rows={6}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
-                    ? 'bg-gray-800 border-gray-600 text-white'
-                    : 'bg-white border-gray-300 text-gray-900'
-                    }`}
+                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  theme === 'dark'
+                    ? 'bg-gray-800 border-gray-700 text-white !placeholder-gray-400'
+                    : 'bg-white border-gray-300 text-gray-900 !placeholder-gray-500'
+                }`}
                   placeholder="Task description"
                 />
               </div>
@@ -655,18 +657,19 @@ export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0, onMenuTo
                   </select>
                 </div>
 
-                <div>
-                  <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+               <div>
+                  <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'}`}>
                     Due Date
                   </label>
                   <input
                     type="date"
                     value={editForm.due_date ? formatDateForInput(editForm.due_date) : ''}
                     onChange={(e) => handleChange("due_date", e.target.value)}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
-                      ? 'bg-gray-800 border-gray-600 text-white'
-                      : 'bg-white border-gray-300 text-gray-900'
-                      }`}
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                      theme === 'dark'
+                        ? 'bg-gray-800 border-gray-700 text-white [color-scheme:dark]'
+                        : 'bg-white border-gray-300 text-gray-900 [color-scheme:light]'
+                    }`}
                   />
                 </div>
 

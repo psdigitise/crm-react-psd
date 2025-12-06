@@ -87,72 +87,71 @@ function CreateAddressModal({ isOpen, onClose, onSubmit }: CreateAddressModalPro
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  
-  if (!validateForm()) {
-    showToast('Please fix the validation errors', { type: 'error' });
-    return;
-  }
-
-  setLoading(true);
-
-  try {
-    const session = getUserSession();
-    if (!session) {
-      showToast('Session not found', { type: 'error' });
+    e.preventDefault();
+    
+    if (!validateForm()) {
+      showToast('Please fix the validation errors', { type: 'error' });
       return;
     }
 
-    const Company = session?.company;
-    const apiUrl = 'https://api.erpnext.ai/api/v2/document/Address';
+    setLoading(true);
 
-    const payload = {
-      ...formData,
-      company: Company
-    };
+    try {
+      const session = getUserSession();
+      if (!session) {
+        showToast('Session not found', { type: 'error' });
+        return;
+      }
 
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': AUTH_TOKEN
-      },
-      body: JSON.stringify(payload)
-    });
+      const Company = session?.company;
+      const apiUrl = 'https://api.erpnext.ai/api/v2/document/Address';
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
+      const payload = {
+        ...formData,
+        company: Company
+      };
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': AUTH_TOKEN
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
+      }
+
+      const result = await response.json();
+      showToast('Address created successfully', { type: 'success' });
+      onSubmit(result);
+      onClose();
+
+      // Reset form after success
+      setFormData({
+        address_title: '',
+        address_type: 'Billing',
+        address_line1: '',
+        city: '',
+        country: 'India'
+      });
+      setErrors({
+        address_title: '',
+        address_line1: '',
+        city: '',
+        country: ''
+      });
+
+    } catch (error) {
+      console.error('Error creating address:', error);
+      showToast('Failed to create address', { type: 'error' });
+    } finally {
+      setLoading(false);
     }
-
-    const result = await response.json();
-    showToast('Address created successfully', { type: 'success' });
-    onSubmit(result);
-    onClose();
-
-    // Reset form after success
-    setFormData({
-      address_title: '',
-      address_type: 'Billing',
-      address_line1: '',
-      city: '',
-      country: 'India'
-    });
-    setErrors({
-      address_title: '',
-      address_line1: '',
-      city: '',
-      country: ''
-    });
-
-  } catch (error) {
-    console.error('Error creating address:', error);
-    showToast('Failed to create address', { type: 'error' });
-  } finally {
-    setLoading(false);
-  }
-};
-
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -176,7 +175,7 @@ function CreateAddressModal({ isOpen, onClose, onSubmit }: CreateAddressModalPro
         <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" onClick={onClose} />
 
         <div className={`inline-block align-bottom rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full ${theme === 'dark'
-          ? 'bg-gray-800 border border-gray-700'
+          ? 'bg-gray-900 border border-gray-700'
           : 'bg-white border border-gray-200'
           }`}>
           <div className={`flex items-center justify-between px-6 py-4 border-b ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'
@@ -186,10 +185,10 @@ function CreateAddressModal({ isOpen, onClose, onSubmit }: CreateAddressModalPro
             </h3>
             <button
               onClick={onClose}
-              className={`p-1 rounded transition-colors ${theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
+              className={`p-1 rounded transition-colors ${theme === 'dark' ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-500'
                 }`}
             >
-              <X className={`w-4 h-4 ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`} />
+              <X className="w-4 h-4" />
             </button>
           </div>
 
@@ -197,7 +196,7 @@ function CreateAddressModal({ isOpen, onClose, onSubmit }: CreateAddressModalPro
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Address Title */}
               <div className="md:col-span-2">
-                <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
+                <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'
                   }`}>
                   Address Title
                 </label>
@@ -210,8 +209,8 @@ function CreateAddressModal({ isOpen, onClose, onSubmit }: CreateAddressModalPro
                   disabled={loading}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                     theme === 'dark'
-                      ? 'bg-gray-700 text-white placeholder-gray-400 border-gray-600'
-                      : 'bg-white border-gray-300 placeholder-gray-500'
+                      ? 'bg-gray-800 text-white placeholder-gray-400 border-gray-700 focus:border-transparent'
+                      : 'bg-white text-gray-900 placeholder-gray-500 border-gray-300'
                     } ${errors.address_title ? 'border-red-500' : ''}`}
                 />
                 {errors.address_title && (
@@ -221,7 +220,7 @@ function CreateAddressModal({ isOpen, onClose, onSubmit }: CreateAddressModalPro
 
               {/* Address Type */}
               <div>
-                <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
+                <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'
                   }`}>
                   Address Type
                 </label>
@@ -232,21 +231,21 @@ function CreateAddressModal({ isOpen, onClose, onSubmit }: CreateAddressModalPro
                   disabled={loading}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                     theme === 'dark'
-                      ? 'bg-gray-700 text-white border-gray-600'
-                      : 'bg-gray-50 border-gray-300'
+                      ? 'bg-gray-800 text-white border-gray-700 focus:border-transparent'
+                      : 'bg-white text-gray-900 border-gray-300'
                     }`}
                 >
-                  <option value="Billing">Billing</option>
-                  <option value="Shipping">Shipping</option>
-                  <option value="Office">Office</option>
-                  <option value="Personal">Personal</option>
-                  <option value="Other">Other</option>
+                  <option value="Billing" className={theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}>Billing</option>
+                  <option value="Shipping" className={theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}>Shipping</option>
+                  <option value="Office" className={theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}>Office</option>
+                  <option value="Personal" className={theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}>Personal</option>
+                  <option value="Other" className={theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}>Other</option>
                 </select>
               </div>
 
               {/* Country */}
               <div>
-                <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
+                <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'
                   }`}>
                   Country
                 </label>
@@ -259,8 +258,8 @@ function CreateAddressModal({ isOpen, onClose, onSubmit }: CreateAddressModalPro
                   disabled={loading}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                     theme === 'dark'
-                      ? 'bg-gray-700 text-white placeholder-gray-400 border-gray-600'
-                      : 'bg-white border-gray-300 placeholder-gray-500'
+                      ? 'bg-gray-800 text-white placeholder-gray-400 border-gray-700 focus:border-transparent'
+                      : 'bg-white text-gray-900 placeholder-gray-500 border-gray-300'
                     } ${errors.country ? 'border-red-500' : ''}`}
                 />
                 {errors.country && (
@@ -270,7 +269,7 @@ function CreateAddressModal({ isOpen, onClose, onSubmit }: CreateAddressModalPro
 
               {/* Address Line 1 */}
               <div className="md:col-span-2">
-                <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
+                <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'
                   }`}>
                   Address
                 </label>
@@ -283,8 +282,8 @@ function CreateAddressModal({ isOpen, onClose, onSubmit }: CreateAddressModalPro
                   disabled={loading}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                     theme === 'dark'
-                      ? 'bg-gray-700 text-white placeholder-gray-400 border-gray-600'
-                      : 'bg-white border-gray-300 placeholder-gray-500'
+                      ? 'bg-gray-800 text-white placeholder-gray-400 border-gray-700 focus:border-transparent'
+                      : 'bg-white text-gray-900 placeholder-gray-500 border-gray-300'
                     } ${errors.address_line1 ? 'border-red-500' : ''}`}
                 />
                 {errors.address_line1 && (
@@ -294,7 +293,7 @@ function CreateAddressModal({ isOpen, onClose, onSubmit }: CreateAddressModalPro
 
               {/* City */}
               <div className="md:col-span-2">
-                <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
+                <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'
                   }`}>
                   City
                 </label>
@@ -307,8 +306,8 @@ function CreateAddressModal({ isOpen, onClose, onSubmit }: CreateAddressModalPro
                   disabled={loading}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                     theme === 'dark'
-                      ? 'bg-gray-700 text-white placeholder-gray-400 border-gray-600'
-                      : 'bg-white border-gray-300 placeholder-gray-500'
+                      ? 'bg-gray-800 text-white placeholder-gray-400 border-gray-700 focus:border-transparent'
+                      : 'bg-white text-gray-900 placeholder-gray-500 border-gray-300'
                     } ${errors.city ? 'border-red-500' : ''}`}
                 />
                 {errors.city && (
@@ -323,10 +322,11 @@ function CreateAddressModal({ isOpen, onClose, onSubmit }: CreateAddressModalPro
                 type="button"
                 onClick={onClose}
                 disabled={loading}
-                className={`mr-3 px-4 py-2 rounded-lg transition-colors disabled:opacity-50 ${theme === 'dark'
-                  ? 'text-white border border-gray-600 hover:bg-gray-700'
+                className={`mr-3 px-4 py-2 rounded-lg transition-colors disabled:opacity-50 ${
+                  theme === 'dark'
+                  ? 'text-gray-300 border border-gray-600 hover:bg-gray-800'
                   : 'text-gray-700 border border-gray-300 hover:bg-gray-50'
-                  }`}
+                }`}
               >
                 Cancel
               </button>
@@ -644,7 +644,7 @@ export function CreateContactModal({ isOpen, onClose, onSubmit, onSuccess }: Cre
 
           <div className={`inline-block align-bottom rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full ${
             theme === 'dark'
-              ? 'bg-gray-800 border border-gray-700'
+              ? 'bg-gray-900 border border-gray-700'
               : 'bg-white border border-gray-200'
             }`}>
             <div className={`flex items-center justify-between px-6 py-4 border-b ${
@@ -656,10 +656,10 @@ export function CreateContactModal({ isOpen, onClose, onSubmit, onSuccess }: Cre
               <div className="flex items-center space-x-2">
                 <button
                   onClick={onClose}
-                  className={`p-1 rounded transition-colors ${theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
+                  className={`p-1 rounded transition-colors ${theme === 'dark' ? 'hover:bg-gray-800 text-gray-300' : 'hover:bg-gray-100 text-gray-500'
                     }`}
                 >
-                  <X className={`w-4 h-4 ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`} />
+                  <X className="w-4 h-4" />
                 </button>
               </div>
             </div>
@@ -668,7 +668,7 @@ export function CreateContactModal({ isOpen, onClose, onSubmit, onSuccess }: Cre
               <div className="space-y-4">
                 {/* Salutation */}
                 <div>
-                  <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
+                  <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'
                     }`}>
                     Salutation
                   </label>
@@ -679,23 +679,23 @@ export function CreateContactModal({ isOpen, onClose, onSubmit, onSuccess }: Cre
                     disabled={loading}
                     className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                       theme === 'dark'
-                        ? 'bg-gray-700 text-white border-gray-600'
-                        : 'bg-gray-50 border-gray-300'
+                        ? 'bg-gray-800 text-white border-gray-700 focus:border-transparent'
+                        : 'bg-white text-gray-900 border-gray-300'
                       }`}
                   >
-                    <option value="">Salutation</option>
-                    <option value="Mr">Mr</option>
-                    <option value="Ms">Ms</option>
-                    <option value="Mrs">Mrs</option>
-                    <option value="Dr">Dr</option>
-                    <option value="Prof">Prof</option>
+                    <option value="" className={theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}>Salutation</option>
+                    <option value="Mr" className={theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}>Mr</option>
+                    <option value="Ms" className={theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}>Ms</option>
+                    <option value="Mrs" className={theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}>Mrs</option>
+                    <option value="Dr" className={theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}>Dr</option>
+                    <option value="Prof" className={theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}>Prof</option>
                   </select>
                 </div>
 
                 {/* First Name and Last Name */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
+                    <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'
                       }`}>
                       First Name <span className="text-red-500">*</span>
                     </label>
@@ -708,8 +708,8 @@ export function CreateContactModal({ isOpen, onClose, onSubmit, onSuccess }: Cre
                       disabled={loading}
                       className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                         theme === 'dark'
-                          ? 'bg-gray-700 text-white placeholder-gray-400 border-gray-600'
-                          : 'bg-white border-gray-300 placeholder-gray-500'
+                          ? 'bg-gray-800 text-white !placeholder-gray-400 border-gray-700 focus:border-transparent'
+                          : 'bg-white text-gray-900 !placeholder-gray-500 border-gray-300'
                         } ${errors.first_name ? 'border-red-500' : ''}`}
                     />
                     {errors.first_name && (
@@ -718,7 +718,7 @@ export function CreateContactModal({ isOpen, onClose, onSubmit, onSuccess }: Cre
                   </div>
 
                   <div>
-                    <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
+                    <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'
                       }`}>
                       Last Name
                     </label>
@@ -731,8 +731,8 @@ export function CreateContactModal({ isOpen, onClose, onSubmit, onSuccess }: Cre
                       disabled={loading}
                       className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                         theme === 'dark'
-                          ? 'bg-gray-700 text-white placeholder-gray-400 border-gray-600'
-                          : 'bg-white border-gray-300 placeholder-gray-500'
+                          ? 'bg-gray-800 text-white !placeholder-gray-400 border-gray-700 focus:border-transparent'
+                          : 'bg-white text-gray-900 !placeholder-gray-500 border-gray-300'
                         }`}
                     />
                   </div>
@@ -740,7 +740,7 @@ export function CreateContactModal({ isOpen, onClose, onSubmit, onSuccess }: Cre
 
                 {/* Email Address */}
                 <div>
-                  <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
+                  <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'
                     }`}>
                     Email Address
                   </label>
@@ -753,8 +753,8 @@ export function CreateContactModal({ isOpen, onClose, onSubmit, onSuccess }: Cre
                       disabled={loading}
                       className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                         theme === 'dark'
-                          ? 'bg-gray-700 text-white placeholder-gray-400 border-gray-600'
-                          : 'bg-white border-gray-300 placeholder-gray-500'
+                          ? 'bg-gray-800 text-white !placeholder-gray-400 border-gray-700 focus:border-transparent'
+                          : 'bg-white text-gray-900 !placeholder-gray-500 border-gray-300'
                         } ${errors.email_id ? 'border-red-500' : ''}`}
                     />
                     {errors.email_id && (
@@ -765,7 +765,7 @@ export function CreateContactModal({ isOpen, onClose, onSubmit, onSuccess }: Cre
                 {/* Mobile No and Gender */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
+                    <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'
                       }`}>
                       Mobile No
                     </label>
@@ -778,8 +778,8 @@ export function CreateContactModal({ isOpen, onClose, onSubmit, onSuccess }: Cre
                       disabled={loading}
                       className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                         theme === 'dark'
-                          ? 'bg-gray-700 text-white placeholder-gray-400 border-gray-600'
-                          : 'bg-white border-gray-300 placeholder-gray-500'
+                          ? 'bg-gray-800 text-white !placeholder-gray-400 border-gray-700 focus:border-transparent'
+                          : 'bg-white text-gray-900 !placeholder-gray-500 border-gray-300'
                         } ${errors.phone ? 'border-red-500' : ''}`}
                     />
                     {errors.phone && (
@@ -788,7 +788,7 @@ export function CreateContactModal({ isOpen, onClose, onSubmit, onSuccess }: Cre
                   </div>
 
                   <div>
-                    <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
+                    <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'
                       }`}>
                       Gender
                     </label>
@@ -799,23 +799,23 @@ export function CreateContactModal({ isOpen, onClose, onSubmit, onSuccess }: Cre
                       disabled={loading}
                       className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                         theme === 'dark'
-                          ? 'bg-gray-700 text-white border-gray-600'
-                          : 'bg-gray-50 border-gray-300'
+                          ? 'bg-gray-800 text-white border-gray-700 focus:border-transparent'
+                          : 'bg-white text-gray-900 border-gray-300'
                         }`}
                     >
-                      <option value="">Select Gender</option>
-                      <option value="Male">Male</option>
-                      <option value="Female">Female</option>
-                      <option value="Transgender">Transgender</option>
-                      <option value="Other">Other</option>
-                      <option value="Prefer Not to say">Prefer Not to say</option>
+                      <option value="" className={theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}>Select Gender</option>
+                      <option value="Male" className={theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}>Male</option>
+                      <option value="Female" className={theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}>Female</option>
+                      <option value="Transgender" className={theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}>Transgender</option>
+                      <option value="Other" className={theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}>Other</option>
+                      <option value="Prefer Not to say" className={theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}>Prefer Not to say</option>
                     </select>
                   </div>
                 </div>
 
                 {/* Company Name */}
                 <div>
-                  <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
+                  <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'
                     }`}>
                     Company Name
                   </label>
@@ -828,8 +828,8 @@ export function CreateContactModal({ isOpen, onClose, onSubmit, onSuccess }: Cre
                     disabled={loading}
                     className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                       theme === 'dark'
-                        ? 'bg-gray-700 text-white placeholder-gray-400 border-gray-600'
-                        : 'bg-white border-gray-300 placeholder-gray-500'
+                        ? 'bg-gray-800 text-white !placeholder-gray-400 border-gray-700 focus:border-transparent'
+                        : 'bg-white text-gray-900 !placeholder-gray-500 border-gray-300'
                       } ${errors.company_name ? 'border-red-500' : ''}`}
                   />
                   {errors.company_name && (
@@ -839,7 +839,7 @@ export function CreateContactModal({ isOpen, onClose, onSubmit, onSuccess }: Cre
 
                 {/* Designation */}
                 <div>
-                  <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
+                  <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'
                     }`}>
                     Designation
                   </label>
@@ -852,8 +852,8 @@ export function CreateContactModal({ isOpen, onClose, onSubmit, onSuccess }: Cre
                     disabled={loading}
                     className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                       theme === 'dark'
-                        ? 'bg-gray-700 text-white placeholder-gray-400 border-gray-600'
-                        : 'bg-white border-gray-300 placeholder-gray-500'
+                        ? 'bg-gray-800 text-white !placeholder-gray-400 border-gray-700 focus:border-transparent'
+                        : 'bg-white text-gray-900 !placeholder-gray-500 border-gray-300'
                       } ${errors.designation ? 'border-red-500' : ''}`}
                   />
                   {errors.designation && (
@@ -863,7 +863,7 @@ export function CreateContactModal({ isOpen, onClose, onSubmit, onSuccess }: Cre
 
                 {/* Address with custom dropdown */}
                 <div>
-                  <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
+                  <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'
                     }`}>
                     Address
                   </label>
@@ -875,23 +875,29 @@ export function CreateContactModal({ isOpen, onClose, onSubmit, onSuccess }: Cre
                       disabled={loading || loadingAddresses}
                       className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none ${
                         theme === 'dark'
-                          ? 'bg-gray-700 text-white border-gray-600'
-                          : 'bg-gray-50 border-gray-300'
+                          ? 'bg-gray-800 text-white border-gray-700 focus:border-transparent'
+                          : 'bg-white text-gray-900 border-gray-300'
                         }`}
                     >
                       {addresses.length > 0 ? (
                         <>
-                          <option value="">Select Address</option>
+                          <option value="" className={theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}>Select Address</option>
                           {addresses.map((address: any) => (
-                            <option key={address.name} value={address.name}>
+                            <option 
+                              key={address.name} 
+                              value={address.name}
+                              className={theme === 'dark' ? 'bg-gray-800 text-white hover:bg-gray-700' : 'bg-white text-gray-900 hover:bg-gray-100'}
+                            >
                               {address.address_title || address.name}
                             </option>
                           ))}
                           <option
                             value="create_new"
-                            className="font-medium"
+                            className={theme === 'dark' 
+                              ? 'font-medium text-purple-400 bg-gray-800 border-t border-gray-700 pt-2 mt-2' 
+                              : 'font-medium text-blue-600 bg-white border-t border-gray-200 pt-2 mt-2'
+                            }
                             style={{
-                              borderTop: '1px solid #e5e7eb',
                               paddingTop: '8px',
                               marginTop: '4px'
                             }}
@@ -901,12 +907,14 @@ export function CreateContactModal({ isOpen, onClose, onSubmit, onSuccess }: Cre
                         </>
                       ) : (
                         <>
-                          <option value="">No addresses available</option>
+                          <option value="" className={theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}>No addresses available</option>
                           <option
                             value="create_new"
-                            className="font-medium"
+                            className={theme === 'dark' 
+                              ? 'font-medium text-purple-400 bg-gray-800 border-t border-gray-700 pt-2 mt-2' 
+                              : 'font-medium text-blue-600 bg-white border-t border-gray-200 pt-2 mt-2'
+                            }
                             style={{
-                              borderTop: '1px solid #e5e7eb',
                               paddingTop: '8px',
                               marginTop: '4px'
                             }}
@@ -919,8 +927,8 @@ export function CreateContactModal({ isOpen, onClose, onSubmit, onSuccess }: Cre
 
                     {/* Custom dropdown arrow */}
                     <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
-                      <svg className={`fill-current h-4 w-4 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                        <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
+                      <svg className={`h-4 w-4 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
                       </svg>
                     </div>
                   </div>
@@ -934,8 +942,8 @@ export function CreateContactModal({ isOpen, onClose, onSubmit, onSuccess }: Cre
                   disabled={loading}
                   className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 sm:text-sm ${
                     theme === 'dark'
-                      ? 'bg-purple-600 text-white hover:bg-purple-700 focus:ring-purple-500'
-                      : 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500'
+                      ? 'bg-purple-600 text-white hover:bg-purple-700 focus:ring-purple-500 focus:ring-offset-gray-900'
+                      : 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500 focus:ring-offset-white'
                     }`}
                 >
                   {loading ? 'Creating...' : 'Create Contact'}

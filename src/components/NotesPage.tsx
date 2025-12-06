@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { MoreHorizontal } from 'lucide-react';
 import { showToast } from '../utils/toast';
-import { Header } from './Header';
 import { useTheme } from './ThemeProvider';
 import { getUserSession } from '../utils/session';
 import { formatDistanceToNow } from 'date-fns';
@@ -18,72 +17,6 @@ interface Note {
   reference_docname?: string;
   creation?: string;
   modified?: string;
-}
-
-interface Deal {
-  name: string;
-  organization: string;
-  currency: string;
-  annual_revenue: number;
-  status: string;
-  email: string;
-  mobile_no: string;
-  deal_owner: string;
-  modified: string;
-  id: string;
-  mobileNo: string;
-  assignedTo: string;
-  lastModified: string;
-  annualRevenue: string;
-  organization_name?: string;
-  website?: string;
-  no_of_employees?: string;
-  territory?: string;
-  industry?: string;
-  salutation?: string;
-  first_name?: string;
-  last_name?: string;
-  gender?: string;
-  close_date?: string;
-  probability?: string;
-  next_step?: string;
-}
-
-interface Lead {
-  id: string;
-  name: string;
-  firstName: string;
-  lastName?: string;
-  organization: string;
-  status: string;
-  email: string;
-  mobile: string;
-  assignedTo: string;
-  lastModified: string;
-  website?: string;
-  territory?: string;
-  industry?: string;
-  jobTitle?: string;
-  source?: string;
-  salutation?: string;
-  leadId: string;
-  owner?: string;
-  creation?: string;
-  modified?: string;
-  modified_by?: string;
-  docstatus?: number;
-  idx?: number;
-  mobile_no?: string;
-  naming_series?: string;
-  lead_name?: string;
-  gender?: string;
-  no_of_employees?: string;
-  annual_revenue?: number;
-  image?: string;
-  first_name?: string;
-  last_name?: string;
-  lead_owner?: string;
-  converted?: string;
 }
 
 interface NotesPageProps {
@@ -123,7 +56,6 @@ const EditModal: React.FC<EditModalProps> = ({ show, theme, editForm, setEditFor
   const handleOpenClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    console.log('Open button clicked, editingNote:', editingNote);
     onOpenRecord();
   };
 
@@ -170,10 +102,11 @@ const EditModal: React.FC<EditModalProps> = ({ show, theme, editForm, setEditFor
                   type="text"
                   value={editForm.title}
                   onChange={(e) => setEditForm((prev) => ({ ...prev, title: e.target.value }))}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
-                    ? 'bg-white-31 border-white text-white'
-                    : 'border-gray-300 bg-gray-50'
-                    }`}
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
+                    ? 'bg-white-31 border-white text-white !placeholder-gray-100'
+                    : 'bg-white/80 border-gray-300 !placeholder-gray-500'
+                    } `}
+                  placeholder="Call with John Doe"
                 />
               </div>
               <div>
@@ -182,10 +115,11 @@ const EditModal: React.FC<EditModalProps> = ({ show, theme, editForm, setEditFor
                   value={editForm.content.replace(/<[^>]+>/g, '')}
                   onChange={(e) => setEditForm((prev) => ({ ...prev, content: e.target.value }))}
                   rows={6}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none ${theme === 'dark'
-                    ? 'bg-white-31 border-white text-white'
-                    : 'border-gray-300 bg-gray-50'
-                    }`}
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
+                    ? 'bg-white-31 border-white text-white !placeholder-gray-100'
+                    : 'bg-white/80 border-gray-300 !placeholder-gray-500'
+                    } `}
+                  placeholder="Took a call with John Doe and discussed the new project"
                 />
               </div>
             </div>
@@ -219,12 +153,9 @@ export function NotesPage({
   const [loading, setLoading] = useState(true);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
-  const [formData, setFormData] = useState<Note | null>(null);
   const [editForm, setEditForm] = useState({ title: '', content: '' });
-  const [dealLoading, setDealLoading] = useState(false);
-  const [leadLoading, setLeadLoading] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const [navigationLoading, setNavigationLoading] = useState(false);
 
   useEffect(() => {
     fetchNotes();
@@ -315,70 +246,50 @@ export function NotesPage({
     setOpenDropdown(null);
   };
 
-  // Update the handleOpenRecord function to use the correct base path
-const handleOpenRecord = async () => {
-  console.log('handleOpenRecord called');
-  console.log('editingNote:', editingNote);
-  console.log('editingNote?.reference_docname:', editingNote?.reference_docname);
-  console.log('editingNote?.reference_doctype:', editingNote?.reference_doctype);
-
-  if (!editingNote) {
-    console.error('No editing note available');
-    showToast('No note selected', { type: 'error' });
-    return;
-  }
-
-  if (!editingNote.reference_docname) {
-    console.error('No reference docname in editing note');
-    showToast('This note is not linked to any record', { type: 'error' });
-    return;
-  }
-
-  if (!editingNote.reference_doctype) {
-    console.error('No reference doctype in editing note');
-    showToast('Unknown record type for this note', { type: 'error' });
-    return;
-  }
-
-  console.log('Opening record:', editingNote.reference_doctype, editingNote.reference_docname);
-
-  // Close the edit modal first
-  setShowEditModal(false);
-  setEditingNote(null);
-
-  // Get the current base path from window location
-  const currentPath = window.location.pathname;
-  let basePath = '/';
-  
-  // Check if we're under a specific path like /login/
-  if (currentPath.includes('/login/')) {
-    basePath = '/login/';
-  }
-
-  // Navigate to the respective page with correct base path
-  if (editingNote.reference_doctype === 'CRM Deal') {
-    console.log('Navigating to Deal:', editingNote.reference_docname);
-    
-    if (onNavigateToDeal) {
-      onNavigateToDeal(editingNote.reference_docname);
-    } else {
-      // Use correct base path for navigation
-      window.location.href = `${basePath}deals/${editingNote.reference_docname}`;
+  const handleOpenRecord = async () => {
+    if (!editingNote) {
+      console.error('No editing note available');
+      showToast('No note selected', { type: 'error' });
+      return;
     }
-  } else if (editingNote.reference_doctype === 'CRM Lead') {
-    console.log('Navigating to Lead:', editingNote.reference_docname);
-    
-    if (onNavigateToLead) {
-      onNavigateToLead(editingNote.reference_docname);
-    } else {
-      // Use correct base path for navigation
-      window.location.href = `${basePath}leads/${editingNote.reference_docname}`;
+
+    if (!editingNote.reference_docname) {
+      console.error('No reference docname in editing note');
+      showToast('This note is not linked to any record', { type: 'error' });
+      return;
     }
-  } else {
-    console.warn('Unknown reference doctype:', editingNote.reference_doctype);
-    showToast(`Unsupported record type: ${editingNote.reference_doctype}`, { type: 'error' });
-  }
-};
+
+    if (!editingNote.reference_doctype) {
+      console.error('No reference doctype in editing note');
+      showToast('Unknown record type for this note', { type: 'error' });
+      return;
+    }
+
+    console.log('Opening record:', editingNote.reference_doctype, editingNote.reference_docname);
+
+    // Close the edit modal first
+    setShowEditModal(false);
+    setEditingNote(null);
+    
+    // Show loading state
+    setNavigationLoading(true);
+
+    try {
+      if (editingNote.reference_doctype === 'CRM Deal' && onNavigateToDeal) {
+        onNavigateToDeal(editingNote.reference_docname);
+      } else if (editingNote.reference_doctype === 'CRM Lead' && onNavigateToLead) {
+        onNavigateToLead(editingNote.reference_docname);
+      } else {
+        console.warn('Unknown reference doctype:', editingNote.reference_doctype);
+        showToast(`Unsupported record type: ${editingNote.reference_doctype}`, { type: 'error' });
+      }
+    } catch (error) {
+      console.error('Error navigating:', error);
+      showToast('Failed to navigate to record', { type: 'error' });
+    } finally {
+      setNavigationLoading(false);
+    }
+  };
 
   const handleUpdate = async () => {
     try {
@@ -498,12 +409,12 @@ const handleOpenRecord = async () => {
             <div
               key={note.name}
               onClick={(event) => handleNoteClick(note, event)}
-              className={`rounded-lg shadow-sm border p-5 hover:shadow-md transition-all cursor-pointer hover:scale-[1.02] relative ${theme === 'dark'
+              className={`rounded-lg h-[200px] flex flex-col justify-between     shadow-sm border p-5 hover:shadow-md transition-all cursor-pointer hover:scale-[1.02] relative ${theme === 'dark'
                 ? 'bg-custom-gradient border-white'
                 : 'bg-white border-gray-200'
                 }`}
             >
-              <div className="flex items-start justify-between mb-20">
+              <div className="flex items-start justify-between ">
                 <h3 className={`text-sm font-semibold truncate pr-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
                   {note.title}
                 </h3>
@@ -537,7 +448,7 @@ const handleOpenRecord = async () => {
               </div>
               <div className="h-50 overflow-hidden">
                 <div
-                  className={`text-xs mb-4 line-clamp-3 leading-relaxed ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}
+                  className={`text-xs  mb-4 line-clamp-3 leading-relaxed ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}
                   dangerouslySetInnerHTML={{
                     __html: DOMPurify.sanitize(note.content || '')
                   }}
@@ -588,12 +499,12 @@ const handleOpenRecord = async () => {
         onOpenRecord={handleOpenRecord}
       />
 
-      {/* Loading overlay for deal/lead navigation */}
-      {(dealLoading || leadLoading) && (
+      {/* Navigation loading overlay */}
+      {navigationLoading && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className={`p-4 rounded-lg flex items-center gap-3 ${theme === 'dark' ? 'bg-dark-secondary text-white' : 'bg-white text-gray-800'}`}>
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600"></div>
-            <span>Loading {dealLoading ? 'deal' : 'lead'} details...</span>
+            <span>Loading record details...</span>
           </div>
         </div>
       )}

@@ -554,135 +554,208 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
   };
 
   // Function to handle the delete API call
-  const handleDeleteItems = async () => {
-    if (selectedIds.length === 0) return;
+// Function to handle the delete API call
+const handleDeleteItems = async () => {
+  if (selectedIds.length === 0) return;
 
-    setLoading(true);
-    setError(null);
+  setLoading(true);
+  // Don't setError here - it will show the error component instead of table
 
-    try {
-      const session = getUserSession();
-      if (!session) {
-        throw new Error('No active session');
-      }
+  try {
+    const session = getUserSession();
+    if (!session) {
+      throw new Error('No active session');
+    }
 
-      const apiUrl = `https://api.erpnext.ai/api/method/frappe.desk.reportview.delete_items`;
+    const apiUrl = `https://api.erpnext.ai/api/method/frappe.desk.reportview.delete_items`;
 
-      const requestBody = {
-        items: JSON.stringify(selectedIds),
-        doctype: "CRM Organization"
-      };
+    const requestBody = {
+      items: JSON.stringify(selectedIds),
+      doctype: "CRM Organization"
+    };
 
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
-        },
-        body: JSON.stringify(requestBody)
-      });
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': AUTH_TOKEN
+      },
+      body: JSON.stringify(requestBody)
+    });
 
-      if (!response.ok) {
-        throw new Error(`Failed to delete items: ${response.statusText}`);
-      }
+    const result = await response.json();
 
+    // Check for success
+    if (response.ok && result.message === "success") {
       // Clear selection and refresh data
       setSelectedIds([]);
       setShowDeleteConfirm(false);
-      fetchOrganizations();
+      fetchOrganizations(); // Refresh the data
       showToast('Items deleted successfully', { type: 'success' });
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'Failed to delete items');
-      showToast('Failed to delete items', { type: 'error' });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleBulkUpdate = async () => {
-    if (!bulkEdit.selectedField || !bulkEdit.selectedValue || selectedIds.length === 0) {
-      showToast('Please select a field and value', { type: 'error' });
       return;
     }
 
-    try {
-      setBulkEdit(prev => ({ ...prev, updating: true }));
-      const session = getUserSession();
+    // If not successful, extract error message
+    let errorMessage = 'Failed to delete items';
 
-      if (!session) {
-        throw new Error('No active session');
-      }
-
-      // Map frontend field names to backend field names
-      const fieldMapping: Record<string, string> = {
-        'organization_name': 'organization_name',
-        'website': 'website',
-        'no_of_employees': 'no_of_employees',
-        'territory': 'territory',
-        'currency': 'currency',
-        'industry': 'industry',
-        'annual_revenue': 'annual_revenue',
-        'address': 'address'
-      };
-
-      const backendFieldName = fieldMapping[bulkEdit.selectedField] || bulkEdit.selectedField;
-
-      // Use the correct API endpoint with the proper format
-      const apiUrl = `https://api.erpnext.ai/api/method/frappe.desk.doctype.bulk_update.bulk_update.submit_cancel_or_update_docs`;
-
-      const requestBody = {
-        doctype: "CRM Organization",
-        docnames: selectedIds,
-        action: "update",
-        data: {
-          [backendFieldName]: bulkEdit.selectedValue
+    if (result._server_messages) {
+      try {
+        // Parse the server messages array
+        const serverMessages = JSON.parse(result._server_messages);
+        if (serverMessages.length > 0) {
+          // Parse the first message which contains the error details
+          const firstMessage = JSON.parse(serverMessages[0]);
+          if (firstMessage.message) {
+            // Strip HTML tags from the message
+            errorMessage = firstMessage.message.replace(/<[^>]*>/g, '');
+          }
         }
-      };
-
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
-        },
-        body: JSON.stringify(requestBody)
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        // Try to get error message from response
-        const errorMsg = result.message || result.exc || `HTTP ${response.status}: ${response.statusText}`;
-        throw new Error(errorMsg);
+      } catch (parseError) {
+        console.error('Error parsing server messages:', parseError);
+        errorMessage = 'Delete failed due to server error';
       }
-
-      // Updated success condition to handle empty array response
-      // A 200 status with an empty array message indicates success in this API
-      if (response.status === 200 &&
-        (result.message === "success" ||
-          (Array.isArray(result.message) && result.message.length === 0) ||
-          (result.message && result.message.status === "success"))) {
-        showToast('Records updated successfully', { type: 'success' });
-        setBulkEdit(prev => ({
-          ...prev,
-          showModal: false,
-          selectedField: '',
-          selectedValue: '',
-          updating: false
-        }));
-        setSelectedIds([]);
-        fetchOrganizations(); // Refresh the data
-      } else {
-        // Log the actual response for debugging
-        console.log('API Response:', result);
-        throw new Error('Update failed with unknown response format');
-      }
-    } catch (error) {
-      console.error('Error updating records:', error);
-      setBulkEdit(prev => ({ ...prev, updating: false }));
-      showToast(error.message || 'Failed to update records', { type: 'error' });
+    } else if (result.message && result.message !== "success") {
+      // Strip HTML tags from direct message
+      errorMessage = result.message.replace(/<[^>]*>/g, '');
+    } else if (result.exc) {
+      errorMessage = result.exc;
     }
-  };
+
+    throw new Error(errorMessage);
+    
+  } catch (error) {
+    console.error('Delete error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to delete items';
+    // Only show toast notification, don't set global error
+    showToast(errorMessage, { type: 'error' });
+  } finally {
+    setLoading(false);
+  }
+};
+
+const parseServerMessages = (serverMessages: any): string => {
+  if (!serverMessages) return '';
+  
+  try {
+    let messages: string[] = [];
+    
+    // Check if it's a string that needs to be parsed
+    if (typeof serverMessages === 'string') {
+      messages = JSON.parse(serverMessages);
+    }
+    // If it's already an array
+    else if (Array.isArray(serverMessages)) {
+      messages = serverMessages;
+    }
+    
+    if (messages.length > 0) {
+      const firstMsg = JSON.parse(messages[0]);
+      if (firstMsg.message) {
+        // Strip HTML tags and return plain text
+        return firstMsg.message.replace(/<[^>]*>/g, '');
+      }
+    }
+  } catch (error) {
+    console.error('Error parsing server messages:', error);
+  }
+  
+  return '';
+};
+
+
+
+const handleBulkUpdate = async () => {
+  if (!bulkEdit.selectedField || !bulkEdit.selectedValue || selectedIds.length === 0) {
+    showToast('Please select a field and value', { type: 'error' });
+    return;
+  }
+
+  try {
+    setBulkEdit(prev => ({ ...prev, updating: true }));
+    const session = getUserSession();
+
+    if (!session) {
+      throw new Error('No active session');
+    }
+
+    // Map frontend field names to backend field names
+    const fieldMapping: Record<string, string> = {
+      'organization_name': 'organization_name',
+      'website': 'website',
+      'no_of_employees': 'no_of_employees',
+      'territory': 'territory',
+      'currency': 'currency',
+      'industry': 'industry',
+      'annual_revenue': 'annual_revenue',
+      'address': 'address'
+    };
+
+    const backendFieldName = fieldMapping[bulkEdit.selectedField] || bulkEdit.selectedField;
+
+    const apiUrl = `https://api.erpnext.ai/api/method/frappe.desk.doctype.bulk_update.bulk_update.submit_cancel_or_update_docs`;
+
+    const requestBody = {
+      doctype: "CRM Organization",
+      docnames: selectedIds,
+      action: "update",
+      data: {
+        [backendFieldName]: bulkEdit.selectedValue
+      }
+    };
+
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': AUTH_TOKEN
+      },
+      body: JSON.stringify(requestBody)
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      let errorMsg = `HTTP ${response.status}: ${response.statusText}`;
+      
+      // Try to parse server messages for more detailed error
+      if (result._server_messages) {
+        const serverMessage = parseServerMessages(result._server_messages);
+        if (serverMessage) {
+          errorMsg = serverMessage;
+        } else if (result.message && result.message !== "success") {
+          errorMsg = result.message.replace(/<[^>]*>/g, '');
+        } else if (result.exc) {
+          errorMsg = result.exc;
+        }
+      }
+      
+      throw new Error(errorMsg);
+    }
+
+    // Check for success
+    if (response.status === 200) {
+      showToast('Records updated successfully', { type: 'success' });
+      setBulkEdit(prev => ({
+        ...prev,
+        showModal: false,
+        selectedField: '',
+        selectedValue: '',
+        updating: false
+      }));
+      setSelectedIds([]);
+      fetchOrganizations(); // Refresh the data
+    } else {
+      throw new Error('Update failed with unknown response format');
+    }
+  } catch (error) {
+    console.error('Error updating records:', error);
+    setBulkEdit(prev => ({ ...prev, updating: false }));
+    
+    // Only show toast, don't set global error
+    const errorMessage = error instanceof Error ? error.message : 'Failed to update records';
+    showToast(errorMessage, { type: 'error' });
+  }
+};
 
   const openBulkEditModal = () => {
     setBulkEdit(prev => ({ ...prev, showModal: true }));

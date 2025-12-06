@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, Edit, Trash2, Mail, Phone, Building2, User, Calendar, MapPin, Zap, Loader2, Plus, X, TicketCheck, TicketX, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2, Mail, Phone, Building2, User, Calendar, MapPin, Zap, Loader2, Plus, X, TicketCheck, TicketX, CheckCircle, Upload } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import { showToast } from '../utils/toast';
 import { getUserSession } from '../utils/session';
@@ -2015,7 +2015,7 @@ export default function ContactDetails({
 
                       {/* Upload overlay on hover */}
                       <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <span className="text-white text-xs font-medium">Upload</span>
+                        <Upload className="w-4 h-4 text-white" />
                       </div>
                     </>
                   )}

@@ -31,7 +31,7 @@ import { CreateNoteModalNew } from './components/CreateNoteModalNew';
 import { CreateTaskModalNew } from './components/CreateTaskModalNew';
 import { CreateCallLogModal } from './components/CreateCallLogModal';
 import { CreateEmailModal } from './components/CreateEmailModal';
-import { CreateUserModal } from './components/CreateUserModal'; // Add this import
+import { CreateUserModal } from './components/CreateUserModal';
 import { ThemeProvider } from './components/ThemeProvider';
 import { sampleLeads, sampleDeals, sampleContacts, sampleOrganizations } from './data/sampleData';
 import { isUserLoggedIn, getUserSession, clearUserSession } from './utils/session';
@@ -43,6 +43,7 @@ import ForgotPasswordPage from './components/ForgotPasswordPage';
 import AccountActivationPage from './components/AccountActivationPage';
 import { UserDetailView } from './components/UserDetailView';
 import { GoogleOAuthProvider } from '@react-oauth/google';
+import { Target } from 'lucide-react';
 
 function AppContent() {
   // Initialize login state from session storage with proper checking
@@ -51,6 +52,12 @@ function AppContent() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showAuthErrorModal, setShowAuthErrorModal] = useState(false);
   const [authErrorMessage, setAuthErrorMessage] = useState<string>();
+
+
+  const [companyInfo, setCompanyInfo] = useState<any>(null);
+  const [expiryStatus, setExpiryStatus] = useState<{ expired: boolean; daysLeft: number } | null>(null);
+  const [showExpiryPopup, setShowExpiryPopup] = useState(false);
+
 
   // Initialize states based on current URL
   const [activeMenuItem, setActiveMenuItem] = useState(() => {
@@ -76,17 +83,22 @@ function AppContent() {
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [showNotifications, setShowNotifications] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [createModalType, setCreateModalType] = useState<'lead' | 'deal' | 'contact' | 'organization' | 'reminder' | 'todo' | 'note' | 'task' | 'calllog' | 'email' | 'user'>('lead'); // Added 'user'
+  const [createModalType, setCreateModalType] = useState<'lead' | 'deal' | 'contact' | 'organization' | 'reminder' | 'todo' | 'note' | 'task' | 'calllog' | 'email' | 'user'>('lead');
   const [selectedLead, setSelectedLead] = useState<any>(null);
   const [selectedDeal, setSelectedDeal] = useState<any>(null);
   const [selectedContact, setSelectedContact] = useState<any>(null);
-  const [selectedUser, setSelectedUser] = useState<any>(null); // Fixed variable name
+  const [selectedUser, setSelectedUser] = useState<any>(null);
   const [selectedOrganization, setSelectedOrganization] = useState<any>(null);
   const [leads, setLeads] = useState(sampleLeads);
   const [deals, setDeals] = useState(sampleDeals);
   const [taskRefreshTrigger, setTaskRefreshTrigger] = useState(0);
   const [userRefreshTrigger, setUserRefreshTrigger] = useState(0);
   const [noteRefreshTrigger, setNoteRefreshTrigger] = useState(0);
+
+  // New state to track if we're in a detail view (from notes or other pages)
+  const [isInDetailView, setIsInDetailView] = useState(false);
+  const [isInNestedView, setIsInNestedView] = useState(false);
+
   const handleTaskCreated = () => {
     setTaskRefreshTrigger(prev => prev + 1);
   };
@@ -95,13 +107,11 @@ function AppContent() {
   const handleCallsCreated = () => {
     setcallsRefreshTrigger(prev => prev + 1);
   };
-  
+
   const handleNoteCreated = () => {
     setNoteRefreshTrigger(prev => prev + 1);
-    setShowCreateModal(false); // Also close the modal
+    setShowCreateModal(false);
   };
-  // Add state to track if we're in a nested view (like deal detail from contact)
-  const [isInNestedView, setIsInNestedView] = useState(false);
 
   useEffect(() => {
     const checkSession = async () => {
@@ -130,6 +140,116 @@ function AppContent() {
     checkSession();
   }, []);
 
+  useEffect(() => {
+    const session = getUserSession();
+    const companyName = session?.company;
+
+    if (!companyName) return;
+
+    fetch(`https://api.erpnext.ai/api/v2/document/Company/${encodeURIComponent(companyName)}`, {
+      headers: {
+        'Authorization': AUTH_TOKEN,
+        'Content-Type': 'application/json'
+      }
+    })
+      .then(res => res.json())
+      .then(res => {
+        const data = res.data;
+
+        setCompanyInfo({
+          start_date: data.start_date,
+          end_date: data.end_date
+        });
+
+        if (data.end_date) {
+          const today = new Date();
+          const endDate = new Date(data.end_date);
+          const diff = endDate.getTime() - today.getTime();
+          const daysLeft = Math.ceil(diff / (1000 * 60 * 60 * 24));
+
+          const expired = daysLeft < 0;
+
+          setExpiryStatus({ expired, daysLeft });
+
+          if (expired) {
+            setShowExpiryPopup(true);
+          }
+        }
+      })
+      .catch(err => {
+        console.error("Package check failed:", err);
+        setCompanyInfo(null);
+        setExpiryStatus(null);
+      });
+  }, []);
+
+
+  // Helper function to fetch deal
+  const fetchAndSetDeal = async (dealId: string) => {
+    try {
+      const response = await apiAxios.post("/api/method/frappe.client.get", {
+        doctype: "CRM Deal",
+        name: dealId,
+      });
+
+      if (response.data.message) {
+        const deal = {
+          ...response.data.message,
+          id: response.data.message.name,
+          organization: response.data.message.organization_name || response.data.message.organization
+        };
+        setSelectedDeal(deal);
+        return deal;
+      }
+    } catch (error) {
+      console.error('Error fetching deal:', error);
+      return null;
+    }
+  };
+
+  // Helper function to fetch lead
+  const fetchAndSetLead = async (leadId: string) => {
+    try {
+      const response = await apiAxios.post("/api/method/frappe.client.get", {
+        doctype: "CRM Lead",
+        name: leadId,
+      });
+
+      if (response.data.message) {
+        const lead = { ...response.data.message, id: response.data.message.name };
+        setSelectedLead(lead);
+        return lead;
+      }
+    } catch (error) {
+      console.error('Error fetching lead:', error);
+      return null;
+    }
+  };
+
+  // Function to handle opening records from notes page
+  const handleOpenRecordFromNotes = (doctype: string, docname: string) => {
+    console.log(`Opening ${doctype}: ${docname} from notes`);
+
+    // Clear all selections first
+    setSelectedLead(null);
+    setSelectedDeal(null);
+    setSelectedContact(null);
+    setSelectedOrganization(null);
+    setSelectedUser(null);
+    setIsInNestedView(true);
+    setIsInDetailView(true);
+
+    if (doctype === 'CRM Deal') {
+      // Fetch and set the deal
+      fetchAndSetDeal(docname);
+      setActiveMenuItem('deals');
+    } else if (doctype === 'CRM Lead') {
+      // Fetch and set the lead
+      fetchAndSetLead(docname);
+      setActiveMenuItem('leads');
+    }
+  };
+
   const initializeStateFromUrl = async () => {
     const path = window.location.pathname;
     const cleanPath = path.replace('/login', '');
@@ -147,6 +267,7 @@ function AppContent() {
           const lead = { ...response.data.message, id: response.data.message.name };
           setSelectedLead(lead);
           setActiveMenuItem('leads');
+          setIsInDetailView(true);
           return;
         }
       } catch (error) {
@@ -173,6 +294,7 @@ function AppContent() {
           };
           setSelectedDeal(deal);
           setActiveMenuItem('deals');
+          setIsInDetailView(true);
           return;
         }
       } catch (error) {
@@ -195,6 +317,7 @@ function AppContent() {
           const contact = { ...response.data.message, id: response.data.message.name };
           setSelectedContact(contact);
           setActiveMenuItem('contacts');
+          setIsInDetailView(true);
           return;
         }
       } catch (error) {
@@ -217,6 +340,7 @@ function AppContent() {
           const org = { ...response.data.message, id: response.data.message.name };
           setSelectedOrganization(org);
           setActiveMenuItem('organizations');
+          setIsInDetailView(true);
           return;
         }
       } catch (error) {
@@ -239,6 +363,7 @@ function AppContent() {
           const user = { ...response.data.message, id: response.data.message.name };
           setSelectedUser(user);
           setActiveMenuItem('users');
+          setIsInDetailView(true);
           return;
         }
       } catch (error) {
@@ -252,6 +377,7 @@ function AppContent() {
     // Handle list views
     if (cleanPath === '/' || cleanPath === '/dashboard' || cleanPath === '') {
       setActiveMenuItem('dashboard');
+      setIsInDetailView(false);
     } else {
       const menuItem = cleanPath.split('/')[1];
       if (menuItem && [
@@ -260,8 +386,10 @@ function AppContent() {
         'tasks', 'call-logs', 'email-templates'
       ].includes(menuItem)) {
         setActiveMenuItem(menuItem);
+        setIsInDetailView(false);
       } else {
         setActiveMenuItem('dashboard');
+        setIsInDetailView(false);
         window.history.replaceState({}, '', '/login/');
       }
     }
@@ -305,6 +433,7 @@ function AppContent() {
         if (lead) {
           setSelectedLead(lead);
           setActiveMenuItem('leads');
+          setIsInDetailView(true);
           return;
         }
       }
@@ -316,6 +445,7 @@ function AppContent() {
         if (deal) {
           setSelectedDeal(deal);
           setActiveMenuItem('deals');
+          setIsInDetailView(true);
           return;
         }
       }
@@ -327,6 +457,7 @@ function AppContent() {
         if (contact) {
           setSelectedContact(contact);
           setActiveMenuItem('contacts');
+          setIsInDetailView(true);
           return;
         }
       }
@@ -338,6 +469,7 @@ function AppContent() {
         if (org) {
           setSelectedOrganization(org);
           setActiveMenuItem('organizations');
+          setIsInDetailView(true);
           return;
         }
       }
@@ -347,12 +479,14 @@ function AppContent() {
         const userId = path.split('/')[2];
         // You might want to fetch user data here
         setActiveMenuItem('users');
+        setIsInDetailView(true);
         return;
       }
 
       // Handle list views
       if (path === '/' || path === '/dashboard') {
         setActiveMenuItem('dashboard');
+        setIsInDetailView(false);
       } else {
         const menuItem = path.split('/')[1];
         if (menuItem && [
@@ -361,6 +495,7 @@ function AppContent() {
           'tasks', 'call-logs', 'email-templates'
         ].includes(menuItem)) {
           setActiveMenuItem(menuItem);
+          setIsInDetailView(false);
         }
       }
 
@@ -400,6 +535,7 @@ function AppContent() {
     setSelectedOrganization(null);
     setSelectedUser(null);
     setIsInNestedView(false);
+    setIsInDetailView(false);
     setShowAuthErrorModal(false);
     window.history.pushState({}, '', '/');
   };
@@ -417,6 +553,7 @@ function AppContent() {
     setSelectedOrganization(null);
     setSelectedUser(null);
     setIsInNestedView(false);
+    setIsInDetailView(false);
 
     // Update URL
     const path = item === 'dashboard' ? '/' : `/${item}`;
@@ -430,60 +567,70 @@ function AppContent() {
   const handleLeadClick = (lead: any) => {
     setSelectedLead(lead);
     setIsInNestedView(false);
+    setIsInDetailView(true);
     window.history.pushState({}, '', `/leads/${lead.id}`);
   };
 
   const handleDealClick = (deal: any) => {
     setSelectedDeal(deal);
     setIsInNestedView(false);
+    setIsInDetailView(true);
     window.history.pushState({}, '', `/deals/${deal.id}`);
   };
 
   const handleContactClick = (contact: any) => {
     setSelectedContact(contact);
     setIsInNestedView(false);
+    setIsInDetailView(true);
     window.history.pushState({}, '', `/contacts/${contact.id}`);
   };
 
   const handleOrganizationClick = (organization: any) => {
     setSelectedOrganization(organization);
     setIsInNestedView(false);
+    setIsInDetailView(true);
     window.history.pushState({}, '', `/organizations/${organization.id}`);
   };
 
   const handleUserClick = (user: any) => {
     setSelectedUser(user);
     setIsInNestedView(false);
+    setIsInDetailView(true);
     window.history.pushState({}, '', `/users/${user.id}`);
   };
 
   const handleLeadBack = () => {
     setSelectedLead(null);
     setIsInNestedView(false);
+    setIsInDetailView(false);
     window.history.pushState({}, '', '/leads');
   };
 
   const handleDealBack = () => {
     setSelectedDeal(null);
     setIsInNestedView(false);
+    setIsInDetailView(false);
     window.history.pushState({}, '', '/deals');
   };
 
   const handleContactBack = () => {
     setSelectedContact(null);
     setIsInNestedView(false);
+    setIsInDetailView(false);
     window.history.pushState({}, '', '/contacts');
   };
 
   const handleOrganizationBack = () => {
     setSelectedOrganization(null);
     setIsInNestedView(false);
+    setIsInDetailView(false);
     window.history.pushState({}, '', '/organizations');
   };
 
   const handleUserBack = () => {
     setSelectedUser(null);
     setIsInNestedView(false);
+    setIsInDetailView(false);
     window.history.pushState({}, '', '/users');
   };
 
@@ -507,6 +654,7 @@ function AppContent() {
         setSelectedDeal(deal);
         setActiveMenuItem('deals');
         setIsInNestedView(true);
+        setIsInDetailView(true);
         window.history.pushState({}, '', `/deals/${dealName}`);
       }
     } catch (error) {
@@ -612,9 +760,9 @@ function AppContent() {
       setShowCreateModal(false);
       setSelectedLead(data);
       setActiveMenuItem('leads');
+      setIsInDetailView(true);
     } else if (createModalType === 'user' && data) {
       setShowCreateModal(false);
-      // You might want to refresh the users list or navigate to the new user
       console.log('User created:', data);
       setUserRefreshTrigger(prev => prev + 1);
     }
@@ -626,6 +774,30 @@ function AppContent() {
     if (createModalType === 'lead' && data) {
       setShowCreateModal(false);
       setSelectedLead(data);
+      setActiveMenuItem('leads');
+      setIsInDetailView(true);
+    }
+  };
+
+  const handleOpenRecordFromCallLogs = (doctype: string, docname: string) => {
+    console.log(`Opening ${doctype}: ${docname} from call logs`);
+
+    // Clear all selections first
+    setSelectedLead(null);
+    setSelectedDeal(null);
+    setSelectedContact(null);
+    setSelectedOrganization(null);
+    setSelectedUser(null);
+    setIsInNestedView(true);
+    setIsInDetailView(true);
+
+    if (doctype === 'CRM Deal') {
+      // Fetch and set the deal
+      fetchAndSetDeal(docname);
+      setActiveMenuItem('deals');
+    } else if (doctype === 'CRM Lead') {
+      // Fetch and set the lead
+      fetchAndSetLead(docname);
       setActiveMenuItem('leads');
     }
   };
@@ -659,12 +831,14 @@ function AppContent() {
 
           setSelectedDeal(dealForState);
           setActiveMenuItem("deals");
+          setIsInDetailView(true);
         } else {
           throw new Error("Failed to fetch full deal data after creation.");
         }
       } catch (err) {
         console.error("Error fetching full deal details:", err);
         setActiveMenuItem("deals");
+        setIsInDetailView(true);
       }
     }
   };
@@ -681,6 +855,7 @@ function AppContent() {
       if (fullDealData) {
         setSelectedDeal({ ...fullDealData, id: fullDealData.name });
         setActiveMenuItem('deals');
+        setIsInDetailView(true);
         setSelectedLead(null);
       } else {
         throw new Error("Could not fetch details for the new deal.");
@@ -688,11 +863,11 @@ function AppContent() {
     } catch (error) {
       console.error("Failed to fetch new deal details:", error);
       setActiveMenuItem('deals');
+      setIsInDetailView(true);
       setSelectedLead(null);
     }
   };
 
-  // Fixed getCreateModalType function
   const getCreateModalType = (): 'lead' | 'deal' | 'contact' | 'organization' | 'reminder' | 'todo' | 'note' | 'task' | 'calllog' | 'email' | 'user' => {
     switch (activeMenuItem) {
       case 'leads':
@@ -704,7 +879,7 @@ function AppContent() {
       case 'organizations':
         return 'organization';
       case 'users':
-        return 'user'; // Fixed: return 'user' for users menu
+        return 'user';
       case 'reminders':
         return 'reminder';
       case 'todos':
@@ -761,6 +936,16 @@ function AppContent() {
     }
     return undefined;
   };
+
+  // Updated header visibility logic
+  const showHeader = !isInDetailView &&
+    activeMenuItem !== 'dashboard' &&
+    !selectedLead &&
+    !selectedDeal &&
+    !selectedContact &&
+    !selectedOrganization &&
+    !selectedUser &&
+    !isInNestedView;
 
   const renderContent = () => {
     if (selectedLead && activeMenuItem === 'leads') {
@@ -852,7 +1037,7 @@ function AppContent() {
           </div>
         );
       case 'users':
-        return <UsersPage onMenuToggle={handleSidebarToggle} onUserClick={handleUserClick} refreshTrigger={userRefreshTrigger} searchTerm={searchTerm}/>;
+        return <UsersPage onMenuToggle={handleSidebarToggle} onUserClick={handleUserClick} refreshTrigger={userRefreshTrigger} searchTerm={searchTerm} />;
       case 'reminders':
         return <RemindersPage onCreateReminder={handleCreateReminder} />;
       case 'todos':
@@ -860,11 +1045,31 @@ function AppContent() {
       case 'notifications':
         return <NotificationsPageNew onMenuToggle={handleSidebarToggle} />;
       case 'notes':
-        return <NotesPage onCreateNote={handleCreateNote} leadName={selectedLead?.name} onMenuToggle={handleSidebarToggle} refreshTrigger={noteRefreshTrigger} searchTerm={searchTerm}/>;
+        return (
+          <NotesPage
+            onCreateNote={handleCreateNote}
+            leadName={selectedLead?.name}
+            onMenuToggle={handleSidebarToggle}
+            refreshTrigger={noteRefreshTrigger}
+            searchTerm={searchTerm}
+            onNavigateToDeal={(dealName) => handleOpenRecordFromNotes('CRM Deal', dealName)}
+            onNavigateToLead={(leadName) => handleOpenRecordFromNotes('CRM Lead', leadName)}
+          />
+        );
       case 'tasks':
-        return <TasksPage onCreateTask={handleCreateTask} leadName={selectedLead?.name} refreshTrigger={taskRefreshTrigger} onMenuToggle={handleSidebarToggle} searchTerm={searchTerm}/>;
+        return <TasksPage onCreateTask={handleCreateTask} leadName={selectedLead?.name} refreshTrigger={taskRefreshTrigger} onMenuToggle={handleSidebarToggle} searchTerm={searchTerm} />;
       case 'call-logs':
-        return <CallLogsPage onCreateCallLog={handleCreateCallLog} leadName={selectedLead?.name} refreshTrigger={callsRefreshTrigger} onMenuToggle={handleSidebarToggle} searchTerm={searchTerm}/>;
+        return (
+          <CallLogsPage
+            onCreateCallLog={handleCreateCallLog}
+            leadName={selectedLead?.name}
+            refreshTrigger={callsRefreshTrigger}
+            onMenuToggle={handleSidebarToggle}
+            searchTerm={searchTerm}
+            onNavigateToDeal={(dealName) => handleOpenRecordFromCallLogs('CRM Deal', dealName)}
+            onNavigateToLead={(leadName) => handleOpenRecordFromCallLogs('CRM Lead', leadName)}
+          />
+        );
       case 'email-templates':
         return <EmailPage onCreateEmail={handleCreateEmail} />;
       default:
@@ -1002,15 +1207,6 @@ function AppContent() {
     return <LoginPage onLogin={handleLogin} />;
   }
 
-  // Updated header visibility logic
-  const showHeader = activeMenuItem !== 'dashboard' &&
-    !selectedLead &&
-    !selectedDeal &&
-    !selectedContact &&
-    !selectedOrganization &&
-    !selectedUser &&
-    !isInNestedView;
-
   return (
     <div className="h-[100vh] flex bg-gray-50 dark:bg-gradient-to-br dark:from-[#0F0F23] dark:via-[#1A1A2E] dark:to-[#16213E]">
       {/* Sidebar */}
@@ -1055,6 +1251,31 @@ function AppContent() {
         onLogout={handleLogout}
         message={authErrorMessage}
       />
+
+      {showExpiryPopup && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[9999]">
+          <div className="bg-white dark:bg-[#1E1E2F] p-10 rounded-xl shadow-2xl max-w-md w-full text-center border border-gray-300 dark:border-gray-600">
+
+            <h2 className="text-2xl font-bold text-red-600 mb-4">
+              Your Subscription Has Expired
+            </h2>
+
+            <p className="text-gray-700 dark:text-gray-300 mb-6">
+              Your package ended on <strong>{companyInfo?.end_date}</strong>.<br />
+              Please upgrade to continue using CRM.
+            </p>
+
+            <button
+              onClick={() =>window.location.href = "https://crm.erpnext.ai/#our-pricing"}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg text-lg font-semibold transition"
+            >
+              Upgrade Now
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* /> */}
     </div>
   );
 }
@@ -1076,5 +1297,5 @@ function App() {
     </GoogleOAuthProvider>
   );
 }
- 
+
 export default App;

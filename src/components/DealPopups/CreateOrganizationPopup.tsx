@@ -440,6 +440,7 @@ export const CreateOrganizationPopup: React.FC<CreateOrganizationPopupProps> = (
                                 id="orgRevenue"
                                 type="text"
                                 value={formData.revenue}
+                                maxLength={10}
                                 onChange={(e) => handleChange("revenue", e.target.value)}
                                 className={inputClass}
                                 placeholder="Annual Revenue"

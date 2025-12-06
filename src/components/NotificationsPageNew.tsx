@@ -35,7 +35,7 @@ export function NotificationsPageNew({ onMenuToggle }: NotificationsPageProps) {
         fields: JSON.stringify(["name", "creation", "modified", "message", "read"]),
         filters: JSON.stringify({
           company: Company,
-          read: 1
+          read: 0 // Fetch only unread notifications
         }),
       });
 
@@ -53,17 +53,17 @@ export function NotificationsPageNew({ onMenuToggle }: NotificationsPageProps) {
 
   const markAsRead = async (notificationId: string) => {
     try {
-      await api.patch(`api/v2/document/CRM Notification/${notificationId}`, {
+      await api.put(`api/v2/document/CRM Notification/${notificationId}`, {
         read: 1
       });
-      
+
       // Update local state to reflect the read status
-      setNotifications(prev => prev.map(notif => 
+      setNotifications(prev => prev.map(notif =>
         notif.name === notificationId ? { ...notif, read: true } : notif
       ));
-      
+
       showToast("Notification marked as read", { type: "success" });
-      
+
     } catch (error) {
       console.error("Error marking notification as read:", error);
       showToast("Failed to mark notification as read", { type: "error" });
@@ -75,20 +75,20 @@ export function NotificationsPageNew({ onMenuToggle }: NotificationsPageProps) {
     const markAllAsRead = async () => {
       const userSession = getUserSession();
       const Company = userSession?.company;
-      
+
       try {
         // Directly update all unread notifications for this company
-        await api.patch('api/v2/document/CRM Notification', {
+        await api.put('api/v2/document/CRM Notification', {
           data: { read: 1 },
           filters: JSON.stringify({
             company: Company,
             read: 0 // Only mark unread ones as read
           })
         });
-        
+
         // Update local state to mark all as read
         setNotifications(prev => prev.map(notif => ({ ...notif, read: true })));
-        
+
       } catch (error) {
         console.error("Error marking all notifications as read:", error);
       }
@@ -153,68 +153,140 @@ export function NotificationsPageNew({ onMenuToggle }: NotificationsPageProps) {
     return { todayNotifications, yesterdayNotifications, olderNotifications };
   };
 
-  const NotificationItem = ({
-    notification,
-  }: {
-    notification: Notification;
-  }) => (
-    <div
-      className={`${theme === "dark"
-        ? "bg-custom-gradient border-0 rounded-none"
-        : "bg-white/80 border-gray-100"
-        } rounded-lg p-4 mb-4 shadow-sm border backdrop-blur-md hover:shadow-md transition-all ${!notification.read ? "border-l-4 border-l-blue-500" : ""
-        }`}
-      onClick={() => handleNotificationClick(notification)}
-      style={{ cursor: "pointer" }}
-    >
-      <div
-        className={`p-2 ${theme === "dark" ? "bg-transparent" : "bg-white"
-          } rounded-lg mb-3`}
-      >
-        <div className="flex items-center justify-between gap-5">
-          <div className="w-full">
-            <h3
-              className={`text-lg font-semibold pb-2 mb-3 border-b w-full ${theme === "dark" ? "text-white" : "text-gray-900"
-                }`}
-            >
-              <Bell
-                className={`w-5 h-5 mr-2 inline-block ${theme === "dark" ? "text-white" : "text-blue-600"
-                  }`}
-              />
-              Notification
-              {!notification.read && (
-                <span className="ml-2 inline-block w-2 h-2 bg-red-500 rounded-full"></span>
-              )}
-            </h3>
-            <p
-              className={`text-base font-semibold ps-5 leading-relaxed ${theme === "dark" ? "text-white" : "text-gray-700"
-                }`}
-            >
-              {notification.message}
-            </p>
+  // const NotificationItem = ({
+  //   notification,
+  // }: {
+  //   notification: Notification;
+  // }) => (
+  //   <div
+  //     className={`${theme === "dark"
+  //       ? "bg-custom-gradient border-0 rounded-none"
+  //       : "bg-white/80 border-gray-100"
+  //       } rounded-lg p-4 mb-4 shadow-sm border backdrop-blur-md hover:shadow-md transition-all ${!notification.read ? "border-l-4 border-l-blue-500" : ""
+  //       }`}
+  //     onClick={() => handleNotificationClick(notification)}
+  //     style={{ cursor: "pointer" }}
+  //   >
+  //     <div
+  //       className={`p-2 ${theme === "dark" ? "bg-transparent" : "bg-white"
+  //         } rounded-lg mb-3`}
+  //     >
+  //       <div className="flex items-center justify-between gap-5">
+  //         <div className="w-full">
+  //           <h3
+  //             className={`text-lg font-semibold pb-2 mb-3 border-b w-full ${theme === "dark" ? "text-white" : "text-gray-900"
+  //               }`}
+  //           >
+  //             <Bell
+  //               className={`w-5 h-5 mr-2 inline-block ${theme === "dark" ? "text-white" : "text-blue-600"
+  //                 }`}
+  //             />
+  //             Notification
+  //             {!notification.read && (
+  //               <span className="ml-2 inline-block w-2 h-2 bg-red-500 rounded-full"></span>
+  //             )}
+  //           </h3>
+  //           <p
+  //             className={`text-base font-semibold ps-5 leading-relaxed ${theme === "dark" ? "text-white" : "text-gray-700"
+  //               }`}
+  //           >
+  //             {notification.message}
+  //           </p>
 
-            {notification.modified !== notification.creation && (
-              <div
-                className={`text-sm ps-5 mt-2  ${theme === "dark"
-                  ? "text-white border-purple-500/30"
-                  : "text-gray-600 border-gray-200"
-                  }`}
-              >
-                Modified: {formatDate(notification.modified)}
-              </div>
-            )}
+  //           {notification.modified !== notification.creation && (
+  //             <div
+  //               className={`text-sm ps-5 mt-2  ${theme === "dark"
+  //                 ? "text-white border-purple-500/30"
+  //                 : "text-gray-600 border-gray-200"
+  //                 }`}
+  //             >
+  //               Modified: {formatDate(notification.modified)}
+  //             </div>
+  //           )}
+  //         </div>
+
+  //         <p
+  //           className={`text-sm w-[100px] self-end ${theme === "dark" ? "text-white" : "text-gray-500"
+  //             }`}
+  //         >
+  //           {formatDate(notification.creation)}
+  //         </p>
+  //       </div>
+  //     </div>
+  //   </div>
+  // );
+
+  const NotificationItem = ({ notification }: { notification: Notification }) => (
+    <div
+      onClick={() => handleNotificationClick(notification)}
+      className={`
+      group cursor-pointer relative overflow-hidden 
+      rounded-xl border shadow-sm p-5 mb-4 transition-all duration-200
+      ${theme === "dark"
+          ? "bg-[#1F1A2E]/90 border-[#3A2F55] hover:bg-[#2A2240] hover:shadow-purple-500/20"
+          : "bg-white border-gray-200 hover:shadow-md hover:bg-gray-50"
+        }
+      ${!notification.read ? "border-l-8 border-l-blue-600" : "border-l-8 border-l-transparent"}
+    `}
+    >
+      {/* unread dot */}
+      {!notification.read && (
+        <span className="absolute top-3 right-3 w-3 h-3 rounded-full bg-red-500 animate-pulse"></span>
+      )}
+
+      <div className="flex items-start justify-between">
+        {/* Left side */}
+        <div className="w-full pr-4">
+          {/* Title Row */}
+          <div className="flex items-center gap-2 mb-3">
+            <Bell
+              className={`w-5 h-5 ${theme === "dark" ? "text-purple-400" : "text-blue-600"
+                }`}
+            />
+            <h3
+              className={`text-[18px] font-semibold ${theme === "dark" ? "text-white" : "text-gray-900"
+                }`}
+            >
+              Notification
+            </h3>
           </div>
 
+          {/* Message */}
           <p
-            className={`text-sm w-[100px] self-end ${theme === "dark" ? "text-white" : "text-gray-500"
-              }`}
+            className={`
+            text-[15px] leading-relaxed font-medium mb-2
+            ${theme === "dark" ? "text-gray-200" : "text-gray-700"}
+          `}
           >
-            {formatDate(notification.creation)}
+            {notification.message}
           </p>
+
+          {/* Modified date */}
+          {notification.modified !== notification.creation && (
+            <p
+              className={`
+              text-sm mt-1 italic
+              ${theme === "dark" ? "text-gray-400" : "text-gray-500"}
+            `}
+            >
+              Updated • {formatDate(notification.modified)}
+            </p>
+          )}
+        </div>
+
+        {/* Timestamp */}
+        <div
+          className={`
+          text-xs whitespace-nowrap font-medium 
+          ${theme === "dark" ? "text-gray-300" : "text-gray-500"}
+        `}
+        >
+          {formatDate(notification.creation)}
         </div>
       </div>
     </div>
   );
+
 
   if (loading) {
     return (
@@ -283,50 +355,45 @@ export function NotificationsPageNew({ onMenuToggle }: NotificationsPageProps) {
         }`}
     >
       <div className="flex">
-  {/* Header - Made responsive */}
-  <div className="lg:hidden flex items-center justify-between">
-    <button
-      onClick={onMenuToggle}
-      className={`p-2 rounded-lg transition-colors ${
-        theme === 'dark' ? 'hover:bg-purple-800/50' : 'hover:bg-gray-100'
-      }`}
-    >
-      <Menu
-        className={`w-6 h-6 ${
-          theme === 'dark' ? 'text-white' : 'text-gray-600'
-        }`}
-      />
-    </button>
-  </div>
+        {/* Header - Made responsive */}
+        <div className="lg:hidden flex items-center justify-between">
+          <button
+            onClick={onMenuToggle}
+            className={`p-2 rounded-lg transition-colors ${theme === 'dark' ? 'hover:bg-purple-800/50' : 'hover:bg-gray-100'
+              }`}
+          >
+            <Menu
+              className={`w-6 h-6 ${theme === 'dark' ? 'text-white' : 'text-gray-600'
+                }`}
+            />
+          </button>
+        </div>
 
-  {/* Notifications Header */}
-  <div>
-    <h1
-      className={`text-2xl sm:text-3xl font-bold flex items-center ${
-        theme === 'dark' ? 'text-white' : 'text-gray-900'
-      }`}
-    >
-      <Bell
-        className={`w-7 h-7 mr-2 ${
-          theme === 'dark' ? 'text-purple-500' : 'text-blue-600'
-        }`}
-      />
-      Notifications
-    </h1>
-  </div>
-</div>
+        {/* Notifications Header */}
+        <div>
+          <h1
+            className={`text-2xl sm:text-3xl font-bold flex items-center ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+              }`}
+          >
+            <Bell
+              className={`w-7 h-7 mr-2 ${theme === 'dark' ? 'text-purple-500' : 'text-blue-600'
+                }`}
+            />
+            Notifications
+          </h1>
+        </div>
+      </div>
 
-<div className="mb-4">
-  <p
-    className={`mt-4 mb-4 ${
-      theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-    }`}
-  >
-    Stay updated with your latest CRM activities.
-  </p>
-</div>
+      <div className="mb-4">
+        <p
+          className={`mt-4 mb-4 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+            }`}
+        >
+          Stay updated with your latest CRM activities.
+        </p>
+      </div>
 
-      
+
 
       {notifications.length === 0 ? (
         <div className="text-center py-12">

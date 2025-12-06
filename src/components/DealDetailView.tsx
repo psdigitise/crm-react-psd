@@ -3152,6 +3152,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                       <input
                         type="text"
                         value={editedDeal.annual_revenue || ''}
+                        maxLength={10}
                         onChange={(e) => handleInputChange('annual_revenue', e.target.value)}
                         className={`mt-1 block w-full rounded-md border shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 ${theme === 'dark' ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'}`}
                         placeholder="Enter annual revenue"
@@ -3252,7 +3253,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
 
                       <div
                         key={note.name}
-                        className={`border ${borderColor} rounded-lg p-4 relative transition-colors ${theme === 'dark'
+                        className={`border h-[200px] flex flex-col justify-between ${borderColor} rounded-lg p-4 relative transition-colors ${theme === 'dark'
                           ? 'bg-gray-800 hover:bg-gray-750'
                           : 'bg-white hover:bg-gray-50'
                           }`}
@@ -3311,14 +3312,14 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                         </div>
 
                         {/* Content */}
-                        <div className="mb-12">
+                        <div className="">
                           <p className={`text-base font-normal ${textSecondaryColor} whitespace-pre-wrap line-clamp-3`}>
                             {note.content}
                           </p>
                         </div>
 
                         {/* Footer */}
-                        <div className="flex justify-between items-center mt-4 pt-4 border-t ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'} text-sm gap-2">
+                        <div className="flex justify-between items-center pt-4   border-t ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'} text-sm gap-2">
                           <div className="flex items-center gap-2">
                             <div className={`flex items-center justify-center w-6 h-6 rounded-full ${theme === 'dark' ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-700'} font-bold text-xs`}>
                               {note.owner?.charAt(0).toUpperCase() || "-"}
@@ -3406,8 +3407,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                           value={noteForm.title}
                           onChange={(e) => setNoteForm({ ...noteForm, title: e.target.value })}
                           className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${theme === 'dark'
-                            ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-400'
-                            : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                            ? 'bg-gray-800 border-gray-700 text-white !placeholder-gray-400'
+                            : 'bg-white border-gray-300 text-gray-900 !placeholder-gray-500'
                             } ${noteForm.title === '' && noteFormError
                               ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
                               : ''
@@ -3427,8 +3428,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                           onChange={(e) => setNoteForm({ ...noteForm, content: e.target.value })}
                           rows={8}
                           className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${theme === 'dark'
-                            ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-400'
-                            : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                            ? 'bg-gray-800 border-gray-700 text-white !placeholder-gray-400'
+                            : 'bg-white border-gray-300 text-gray-900 !placeholder-gray-500'
                             }`}
                           placeholder="Took a call with John Doe and discussed the new project"
                         />
@@ -3519,7 +3520,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                 <div className="text-center py-8">
                   <Phone className={`w-12 h-12 mx-auto mb-4 ${textSecondaryColor}`} />
                   <p className={textSecondaryColor}>No call logs</p>
-                  <span
+                  <button
                     onClick={() => {
                       setIsEditMode(false); // <-- ADD THIS LINE
                       setCallForm({
@@ -3534,8 +3535,10 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                       });
                       setShowCallModal(true);
                     }}
-                    className="text-white cursor-pointer bg-gray-400 rounded-md inline-block text-center px-6 py-2"
-                  >Create Call Log</span>
+                    className={`mt-4 px-6 py-2 rounded-md cursor-pointer transition-colors ${theme === 'dark'
+                      ? 'bg-gray-600 text-white hover:bg-gray-700'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                  >Create Call Log</button>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -3890,7 +3893,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                 <div className="text-center py-8">
                   <FaRegComment className={`w-12 h-12 mx-auto mb-4 ${textSecondaryColor}`} />
                   <p className={textSecondaryColor}>No comments</p>
-                  <span
+                  <button
                     onClick={() => {
                       setSelectedEmailComments(null);
                       setEmailModalModeComments("comment");
@@ -3899,12 +3902,12 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                         composerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                       }, 100);
                     }}
-                    className={`mt-2 px-6 py-2 rounded-md cursor-pointer transition-colors ${theme === 'dark'
+                    className={`mt-4 px-6 py-2 rounded-md cursor-pointer transition-colors ${theme === 'dark'
                       ? 'bg-gray-700 text-white hover:bg-gray-600'
                       : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
                   >
                     New Comment
-                  </span>
+                  </button>
                 </div>
               ) : (
                 <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
@@ -4094,7 +4097,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                 <div className="text-center py-8">
                   <SiTicktick className={`w-12 h-12 mx-auto mb-4 ${textSecondaryColor}`} />
                   <p className={textSecondaryColor}>No tasks</p>
-                  <span
+                  <button
                     onClick={() => {
                       setTaskForm({
                         title: '',
@@ -4108,10 +4111,12 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                       setCurrentTaskId(null);
                       setShowTaskModal(true);
                     }}
-                    className={`mt-4 px-6 py-2 rounded-md cursor-pointer ${theme === 'dark' ? 'bg-gray-600 text-white hover:bg-gray-700' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                    className={`mt-4 px-6 py-2 rounded-md cursor-pointer transition-colors ${theme === 'dark'
+                      ? 'bg-gray-600 text-white hover:bg-gray-700'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
                   >
                     Create Task
-                  </span>
+                  </button>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -4481,7 +4486,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                 <div className="text-center py-8">
                   <Mail className={`w-12 h-12 mx-auto mb-4 ${textSecondaryColor}`} />
                   <p className={textSecondaryColor}>No emails Communications</p>
-                  <span
+                  <button
                     onClick={() => {
                       setSelectedEmailEmails(null);                // Use Emails suffix
                       setEmailModalModeEmails("new");             // Use Emails suffix
@@ -4490,10 +4495,12 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                         composerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                       }, 100);
                     }}
-                    className="text-white cursor-pointer bg-gray-400 rounded-md inline-block text-center px-6 py-2"
+                    className={`mt-4 px-6 py-2 rounded-md cursor-pointer transition-colors ${theme === 'dark'
+                      ? 'bg-gray-600 text-white hover:bg-gray-700'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
                   >
                     New Email
-                  </span>
+                  </button>
                 </div>
               ) : (
                 <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
@@ -5984,15 +5991,30 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         />
       )}
 
-      {/* Lost Reason Modal */}
       {showLostReasonModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className={`w-full max-w-md ${cardBgColor} rounded-lg shadow-lg p-6 relative border ${borderColor}`}>
+          <div className={`w-full max-w-md rounded-lg shadow-lg p-6 relative ${theme === 'dark'
+            ? 'bg-gray-800 border border-gray-700'
+            : 'bg-white border border-gray-200'}`}>
+
+            {/* Close button */}
+            <button
+              onClick={() => {
+                setShowLostReasonModal(false);
+                setLostReasonForm({ lost_reason: '', lost_notes: '' });
+              }}
+              className={`absolute top-4 right-4 p-1 rounded-full ${theme === 'dark'
+                ? 'text-gray-400 hover:text-gray-300 hover:bg-gray-700'
+                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}
+            >
+              <IoCloseOutline className="w-5 h-5" />
+            </button>
+
             <div className="mb-6">
-              <h3 className={`text-lg font-semibold ${textColor} mb-2`}>
+              <h3 className={`text-lg font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'} mb-2`}>
                 Lost reason
               </h3>
-              <p className={`text-sm ${textSecondaryColor}`}>
+              <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
                 Please provide a reason for marking this deal as lost
               </p>
             </div>
@@ -6000,17 +6022,25 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
             <div className="space-y-4">
               {/* Lost Reason Dropdown */}
               <div>
-                <label className={`block text-sm font-medium mb-2 ${textSecondaryColor}`}>
+                <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
                   Lost reason <span className="text-red-500">*</span>
                 </label>
                 <select
                   value={lostReasonForm.lost_reason}
                   onChange={(e) => setLostReasonForm({ ...lostReasonForm, lost_reason: e.target.value })}
-                  className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
+                  className={`w-full px-3 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${theme === 'dark'
+                    ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500'
+                    : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-blue-500'}`}
                 >
-                  <option value="">Select lost reason</option>
+                  <option value="" className={theme === 'dark' ? 'bg-gray-700 text-white' : 'bg-white text-gray-900'}>
+                    Select lost reason
+                  </option>
                   {lostReasons.map((reason) => (
-                    <option key={reason.value} value={reason.value}>
+                    <option
+                      key={reason.value}
+                      value={reason.value}
+                      className={theme === 'dark' ? 'bg-gray-700 text-white' : 'bg-white text-gray-900'}
+                    >
                       {reason.label}
                     </option>
                   ))}
@@ -6019,14 +6049,16 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
 
               {/* Lost Notes */}
               <div>
-                <label className={`block text-sm font-medium mb-2 ${textSecondaryColor}`}>
+                <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
                   Lost notes
                 </label>
                 <textarea
                   value={lostReasonForm.lost_notes}
                   onChange={(e) => setLostReasonForm({ ...lostReasonForm, lost_notes: e.target.value })}
                   rows={4}
-                  className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}`}
+                  className={`w-full px-3 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${theme === 'dark'
+                    ? 'bg-gray-700 border-gray-600 text-white !placeholder-gray-400 focus:border-blue-500'
+                    : 'bg-white border-gray-300 text-gray-900 !placeholder-gray-500 focus:border-blue-500'}`}
                   placeholder="Add any additional notes..."
                 />
               </div>
@@ -6038,16 +6070,28 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                   setShowLostReasonModal(false);
                   setLostReasonForm({ lost_reason: '', lost_notes: '' });
                 }}
-                className={`px-4 py-2 rounded-lg border ${borderColor} ${theme === 'dark' ? 'text-white hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-100'} transition-colors`}
+                className={`px-4 py-2.5 rounded-lg border transition-colors ${theme === 'dark'
+                  ? 'border-gray-600 text-gray-300 hover:text-white hover:bg-gray-700 hover:border-gray-500'
+                  : 'border-gray-300 text-gray-700 hover:text-gray-900 hover:bg-gray-100 hover:border-gray-400'}`}
               >
                 Cancel
               </button>
               <button
                 onClick={saveLostDeal}
                 disabled={loading}
-                className={`px-4 py-2 rounded-lg text-white transition-colors ${theme === 'dark' ? 'bg-purplebg hover:bg-purple-700' : 'bg-blue-600 hover:bg-blue-700'} disabled:opacity-50`}
+                className={`px-4 py-2.5 rounded-lg text-white transition-colors ${theme === 'dark'
+                  ? 'bg-purple-600 hover:bg-purple-700 focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-gray-800'
+                  : 'bg-blue-600 hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-white'} 
+            disabled:opacity-50 disabled:cursor-not-allowed`}
               >
-                {loading ? 'Saving...' : 'Save'}
+                {loading ? (
+                  <span className="flex items-center justify-center">
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Saving...
+                  </span>
+                ) : (
+                  'Save'
+                )}
               </button>
             </div>
           </div>

@@ -810,8 +810,8 @@ export default function EmailOrCommentComposer({
                       onKeyDown={(e) => handleInputKeyDown(e, "to")}
                       onFocus={() => setSuggestionsFor("to")}
                       className={`w-full px-2 py-1 rounded font-medium outline-none placeholder:font-normal ${theme === "dark"
-                        ? "bg-gray-700 text-white placeholder:text-gray-400 border border-gray-600 focus:border-gray-400"
-                        : "bg-gray-50 text-gray-800 placeholder:text-gray-500 border border-gray-300 focus:border-gray-500"
+                        ? "bg-gray-700 text-white !placeholder-gray-400 border border-gray-600 focus:border-gray-400"
+                        : "bg-gray-50 text-gray-800 !placeholder-gray-500 border border-gray-300 focus:border-gray-500"
                         }`}
                       placeholder={toRecipients.length === 0 ? "Recipient email" : ""}
                     />
@@ -828,8 +828,8 @@ export default function EmailOrCommentComposer({
                 AI Assist:
               </span>
               <div className="flex-1 flex items-center gap-2">
-                <input
-                  type="text"
+                <textarea
+                  
                   value={emailForm.aiPrompt}
                   onChange={(e) => setEmailForm(f => ({ ...f, aiPrompt: e.target.value }))}
                   onKeyDown={(e) => {
@@ -839,8 +839,8 @@ export default function EmailOrCommentComposer({
                     }
                   }}
                   className={`px-2 py-1 rounded font-medium outline-none flex-1 placeholder:font-normal ${theme === "dark"
-                    ? "bg-gray-700 text-white placeholder:text-gray-400 border border-gray-600 focus:border-gray-400"
-                    : "bg-gray-50 text-gray-800 placeholder:text-gray-500 border border-gray-300 focus:border-gray-500"
+                    ? "bg-gray-700 text-white !placeholder-gray-400 border border-gray-600 focus:border-gray-400"
+                    : "bg-gray-50 text-gray-800 !placeholder-gray-500 border border-gray-300 focus:border-gray-500"
                     }`}
                   placeholder="Describe the email you want to write (e.g., 'client followup reminder')"
                 />

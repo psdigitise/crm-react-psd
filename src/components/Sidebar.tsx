@@ -14,16 +14,16 @@ import {
   Home,
   Menu,
   X,
-  Clock,
-  ListTodo,
   Moon,
   Sun,
   LogOut,
-  UserCheck
+  UserCheck,
+  Settings
 } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import { getUserSession, clearUserSession } from '../utils/session';
 import { AUTH_TOKEN } from '../api/apiUrl';
+import { SettingsModal } from './SettingsModal';
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -59,6 +59,8 @@ export function Sidebar({ isCollapsed, onToggle, activeItem, onItemClick }: Side
   const [unreadCount, setUnreadCount] = useState(0);
   const [companyInfo, setCompanyInfo] = useState<{ start_date?: string, end_date?: string } | null>(null);
   const [expiryStatus, setExpiryStatus] = useState<{ expired: boolean, daysLeft: number } | null>(null);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [isLogoHovered, setIsLogoHovered] = useState(false);
   const userSession = getUserSession();
   const CompanyName = userSession?.company;
   const sessionfullname = userSession?.full_name;
@@ -108,17 +110,61 @@ export function Sidebar({ isCollapsed, onToggle, activeItem, onItemClick }: Side
     return () => clearInterval(interval);
   }, []);
 
+  // const fetchNotifications = async () => {
+  //   try {
+  //     const session = getUserSession();
+  //     const sessionCompany = session?.company;
+
+  //     let apiUrl = 'https://api.erpnext.ai/api/v2/document/CRM Notification?fields=["name","creation","modified","message"]';
+
+  //     // Add company filter if company exists in session
+  //     if (sessionCompany) {
+  //       apiUrl += `&filters=[["company","=","${sessionCompany}"]]`;
+  //     }
+
+  //     const response = await fetch(apiUrl, {
+  //       method: 'GET',
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //         'Authorization': AUTH_TOKEN
+  //       }
+  //     });
+
+  //     if (response.ok) {
+  //       const result = await response.json();
+  //       const newNotifications = result.data || [];
+
+  //       // Set the unread count to the actual number of notifications
+  //       const totalNotifications = newNotifications.length;
+  //       setNotifications(newNotifications);
+  //       setUnreadCount(totalNotifications);
+  //     }
+  //   } catch (error) {
+  //     console.error('Error fetching notifications:', error);
+  //   }
+  // };
+
+
   const fetchNotifications = async () => {
     try {
       const session = getUserSession();
       const sessionCompany = session?.company;
 
-      let apiUrl = 'https://api.erpnext.ai/api/v2/document/CRM Notification?fields=["name","creation","modified","message"]';
+      let apiUrl =
+        'https://api.erpnext.ai/api/v2/document/CRM Notification?' +
+        'fields=["name","creation","modified","message","read"]';
 
-      // Add company filter if company exists in session
+      // Build filters: unread + company filter
+      const filters = [];
+
       if (sessionCompany) {
-        apiUrl += `&filters=[["company","=","${sessionCompany}"]]`;
+        filters.push(["company", "=", sessionCompany]);
       }
+
+      // Only unread notifications
+      filters.push(["read", "=", 0]);
+
+      apiUrl += `&filters=${JSON.stringify(filters)}`;
 
       const response = await fetch(apiUrl, {
         method: 'GET',
@@ -130,12 +176,10 @@ export function Sidebar({ isCollapsed, onToggle, activeItem, onItemClick }: Side
 
       if (response.ok) {
         const result = await response.json();
-        const newNotifications = result.data || [];
+        const unreadNotifications = result.data || [];
 
-        // Set the unread count to the actual number of notifications
-        const totalNotifications = newNotifications.length;
-        setNotifications(newNotifications);
-        setUnreadCount(totalNotifications);
+        setNotifications(unreadNotifications);
+        setUnreadCount(unreadNotifications.length);
       }
     } catch (error) {
       console.error('Error fetching notifications:', error);
@@ -175,54 +219,130 @@ export function Sidebar({ isCollapsed, onToggle, activeItem, onItemClick }: Side
           ${theme === 'dark'
             ? 'bg-gradient-to-b from-dark-primary via-dark-secondary to-dark-tertiary border-purple-500/30'
             : 'bg-white border-gray-200'
-          } border-r transition-transform duration-300 ease-in-out flex flex-col
+          } border-r transition-all duration-300 ease-in-out flex flex-col
           ${isCollapsed ? '-translate-x-full lg:translate-x-0 lg:w-16' : 'translate-x-0 w-64'}
         `}
       >
         {/* Header */}
         <div className={`p-4 border-b ${theme === 'dark' ? 'border-purple-500/30' : 'border-gray-100'}`}>
           <div className="flex w-full items-center justify-between">
-            {!isCollapsed && (
-              <div className="w-full items-center space-x-3">
-                {/* <img
-                  src="../../public/assets/images/Erpnextlogo.png"
-                  alt="ERPNext Logo"
-                  className={`w-[250px] h-auto transition duration-300 ${theme === "dark"
-                    ? "filter invert brightness-0 saturate-100 sepia hue-rotate-[90deg] contrast-125"
-                    : ""
-                    }`}
-                /> */}
+            {!isCollapsed ? (
+              <div className="w-full">
+                {/* Logo Area with Hover Dropdown */}
+                <div
+                  className="relative"
+                  onMouseEnter={() => setIsLogoHovered(true)}
+                  onMouseLeave={() => setIsLogoHovered(false)}
+                >
+                  <div className="flex items-center space-x-3 mb-2">
+                    {/* Logo */}
+                    <img
+                      src="/login/assets/images/Erpnextlogo.png"
+                      alt="ERPNext Logo"
+                      className={`w-[250px] h-auto transition duration-300 ${theme === "dark"
+                        ? "filter invert brightness-0 saturate-100 sepia hue-rotate-[90deg] contrast-125"
+                        : ""
+                        }`}
+                    />
+                  </div>
 
+                  {/* Company Name and Username */}
+                  <div className="mb-4">
+                    <h2
+                      className={`text-sm font-semibold truncate ${theme === "dark"
+                        ? "text-white"
+                        : "text-gray-800"
+                        }`}
+                      title="Companyname"
+                    >
+                      {CompanyName || "CRM"}
+                    </h2>
+                    <div className="flex items-center space-x-1">
+                      <p
+                        className={`text-xs truncate ${theme === "dark"
+                          ? "text-gray-300"
+                          : "text-gray-500"
+                          }`}
+                        title="username"
+                      >
+                        {Username || "Administrator"}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Dropdown Menu (shown on hover) */}
+                  {isLogoHovered && (
+                    <div className={`absolute top-12 left-0 right-0 mt-2 rounded-lg shadow-lg z-50 ${theme === 'dark'
+                      ? 'bg-gray-800 border border-purple-500/30'
+                      : 'bg-white border border-gray-200'
+                      }`}>
+                      <div className="p-2">
+                        <div className="space-y-1">
+                          {/* Toggle Theme */}
+                          <button
+                            onClick={() => {
+                              toggleTheme();
+                              setIsLogoHovered(false);
+                            }}
+                            className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-all duration-200 ${theme === 'dark'
+                              ? 'hover:bg-purple-800/50 text-white'
+                              : 'hover:bg-gray-100 text-gray-700'
+                              }`}
+                          >
+                            {theme === 'dark' ? (
+                              <Sun className="w-4 h-4" />
+                            ) : (
+                              <Moon className='w-4 h-4' />
+                            )}
+                            <span className="text-sm">Toggle theme</span>
+                          </button>
+
+                          {/* Settings */}
+                          <button
+                            onClick={() => {
+                              setShowSettingsModal(true);
+                              setIsLogoHovered(false);
+                            }}
+                            className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-all duration-200 ${theme === 'dark'
+                              ? 'hover:bg-purple-800/50 text-white'
+                              : 'hover:bg-gray-100 text-gray-700'
+                              }`}
+                          >
+                            <Settings className="w-4 h-4" />
+                            <span className="text-sm">Settings</span>
+                          </button>
+
+                          {/* Log out */}
+                          <button
+                            onClick={() => {
+                              handleLogout();
+                              setIsLogoHovered(false);
+                            }}
+                            className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-all duration-200 ${theme === 'dark'
+                              ? 'hover:bg-red-900/30 text-red-400 hover:text-red-300'
+                              : 'hover:bg-red-50 text-red-600 hover:text-red-700'
+                              }`}
+                          >
+                            <LogOut className="w-4 h-4" />
+                            <span className="text-sm">Log out</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              // Collapsed Logo/Company Icon
+              <div className="flex items-center justify-center w-full">
                 <img
                   src="/login/assets/images/Erpnextlogo.png"
                   alt="ERPNext Logo"
-                  className={`w-[250px] h-auto transition duration-300 ${theme === "dark"
-                      ? "filter invert brightness-0 saturate-100 sepia hue-rotate-[90deg] contrast-125"
-                      : ""
+                  className={`w-8 h-8 transition duration-300 ${theme === "dark"
+                    ? "filter invert brightness-0 saturate-100 sepia hue-rotate-[90deg] contrast-125"
+                    : ""
                     }`}
                 />
-
-
-                <div className="mt-2">
-                  <h2
-                    className={`text-sm font-semibold truncate max-w-[180px] ${theme === "dark"
-                      ? "text-white"
-                      : "text-gray-800"
-                      }`}
-                    title="Companyname"
-                  >
-                    {CompanyName}
-                  </h2>
-                  <p
-                    className={`text-xs truncate max-w-[180px] ${theme === "dark"
-                      ? "text-gray-300"
-                      : "text-gray-500"
-                      }`}
-                    title="username"
-                  >
-                    {Username}
-                  </p>
-                </div>
               </div>
             )}
 
@@ -279,7 +399,7 @@ export function Sidebar({ isCollapsed, onToggle, activeItem, onItemClick }: Side
                         }
                       }
                     }}
-                    className={`w-full flex items-center space-x-3 px-3 py-2.5 my-2 rounded-lg transition-all duration-200 relative ${isActive
+                    className={`w-full flex items-center ${isCollapsed ? 'justify-center px-2' : 'justify-start space-x-3 px-3'} py-2.5 my-2 rounded-lg transition-all duration-200 relative ${isActive
                       ? theme === 'dark'
                         ? 'bg-[#ffffff7a] text-purple-300 border border-0'
                         : 'bg-blue-50 text-blue-700 border border-blue-200'
@@ -303,9 +423,16 @@ export function Sidebar({ isCollapsed, onToggle, activeItem, onItemClick }: Side
                     )}
 
                     {/* Notification Badge - Shows actual count from data */}
-                    {showNotificationBadge && (
+                    {showNotificationBadge && !isCollapsed && (
                       <span className="absolute top-2.5 right-1 bg-red-500 text-white text-xs rounded-full min-w-[20px] h-5 flex items-center justify-center font-bold px-1">
                         {unreadCount > 99 ? '99+' : unreadCount}
+                      </span>
+                    )}
+
+                    {/* Notification Badge for collapsed state */}
+                    {showNotificationBadge && isCollapsed && (
+                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full min-w-[18px] h-[18px] flex items-center justify-center font-bold">
+                        {unreadCount > 9 ? '9+' : unreadCount}
                       </span>
                     )}
                   </button>
@@ -327,47 +454,152 @@ export function Sidebar({ isCollapsed, onToggle, activeItem, onItemClick }: Side
           </ul>
         </nav>
 
-        {/* Expiry Status */}
-        <div>
-          {companyInfo && (
-            <div style={{ fontFamily: 'Inter, sans-serif' }}>
-              {expiryStatus && (
-                <div className={`mt-2 text-sm font-semibold flex items-center justify-center gap-2
-                  ${expiryStatus.expired
-                    ? 'text-white bg-red-500/20'
+        {/* Company Expiry Status - Only show when expanded */}
+        {!isCollapsed && companyInfo && (
+          <div style={{ fontFamily: 'Inter, sans-serif' }}>
+            {expiryStatus && (
+              <div className={`p-3 mx-2 mb-2 rounded-lg border ${theme === 'dark'
+                ? expiryStatus.expired
+                  ? 'bg-red-900/20 border-red-700/50'
+                  : expiryStatus.daysLeft <= 7
+                    ? 'bg-yellow-900/20 border-yellow-700/50'
+                    : 'bg-green-900/20 border-green-700/50'
+                : expiryStatus.expired
+                  ? 'bg-red-50 border-red-200'
+                  : expiryStatus.daysLeft <= 7
+                    ? 'bg-yellow-50 border-yellow-200'
+                    : 'bg-green-50 border-green-200'
+                }`}>
+                <div className="flex items-start gap-2">
+                  {/* Icon */}
+                  <div className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center ${expiryStatus.expired
+                    ? 'bg-red-500'
                     : expiryStatus.daysLeft <= 7
-                      ? 'text-yellow-600'
-                      : 'text-green-600'
-                  }`}
-                >
-                  {expiryStatus.expired ? (
-                    <>
-                      <span className="inline-block w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
-                      PACK Expired
-                    </>
-                  ) : (
-                    <>
-                      <span className="inline-block w-2 h-2 bg-green-500 rounded-full"></span>
-                      {expiryStatus.daysLeft <= 7
-                        ? `Expiring in ${expiryStatus.daysLeft} day${expiryStatus.daysLeft === 1 ? '' : 's'}`
-                        : `Expires in ${expiryStatus.daysLeft} day${expiryStatus.daysLeft === 1 ? '' : 's'}`}
-                    </>
-                  )}
+                      ? 'bg-yellow-500'
+                      : 'bg-green-500'
+                    }`}>
+                    {expiryStatus.expired ? (
+                      <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    ) : expiryStatus.daysLeft <= 7 ? (
+                      <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    ) : (
+                      <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    )}
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <div className={`text-xs font-semibold mb-1 ${theme === 'dark'
+                      ? expiryStatus.expired
+                        ? 'text-red-400'
+                        : expiryStatus.daysLeft <= 7
+                          ? 'text-yellow-400'
+                          : 'text-green-400'
+                      : expiryStatus.expired
+                        ? 'text-red-600'
+                        : expiryStatus.daysLeft <= 7
+                          ? 'text-yellow-600'
+                          : 'text-green-600'
+                      }`}>
+                      {expiryStatus.expired ? (
+                        'PACK EXPIRED'
+                      ) : expiryStatus.daysLeft <= 7 ? (
+                        `EXPIRING IN ${expiryStatus.daysLeft} DAY${expiryStatus.daysLeft === 1 ? '' : 'S'}`
+                      ) : (
+                        `EXPIRES IN ${expiryStatus.daysLeft} DAY${expiryStatus.daysLeft === 1 ? '' : 'S'}`
+                      )}
+                    </div>
+
+                    {expiryStatus.expired ? (
+                      <div className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                        Please renew your subscription
+                      </div>
+                    ) : expiryStatus.daysLeft <= 7 ? (
+                      <div className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                        Your subscription is ending soon
+                      </div>
+                    ) : (
+                      <div className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                        Subscription is active
+                      </div>
+                    )}
+                  </div>
                 </div>
-              )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Simplified Company Expiry Status for collapsed sidebar */}
+        {isCollapsed && companyInfo && expiryStatus && (
+          <div className="relative group mb-2">
+            <div className="flex items-center justify-center p-3">
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${expiryStatus.expired
+                ? 'bg-red-500'
+                : expiryStatus.daysLeft <= 7
+                  ? 'bg-yellow-500'
+                  : 'bg-green-500'
+                }`}>
+                {expiryStatus.expired ? (
+                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                ) : expiryStatus.daysLeft <= 7 ? (
+                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                )}
+              </div>
             </div>
-          )}
-        </div>
+
+            {/* Tooltip for collapsed state */}
+            <div className="absolute left-full ml-2 px-3 py-2 bg-gray-900 text-white text-sm font-semibold rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 whitespace-nowrap pointer-events-none min-w-[180px]">
+              <div className={`text-xs font-semibold mb-1 ${expiryStatus.expired
+                ? 'text-red-300'
+                : expiryStatus.daysLeft <= 7
+                  ? 'text-yellow-300'
+                  : 'text-green-300'
+                }`}>
+                {expiryStatus.expired ? (
+                  'PACK EXPIRED'
+                ) : expiryStatus.daysLeft <= 7 ? (
+                  `EXPIRING IN ${expiryStatus.daysLeft} DAY${expiryStatus.daysLeft === 1 ? '' : 'S'}`
+                ) : (
+                  `EXPIRES IN ${expiryStatus.daysLeft} DAY${expiryStatus.daysLeft === 1 ? '' : 'S'}`
+                )}
+              </div>
+
+              <div className="text-xs text-gray-300">
+                {expiryStatus.expired ? (
+                  'Please renew your subscription'
+                ) : expiryStatus.daysLeft <= 7 ? (
+                  'Your subscription is ending soon'
+                ) : (
+                  'Subscription is active'
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* User Info & Logout */}
         <div className={`p-4 border-t ${theme === 'dark' ? 'border-purple-500/30' : 'border-gray-100'}`}>
           <button
             onClick={handleLogout}
-            className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-all duration-200 ${theme === 'dark'
+            className={`w-full flex ${isCollapsed ? 'justify-center' : 'justify-start space-x-3'} px-3 py-2.5 rounded-lg transition-all duration-200 ${theme === 'dark'
               ? 'text-red-400 hover:bg-red-900/30 hover:text-red-300'
               : 'text-red-600 hover:bg-red-50 hover:text-red-700'
               }`}
-            title="Logout"
+            title={isCollapsed ? "Logout" : ""}
           >
             <LogOut className="w-5 h-5 flex-shrink-0" />
             {!isCollapsed && (
@@ -376,6 +608,11 @@ export function Sidebar({ isCollapsed, onToggle, activeItem, onItemClick }: Side
           </button>
         </div>
       </div>
+
+      <SettingsModal
+        isOpen={showSettingsModal}
+        onClose={() => setShowSettingsModal(false)}
+      />
     </>
   );
 }

@@ -68,6 +68,8 @@ interface CallLogsPageProps {
   refreshTrigger?: number;
   onMenuToggle: () => void;
   searchTerm: string;
+  onNavigateToDeal?: (dealName: string) => void;
+  onNavigateToLead?: (leadName: string) => void;
 }
 
 interface CallForm {
@@ -204,7 +206,10 @@ const EditCallModal: React.FC<EditCallModalProps> = ({
               type="text"
               value={callForm.to}
               onChange={(e) => setCallForm({ ...callForm, to: e.target.value })}
-              className={`w-full px-3 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${inputBgColor}`}
+               className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
+                      ? 'bg-gray-800 border-gray-600 text-white !placeholder-gray-400'
+                      : 'bg-white border-gray-300 text-gray-900 !placeholder-gray-500'
+                      }`}
               placeholder="To"
             />
           </div>
@@ -218,7 +223,10 @@ const EditCallModal: React.FC<EditCallModalProps> = ({
               type="text"
               value={callForm.from}
               onChange={(e) => setCallForm({ ...callForm, from: e.target.value })}
-              className={`w-full px-3 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${inputBgColor}`}
+              className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
+                      ? 'bg-gray-800 border-gray-600 text-white !placeholder-gray-400'
+                      : 'bg-white border-gray-300 text-gray-900 !placeholder-gray-500'
+                      }`}
               placeholder="From"
             />
           </div>
@@ -244,7 +252,10 @@ const EditCallModal: React.FC<EditCallModalProps> = ({
               type="number"
               value={callForm.duration}
               onChange={(e) => setCallForm({ ...callForm, duration: e.target.value })}
-              className={`w-full px-3 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${inputBgColor}`}
+               className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
+                      ? 'bg-gray-800 border-gray-600 text-white !placeholder-gray-400'
+                      : 'bg-white border-gray-300 text-gray-900 !placeholder-gray-500'
+                      }`}
               placeholder="Call duration"
             />
           </div>
@@ -410,7 +421,15 @@ const fetchUsers = async (): Promise<User[]> => {
   }
 };
 
-export function CallLogsPage({ onCreateCallLog, leadName, refreshTrigger = 0, onMenuToggle, searchTerm }: CallLogsPageProps) {
+export function CallLogsPage({ 
+  onCreateCallLog, 
+  leadName, 
+  refreshTrigger = 0, 
+  onMenuToggle, 
+  searchTerm,
+  onNavigateToDeal,
+  onNavigateToLead 
+}: CallLogsPageProps) {
   const { theme } = useTheme();
   const [callLogs, setCallLogs] = useState<CallLog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -422,12 +441,6 @@ export function CallLogsPage({ onCreateCallLog, leadName, refreshTrigger = 0, on
   const [selectedCallLogs, setSelectedCallLogs] = useState<string[]>([]);
   const [showMenu, setShowMenu] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-
-  // Add state for deal and lead navigation
-  const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
-  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
-  const [dealLoading, setDealLoading] = useState(false);
-  const [leadLoading, setLeadLoading] = useState(false);
 
   // Form state
   const [callForm, setCallForm] = useState<CallForm>({
@@ -462,6 +475,13 @@ export function CallLogsPage({ onCreateCallLog, leadName, refreshTrigger = 0, on
   // Mobile dropdown state
   const [expandedCallLogs, setExpandedCallLogs] = useState<Set<string>>(new Set());
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+
+  // Navigation loading state
+  const [navigationLoading, setNavigationLoading] = useState(false);
+
   // Theme-based styling classes
   const textColor = theme === 'dark' ? 'text-white' : 'text-gray-900';
   const textSecondaryColor = theme === 'dark' ? 'text-gray-400' : 'text-gray-600';
@@ -475,6 +495,11 @@ export function CallLogsPage({ onCreateCallLog, leadName, refreshTrigger = 0, on
     fetchCallLogs();
     loadUsers();
   }, [leadName, refreshTrigger]);
+
+  // Reset to first page when search term changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
 
   const loadUsers = async () => {
     setLoadingUsers(true);
@@ -794,11 +819,21 @@ export function CallLogsPage({ onCreateCallLog, leadName, refreshTrigger = 0, on
     }
   };
 
+  // Filter call logs based on search term
   const filteredCallLogs = callLogs.filter(callLog =>
     Object.values(callLog).some(value =>
       value?.toString().toLowerCase().includes(searchTerm.toLowerCase())
     )
   );
+
+  // Pagination calculations
+  const filteredDataLength = filteredCallLogs.length;
+  const totalPages = Math.ceil(filteredDataLength / itemsPerPage);
+
+  // Get current page items
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = filteredCallLogs.slice(indexOfFirstItem, indexOfLastItem);
 
   const formatDuration = (seconds?: string) => {
     if (!seconds) return "N/A";
@@ -814,176 +849,32 @@ export function CallLogsPage({ onCreateCallLog, leadName, refreshTrigger = 0, on
     return `${secs}s`;
   };
 
-  // Function to fetch deal details
-  const fetchDealDetails = async (dealName: string): Promise<Deal | null> => {
-    try {
-      setDealLoading(true);
-      const session = getUserSession();
-      if (!session) {
-        showToast('Session not found', { type: 'error' });
-        return null;
-      }
-
-      const response = await fetch(`https://api.erpnext.ai/api/method/frappe.client.get`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
-        },
-        body: JSON.stringify({
-          doctype: "CRM Deal",
-          name: dealName
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      const dealData = data.message;
-
-      if (!dealData) {
-        throw new Error('Deal data not found');
-      }
-
-      const transformedDeal: Deal = {
-        name: dealData.name,
-        id: dealData.name,
-        organization: dealData.organization || '',
-        currency: dealData.currency || '',
-        annual_revenue: dealData.annual_revenue || 0,
-        status: dealData.status || '',
-        email: dealData.email || '',
-        mobile_no: dealData.mobile_no || '',
-        mobileNo: dealData.mobile_no || '',
-        deal_owner: dealData.deal_owner || '',
-        assignedTo: dealData.deal_owner || '',
-        modified: dealData.modified || '',
-        lastModified: dealData.modified || '',
-        annualRevenue: dealData.annual_revenue?.toString() || '0',
-        organization_name: dealData.organization_name,
-        website: dealData.website,
-        no_of_employees: dealData.no_of_employees,
-        territory: dealData.territory,
-        industry: dealData.industry,
-        salutation: dealData.salutation,
-        first_name: dealData.first_name,
-        last_name: dealData.last_name,
-        gender: dealData.gender,
-        close_date: dealData.close_date,
-        probability: dealData.probability,
-        next_step: dealData.next_step
-      };
-
-      return transformedDeal;
-    } catch (error) {
-      console.error('Error fetching deal details:', error);
-      showToast('Failed to fetch deal details', { type: 'error' });
-      return null;
-    } finally {
-      setDealLoading(false);
-    }
-  };
-
-  // Function to fetch lead details
-  const fetchLeadDetails = async (leadName: string): Promise<Lead | null> => {
-    try {
-      setLeadLoading(true);
-      const session = getUserSession();
-      if (!session) {
-        showToast('Session not found', { type: 'error' });
-        return null;
-      }
-
-      const response = await fetch(`https://api.erpnext.ai/api/method/frappe.client.get`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
-        },
-        body: JSON.stringify({
-          doctype: "CRM Lead",
-          name: leadName
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      const leadData = data.message;
-
-      if (!leadData) {
-        throw new Error('Lead data not found');
-      }
-
-      const transformedLead: Lead = {
-        id: leadData.name || '',
-        name: leadData.name || '',
-        leadId: leadData.name || '',
-        firstName: leadData.first_name || '',
-        lastName: leadData.last_name || '',
-        organization: leadData.organization || '',
-        status: leadData.status || '',
-        email: leadData.email || '',
-        mobile: leadData.mobile_no || '',
-        mobile_no: leadData.mobile_no || '',
-        assignedTo: leadData.lead_owner || '',
-        lead_owner: leadData.lead_owner || '',
-        lastModified: leadData.modified || '',
-        modified: leadData.modified || '',
-        creation: leadData.creation || '',
-        website: leadData.website || '',
-        territory: leadData.territory || '',
-        industry: leadData.industry || '',
-        jobTitle: leadData.job_title || '',
-        source: leadData.source || '',
-        salutation: leadData.salutation || '',
-        owner: leadData.owner || '',
-        modified_by: leadData.modified_by || '',
-        docstatus: leadData.docstatus || 0,
-        idx: leadData.idx || 0,
-        naming_series: leadData.naming_series || '',
-        lead_name: leadData.lead_name || `${leadData.first_name || ''} ${leadData.last_name || ''}`.trim(),
-        gender: leadData.gender || '',
-        no_of_employees: leadData.no_of_employees || '',
-        annual_revenue: leadData.annual_revenue || 0,
-        image: leadData.image || '',
-        first_name: leadData.first_name || '',
-        last_name: leadData.last_name || '',
-        converted: leadData.converted || ''
-      };
-
-      return transformedLead;
-    } catch (error) {
-      console.error('Error fetching lead details:', error);
-      showToast('Failed to fetch lead details', { type: 'error' });
-      return null;
-    } finally {
-      setLeadLoading(false);
-    }
-  };
-
+  // Function to handle opening reference records
   const handleOpenReference = async (callLog: CallLog) => {
     if (!callLog.reference_doctype || !callLog.id) {
       showToast('This call log is not linked to any record', { type: 'error' });
       return;
     }
 
-    if (callLog.reference_doctype === 'CRM Deal') {
-      const dealDetails = await fetchDealDetails(callLog.id);
-      if (dealDetails) {
-        setSelectedDeal(dealDetails);
+    console.log('Opening reference:', callLog.reference_doctype, callLog.id);
+    
+    // Show loading state
+    setNavigationLoading(true);
+    setShowPopup(false); // Close the popup
+
+    try {
+      if (callLog.reference_doctype === 'CRM Deal' && onNavigateToDeal) {
+        onNavigateToDeal(callLog.id);
+      } else if (callLog.reference_doctype === 'CRM Lead' && onNavigateToLead) {
+        onNavigateToLead(callLog.id);
+      } else {
+        showToast(`Unsupported record type: ${callLog.reference_doctype}`, { type: 'error' });
       }
-    } else if (callLog.reference_doctype === 'CRM Lead') {
-      const leadDetails = await fetchLeadDetails(callLog.id);
-      if (leadDetails) {
-        setSelectedLead(leadDetails);
-      }
-    } else {
-      showToast(`Unsupported record type: ${callLog.reference_doctype}`, { type: 'error' });
+    } catch (error) {
+      console.error('Error navigating to reference:', error);
+      showToast('Failed to navigate to record', { type: 'error' });
+    } finally {
+      setNavigationLoading(false);
     }
   };
 
@@ -1037,36 +928,6 @@ export function CallLogsPage({ onCreateCallLog, leadName, refreshTrigger = 0, on
       )}
     </button>
   );
-
-  // If a deal is selected, show DealDetailView
-  if (selectedDeal) {
-    return (
-      <DealDetailView
-        deal={selectedDeal}
-        onBack={() => setSelectedDeal(null)}
-        onSave={(updatedDeal) => {
-          setSelectedDeal(updatedDeal);
-          showToast('Deal updated successfully', { type: 'success' });
-          fetchCallLogs(); // Refresh call logs after save
-        }}
-      />
-    );
-  }
-
-  // If a lead is selected, show LeadDetailView
-  if (selectedLead) {
-    return (
-      <LeadDetailView
-        lead={selectedLead}
-        onBack={() => setSelectedLead(null)}
-        onSave={(updatedLead) => {
-          setSelectedLead(updatedLead);
-          showToast('Lead updated successfully', { type: 'success' });
-          fetchCallLogs(); // Refresh call logs after save
-        }}
-      />
-    );
-  }
 
   if (loading) {
     return (
@@ -1153,10 +1014,30 @@ export function CallLogsPage({ onCreateCallLog, leadName, refreshTrigger = 0, on
             </div>
           </div>
 
-          <div className="flex items-center space-x-2">
-            <span className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>
-              Showing {filteredCallLogs.length} results
-            </span>
+          {/* Pagination Controls */}
+          <div className="flex flex-col sm:flex-row items-center gap-3">
+            {/* Page Info and Per Page Selector */}
+            <div className="flex items-center space-x-2">
+              <span className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>
+                Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredDataLength)} of {filteredDataLength} results
+              </span>
+              <select
+                value={itemsPerPage}
+                onChange={(e) => {
+                  setItemsPerPage(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className={`text-sm border rounded px-2 py-1 ${theme === 'dark'
+                  ? 'bg-white-31 border-white text-white'
+                  : 'border-gray-300'
+                  }`}
+              >
+                <option value={10}>10 per page</option>
+                <option value={25}>25 per page</option>
+                <option value={50}>50 per page</option>
+                <option value={100}>100 per page</option>
+              </select>
+            </div>
           </div>
         </div>
 
@@ -1182,17 +1063,30 @@ export function CallLogsPage({ onCreateCallLog, leadName, refreshTrigger = 0, on
                       <input
                         type="checkbox"
                         checked={
-                          filteredCallLogs.length > 0 &&
-                          selectedCallLogs.length === filteredCallLogs.length
+                          currentItems.length > 0 &&
+                          currentItems.every(item => selectedCallLogs.includes(item.name))
                         }
-                        onChange={handleSelectAll}
-                        // ref={(el) => {
-                        //   if (el) {
-                        //     el.indeterminate =
-                        //       selectedCallLogs.length > 0 &&
-                        //       selectedCallLogs.length < filteredCallLogs.length;
-                        //   }
-                        // }}
+                        onChange={() => {
+                          const allCurrentPageSelected = currentItems.every(item => 
+                            selectedCallLogs.includes(item.name)
+                          );
+                          
+                          if (allCurrentPageSelected) {
+                            // Deselect all on current page
+                            setSelectedCallLogs(prev => 
+                              prev.filter(id => !currentItems.some(item => item.name === id))
+                            );
+                          } else {
+                            // Select all on current page
+                            const newSelected = [...selectedCallLogs];
+                            currentItems.forEach(item => {
+                              if (!newSelected.includes(item.name)) {
+                                newSelected.push(item.name);
+                              }
+                            });
+                            setSelectedCallLogs(newSelected);
+                          }
+                        }}
                         className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                       />
                     </th>
@@ -1216,7 +1110,7 @@ export function CallLogsPage({ onCreateCallLog, leadName, refreshTrigger = 0, on
                   className={`divide-y ${theme === 'dark' ? 'divide-white' : 'divide-gray-200'
                     }`}
                 >
-                  {filteredCallLogs.map((callLog) => (
+                  {currentItems.map((callLog) => (
                     <tr
                       key={callLog.name}
                       className={`transition-colors cursor-pointer ${theme === 'dark'
@@ -1322,7 +1216,7 @@ export function CallLogsPage({ onCreateCallLog, leadName, refreshTrigger = 0, on
 
             {/* ================= Mobile Card View ================= */}
             <div className="block md:hidden space-y-4">
-              {filteredCallLogs.map((callLog) => (
+              {currentItems.map((callLog) => (
                 <div
                   key={callLog.name}
                   className={`p-4 rounded-lg border ${theme === 'dark'
@@ -1444,7 +1338,7 @@ export function CallLogsPage({ onCreateCallLog, leadName, refreshTrigger = 0, on
           </div>
 
           {/* ================= No Results ================= */}
-          {filteredCallLogs.length === 0 && !loading && (
+          {currentItems.length === 0 && !loading && (
             <div className="text-center py-12">
               <div className={theme === 'dark' ? 'text-white' : 'text-gray-500'}>
                 No call logs found
@@ -1500,10 +1394,17 @@ export function CallLogsPage({ onCreateCallLog, leadName, refreshTrigger = 0, on
 
             {/* Select all */}
             <button
-              onClick={handleSelectAll}
+              onClick={() => {
+                // Select all filtered items, not just current page
+                if (selectedCallLogs.length === filteredCallLogs.length) {
+                  setSelectedCallLogs([]);
+                } else {
+                  setSelectedCallLogs(filteredCallLogs.map(callLog => callLog.name));
+                }
+              }}
               className="text-sm font-medium text-gray-800 dark:text-white hover:underline"
             >
-              Select all
+              {selectedCallLogs.length === filteredCallLogs.length ? 'Deselect all' : 'Select all'}
             </button>
 
             {/* Close */}
@@ -1554,7 +1455,7 @@ export function CallLogsPage({ onCreateCallLog, leadName, refreshTrigger = 0, on
           onEdit={() => handleEdit(selectedCall)}
           theme={theme}
           callLog={selectedCall}
-          onOpenReference={handleOpenReference}
+          onOpenReference={() => handleOpenReference(selectedCall)}
           fetchCallLogs={fetchCallLogs}
         />
       )}
@@ -1591,6 +1492,16 @@ export function CallLogsPage({ onCreateCallLog, leadName, refreshTrigger = 0, on
         users={users}
         loadingUsers={loadingUsers}
       />
+
+      {/* Navigation loading overlay */}
+      {navigationLoading && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className={`p-4 rounded-lg flex items-center gap-3 ${theme === 'dark' ? 'bg-dark-secondary text-white' : 'bg-white text-gray-800'}`}>
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600"></div>
+            <span>Loading record details...</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -325,8 +325,8 @@ export function CreateCallLogModal({
                 disabled={loading}
                 className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                   theme === 'dark'
-                    ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400'
-                    : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                    ? 'bg-gray-800 border-gray-600 text-white !placeholder-gray-400'
+                    : 'bg-white border-gray-300 text-gray-900 !placeholder-gray-500'
                 } ${errors.to ? 'border-red-500' : ''}`}
                 placeholder="To"
               />
@@ -348,8 +348,8 @@ export function CreateCallLogModal({
                 disabled={loading}
                 className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                   theme === 'dark'
-                    ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400'
-                    : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                    ? 'bg-gray-800 border-gray-600 text-white !placeholder-gray-400'
+                    : 'bg-white border-gray-300 text-gray-900 !placeholder-gray-500'
                 } ${errors.from ? 'border-red-500' : ''}`}
                 placeholder="From"
               />
@@ -393,8 +393,8 @@ export function CreateCallLogModal({
                 disabled={loading}
                 className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                   theme === 'dark'
-                    ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400'
-                    : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                    ? 'bg-gray-800 border-gray-600 text-white !placeholder-gray-400'
+                    : 'bg-white border-gray-300 text-gray-900 !placeholder-gray-500'
                 } ${errors.duration ? 'border-red-500' : ''}`}
                 placeholder="Call duration in seconds"
                 min="0"

@@ -1,9 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Edit, Trash2, Mail, User, Building2, Calendar, Shield, FileText, MessageSquare, CheckSquare, Send, Activity, X } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import { showToast } from '../utils/toast';
 import { AUTH_TOKEN } from '../api/apiUrl';
 import { getUserSession } from '../utils/session';
+
+interface Role {
+  role: string;
+  name: string;
+  owner: string;
+  creation: string;
+  modified: string;
+  modified_by: string;
+  docstatus: number;
+  idx: number;
+  parent: string;
+  parentfield: string;
+  parenttype: string;
+  doctype: string;
+}
 
 interface User {
   name: string;
@@ -15,6 +30,12 @@ interface User {
   modified?: string;
   company?: string;
   role_profile_name?: string;
+  roles?: Role[];
+  enabled?: number;
+  owner?: string;
+  modified_by?: string;
+  docstatus?: number;
+  idx?: number;
 }
 
 interface UserDetailViewProps {
@@ -32,9 +53,9 @@ export function UserDetailView({ user, onBack, onSave }: UserDetailViewProps) {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [userDetails, setUserDetails] = useState<User | null>(null);
   const session = getUserSession();
   const sessionRoleProfile = session?.role_profile;
-
 
   const tabs = [
     { id: 'overview', label: 'Overview', icon: User, count: null },
@@ -45,6 +66,39 @@ export function UserDetailView({ user, onBack, onSave }: UserDetailViewProps) {
     // { id: 'tasks', label: 'Tasks', icon: CheckSquare, count: 0 },
     // { id: 'emails', label: 'Emails', icon: Send, count: 0 }
   ];
+
+  // Fetch detailed user data
+  useEffect(() => {
+    const fetchUserDetails = async () => {
+      try {
+        const apiUrl = `https://api.erpnext.ai/api/v2/document/User/${user.name}`;
+        
+        const response = await fetch(apiUrl, {
+          headers: {
+            'Authorization': AUTH_TOKEN,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        if (data.data) {
+          setUserDetails(data.data);
+          setEditedUser(data.data);
+        }
+      } catch (error) {
+        console.error('Error fetching user details:', error);
+        showToast('Failed to load user details', { type: 'error' });
+      }
+    };
+
+    if (user.name) {
+      fetchUserDetails();
+    }
+  }, [user.name]);
 
   const handleSave = async () => {
     try {
@@ -61,7 +115,9 @@ export function UserDetailView({ user, onBack, onSave }: UserDetailViewProps) {
         body: JSON.stringify({
           first_name: editedUser.first_name,
           last_name: editedUser.last_name,
-          email: editedUser.email
+          email: editedUser.email,
+          company: editedUser.company,
+          role_profile_name: editedUser.role_profile_name
         })
       });
 
@@ -69,9 +125,15 @@ export function UserDetailView({ user, onBack, onSave }: UserDetailViewProps) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
+      const updatedData = await response.json();
+      const updatedUser = updatedData.data;
+      
       showToast('User updated successfully', { type: 'success' });
-      onSave(editedUser);
+      onSave(updatedUser);
       setIsEditing(false);
+      
+      // Update local state with the response
+      setUserDetails(updatedUser);
     } catch (error) {
       console.error('Error updating user:', error);
       showToast('Failed to update user', { type: 'error' });
@@ -101,7 +163,7 @@ export function UserDetailView({ user, onBack, onSave }: UserDetailViewProps) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      showToast('User Deleted successfully', { type: 'success' });
+      showToast('User deleted successfully', { type: 'success' });
       setShowDeleteModal(false);
       onBack();
     } catch (error) {
@@ -111,7 +173,6 @@ export function UserDetailView({ user, onBack, onSave }: UserDetailViewProps) {
       setLoading(false);
     }
   };
-
 
   const handleDeleteClick = () => {
     setShowDeleteModal(true);
@@ -139,6 +200,28 @@ export function UserDetailView({ user, onBack, onSave }: UserDetailViewProps) {
     }
   };
 
+  const getCompany = () => {
+    // Use userDetails first, then editedUser, then original user
+    return userDetails?.company || editedUser?.company || user?.company || 'N/A';
+  };
+
+  const getRoleProfile = () => {
+    // Use userDetails first, then editedUser, then original user
+    return userDetails?.role_profile_name || editedUser?.role_profile_name || user?.role_profile_name || 'N/A';
+  };
+
+  const getFullName = () => {
+    const currentUser = userDetails || editedUser || user;
+    return currentUser?.full_name || 
+           `${currentUser?.first_name || ''} ${currentUser?.last_name || ''}`.trim() || 
+           currentUser?.email || 
+           'N/A';
+  };
+
+  const getRoles = () => {
+    return userDetails?.roles || user?.roles || [];
+  };
+
   const renderTabContent = () => {
     switch (activeTab) {
       case 'overview':
@@ -154,13 +237,13 @@ export function UserDetailView({ user, onBack, onSave }: UserDetailViewProps) {
                   value={editedUser.first_name}
                   onChange={(e) => handleInputChange('first_name', e.target.value)}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
-                    ? 'bg-white-31 border-white text-white'
+                    ? 'bg-white/10 border-white/30 text-white'
                     : 'bg-white/80 border-gray-300'
                     }`}
                 />
               ) : (
                 <p className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                  {user.first_name || 'N/A'}
+                  {(userDetails?.first_name || user.first_name || 'N/A').trim()}
                 </p>
               )}
             </div>
@@ -175,13 +258,13 @@ export function UserDetailView({ user, onBack, onSave }: UserDetailViewProps) {
                   value={editedUser.last_name || ''}
                   onChange={(e) => handleInputChange('last_name', e.target.value)}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
-                    ? 'bg-white-31 border-white text-white'
+                    ? 'bg-white/10 border-white/30 text-white'
                     : 'bg-white/80 border-gray-300'
                     }`}
                 />
               ) : (
                 <p className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                  {user.last_name || 'N/A'}
+                  {(userDetails?.last_name || user.last_name || 'N/A').trim()}
                 </p>
               )}
             </div>
@@ -190,9 +273,21 @@ export function UserDetailView({ user, onBack, onSave }: UserDetailViewProps) {
               <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>
                 Email
               </label>
-              <p className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                {user.email}
-              </p>
+              {isEditing ? (
+                <input
+                  type="email"
+                  value={editedUser.email}
+                  onChange={(e) => handleInputChange('email', e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
+                    ? 'bg-white/10 border-white/30 text-white'
+                    : 'bg-white/80 border-gray-300'
+                    }`}
+                />
+              ) : (
+                <p className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                  {userDetails?.email || user.email}
+                </p>
+              )}
             </div>
 
             <div>
@@ -200,7 +295,7 @@ export function UserDetailView({ user, onBack, onSave }: UserDetailViewProps) {
                 Full Name
               </label>
               <p className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                {user.full_name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'N/A'}
+                {getFullName()}
               </p>
             </div>
 
@@ -208,18 +303,25 @@ export function UserDetailView({ user, onBack, onSave }: UserDetailViewProps) {
               <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>
                 Company
               </label>
-              <p className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                {user.company || 'N/A'}
-              </p>
+              
+                <p className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                  {getCompany()}
+                </p>
+              
             </div>
 
             <div>
               <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>
-                Role
+                Role Profile
               </label>
-              <p className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                {user.role_profile_name || 'N/A'}
-              </p>
+              
+                <div>
+                  <p className={`text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                    {getRoleProfile()}
+                  </p>
+                  
+                </div>
+              
             </div>
 
             <div>
@@ -227,7 +329,7 @@ export function UserDetailView({ user, onBack, onSave }: UserDetailViewProps) {
                 Created
               </label>
               <p className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                {formatDate(user.creation)}
+                {formatDate(userDetails?.creation || user.creation)}
               </p>
             </div>
 
@@ -236,7 +338,7 @@ export function UserDetailView({ user, onBack, onSave }: UserDetailViewProps) {
                 Last Modified
               </label>
               <p className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                {formatDate(user.modified)}
+                {formatDate(userDetails?.modified || user.modified)}
               </p>
             </div>
           </div>
@@ -245,9 +347,9 @@ export function UserDetailView({ user, onBack, onSave }: UserDetailViewProps) {
       default:
         return (
           <div className="text-center py-12">
-            <Activity className={`w-12 h-12 mx-auto mb-4 ${theme === 'dark' ? 'text-gray-500' : 'text-white'}`} />
+            <Activity className={`w-12 h-12 mx-auto mb-4 ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}`} />
             <h3 className={`text-lg font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>No Data Found</h3>
-            <p className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`}>
+            <p className={`text-sm font-semibold ${theme === 'dark' ? 'text-gray-300' : 'text-gray-500'}`}>
               Information will appear here when available.
             </p>
           </div>
@@ -301,21 +403,17 @@ export function UserDetailView({ user, onBack, onSave }: UserDetailViewProps) {
               </div>
               <div>
                 <p className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                  {user.full_name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'N/A'}
+                  {getFullName()}
                 </p>
                 <p className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
                   {user.email}
                 </p>
                 <p className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
-                  {user.company || 'No company'}
+                  {getCompany()}
                 </p>
               </div>
             </div>
           </div>
-
-          {/* <p className={`text-xs mb-4 ${theme === 'dark' ? 'text-red-400' : 'text-red-600'}`}>
-            ⚠️ This action cannot be undone. All user data will be permanently removed.
-          </p> */}
         </div>
 
         {/* Modal Footer */}
@@ -367,9 +465,9 @@ export function UserDetailView({ user, onBack, onSave }: UserDetailViewProps) {
             </button>
             <div>
               <h1 className={`text-xl font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                Users / {user.full_name || user.first_name || user.email}
+                Users / {getFullName()}
               </h1>
-              <p className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`}>
+              <p className={`text-sm font-semibold ${theme === 'dark' ? 'text-gray-300' : 'text-gray-500'}`}>
                 {user.email}
               </p>
             </div>
@@ -381,7 +479,7 @@ export function UserDetailView({ user, onBack, onSave }: UserDetailViewProps) {
                 <button
                   onClick={() => setIsEditing(true)}
                   className={`px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 backdrop-blur-sm ${theme === 'dark'
-                    ? 'bg-purplebg/80 text-white hover:bg-purple-700/80'
+                    ? 'bg-purple-600/80 text-white hover:bg-purple-700/80'
                     : 'bg-gray-900/80 text-white hover:bg-gray-800/80'
                     }`}
                 >
@@ -414,7 +512,7 @@ export function UserDetailView({ user, onBack, onSave }: UserDetailViewProps) {
                   onClick={handleSave}
                   disabled={loading}
                   className={`px-4 py-2 rounded-lg transition-colors disabled:opacity-50 backdrop-blur-sm ${theme === 'dark'
-                    ? 'bg-purplebg/80 text-white hover:bg-purple-700/80'
+                    ? 'bg-purple-600/80 text-white hover:bg-purple-700/80'
                     : 'bg-blue-600/80 text-white hover:bg-blue-700/80'
                     }`}
                 >
@@ -446,7 +544,7 @@ export function UserDetailView({ user, onBack, onSave }: UserDetailViewProps) {
                       ? 'border-purple-400 text-purple-400'
                       : 'border-blue-500 text-blue-600'
                     : theme === 'dark'
-                      ? 'border-transparent text-white hover:text-white hover:border-gray-300'
+                      ? 'border-transparent text-gray-300 hover:text-white hover:border-gray-300'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                     }`}
                 >
@@ -455,7 +553,7 @@ export function UserDetailView({ user, onBack, onSave }: UserDetailViewProps) {
                   {tab.count !== null && (
                     <span className={`px-2 py-0.5 rounded-full text-xs ${isActive
                       ? theme === 'dark'
-                        ? 'bg-purplebg text-white'
+                        ? 'bg-purple-600 text-white'
                         : 'bg-blue-100 text-blue-600'
                       : theme === 'dark'
                         ? 'bg-gray-700 text-white'
@@ -478,12 +576,12 @@ export function UserDetailView({ user, onBack, onSave }: UserDetailViewProps) {
           <div className="space-y-6 h-full">
             {/* User Information */}
             <div className={`rounded-lg shadow-sm border p-6 backdrop-blur-md h-full ${theme === 'dark'
-              ? 'bg-custom-gradient border-white'
+              ? 'bg-gradient-to-br from-dark-secondary/80 to-dark-tertiary/80 border-purple-500/30'
               : 'bg-white/80 border-gray-200'
               }`}>
               <div className='flex items-center gap-3 flex-wrap mb-4'>
                 <div className="flex items-center justify-center mb-3">
-                  <div className={`w-24 h-24 rounded-full flex items-center justify-center ${theme === 'dark' ? 'bg-purplebg' : 'bg-gray-200'
+                  <div className={`w-24 h-24 rounded-full flex items-center justify-center ${theme === 'dark' ? 'bg-purple-600' : 'bg-gray-200'
                     }`}>
                     <User className={`w-10 h-10 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
                       }`} />
@@ -492,10 +590,10 @@ export function UserDetailView({ user, onBack, onSave }: UserDetailViewProps) {
 
                 <div className="text-start mb-6">
                   <h3 className={`text-2xl font-semibold mb-1 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                    {user.full_name || user.first_name || user.email}
+                    {getFullName()}
                   </h3>
-                  <p className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`}>
-                    {user.role_profile_name || 'User'}
+                  <p className={`text-sm font-semibold ${theme === 'dark' ? 'text-gray-300' : 'text-gray-500'}`}>
+                    {getRoleProfile()}
                   </p>
                 </div>
               </div>
@@ -505,7 +603,9 @@ export function UserDetailView({ user, onBack, onSave }: UserDetailViewProps) {
                   <Mail className={`w-5 h-5 ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`} />
                   <div>
                     <p className={`text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>Email</p>
-                    <p className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>{user.email}</p>
+                    <p className={`text-sm font-semibold ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
+                      {userDetails?.email || user.email}
+                    </p>
                   </div>
                 </div>
 
@@ -513,15 +613,20 @@ export function UserDetailView({ user, onBack, onSave }: UserDetailViewProps) {
                   <Building2 className={`w-5 h-5 ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`} />
                   <div>
                     <p className={`text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>Company</p>
-                    <p className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>{user.company || 'N/A'}</p>
+                    <p className={`text-sm font-semibold ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
+                      {getCompany()}
+                    </p>
                   </div>
                 </div>
 
                 <div className="flex items-center space-x-3">
                   <Shield className={`w-5 h-5 ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`} />
                   <div>
-                    <p className={`text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>Role</p>
-                    <p className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>{user.role_profile_name || 'N/A'}</p>
+                    <p className={`text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>Role Profile</p>
+                    <p className={`text-sm font-semibold ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
+                      {getRoleProfile()}
+                    </p>
+                   
                   </div>
                 </div>
 
@@ -529,7 +634,9 @@ export function UserDetailView({ user, onBack, onSave }: UserDetailViewProps) {
                   <Calendar className={`w-5 h-5 ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`} />
                   <div>
                     <p className={`text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>Created</p>
-                    <p className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>{formatDate(user.creation)}</p>
+                    <p className={`text-sm font-semibold ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
+                      {formatDate(userDetails?.creation || user.creation)}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -539,7 +646,7 @@ export function UserDetailView({ user, onBack, onSave }: UserDetailViewProps) {
           {/* Main Content */}
           <div className="lg:col-span-2 h-full">
             <div className={`rounded-lg shadow-sm border p-6 backdrop-blur-md h-full ${theme === 'dark'
-              ? 'bg-custom-gradient border-white'
+              ? 'bg-gradient-to-br from-dark-secondary/80 to-dark-tertiary/80 border-purple-500/30'
               : 'bg-white/80 border-gray-200'
               }`}>
               <h2 className={`text-xl font-semibold mb-6 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>

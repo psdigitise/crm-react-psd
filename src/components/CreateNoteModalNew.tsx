@@ -200,8 +200,8 @@ export function CreateNoteModalNew({
                   placeholder="Note Title"
                   disabled={loading}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
-                    ? 'bg-white-31 border-white text-white placeholder-gray-400'
-                    : 'bg-white/80 border-gray-300 placeholder-gray-500'
+                    ? 'bg-white-31 border-white text-white !placeholder-gray-100'
+                    : 'bg-white/80 border-gray-300 !placeholder-gray-500'
                     } ${errors.title ? 'border-red-500' : ''}`}
                 />
                 {errors.title && (
@@ -222,8 +222,8 @@ export function CreateNoteModalNew({
                   rows={6}
                   disabled={loading}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
-                    ? 'bg-white-31 border-white text-white placeholder-gray-400'
-                    : 'bg-white/80 border-gray-300 placeholder-gray-500'
+                    ? 'bg-white-31 border-white text-white !placeholder-gray-100'
+                    : 'bg-white/80 border-gray-300 !placeholder-gray-500'
                     } ${errors.content ? 'border-red-500' : ''}`}
                 />
                

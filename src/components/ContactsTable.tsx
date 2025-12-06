@@ -1114,39 +1114,74 @@ export function ContactsTable({ searchTerm, onContactClick, onRefresh }: Contact
   };
 
   const handleDeleteSelected = async () => {
-    setLoading(true);
-    setError(null);
+  setLoading(true);
+  // Don't set global error state here - only show toast
 
-    try {
-      const apiUrl = `https://api.erpnext.ai/api/method/frappe.desk.reportview.delete_items`;
-      const payload = {
-        items: JSON.stringify(selectedIds),
-        doctype: "Contact"
-      };
+  try {
+    const apiUrl = `https://api.erpnext.ai/api/method/frappe.desk.reportview.delete_items`;
+    const payload = {
+      items: JSON.stringify(selectedIds),
+      doctype: "Contact"
+    };
 
-      const response = await fetch(apiUrl, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
-        },
-        body: JSON.stringify(payload)
-      });
+    const response = await fetch(apiUrl, {
+      method: 'POST', // Changed from DELETE to POST
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': AUTH_TOKEN
+      },
+      body: JSON.stringify(payload)
+    });
 
-      if (!response.ok) {
-        throw new Error(`Failed to delete contacts: ${response.statusText}`);
-      }
+    const result = await response.json();
 
+    // Check for success
+    if (response.ok && result.message === "success") {
       setSelectedIds([]);
       fetchContacts();
       showToastMessage('Contacts deleted successfully', 'success');
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'Failed to delete contacts');
-      showToastMessage('Failed to delete contacts', 'error');
-    } finally {
-      setLoading(false);
+      return;
     }
-  };
+
+    // If not successful, extract error message
+    let errorMessage = 'Failed to delete contacts';
+
+    if (result._server_messages) {
+      try {
+        // Parse the server messages array
+        const serverMessages = JSON.parse(result._server_messages);
+        if (serverMessages.length > 0) {
+          // Parse the first message which contains the error details
+          const firstMessage = JSON.parse(serverMessages[0]);
+          if (firstMessage.message) {
+            // Strip HTML tags from the message
+            errorMessage = firstMessage.message.replace(/<[^>]*>/g, '');
+          }
+        }
+      } catch (parseError) {
+        console.error('Error parsing server messages:', parseError);
+        errorMessage = 'Delete failed due to server error';
+      }
+    } else if (result.message && result.message !== "success") {
+      // Strip HTML tags from direct message
+      errorMessage = result.message.replace(/<[^>]*>/g, '');
+    } else if (result.exc) {
+      errorMessage = result.exc;
+    }
+
+    throw new Error(errorMessage);
+    
+  } catch (error) {
+    console.error('Delete error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to delete contacts';
+    // Only show toast, don't set global error state
+    showToastMessage(errorMessage, 'error');
+  } finally {
+    setLoading(false);
+  }
+};
+
+  
 
   const getFilteredAndSortedData = () => {
     let filteredData = contacts.filter(item => {

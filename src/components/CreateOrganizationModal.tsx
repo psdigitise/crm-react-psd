@@ -745,8 +745,8 @@ export function CreateOrganizationModal({ isOpen, onClose, onSubmit }: CreateOrg
                     placeholder="Organization Name"
                     disabled={loading}
                     className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
-                      ? 'bg-white-31 border-white text-white placeholder-gray-400'
-                      : 'bg-white/80 border-gray-300 placeholder-gray-500'
+                      ? 'bg-white-31 border-white text-white !placeholder-gray-100'
+                      : 'bg-white/80 border-gray-300 !placeholder-gray-500'
                       } ${errors.organization_name ? 'border-red-500' : ''}`}
                   />
                   {errors.organization_name && (
@@ -768,8 +768,8 @@ export function CreateOrganizationModal({ isOpen, onClose, onSubmit }: CreateOrg
                     placeholder="Website"
                     disabled={loading}
                     className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
-                      ? 'bg-white-31 border-white text-white placeholder-gray-400'
-                      : 'bg-white/80 border-gray-300 placeholder-gray-500'
+                      ? 'bg-white-31 border-white text-white !placeholder-gray-100'
+                      : 'bg-white/80 border-gray-300 !placeholder-gray-500'
                       } ${errors.website ? 'border-red-500' : ''}`}
                   />
                   {errors.website && (
@@ -786,12 +786,13 @@ export function CreateOrganizationModal({ isOpen, onClose, onSubmit }: CreateOrg
                     type="text"
                     name="annual_revenue"
                     value={formData.annual_revenue}
+                    maxLength={10}
                     onChange={handleChange}
                     placeholder="₹ 0.00"
                     disabled={loading}
                     className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
-                      ? 'bg-white-31 border-white text-white placeholder-gray-400'
-                      : 'bg-white/80 border-gray-300 placeholder-gray-500'
+                      ? 'bg-white-31 border-white text-white !placeholder-gray-100'
+                      : 'bg-white/80 border-gray-300 !placeholder-gray-500'
                       } ${errors.annual_revenue ? 'border-red-500' : ''}`}
                   />
                   {errors.annual_revenue && (

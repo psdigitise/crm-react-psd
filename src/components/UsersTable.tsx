@@ -439,15 +439,7 @@ export function UsersTable({ searchTerm, onUserClick, refreshTrigger }: UsersTab
           <div className="flex items-center space-x-2">
             {filteredDataLength > 0 && (
               <div title="Export Excel">
-                <button
-                  onClick={() => showToast('Export functionality coming soon!', { type: 'info' })}
-                  className={`px-3 py-2 text-sm border rounded-lg transition-colors ${theme === 'dark'
-                    ? 'border-purple-500/30 text-white hover:bg-purple-800/50'
-                    : 'border-gray-300 hover:bg-gray-50'
-                    }`}
-                >
-                  <Upload  className="w-4 h-4" />
-                </button>
+               
               </div>
             )}
           </div>

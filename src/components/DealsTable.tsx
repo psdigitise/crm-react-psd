@@ -242,8 +242,8 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
         "kanban_fields": "[]",
         "columns": "[{\"label\": \"Organization\", \"type\": \"Link\", \"key\": \"organization\", \"options\": \"CRM Organization\", \"width\": \"11rem\"}, {\"label\": \"First Name\", \"type\": \"Data\", \"key\": \"first_name\", \"width\": \"10rem\", \"align\": \"left\"}, {\"label\": \"Annual Revenue\", \"type\": \"Currency\", \"key\": \"annual_revenue\", \"align\": \"right\", \"width\": \"9rem\"}, {\"label\": \"Status\", \"type\": \"Select\", \"key\": \"status\", \"width\": \"10rem\"}, {\"label\": \"Email\", \"type\": \"Data\", \"key\": \"email\", \"width\": \"12rem\"}, {\"label\": \"Mobile No\", \"type\": \"Data\", \"key\": \"mobile_no\", \"width\": \"11rem\"}, {\"label\": \"Assigned To\", \"type\": \"Text\", \"key\": \"_assign\", \"width\": \"10rem\"}, {\"label\": \"Last Modified\", \"type\": \"Datetime\", \"key\": \"modified\", \"width\": \"8rem\"}]",
         "rows": "[\"name\", \"organization\", \"annual_revenue\", \"status\", \"email\", \"currency\", \"mobile_no\", \"deal_owner\", \"sla_status\", \"response_by\", \"first_response_time\", \"first_responded_on\", \"modified\", \"_assign\", \"owner\", \"creation\", \"modified_by\", \"_liked_by\", null, \"first_name\"]",
-        "page_length": 20,
-        "page_length_count": 20
+        "page_length": 9000000000,
+        "page_length_count": 900000000
       };
 
       const result = await api.post('/api/method/crm.api.doc.get_data', requestData);

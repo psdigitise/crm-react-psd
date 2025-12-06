@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Trash2, Zap, User2, Loader2, X, Mail, Phone, Building2 } from "lucide-react";
+import { Trash2, Zap, User2, Loader2, X, Mail, Phone, Building2, Upload } from "lucide-react";
 import { useTheme } from './ThemeProvider';
 import { showToast } from '../utils/toast';
 import { getUserSession } from '../utils/session';
@@ -10,15 +10,15 @@ import { AUTH_TOKEN } from '../api/apiUrl';
 // Helper function to convert relative image paths to full URLs
 const getFullImageUrl = (imagePath: string | null) => {
   if (!imagePath) return null;
-  
+
   if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
     return imagePath;
   }
-  
+
   if (imagePath.startsWith('/')) {
     return `https://api.erpnext.ai${imagePath}`;
   }
-  
+
   return `https://api.erpnext.ai/files/${imagePath}`;
 };
 
@@ -108,10 +108,7 @@ const EMPLOYEE_OPTIONS = [
   '11-50',
   '51-200',
   '201-500',
-  '501-1000',
-  '1001-5000',
-  '5001-10000',
-  '10000+'
+  '501-1000'
 ];
 
 export default function OrganizationDetails({
@@ -186,7 +183,7 @@ export default function OrganizationDetails({
       const session = getUserSession();
       const sessionCompany = session?.company;
       setLoadingAddresses(true);
-      
+
       if (!session) {
         showToast('Session not found', { type: 'error' });
         return;
@@ -212,7 +209,7 @@ export default function OrganizationDetails({
       const data = await response.json();
       const addresses = data.message.map((item: any) => item.value);
       setAddressOptions(addresses);
-      
+
     } catch (error) {
       console.error('Error fetching address options:', error);
       showToast('Failed to load address options', { type: 'error' });
@@ -232,7 +229,7 @@ export default function OrganizationDetails({
   const fetchTerritoryOptions = async () => {
     try {
       setLoadingTerritories(true);
-      
+
       const session = getUserSession();
       if (!session) {
         showToast('Session not found', { type: 'error' });
@@ -259,7 +256,7 @@ export default function OrganizationDetails({
       const data = await response.json();
       const territories = data.message.map((item: any) => item.value);
       setTerritoryOptions(territories);
-      
+
     } catch (error) {
       console.error('Error fetching territory options:', error);
       showToast('Failed to load territory options', { type: 'error' });
@@ -273,7 +270,7 @@ export default function OrganizationDetails({
   const fetchIndustryOptions = async () => {
     try {
       setLoadingIndustries(true);
-      
+
       const session = getUserSession();
       if (!session) {
         showToast('Session not found', { type: 'error' });
@@ -300,12 +297,12 @@ export default function OrganizationDetails({
       const data = await response.json();
       const industries = data.message.map((item: any) => item.value);
       setIndustryOptions(industries);
-      
+
     } catch (error) {
       console.error('Error fetching industry options:', error);
       showToast('Failed to load industry options', { type: 'error' });
       setIndustryOptions([
-        'Technology', 'Healthcare', 'Finance', 'Manufacturing', 'Retail', 
+        'Technology', 'Healthcare', 'Finance', 'Manufacturing', 'Retail',
         'Education', 'Real Estate', 'Construction', 'Automotive', 'Energy'
       ]);
     } finally {
@@ -317,7 +314,7 @@ export default function OrganizationDetails({
   const fetchCurrencyOptions = async () => {
     try {
       setLoadingCurrencies(true);
-      
+
       const session = getUserSession();
       if (!session) {
         showToast('Session not found', { type: 'error' });
@@ -344,7 +341,7 @@ export default function OrganizationDetails({
       const data = await response.json();
       const currencies = data.message.map((item: any) => item.value);
       setCurrencyOptions(currencies);
-      
+
     } catch (error) {
       console.error('Error fetching currency options:', error);
       showToast('Failed to load currency options', { type: 'error' });
@@ -525,7 +522,7 @@ export default function OrganizationDetails({
   // Image Display Component
   const ImageDisplay = () => {
     const imageUrl = imagePreview || (organization?.organization_logo ? getFullImageUrl(organization.organization_logo) : null);
-    
+
     return (
       <div
         onClick={handleImageClick}
@@ -554,15 +551,17 @@ export default function OrganizationDetails({
                 }}
               />
             ) : null}
-            
-            <div 
+
+            <div
               className={`fallback-initials ${imageUrl ? 'hidden' : 'flex'} w-full h-full items-center justify-center ${isDark ? "text-white" : "text-gray-600"}`}
             >
               {organization?.organization_name?.[0]?.toUpperCase() || 'O'}
             </div>
 
             <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-full z-10">
-              <span className="text-white text-xs font-medium">Upload</span>
+              <div className="flex flex-col items-center gap-1">
+                <Upload className="w-4 h-4 text-white" />
+              </div>
             </div>
           </>
         )}
@@ -624,10 +623,10 @@ export default function OrganizationDetails({
 
         const data = await response.json();
         setOrganization(data.message);
-        
+
       } catch (error) {
         console.error('Error fetching organization:', error);
-       
+
       } finally {
         setFetchLoading(false);
       }
@@ -1092,20 +1091,20 @@ export default function OrganizationDetails({
               <X size={20} />
             </button>
           </div>
-          
+
           <div className="mb-6">
             <p className={`${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
               Are you sure you want to delete <span className="font-semibold">{organization?.organization_name}</span>? This action cannot be undone and all associated data will be permanently removed.
             </p>
           </div>
-          
+
           <div className="flex gap-3 justify-end">
             <button
               onClick={handleCancelDelete}
-              className={`px-4 py-2 rounded border ${isDark 
-                ? 'border-gray-600 text-white hover:bg-gray-700' 
+              className={`px-4 py-2 rounded border ${isDark
+                ? 'border-gray-600 text-white hover:bg-gray-700'
                 : 'border-gray-300 text-gray-700 hover:bg-gray-100'
-              } transition-colors`}
+                } transition-colors`}
               disabled={loading}
             >
               Cancel
@@ -1342,7 +1341,7 @@ export default function OrganizationDetails({
                           } shadow-sm`}
                       >
                         <div className="flex justify-between items-center">
-                          <div 
+                          <div
                             className="flex items-center flex-1 cursor-pointer min-w-0"
                             onClick={() => handleDealClick(deal)}
                           >
@@ -1365,10 +1364,10 @@ export default function OrganizationDetails({
                                 {deal.organization}
                               </h3>
                               <p className={`text-xs truncate ${isDark ? 'text-gray-300' : 'text-gray-500'
-                                  }`}>{deal.name}</p>
+                                }`}>{deal.name}</p>
                             </div>
                           </div>
-                          
+
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -1377,11 +1376,11 @@ export default function OrganizationDetails({
                             className={`p-1 rounded transition-transform flex-shrink-0 ${isDark ? 'hover:bg-purple-700' : 'hover:bg-gray-100'
                               }`}
                           >
-                            <svg 
+                            <svg
                               className={`w-4 h-4 transform transition-transform ${isDealExpanded(deal.id) ? 'rotate-180' : ''
                                 } ${isDark ? 'text-white' : 'text-gray-600'}`}
-                              fill="none" 
-                              stroke="currentColor" 
+                              fill="none"
+                              stroke="currentColor"
                               viewBox="0 0 24 24"
                             >
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -1400,7 +1399,7 @@ export default function OrganizationDetails({
                                 {deal.currency} {deal.annual_revenue?.toLocaleString() || '0.00'}
                               </span>
                             </div>
-                            
+
                             <div className="flex justify-between text-sm">
                               <span className={`font-medium ${isDark ? 'text-gray-300' : 'text-gray-500'}`}>
                                 Status:
@@ -1419,7 +1418,7 @@ export default function OrganizationDetails({
                                 </span>
                               </div>
                             </div>
-                            
+
                             <div className="flex justify-between text-sm">
                               <span className={`font-medium ${isDark ? 'text-gray-300' : 'text-gray-500'}`}>
                                 Email:
@@ -1431,7 +1430,7 @@ export default function OrganizationDetails({
                                 </span>
                               </div>
                             </div>
-                            
+
                             <div className="flex justify-between text-sm">
                               <span className={`font-medium ${isDark ? 'text-gray-300' : 'text-gray-500'}`}>
                                 Mobile No:
@@ -1443,7 +1442,7 @@ export default function OrganizationDetails({
                                 </span>
                               </div>
                             </div>
-                            
+
                             <div className="flex justify-between text-sm">
                               <span className={`font-medium ${isDark ? 'text-gray-300' : 'text-gray-500'}`}>
                                 Deal Owner:
@@ -1460,7 +1459,7 @@ export default function OrganizationDetails({
                                 </span>
                               </div>
                             </div>
-                            
+
                             <div className="flex justify-between text-sm">
                               <span className={`font-medium ${isDark ? 'text-gray-300' : 'text-gray-500'}`}>
                                 Last Modified:
@@ -1509,9 +1508,9 @@ export default function OrganizationDetails({
                             <td className="p-3 min-w-[150px]">
                               <div className="flex items-center gap-2">
                                 {contact.image ? (
-                                  <img 
-                                    src={getFullImageUrl(contact.image)} 
-                                    alt="Contact" 
+                                  <img
+                                    src={getFullImageUrl(contact.image)}
+                                    alt="Contact"
                                     className="w-8 h-8 rounded-full object-cover flex-shrink-0"
                                     onError={(e) => {
                                       const target = e.target as HTMLImageElement;
@@ -1569,14 +1568,14 @@ export default function OrganizationDetails({
                           } shadow-sm`}
                       >
                         <div className="flex justify-between items-center">
-                          <div 
+                          <div
                             className="flex items-center flex-1 cursor-pointer min-w-0"
                             onClick={() => handleContactClick(contact)}
                           >
                             {contact.image ? (
-                              <img 
-                                src={getFullImageUrl(contact.image)} 
-                                alt="Contact" 
+                              <img
+                                src={getFullImageUrl(contact.image)}
+                                alt="Contact"
                                 className="w-8 h-8 rounded-full object-cover mr-3 flex-shrink-0"
                                 onError={(e) => {
                                   const target = e.target as HTMLImageElement;
@@ -1587,7 +1586,7 @@ export default function OrganizationDetails({
                               />
                             ) : null}
                             <div className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 flex-shrink-0 ${isDark ? 'bg-purple-600' : 'bg-gray-300'
-                                } ${contact.image ? 'hidden' : 'flex'}`}
+                              } ${contact.image ? 'hidden' : 'flex'}`}
                             >
                               <span
                                 className={`text-sm font-semibold ${isDark ? 'text-white' : 'text-gray-700'
@@ -1604,10 +1603,10 @@ export default function OrganizationDetails({
                                 {contact.name}
                               </h3>
                               <p className={`text-xs truncate ${isDark ? 'text-gray-300' : 'text-gray-500'
-                                  }`}>{contact.full_name}</p>
+                                }`}>{contact.full_name}</p>
                             </div>
                           </div>
-                          
+
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -1616,11 +1615,11 @@ export default function OrganizationDetails({
                             className={`p-1 rounded transition-transform flex-shrink-0 ${isDark ? 'hover:bg-purple-700' : 'hover:bg-gray-100'
                               }`}
                           >
-                            <svg 
+                            <svg
                               className={`w-4 h-4 transform transition-transform ${isContactExpanded(contact.id) ? 'rotate-180' : ''
                                 } ${isDark ? 'text-white' : 'text-gray-600'}`}
-                              fill="none" 
-                              stroke="currentColor" 
+                              fill="none"
+                              stroke="currentColor"
                               viewBox="0 0 24 24"
                             >
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -1639,7 +1638,7 @@ export default function OrganizationDetails({
                                 {contact.full_name}
                               </span>
                             </div>
-                            
+
                             <div className="flex justify-between text-sm">
                               <span className={`font-medium ${isDark ? 'text-gray-300' : 'text-gray-500'}`}>
                                 Email:
@@ -1651,7 +1650,7 @@ export default function OrganizationDetails({
                                 </span>
                               </div>
                             </div>
-                            
+
                             <div className="flex justify-between text-sm">
                               <span className={`font-medium ${isDark ? 'text-gray-300' : 'text-gray-500'}`}>
                                 Phone:
@@ -1663,7 +1662,7 @@ export default function OrganizationDetails({
                                 </span>
                               </div>
                             </div>
-                            
+
                             <div className="flex justify-between text-sm">
                               <span className={`font-medium ${isDark ? 'text-gray-300' : 'text-gray-500'}`}>
                                 Company:
@@ -1672,7 +1671,7 @@ export default function OrganizationDetails({
                                 {contact.company_name}
                               </span>
                             </div>
-                            
+
                             <div className="flex justify-between text-sm">
                               <span className={`font-medium ${isDark ? 'text-gray-300' : 'text-gray-500'}`}>
                                 Last Modified:

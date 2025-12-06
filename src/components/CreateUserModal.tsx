@@ -178,8 +178,8 @@ export function CreateUserModal({ isOpen, onClose, onSubmit }: CreateUserModalPr
                   placeholder="user@example.com"
                   disabled={loading}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
-                    ? 'bg-white-31 border-white text-white placeholder-gray-400'
-                    : 'bg-white/80 border-gray-300 placeholder-gray-500'
+                    ? 'bg-white-31 border-white text-white !placeholder-gray-100'
+                    : 'bg-white/80 border-gray-300 !placeholder-gray-500'
                     }`}
                 />
                 {formErrors.email && (
@@ -200,8 +200,8 @@ export function CreateUserModal({ isOpen, onClose, onSubmit }: CreateUserModalPr
                   placeholder="First Name"
                   disabled={loading}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
-                    ? 'bg-white-31 border-white text-white placeholder-gray-400'
-                    : 'bg-white/80 border-gray-300 placeholder-gray-500'
+                    ? 'bg-white-31 border-white text-white !placeholder-gray-100'
+                    : 'bg-white/80 border-gray-300 !placeholder-gray-500'
                     }`}
                 />
                 {formErrors.first_name && (
@@ -223,8 +223,8 @@ export function CreateUserModal({ isOpen, onClose, onSubmit }: CreateUserModalPr
                   placeholder="Last Name"
                   disabled={loading}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
-                    ? 'bg-white-31 border-white text-white placeholder-gray-400'
-                    : 'bg-white/80 border-gray-300 placeholder-gray-500'
+                    ? 'bg-white-31 border-white text-white !placeholder-gray-100'
+                    : 'bg-white/80 border-gray-300 !placeholder-gray-500'
                     }`}
                 />
               </div>
@@ -244,7 +244,7 @@ export function CreateUserModal({ isOpen, onClose, onSubmit }: CreateUserModalPr
                     : 'bg-gray-50/80 border-gray-300'
                     }`}
                 >
-                  <option value="Only If Create">Only If Create</option>
+                  {/* <option value="Only If Create">Only If Create</option> */}
                   <option value="Admin">Admin</option>
                   <option value="Manager">Manager</option>
                   <option value="User">User</option>

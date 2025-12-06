@@ -332,8 +332,8 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
         "kanban_fields": "[]",
         "columns": "[{\"label\": \"Name\", \"type\": \"Data\", \"key\": \"lead_name\", \"width\": \"12rem\"}, {\"label\": \"Organization\", \"type\": \"Link\", \"key\": \"organization\", \"options\": \"CRM Organization\", \"width\": \"10rem\"}, {\"label\": \"Status\", \"type\": \"Select\", \"key\": \"status\", \"width\": \"8rem\"}, {\"label\": \"Email\", \"type\": \"Data\", \"key\": \"email\", \"width\": \"12rem\"}, {\"label\": \"Mobile No\", \"type\": \"Data\", \"key\": \"mobile_no\", \"width\": \"11rem\"}, {\"label\": \"Assigned To\", \"type\": \"Text\", \"key\": \"_assign\", \"width\": \"10rem\"}, {\"label\": \"Last Modified\", \"type\": \"Datetime\", \"key\": \"modified\", \"width\": \"8rem\"}]",
         "rows": "[\"name\", \"lead_name\", \"organization\", \"status\", \"email\", \"mobile_no\", \"lead_owner\", \"first_name\", \"last_name\", \"salutation\", \"converted\", \"sla_status\", \"response_by\", \"first_response_time\", \"first_responded_on\", \"modified\", \"_assign\", \"image\", \"owner\", \"creation\", \"modified_by\", \"docstatus\", \"idx\", \"naming_series\", \"gender\", \"no_of_employees\", \"annual_revenue\", \"website\", \"territory\", \"industry\"]",
-        "page_length": 20,
-        "page_length_count": 20
+        "page_length": 9000000000000,
+        "page_length_count": 9000000000000
       };
 
       const result = await api.post('/api/method/crm.api.doc.get_data', payload);

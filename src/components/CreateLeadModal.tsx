@@ -559,8 +559,8 @@ export function CreateLeadModal({ isOpen, onClose, onSubmit }: CreateLeadModalPr
                   onChange={handleChange}
                   placeholder="First Name"
                   className={`w-full px-3 py-2  text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
-                    ? 'bg-white-31 border-white text-white placeholder-gray-400'
-                    : 'bg-white/80 border-gray-300 placeholder-gray-500'
+                    ? 'bg-white-31 border-white text-white !placeholder-gray-100'
+                    : 'bg-white/80 border-gray-300 !placeholder-gray-500'
                     } ${errors.firstName ? 'border-red-500' : ''}`}
                   disabled={isLoading}
                 />
@@ -581,8 +581,8 @@ export function CreateLeadModal({ isOpen, onClose, onSubmit }: CreateLeadModalPr
                   onChange={handleChange}
                   placeholder="Last Name"
                   className={`w-full  text-sm px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
-                    ? 'bg-white-31 border-white text-white placeholder-gray-400'
-                    : 'bg-white/80 border-gray-300 placeholder-gray-500'
+                    ? 'bg-white-31 border-white text-white !placeholder-gray-100'
+                    : 'bg-white/80 border-gray-300 !placeholder-gray-500'
                     }`}
                   disabled={isLoading}
                 />
@@ -600,8 +600,8 @@ export function CreateLeadModal({ isOpen, onClose, onSubmit }: CreateLeadModalPr
                   onChange={handleChange}
                   placeholder="Email"
                   className={`w-full  text-sm px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
-                    ? 'bg-white-31 border-white text-white placeholder-gray-400'
-                    : 'bg-white/80 border-gray-300 placeholder-gray-500'
+                    ? 'bg-white-31 border-white text-white !placeholder-gray-100'
+                    : 'bg-white/80 border-gray-300 !placeholder-gray-500'
                     } ${errors.email ? 'border-red-500' : ''}`}
                   disabled={isLoading}
                 />
@@ -622,8 +622,8 @@ export function CreateLeadModal({ isOpen, onClose, onSubmit }: CreateLeadModalPr
                   onChange={handleChange}
                   placeholder="Mobile No"
                   className={`w-full  text-sm px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
-                    ? 'bg-white-31 border-white text-white placeholder-gray-400'
-                    : 'bg-white/80 border-gray-300 placeholder-gray-500'
+                    ? 'bg-white-31 border-white text-white !placeholder-gray-100'
+                    : 'bg-white/80 border-gray-300 !placeholder-gray-500'
                     } ${errors.mobile ? 'border-red-500' : ''}`}
                   disabled={isLoading}
                 />
@@ -673,8 +673,8 @@ export function CreateLeadModal({ isOpen, onClose, onSubmit }: CreateLeadModalPr
                   onChange={handleChange}
                   placeholder="Organization"
                   className={`w-full  text-sm px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
-                    ? 'bg-white-31 border-white text-white placeholder-gray-400'
-                    : 'bg-white/80 border-gray-300 placeholder-gray-500'
+                    ? 'bg-white-31 border-white text-white !placeholder-gray-100'
+                    : 'bg-white/80 border-gray-300 !placeholder-gray-500'
                     } ${errors.organization ? 'border-red-500' : ''}`}
                   disabled={isLoading}
                 />
@@ -695,8 +695,8 @@ export function CreateLeadModal({ isOpen, onClose, onSubmit }: CreateLeadModalPr
                   onChange={handleChange}
                   placeholder="Website"
                   className={`w-full  text-sm px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
-                    ? 'bg-white-31 border-white text-white placeholder-gray-400'
-                    : 'bg-white/80 border-gray-300 placeholder-gray-500'
+                    ? 'bg-white-31 border-white text-white !placeholder-gray-100'
+                    : 'bg-white/80 border-gray-300 !placeholder-gray-500'
                     } ${errors.website ? 'border-red-500' : ''}`}
                   disabled={isLoading}
                 />
@@ -765,6 +765,7 @@ export function CreateLeadModal({ isOpen, onClose, onSubmit }: CreateLeadModalPr
                   name="annualRevenue"
                   value={formData.annualRevenue}
                   onChange={handleChange}
+                  maxLength={10}
                   placeholder="₹ 0.00"
                   className={`w-full  text-sm px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
                     ? 'bg-white-31 border-white text-white placeholder-gray-400'
