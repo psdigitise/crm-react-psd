@@ -1,3 +1,6 @@
+
+
+
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Mail,
@@ -13,11 +16,10 @@ import {
 import { setUserSession } from '../utils/session';
 import { FiPhone } from 'react-icons/fi';
 import axios from 'axios';
-
+import { apiAxios, AUTH_TOKEN } from '../api/apiUrl';
 import { useNavigate } from 'react-router-dom';
 import { GoogleLogin } from '@react-oauth/google';
 import { FaFacebook } from 'react-icons/fa';
-import { apiAxios } from '../api/apiUrl';
 
 interface LoginPageProps {
   onLogin: () => void;
@@ -677,6 +679,13 @@ export function LoginPage({ onLogin }: LoginPageProps) {
     setEmployeesError(validateEmployees(value));
   };
 
+  const handleRegisterInputChange = (field: string, value: string) => {
+    setRegisterData(prev => ({ ...prev, [field]: value }));
+    if (field === 'new_password') {
+      const error = validatePassword(value);
+      setPasswordError(error);
+    }
+  };
 
   const handleGoogleUserDataChange = (newUserData: any) => {
     setGoogleUserData(newUserData);
@@ -712,7 +721,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           body: formData,
           headers: {
             Accept: 'application/json',
-            // Authorization:"token 03e70b45d943129:40caf2b1273e23e"
+            Authorization: AUTH_TOKEN
           }
         }
       );
@@ -805,7 +814,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: "token 03e70b45d943129:40caf2b1273e23e"
+            Authorization: AUTH_TOKEN
           }
         }
       );
@@ -826,7 +835,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: "token 03e70b45d943129:40caf2b1273e23e"
+            Authorization: AUTH_TOKEN
           }
         }
       );
@@ -853,7 +862,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: "token 03e70b45d943129:40caf2b1273e23e"
+            Authorization: AUTH_TOKEN
           },
           body: JSON.stringify(companyPayload)
         }
@@ -887,7 +896,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
         {
           headers: {
             'Content-Type': 'application/json',
-            Authorization: "token 03e70b45d943129:40caf2b1273e23e"
+            Authorization: AUTH_TOKEN
           }
         }
       );
@@ -903,7 +912,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
               method: 'DELETE',
               headers: {
                 'Content-Type': 'application/json',
-                Authorization: "token 03e70b45d943129:40caf2b1273e23e"
+                Authorization: AUTH_TOKEN
               }
             }
           );
