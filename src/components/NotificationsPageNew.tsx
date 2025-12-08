@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useTheme } from "./ThemeProvider";
 import { showToast } from "../utils/toast";
 import { Loader2, Bell, Menu } from "lucide-react";
@@ -152,70 +152,7 @@ export function NotificationsPageNew({ onMenuToggle }: NotificationsPageProps) {
 
     return { todayNotifications, yesterdayNotifications, olderNotifications };
   };
-
-  // const NotificationItem = ({
-  //   notification,
-  // }: {
-  //   notification: Notification;
-  // }) => (
-  //   <div
-  //     className={`${theme === "dark"
-  //       ? "bg-custom-gradient border-0 rounded-none"
-  //       : "bg-white/80 border-gray-100"
-  //       } rounded-lg p-4 mb-4 shadow-sm border backdrop-blur-md hover:shadow-md transition-all ${!notification.read ? "border-l-4 border-l-blue-500" : ""
-  //       }`}
-  //     onClick={() => handleNotificationClick(notification)}
-  //     style={{ cursor: "pointer" }}
-  //   >
-  //     <div
-  //       className={`p-2 ${theme === "dark" ? "bg-transparent" : "bg-white"
-  //         } rounded-lg mb-3`}
-  //     >
-  //       <div className="flex items-center justify-between gap-5">
-  //         <div className="w-full">
-  //           <h3
-  //             className={`text-lg font-semibold pb-2 mb-3 border-b w-full ${theme === "dark" ? "text-white" : "text-gray-900"
-  //               }`}
-  //           >
-  //             <Bell
-  //               className={`w-5 h-5 mr-2 inline-block ${theme === "dark" ? "text-white" : "text-blue-600"
-  //                 }`}
-  //             />
-  //             Notification
-  //             {!notification.read && (
-  //               <span className="ml-2 inline-block w-2 h-2 bg-red-500 rounded-full"></span>
-  //             )}
-  //           </h3>
-  //           <p
-  //             className={`text-base font-semibold ps-5 leading-relaxed ${theme === "dark" ? "text-white" : "text-gray-700"
-  //               }`}
-  //           >
-  //             {notification.message}
-  //           </p>
-
-  //           {notification.modified !== notification.creation && (
-  //             <div
-  //               className={`text-sm ps-5 mt-2  ${theme === "dark"
-  //                 ? "text-white border-purple-500/30"
-  //                 : "text-gray-600 border-gray-200"
-  //                 }`}
-  //             >
-  //               Modified: {formatDate(notification.modified)}
-  //             </div>
-  //           )}
-  //         </div>
-
-  //         <p
-  //           className={`text-sm w-[100px] self-end ${theme === "dark" ? "text-white" : "text-gray-500"
-  //             }`}
-  //         >
-  //           {formatDate(notification.creation)}
-  //         </p>
-  //       </div>
-  //     </div>
-  //   </div>
-  // );
-
+  
   const NotificationItem = ({ notification }: { notification: Notification }) => (
     <div
       onClick={() => handleNotificationClick(notification)}
