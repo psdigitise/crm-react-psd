@@ -454,86 +454,102 @@ export function Sidebar({ isCollapsed, onToggle, activeItem, onItemClick }: Side
           </ul>
         </nav>
 
-        {/* Company Expiry Status - Only show when expanded */}
+        
         {!isCollapsed && companyInfo && (
-          <div style={{ fontFamily: 'Inter, sans-serif' }}>
-            {expiryStatus && (
-              <div className={`p-3 mx-2 mb-2 rounded-lg border ${theme === 'dark'
-                ? expiryStatus.expired
-                  ? 'bg-red-900/20 border-red-700/50'
-                  : expiryStatus.daysLeft <= 7
-                    ? 'bg-yellow-900/20 border-yellow-700/50'
-                    : 'bg-green-900/20 border-green-700/50'
-                : expiryStatus.expired
-                  ? 'bg-red-50 border-red-200'
-                  : expiryStatus.daysLeft <= 7
-                    ? 'bg-yellow-50 border-yellow-200'
-                    : 'bg-green-50 border-green-200'
-                }`}>
-                <div className="flex items-start gap-2">
-                  {/* Icon */}
-                  <div className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center ${expiryStatus.expired
-                    ? 'bg-red-500'
-                    : expiryStatus.daysLeft <= 7
-                      ? 'bg-yellow-500'
-                      : 'bg-green-500'
-                    }`}>
-                    {expiryStatus.expired ? (
-                      <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    ) : expiryStatus.daysLeft <= 7 ? (
-                      <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    ) : (
-                      <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    )}
-                  </div>
+  <div style={{ fontFamily: 'Inter, sans-serif' }}>
+    {expiryStatus && (
+      <div className={`p-3 mx-2 mb-2 rounded-lg border ${theme === 'dark'
+        ? expiryStatus.expired
+          ? 'bg-red-900/20 border-red-700/50'
+          : expiryStatus.daysLeft === 0
+            ? 'bg-yellow-900/20 border-yellow-700/50'
+            : expiryStatus.daysLeft <= 7
+              ? 'bg-yellow-900/20 border-yellow-700/50'
+              : 'bg-green-900/20 border-green-700/50'
+        : expiryStatus.expired
+          ? 'bg-red-50 border-red-200'
+          : expiryStatus.daysLeft === 0
+            ? 'bg-yellow-50 border-yellow-200'
+            : expiryStatus.daysLeft <= 7
+              ? 'bg-yellow-50 border-yellow-200'
+              : 'bg-green-50 border-green-200'
+        }`}>
+        <div className="flex items-start gap-2">
+          {/* Icon */}
+          <div className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center ${expiryStatus.expired
+            ? 'bg-red-500'
+            : expiryStatus.daysLeft === 0
+              ? 'bg-yellow-500'
+              : expiryStatus.daysLeft <= 7
+                ? 'bg-yellow-500'
+                : 'bg-green-500'
+            }`}>
+            {expiryStatus.expired ? (
+              <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            ) : expiryStatus.daysLeft === 0 || expiryStatus.daysLeft <= 7 ? (
+              <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            ) : (
+              <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            )}
+          </div>
 
-                  <div className="flex-1 min-w-0">
-                    <div className={`text-xs font-semibold mb-1 ${theme === 'dark'
-                      ? expiryStatus.expired
-                        ? 'text-red-400'
-                        : expiryStatus.daysLeft <= 7
-                          ? 'text-yellow-400'
-                          : 'text-green-400'
-                      : expiryStatus.expired
-                        ? 'text-red-600'
-                        : expiryStatus.daysLeft <= 7
-                          ? 'text-yellow-600'
-                          : 'text-green-600'
-                      }`}>
-                      {expiryStatus.expired ? (
-                        'PACK EXPIRED'
-                      ) : expiryStatus.daysLeft <= 7 ? (
-                        `EXPIRING IN ${expiryStatus.daysLeft} DAY${expiryStatus.daysLeft === 1 ? '' : 'S'}`
-                      ) : (
-                        `EXPIRES IN ${expiryStatus.daysLeft} DAY${expiryStatus.daysLeft === 1 ? '' : 'S'}`
-                      )}
-                    </div>
+          <div className="flex-1 min-w-0">
+            <div className={`text-xs font-semibold mb-1 ${theme === 'dark'
+              ? expiryStatus.expired
+                ? 'text-red-400'
+                : expiryStatus.daysLeft === 0
+                  ? 'text-yellow-400'
+                  : expiryStatus.daysLeft <= 7
+                    ? 'text-yellow-400'
+                    : 'text-green-400'
+              : expiryStatus.expired
+                ? 'text-red-600'
+                : expiryStatus.daysLeft === 0
+                  ? 'text-yellow-600'
+                  : expiryStatus.daysLeft <= 7
+                    ? 'text-yellow-600'
+                    : 'text-green-600'
+              }`}>
+              {expiryStatus.expired ? (
+                'PACK EXPIRED'
+              ) : expiryStatus.daysLeft === 0 ? (
+                'EXPIRING TODAY'
+              ) : expiryStatus.daysLeft <= 7 ? (
+                `EXPIRING IN ${expiryStatus.daysLeft} DAY${expiryStatus.daysLeft === 1 ? '' : 'S'}`
+              ) : (
+                `EXPIRES IN ${expiryStatus.daysLeft} DAY${expiryStatus.daysLeft === 1 ? '' : 'S'}`
+              )}
+            </div>
 
-                    {expiryStatus.expired ? (
-                      <div className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                        Please renew your subscription
-                      </div>
-                    ) : expiryStatus.daysLeft <= 7 ? (
-                      <div className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                        Your subscription is ending soon
-                      </div>
-                    ) : (
-                      <div className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                        Subscription is active
-                      </div>
-                    )}
-                  </div>
-                </div>
+            {expiryStatus.expired ? (
+              <div className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                Please renew your subscription
+              </div>
+            ) : expiryStatus.daysLeft === 0 ? (
+              <div className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                Your subscription ends today
+              </div>
+            ) : expiryStatus.daysLeft <= 7 ? (
+              <div className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                Your subscription is ending soon
+              </div>
+            ) : (
+              <div className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                Subscription is active
               </div>
             )}
           </div>
-        )}
+        </div>
+      </div>
+    )}
+  </div>
+)}
 
         {/* Simplified Company Expiry Status for collapsed sidebar */}
         {isCollapsed && companyInfo && expiryStatus && (

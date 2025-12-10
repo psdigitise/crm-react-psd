@@ -844,7 +844,8 @@ export function LoginPage({ onLogin }: LoginPageProps) {
       const companyPayload = {
         company_name: companyData.company_name,
         email_id: registerData.email,
-        no_employees: companyData.no_employees
+        no_employees: companyData.no_employees,
+        plan_id: "0"
       };
 
       const companyResponse = await fetch(

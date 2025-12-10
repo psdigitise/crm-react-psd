@@ -423,7 +423,7 @@ export default function EmailOrCommentComposer({
       // For the quoted message, keep it as plain text
       // For the new message, wrap it in HTML
       const newMessageHtml = `<div style="white-space: pre-wrap; font-family: sans-serif;">${emailForm.message}</div>`;
-      
+
       const fullMessage = quotedMessage
         ? `${newMessageHtml}\n\n---\n\n${quotedMessage}`
         : newMessageHtml;
@@ -487,7 +487,7 @@ export default function EmailOrCommentComposer({
     if (selectedEmail && (mode === "reply" || mode === "reply-all")) {
       // Extract and clean the quoted message
       let quoted = selectedEmail.content || "";
-      
+
       // Remove HTML tags from the quoted message
       if (quoted.includes('<')) {
         // Create a temporary div to parse HTML
@@ -495,7 +495,7 @@ export default function EmailOrCommentComposer({
         tempDiv.innerHTML = quoted;
         quoted = tempDiv.textContent || tempDiv.innerText || "";
       }
-      
+
       // Clean up any remaining HTML entities
       quoted = quoted
         .replace(/&nbsp;/g, ' ')
@@ -624,18 +624,28 @@ export default function EmailOrCommentComposer({
     }
   }
 
-  // NEW FUNCTION: Generate email from AI prompt
   const generateEmailFromPrompt = async () => {
     if (!emailForm.aiPrompt.trim()) {
       showToast("Please enter a prompt for AI generation", { type: "error" });
       return;
     }
 
+    // Build FULL prompt using subject + message + instruction
+    const combinedPurpose = `
+Modify this email:
+Subject: ${emailForm.subject || "(no subject)"}
+
+${emailForm.message || "(no message)"}
+
+Instruction: ${emailForm.aiPrompt.trim()}
+  `;
+
     try {
       setGenerating(true);
+
       const response = await apiAxios.post(
         AI_GENERATE_API,
-        { purpose: emailForm.aiPrompt.trim() },
+        { purpose: combinedPurpose },
         {
           headers: {
             Authorization: AUTH_TOKEN,
@@ -645,50 +655,44 @@ export default function EmailOrCommentComposer({
       );
 
       const data = response.data;
-      
+
       let generatedSubject = "";
       let generatedBody = "";
-      
-      if (data.message && typeof data.message === 'object') {
-        if (data.message.message && typeof data.message.message === 'object') {
-          generatedSubject = data.message.message.subject || "";
-          generatedBody = data.message.message.body || "";
-        } else if (data.message.subject && data.message.body) {
-          generatedSubject = data.message.subject;
-          generatedBody = data.message.body;
-        } else if (data.message.generated_content) {
-          generatedBody = data.message.generated_content;
-          generatedSubject = emailForm.subject || `Re: ${dealName || ""}`;
-        }
-      } else if (data.message && typeof data.message === 'string') {
-        generatedBody = data.message;
-        generatedSubject = emailForm.subject || `Re: ${dealName || ""}`;
-      } else if (data.generated_content) {
-        generatedBody = data.generated_content;
-        generatedSubject = emailForm.subject || `Re: ${dealName || ""}`;
+
+      if (data.message?.message) {
+        generatedSubject = data.message.message.subject || emailForm.subject;
+        generatedBody = data.message.message.body || "";
+      } else if (data.message?.subject && data.message?.body) {
+        generatedSubject = data.message.subject;
+        generatedBody = data.message.body;
+      } else if (data.message?.generated_content) {
+        generatedBody = data.message.generated_content;
+        generatedSubject = emailForm.subject;
       }
 
       if (generatedBody) {
         setEmailForm(prev => ({
           ...prev,
-          subject: generatedSubject || prev.subject || `Re: ${dealName || ""}`,
+          subject: generatedSubject,
           message: generatedBody,
         }));
-        setIsSubjectEdited(true);
-        showToast("Email content generated successfully!", { type: "success" });
-        
-        // Clear the AI prompt after successful generation
+
+        showToast("Email improved successfully!", { type: "success" });
+
+        // Clear prompt box
         setEmailForm(prev => ({ ...prev, aiPrompt: "" }));
       } else {
-        showToast("Failed to generate email content. Please try again.", { type: "error" });
+        showToast("Failed to generate improved email.", { type: "error" });
       }
+
     } catch (error: any) {
-      console.error("Error generating email:", error);
-      showToast(`Failed to generate email content: ${error.message}`, { type: "error" });
+      console.error("AI Generate Error:", error);
+      showToast(`AI Error: ${error.message}`, { type: "error" });
     } finally {
       setGenerating(false);
     }
   };
+
 
   const getActiveInputRef = () => {
     if (suggestionsFor === "to" && toInputRef.current) return toInputRef;
@@ -710,7 +714,7 @@ export default function EmailOrCommentComposer({
           }`}
       >
         <button
-          className={`flex items-center gap-1 pb-2 transition-colors ${!showComment
+          className={`flex items-center gap-1 transition-colors ${!showComment
             ? theme === "dark"
               ? "px-2 py-2 rounded-xl bg-slate-500 text-white"
               : "text-gray-800 border-b-2 border-gray-800"
@@ -736,7 +740,7 @@ export default function EmailOrCommentComposer({
           Reply
         </button>
         <button
-          className={`flex items-center gap-1 pb-2 max-sm:pb-0 transition-colors ${showComment
+          className={`flex items-center gap-1  max-sm:pb-0 transition-colors ${showComment
             ? theme === "dark"
               ? "px-2 py-2 rounded-xl bg-slate-500 text-white"
               : "text-gray-800 border-b-2 border-gray-800"
@@ -820,43 +824,7 @@ export default function EmailOrCommentComposer({
               </div>
             </div>
 
-            {/* AI Assist Field - ALWAYS VISIBLE below To field */}
-            <div
-              className={`flex items-center gap-2 border-b pb-2 ${theme === "dark" ? "border-gray-600" : "border-gray-300"}`}
-            >
-              <span className={`w-16 font-medium flex items-center gap-2 ${theme === "dark" ? "text-white" : "text-gray-700"}`}>
-                AI Assist:
-              </span>
-              <div className="flex-1 flex items-center gap-2">
-                <textarea
-                  
-                  value={emailForm.aiPrompt}
-                  onChange={(e) => setEmailForm(f => ({ ...f, aiPrompt: e.target.value }))}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      generateEmailFromPrompt();
-                    }
-                  }}
-                  className={`px-2 py-1 rounded font-medium outline-none flex-1 placeholder:font-normal ${theme === "dark"
-                    ? "bg-gray-700 text-white !placeholder-gray-400 border border-gray-600 focus:border-gray-400"
-                    : "bg-gray-50 text-gray-800 !placeholder-gray-500 border border-gray-300 focus:border-gray-500"
-                    }`}
-                  placeholder="Describe the email you want to write (e.g., 'client followup reminder')"
-                />
-                <button
-                  type="button"
-                  onClick={generateEmailFromPrompt}
-                  disabled={generating || !emailForm.aiPrompt.trim()}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${theme === 'dark'
-                    ? 'bg-purple-600 hover:bg-purple-500 text-white disabled:bg-purple-800'
-                    : 'bg-purplebg hover:bg-purple-700 text-white disabled:bg-purple-300'
-                    }`}
-                >
-                  <span>{generating ? "Generating..." : "Generate"}</span>
-                </button>
-              </div>
-            </div>
+            
 
             {/* CC Field */}
             {showCC && (
@@ -934,10 +902,10 @@ export default function EmailOrCommentComposer({
                 type="text"
                 value={emailForm.subject}
                 onChange={handleSubjectChange}
-                className={`px-2 py-1 rounded font-medium outline-none flex-1 placeholder:font-normal ${theme === "dark"
-                  ? "bg-gray-700 text-white placeholder:text-gray-400 border border-gray-600 focus:border-gray-400"
-                  : "bg-gray-50 text-gray-800 placeholder:text-gray-500 border border-gray-300 focus:border-gray-500"
-                  }`}
+                className={`w-full px-2 py-1 rounded font-medium outline-none placeholder:font-normal ${theme === "dark"
+                        ? "bg-gray-700 text-white !placeholder-gray-400 border border-gray-600 focus:border-gray-400"
+                        : "bg-gray-50 text-gray-800 !placeholder-gray-500 border border-gray-300 focus:border-gray-500"
+                        }`}
                 placeholder="Enter email subject"
               />
             </div>
@@ -1053,6 +1021,59 @@ export default function EmailOrCommentComposer({
               </div>
             )}
           </div>
+
+          {/* AI Assist Field - New Design */}
+            <div
+              className={`mt-4 mb-2 w-full border rounded-lg px-4 py-3 flex items-center gap-3 
+    ${theme === "dark" ? "bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30 border-gray-700" : "bg-gray-50 border-gray-300"}`}
+            >
+              <div className="flex flex-col w-full">
+                <span
+                  className={`text-sm flex gap-2 font-semibold mb-2 
+        ${theme === "dark" ? "text-gray-200" : "text-gray-800"}`}
+                >
+                  <Sparkles size={16} />
+                  AI Assist
+                </span>
+                <p className={`text-xs flex gap-2 font-normal mb-2 
+        ${theme === "dark" ? "text-gray-200" : "text-gray-800"}`}>
+                  Describe the email you want to write and let AI do the rest
+                </p>
+
+                <div className="flex items-center w-full gap-3">
+                  <textarea
+                    value={emailForm.aiPrompt}
+                    onChange={(e) => setEmailForm(f => ({ ...f, aiPrompt: e.target.value }))}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        generateEmailFromPrompt();
+                      }
+                    }}
+                    placeholder="e.g., 'Follow up about our last meeting'"
+                    className={`flex-1 px-3 py-2 rounded-md text-sm outline-none resize-none
+          ${theme === "dark"
+                        ? "bg-[#2a2a2a] text-white !placeholder-gray-400 border border-gray-700 focus:border-gray-500"
+                        : "bg-white text-gray-800 !placeholder-gray-500 border border-gray-300 focus:border-gray-500"
+                      }`}
+                    rows={1}
+                  />
+
+                  <button
+                    type="button"
+                    onClick={generateEmailFromPrompt}
+                    disabled={generating || !emailForm.aiPrompt.trim()}
+                    className={`px-4 py-2 rounded-md text-sm font-medium flex items-center gap-1 transition-colors
+          ${theme === "dark"
+                        ? "bg-purple-600 hover:bg-purple-500 text-white disabled:bg-purple-800"
+                        : "bg-purple-600 hover:bg-purple-700 text-white disabled:bg-purple-300"
+                      }`}
+                  >
+                    <Sparkles size={16} />
+                  </button>
+                </div>
+              </div>
+            </div>
 
           {/* Action Buttons */}
           <div
