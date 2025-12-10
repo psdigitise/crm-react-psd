@@ -32,7 +32,8 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     const saved = localStorage.getItem('theme');
-    return (saved as 'light' | 'dark') || 'dark'; // default is now dark
+    // return (saved as 'dark' | 'light') || 'light'; // Return saved theme if it exists, otherwise default to 'light'
+    return 'light';
   });
 
   useEffect(() => {

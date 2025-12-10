@@ -5772,7 +5772,8 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
                       <div
                         key={file.name}
                         className={`flex items-center justify-between p-4 rounded-lg border ${borderColor} transition-colors cursor-pointer ${theme === 'dark' ? 'bg-gray-800 hover:bg-gray-750' : 'bg-white hover:bg-gray-50'} shadow-sm`}
-                        onClick={() => window.open(`${file.file_url}`, '_blank')}
+                       
+                        onClick={() => window.open(`https://api.erpnext.ai${file.file_url}`, '_blank')}
                       >
                         <div className="flex items-center flex-1 min-w-0">
                           {isImageFile(file.file_name) ? (
@@ -6004,11 +6005,10 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
                               </div>
 
                               <div className="mt-2 space-y-1">
-                                <p className={`text-sm ${textSecondaryColor}`}>
+                                {/* <p className={`text-sm ${textSecondaryColor}`}>
                                   <span className="font-semibold">From:</span>{" "}
                                   {(() => {
                                     const sender = comm.sender || "";
-                                    // Extract name from "John <prasannapsd20@gmail.com>" format
                                     const match = sender.match(/(.*)<(.*)>/);
                                     if (match) {
                                       const name = match[1].trim();
@@ -6019,7 +6019,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
                                     // If not in that format, just return the sender as is
                                     return sender;
                                   })()}
-                                </p>
+                                </p> */}
                                 <p className={`text-sm ${textSecondaryColor}`}>
                                   <span className="font-semibold">To:</span> {comm.recipients}
                                 </p>

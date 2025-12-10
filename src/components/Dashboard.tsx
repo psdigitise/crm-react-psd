@@ -1038,9 +1038,9 @@ export function Dashboard({ onMenuToggle }: DashboardProps) {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Dealstable title="Deals Closing This Month" data={DealsTableData} />
 
-        {/* Lead Conversion Funnel - Updated layout */}
+        {/* Deal Conversion Funnel - Updated layout */}
         <div className='h-[100%]'>
-          <ChartCard title="Lead Conversion Funnel">
+          <ChartCard title="Deal Conversion Funnel">
             {!hasFunnelData ? (
               <div className="flex items-center justify-center h-64">
                 <div className="text-center">

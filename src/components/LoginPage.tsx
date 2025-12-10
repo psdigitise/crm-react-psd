@@ -1085,77 +1085,81 @@ export function LoginPage({ onLogin }: LoginPageProps) {
   };
 
   const handleGoogleAccountCreation = async (userData: any) => {
-    setLoading(true);
+  setLoading(true);
 
-    try {
-      const storedCredential = localStorage.getItem('google_credential');
-      if (!storedCredential) {
-        throw new Error('Google credential not found');
-      }
-
-      const credentialResponse = JSON.parse(storedCredential);
-      const token = credentialResponse.credential;
-
-      if (!token) {
-        throw new Error('Google token not found');
-      }
-
-      const loginRes = await axios.get(
-        'https://api.erpnext.ai/api/method/customcrm.google_auth.login_with_google',
-        {
-          params: {
-            token: token,
-            redirect_to: 'dashboard',
-            company: userData.company,
-            first_name: userData.first_name,
-            last_name: userData.last_name,
-            mobile_no: userData.phone,
-            no_of_emp: userData.no_employees
-          },
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-
-      const loginData = loginRes.data;
-
-      if (loginData.message && loginData.message.success_key === 1) {
-        const sessionData = {
-          company: loginData.message.company || '',
-          username: loginData.message.username || '',
-          email: loginData.message.email || '',
-          full_name: loginData.full_name || '',
-          sid: loginData.message.sid || '',
-          api_key: loginData.message.api_key || '',
-          api_secret: loginData.message.api_secret || '',
-          role_profile: loginData.message.role_profile || ''
-        };
-
-        setUserSession(sessionData);
-        setShowGoogleSignupModal(false);
-        localStorage.removeItem('google_token');
-        localStorage.removeItem('google_credential');
-
-        onLogin();
-        showToast('Account created successfully!', 'success');
-        navigate('/dashboard');
-      } else {
-        throw new Error(
-          loginData.message?.message || 'Failed to create account'
-        );
-      }
-    } catch (err: any) {
-      const errorMessage =
-        err.response?.data?.message ||
-        err.message ||
-        'Failed to create account';
-      setError(errorMessage);
-      showToast(errorMessage, 'error');
-    } finally {
-      setLoading(false);
+  try {
+    const storedCredential = localStorage.getItem('google_credential');
+    if (!storedCredential) {
+      throw new Error('Google credential not found');
     }
-  };
+
+    const credentialResponse = JSON.parse(storedCredential);
+    const token = credentialResponse.credential;
+
+    if (!token) {
+      throw new Error('Google token not found');
+    }
+
+    const loginRes = await axios.get(
+      'https://api.erpnext.ai/api/method/customcrm.google_auth.login_with_google',
+      {
+        params: {
+          token: token,
+          redirect_to: 'dashboard',
+          company: userData.company,
+          first_name: userData.first_name,
+          last_name: userData.last_name,
+          mobile_no: userData.phone,
+          no_of_emp: userData.no_employees
+        },
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    const loginData = loginRes.data;
+
+    if (loginData.message && loginData.message.success_key === 1) {
+      const sessionData = {
+        company: loginData.message.company || '',
+        username: loginData.message.username || '',
+        email: loginData.message.email || '',
+        full_name: loginData.full_name || '',
+        sid: loginData.message.sid || '',
+        api_key: loginData.message.api_key || '',
+        api_secret: loginData.message.api_secret || '',
+        role_profile: loginData.message.role_profile || ''
+      };
+
+      setUserSession(sessionData);
+      setShowGoogleSignupModal(false);
+      localStorage.removeItem('google_token');
+      localStorage.removeItem('google_credential');
+
+      onLogin();
+      showToast('Account created successfully!', 'success');
+      
+      // ADD THIS LINE - Reload after successful account creation
+      window.location.reload();
+      
+      navigate('/dashboard');
+    } else {
+      throw new Error(
+        loginData.message?.message || 'Failed to create account'
+      );
+    }
+  } catch (err: any) {
+    const errorMessage =
+      err.response?.data?.message ||
+      err.message ||
+      'Failed to create account';
+    setError(errorMessage);
+    showToast(errorMessage, 'error');
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleFacebookLogin = async (response: any) => {
     try {
