@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { X } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import { getUserSession } from '../utils/session';
@@ -38,7 +38,7 @@ function CreateAddressModal({ isOpen, onClose, onSubmit }: CreateAddressModalPro
 
   const validateField = (name: string, value: string) => {
     let error = '';
-    
+
     switch (name) {
       case 'address_title':
         if (!value.trim()) {
@@ -69,7 +69,7 @@ function CreateAddressModal({ isOpen, onClose, onSubmit }: CreateAddressModalPro
       default:
         break;
     }
-    
+
     return error;
   };
 
@@ -80,15 +80,15 @@ function CreateAddressModal({ isOpen, onClose, onSubmit }: CreateAddressModalPro
       city: validateField('city', formData.city),
       country: validateField('country', formData.country)
     };
-    
+
     setErrors(newErrors);
-    
+
     return !Object.values(newErrors).some(error => error !== '');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       showToast('Please fix the validation errors', { type: 'error' });
       return;
@@ -155,7 +155,7 @@ function CreateAddressModal({ isOpen, onClose, onSubmit }: CreateAddressModalPro
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    
+
     setFormData({
       ...formData,
       [name]: value
@@ -207,10 +207,9 @@ function CreateAddressModal({ isOpen, onClose, onSubmit }: CreateAddressModalPro
                   onChange={handleChange}
                   placeholder="Address Title"
                   disabled={loading}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    theme === 'dark'
-                      ? 'bg-gray-800 text-white placeholder-gray-400 border-gray-700 focus:border-transparent'
-                      : 'bg-white text-gray-900 placeholder-gray-500 border-gray-300'
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
+                    ? 'bg-gray-800 text-white placeholder-gray-400 border-gray-700 focus:border-transparent'
+                    : 'bg-white text-gray-900 placeholder-gray-500 border-gray-300'
                     } ${errors.address_title ? 'border-red-500' : ''}`}
                 />
                 {errors.address_title && (
@@ -229,10 +228,9 @@ function CreateAddressModal({ isOpen, onClose, onSubmit }: CreateAddressModalPro
                   value={formData.address_type}
                   onChange={handleChange}
                   disabled={loading}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    theme === 'dark'
-                      ? 'bg-gray-800 text-white border-gray-700 focus:border-transparent'
-                      : 'bg-white text-gray-900 border-gray-300'
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
+                    ? 'bg-gray-800 text-white border-gray-700 focus:border-transparent'
+                    : 'bg-white text-gray-900 border-gray-300'
                     }`}
                 >
                   <option value="Billing" className={theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}>Billing</option>
@@ -256,10 +254,9 @@ function CreateAddressModal({ isOpen, onClose, onSubmit }: CreateAddressModalPro
                   onChange={handleChange}
                   placeholder="Country"
                   disabled={loading}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    theme === 'dark'
-                      ? 'bg-gray-800 text-white placeholder-gray-400 border-gray-700 focus:border-transparent'
-                      : 'bg-white text-gray-900 placeholder-gray-500 border-gray-300'
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
+                    ? 'bg-gray-800 text-white placeholder-gray-400 border-gray-700 focus:border-transparent'
+                    : 'bg-white text-gray-900 placeholder-gray-500 border-gray-300'
                     } ${errors.country ? 'border-red-500' : ''}`}
                 />
                 {errors.country && (
@@ -280,10 +277,9 @@ function CreateAddressModal({ isOpen, onClose, onSubmit }: CreateAddressModalPro
                   onChange={handleChange}
                   placeholder="Address Line 1"
                   disabled={loading}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    theme === 'dark'
-                      ? 'bg-gray-800 text-white placeholder-gray-400 border-gray-700 focus:border-transparent'
-                      : 'bg-white text-gray-900 placeholder-gray-500 border-gray-300'
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
+                    ? 'bg-gray-800 text-white placeholder-gray-400 border-gray-700 focus:border-transparent'
+                    : 'bg-white text-gray-900 placeholder-gray-500 border-gray-300'
                     } ${errors.address_line1 ? 'border-red-500' : ''}`}
                 />
                 {errors.address_line1 && (
@@ -304,10 +300,9 @@ function CreateAddressModal({ isOpen, onClose, onSubmit }: CreateAddressModalPro
                   onChange={handleChange}
                   placeholder="City"
                   disabled={loading}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    theme === 'dark'
-                      ? 'bg-gray-800 text-white placeholder-gray-400 border-gray-700 focus:border-transparent'
-                      : 'bg-white text-gray-900 placeholder-gray-500 border-gray-300'
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
+                    ? 'bg-gray-800 text-white placeholder-gray-400 border-gray-700 focus:border-transparent'
+                    : 'bg-white text-gray-900 placeholder-gray-500 border-gray-300'
                     } ${errors.city ? 'border-red-500' : ''}`}
                 />
                 {errors.city && (
@@ -322,22 +317,20 @@ function CreateAddressModal({ isOpen, onClose, onSubmit }: CreateAddressModalPro
                 type="button"
                 onClick={onClose}
                 disabled={loading}
-                className={`mr-3 px-4 py-2 rounded-lg transition-colors disabled:opacity-50 ${
-                  theme === 'dark'
+                className={`mr-3 px-4 py-2 rounded-lg transition-colors disabled:opacity-50 ${theme === 'dark'
                   ? 'text-gray-300 border border-gray-600 hover:bg-gray-800'
                   : 'text-gray-700 border border-gray-300 hover:bg-gray-50'
-                }`}
+                  }`}
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={loading}
-                className={`px-4 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                  theme === 'dark'
-                    ? 'bg-purple-600 hover:bg-purple-700 text-white'
-                    : 'bg-blue-600 hover:bg-blue-700 text-white'
-                }`}
+                className={`px-4 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${theme === 'dark'
+                  ? 'bg-purple-600 hover:bg-purple-700 text-white'
+                  : 'bg-blue-600 hover:bg-blue-700 text-white'
+                  }`}
               >
                 {loading ? 'Creating...' : 'Create Address'}
               </button>
@@ -392,7 +385,7 @@ export function CreateContactModal({ isOpen, onClose, onSubmit, onSuccess }: Cre
 
   const validateField = (name: string, value: string) => {
     let error = '';
-    
+
     switch (name) {
       case 'first_name':
         if (!value.trim()) {
@@ -426,7 +419,7 @@ export function CreateContactModal({ isOpen, onClose, onSubmit, onSuccess }: Cre
       default:
         break;
     }
-    
+
     return error;
   };
 
@@ -438,9 +431,9 @@ export function CreateContactModal({ isOpen, onClose, onSubmit, onSuccess }: Cre
       company_name: validateField('company_name', formData.company_name),
       designation: validateField('designation', formData.designation)
     };
-    
+
     setErrors(newErrors);
-    
+
     return !Object.values(newErrors).some(error => error !== '');
   };
 
@@ -490,7 +483,7 @@ export function CreateContactModal({ isOpen, onClose, onSubmit, onSuccess }: Cre
     try {
       await fetchAddresses();
       const createdAddress = newAddress.data || newAddress.message || newAddress;
-      
+
       if (createdAddress && createdAddress.name) {
         setTimeout(() => {
           setFormData(prev => ({ ...prev, address: createdAddress.name }));
@@ -508,7 +501,7 @@ export function CreateContactModal({ isOpen, onClose, onSubmit, onSuccess }: Cre
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       showToast('Please fix the validation errors', { type: 'error' });
       return;
@@ -568,16 +561,16 @@ export function CreateContactModal({ isOpen, onClose, onSubmit, onSuccess }: Cre
       console.log('✅ Contact creation response:', result);
 
       showToast('Contact created successfully', { type: 'success' });
-      
+
       // Call onSubmit with the result
       onSubmit(result);
-      
+
       // IMPORTANT: Call onSuccess to trigger table refresh in parent component
       if (onSuccess) {
         console.log('🔄 Calling onSuccess to refresh table...');
         onSuccess();
       }
-      
+
       // Close the modal
       onClose();
 
@@ -612,7 +605,7 @@ export function CreateContactModal({ isOpen, onClose, onSubmit, onSuccess }: Cre
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    
+
     setFormData({
       ...formData,
       [name]: value
@@ -642,13 +635,11 @@ export function CreateContactModal({ isOpen, onClose, onSubmit, onSuccess }: Cre
         <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
           <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" onClick={onClose} />
 
-          <div className={`inline-block align-bottom rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full ${
-            theme === 'dark'
-              ? 'bg-gray-900 border border-gray-700'
-              : 'bg-white border border-gray-200'
+          <div className={`inline-block align-bottom rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full ${theme === 'dark'
+            ? 'bg-gray-900 border border-gray-700'
+            : 'bg-white border border-gray-200'
             }`}>
-            <div className={`flex items-center justify-between px-6 py-4 border-b ${
-              theme === 'dark' ? 'border-gray-700' : 'border-gray-200'
+            <div className={`flex items-center justify-between px-6 py-4 border-b ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'
               }`}>
               <h3 className={`text-lg font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
                 New Contact
@@ -677,10 +668,9 @@ export function CreateContactModal({ isOpen, onClose, onSubmit, onSuccess }: Cre
                     value={formData.salutation}
                     onChange={handleChange}
                     disabled={loading}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                      theme === 'dark'
-                        ? 'bg-gray-800 text-white border-gray-700 focus:border-transparent'
-                        : 'bg-white text-gray-900 border-gray-300'
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
+                      ? 'bg-gray-800 text-white border-gray-700 focus:border-transparent'
+                      : 'bg-white text-gray-900 border-gray-300'
                       }`}
                   >
                     <option value="" className={theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}>Salutation</option>
@@ -706,10 +696,9 @@ export function CreateContactModal({ isOpen, onClose, onSubmit, onSuccess }: Cre
                       onChange={handleChange}
                       placeholder="First Name"
                       disabled={loading}
-                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                        theme === 'dark'
-                          ? 'bg-gray-800 text-white !placeholder-gray-400 border-gray-700 focus:border-transparent'
-                          : 'bg-white text-gray-900 !placeholder-gray-500 border-gray-300'
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
+                        ? 'bg-gray-800 text-white !placeholder-gray-400 border-gray-700 focus:border-transparent'
+                        : 'bg-white text-gray-900 !placeholder-gray-500 border-gray-300'
                         } ${errors.first_name ? 'border-red-500' : ''}`}
                     />
                     {errors.first_name && (
@@ -729,10 +718,9 @@ export function CreateContactModal({ isOpen, onClose, onSubmit, onSuccess }: Cre
                       onChange={handleChange}
                       placeholder="Last Name"
                       disabled={loading}
-                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                        theme === 'dark'
-                          ? 'bg-gray-800 text-white !placeholder-gray-400 border-gray-700 focus:border-transparent'
-                          : 'bg-white text-gray-900 !placeholder-gray-500 border-gray-300'
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
+                        ? 'bg-gray-800 text-white !placeholder-gray-400 border-gray-700 focus:border-transparent'
+                        : 'bg-white text-gray-900 !placeholder-gray-500 border-gray-300'
                         }`}
                     />
                   </div>
@@ -744,22 +732,21 @@ export function CreateContactModal({ isOpen, onClose, onSubmit, onSuccess }: Cre
                     }`}>
                     Email Address
                   </label>
-                    <input
-                      type="email"
-                      name="email_id"
-                      value={formData.email_id}
-                      onChange={handleChange}
-                      placeholder="Email Address"
-                      disabled={loading}
-                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                        theme === 'dark'
-                          ? 'bg-gray-800 text-white !placeholder-gray-400 border-gray-700 focus:border-transparent'
-                          : 'bg-white text-gray-900 !placeholder-gray-500 border-gray-300'
-                        } ${errors.email_id ? 'border-red-500' : ''}`}
-                    />
-                    {errors.email_id && (
-                      <p className="text-red-500 text-xs mt-1">{errors.email_id}</p>
-                    )}
+                  <input
+                    type="email"
+                    name="email_id"
+                    value={formData.email_id}
+                    onChange={handleChange}
+                    placeholder="Email Address"
+                    disabled={loading}
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
+                      ? 'bg-gray-800 text-white !placeholder-gray-400 border-gray-700 focus:border-transparent'
+                      : 'bg-white text-gray-900 !placeholder-gray-500 border-gray-300'
+                      } ${errors.email_id ? 'border-red-500' : ''}`}
+                  />
+                  {errors.email_id && (
+                    <p className="text-red-500 text-xs mt-1">{errors.email_id}</p>
+                  )}
                 </div>
 
                 {/* Mobile No and Gender */}
@@ -776,10 +763,9 @@ export function CreateContactModal({ isOpen, onClose, onSubmit, onSuccess }: Cre
                       onChange={handleChange}
                       placeholder="Mobile No"
                       disabled={loading}
-                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                        theme === 'dark'
-                          ? 'bg-gray-800 text-white !placeholder-gray-400 border-gray-700 focus:border-transparent'
-                          : 'bg-white text-gray-900 !placeholder-gray-500 border-gray-300'
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
+                        ? 'bg-gray-800 text-white !placeholder-gray-400 border-gray-700 focus:border-transparent'
+                        : 'bg-white text-gray-900 !placeholder-gray-500 border-gray-300'
                         } ${errors.phone ? 'border-red-500' : ''}`}
                     />
                     {errors.phone && (
@@ -797,10 +783,9 @@ export function CreateContactModal({ isOpen, onClose, onSubmit, onSuccess }: Cre
                       value={formData.gender}
                       onChange={handleChange}
                       disabled={loading}
-                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                        theme === 'dark'
-                          ? 'bg-gray-800 text-white border-gray-700 focus:border-transparent'
-                          : 'bg-white text-gray-900 border-gray-300'
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
+                        ? 'bg-gray-800 text-white border-gray-700 focus:border-transparent'
+                        : 'bg-white text-gray-900 border-gray-300'
                         }`}
                     >
                       <option value="" className={theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}>Select Gender</option>
@@ -826,10 +811,9 @@ export function CreateContactModal({ isOpen, onClose, onSubmit, onSuccess }: Cre
                     onChange={handleChange}
                     placeholder="Company Name"
                     disabled={loading}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                      theme === 'dark'
-                        ? 'bg-gray-800 text-white !placeholder-gray-400 border-gray-700 focus:border-transparent'
-                        : 'bg-white text-gray-900 !placeholder-gray-500 border-gray-300'
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
+                      ? 'bg-gray-800 text-white !placeholder-gray-400 border-gray-700 focus:border-transparent'
+                      : 'bg-white text-gray-900 !placeholder-gray-500 border-gray-300'
                       } ${errors.company_name ? 'border-red-500' : ''}`}
                   />
                   {errors.company_name && (
@@ -850,10 +834,9 @@ export function CreateContactModal({ isOpen, onClose, onSubmit, onSuccess }: Cre
                     onChange={handleChange}
                     placeholder="Designation"
                     disabled={loading}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                      theme === 'dark'
-                        ? 'bg-gray-800 text-white !placeholder-gray-400 border-gray-700 focus:border-transparent'
-                        : 'bg-white text-gray-900 !placeholder-gray-500 border-gray-300'
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
+                      ? 'bg-gray-800 text-white !placeholder-gray-400 border-gray-700 focus:border-transparent'
+                      : 'bg-white text-gray-900 !placeholder-gray-500 border-gray-300'
                       } ${errors.designation ? 'border-red-500' : ''}`}
                   />
                   {errors.designation && (
@@ -873,18 +856,17 @@ export function CreateContactModal({ isOpen, onClose, onSubmit, onSuccess }: Cre
                       value={formData.address}
                       onChange={handleAddressChange}
                       disabled={loading || loadingAddresses}
-                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none ${
-                        theme === 'dark'
-                          ? 'bg-gray-800 text-white border-gray-700 focus:border-transparent'
-                          : 'bg-white text-gray-900 border-gray-300'
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none ${theme === 'dark'
+                        ? 'bg-gray-800 text-white border-gray-700 focus:border-transparent'
+                        : 'bg-white text-gray-900 border-gray-300'
                         }`}
                     >
                       {addresses.length > 0 ? (
                         <>
                           <option value="" className={theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}>Select Address</option>
                           {addresses.map((address: any) => (
-                            <option 
-                              key={address.name} 
+                            <option
+                              key={address.name}
                               value={address.name}
                               className={theme === 'dark' ? 'bg-gray-800 text-white hover:bg-gray-700' : 'bg-white text-gray-900 hover:bg-gray-100'}
                             >
@@ -893,8 +875,8 @@ export function CreateContactModal({ isOpen, onClose, onSubmit, onSuccess }: Cre
                           ))}
                           <option
                             value="create_new"
-                            className={theme === 'dark' 
-                              ? 'font-medium text-purple-400 bg-gray-800 border-t border-gray-700 pt-2 mt-2' 
+                            className={theme === 'dark'
+                              ? 'font-medium text-purple-400 bg-gray-800 border-t border-gray-700 pt-2 mt-2'
                               : 'font-medium text-blue-600 bg-white border-t border-gray-200 pt-2 mt-2'
                             }
                             style={{
@@ -910,8 +892,8 @@ export function CreateContactModal({ isOpen, onClose, onSubmit, onSuccess }: Cre
                           <option value="" className={theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}>No addresses available</option>
                           <option
                             value="create_new"
-                            className={theme === 'dark' 
-                              ? 'font-medium text-purple-400 bg-gray-800 border-t border-gray-700 pt-2 mt-2' 
+                            className={theme === 'dark'
+                              ? 'font-medium text-purple-400 bg-gray-800 border-t border-gray-700 pt-2 mt-2'
                               : 'font-medium text-blue-600 bg-white border-t border-gray-200 pt-2 mt-2'
                             }
                             style={{
@@ -940,10 +922,9 @@ export function CreateContactModal({ isOpen, onClose, onSubmit, onSuccess }: Cre
                 <button
                   type="submit"
                   disabled={loading}
-                  className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 sm:text-sm ${
-                    theme === 'dark'
-                      ? 'bg-purple-600 text-white hover:bg-purple-700 focus:ring-purple-500 focus:ring-offset-gray-900'
-                      : 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500 focus:ring-offset-white'
+                  className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 sm:text-sm ${theme === 'dark'
+                    ? 'bg-purple-600 text-white hover:bg-purple-700 focus:ring-purple-500 focus:ring-offset-gray-900'
+                    : 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500 focus:ring-offset-white'
                     }`}
                 >
                   {loading ? 'Creating...' : 'Create Contact'}

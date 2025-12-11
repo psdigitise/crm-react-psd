@@ -6,6 +6,7 @@ import {
     Mail,
     Sparkles,
     Sparkle,
+    Loader2,
 } from "lucide-react";
 import { useTheme } from "../ThemeProvider";
 import Commentemailleads from "./Commentemailleads";
@@ -48,13 +49,12 @@ interface AIResponse {
     };
 }
 
-
-
-
 const API_BASE_URL = "https://api.erpnext.ai/api/method/frappe.core.doctype.communication.email.make";
 const AUTH_TOKEN = getAuthToken();
 const SEARCH_API_URL = "https://api.erpnext.ai/api/method/frappe.desk.search.search_link";
 const AI_GENERATE_API = "https://api.erpnext.ai/api/method/customcrm.email.email_generator.generate_email";
+const CHECK_CREDITS_API = "https://api.erpnext.ai/api/method/customcrm.api.check_credits_available";
+const ADD_ACTION_LOG_API = "https://api.erpnext.ai/api/method/customcrm.api.add_action_log";
 
 export default function EmailComposerleads({
     mode = "reply",
@@ -101,10 +101,13 @@ export default function EmailComposerleads({
     const userSession = getUserSession();
     const sessionfullname = userSession?.full_name;
     const senderUsername = userSession?.username || sessionfullname;
-
-
-
-
+    
+    // Credit-related states
+    const [availableCredits, setAvailableCredits] = useState<number>(0);
+    const [checkingCredits, setCheckingCredits] = useState(false);
+    const [showCreditWarning, setShowCreditWarning] = useState(false);
+    const [showConfirmationPopup, setShowConfirmationPopup] = useState(false);
+    const [subjectToGenerate, setSubjectToGenerate] = useState("");
 
     const isValidEmail = (email: string) => {
         const emailRegex = /^([^<>]+<)?[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(>)?$/;
@@ -158,6 +161,91 @@ export default function EmailComposerleads({
     useEffect(() => {
         setListSuccess(ok);
     }, [ok, setListSuccess]);
+
+    // Function to check email credits
+    const checkEmailCredits = async (): Promise<number> => {
+        setCheckingCredits(true);
+        try {
+            const session = getUserSession();
+            const sessionCompany = session?.company || '';
+
+            const response = await apiAxios.post(
+                CHECK_CREDITS_API,
+                {
+                    type: 'email',
+                    company: sessionCompany
+                },
+                {
+                    headers: {
+                        'Authorization': AUTH_TOKEN,
+                        'Content-Type': 'application/json'
+                    }
+                }
+            );
+
+            const creditsData = response.data.message;
+            if (creditsData.status) {
+                setAvailableCredits(creditsData.available_credits || 0);
+                return creditsData.available_credits || 0;
+            } else {
+                const credits = creditsData.available_credits || 0;
+                setShowCreditWarning(true);
+                setAvailableCredits(credits);
+                return 0;
+            }
+        } catch (error) {
+            console.error('Error checking email credits:', error);
+            showToast('Failed to check credits availability for email generation', { type: 'error' });
+            return 0;
+        } finally {
+            setCheckingCredits(false);
+        }
+    };
+
+    // Helper function to extract token usage from different response formats
+    const extractTokenUsage = (data: any) => {
+        const tokenUsage = data.message?.token_usage || {};
+        
+        return {
+            inputTokens: tokenUsage.input_tokens || 0,
+            outputTokens: tokenUsage.output_tokens || 0,
+            usdCost: tokenUsage.usd_cost || tokenUsage.usd || 0,
+            inrCost: tokenUsage.inr_cost || tokenUsage.inr || 0,
+            totalTokens: tokenUsage.total_tokens || 0
+        };
+    };
+
+    // Function to add action log for email generation
+    const addEmailActionLog = async (
+        inputTokens: number,
+        outputTokens: number,
+        usdCost: number,
+        inrCost: number
+    ) => {
+        try {
+            await apiAxios.post(
+                ADD_ACTION_LOG_API,
+                {
+                    doc: "CRM Lead",
+                    parent: lead?.name || "",
+                    type: "email",
+                    data_ctrx: inputTokens,
+                    output_token: outputTokens,
+                    usd: usdCost,
+                    inr: inrCost
+                },
+                {
+                    headers: {
+                        'Authorization': AUTH_TOKEN,
+                        'Content-Type': 'application/json'
+                    }
+                }
+            );
+            console.log('Email generation action log added successfully');
+        } catch (logError) {
+            console.error('Failed to add email action log:', logError);
+        }
+    };
 
     const sendEmail = async () => {
         if (!lead) {
@@ -349,93 +437,18 @@ export default function EmailComposerleads({
         }
     };
 
-    // const generateEmailFromPrompt = async () => {
-    //     if (!emailForm.aiPrompt.trim()) {
-    //         showToast("Please enter a prompt for AI generation", { type: "error" });
-    //         return;
-    //     }
-
-    //     try {
-    //         setGeneratingContent(true);
-    //         const response = await apiAxios.post(
-    //             AI_GENERATE_API,
-    //             { purpose: emailForm.aiPrompt.trim() },
-    //             {
-    //                 headers: {
-    //                     Authorization: AUTH_TOKEN,
-    //                     "Content-Type": "application/json",
-    //                 },
-    //             }
-    //         );
-
-    //         const data = response.data;
-    //         console.log("AI Response:", data);
-
-    //         // Debug: Check the exact structure
-    //         console.log("Full response structure:", JSON.stringify(data, null, 2));
-
-    //         let generatedSubject = "";
-    //         let generatedBody = "";
-
-    //         // Check multiple possible response structures
-    //         if (data.message && typeof data.message === 'object') {
-    //             // Check for nested message structure
-    //             if (data.message.message && typeof data.message.message === 'object') {
-    //                 // Nested: data.message.message.subject and data.message.message.body
-    //                 generatedSubject = data.message.message.subject || "";
-    //                 generatedBody = data.message.message.body || "";
-    //             } else if (data.message.subject && data.message.body) {
-    //                 // Direct: data.message.subject and data.message.body
-    //                 generatedSubject = data.message.subject;
-    //                 generatedBody = data.message.body;
-    //             } else if (data.message.generated_content) {
-    //                 // Alternative: generated_content field
-    //                 generatedBody = data.message.generated_content;
-    //                 generatedSubject = emailForm.subject || `Re: ${lead?.name || ""}`;
-    //             }
-    //         } else if (data.message && typeof data.message === 'string') {
-    //             // String response
-    //             generatedBody = data.message;
-    //             generatedSubject = emailForm.subject || `Re: ${lead?.name || ""}`;
-    //         } else if (data.generated_content) {
-    //             // Top-level generated_content
-    //             generatedBody = data.generated_content;
-    //             generatedSubject = emailForm.subject || `Re: ${lead?.name || ""}`;
-    //         }
-
-    //         console.log("Extracted subject:", generatedSubject);
-    //         console.log("Extracted body:", generatedBody);
-
-    //         if (generatedBody) {
-    //             // Update both subject and body fields
-    //             setEmailForm(prev => ({
-    //                 ...prev,
-    //                 subject: generatedSubject || prev.subject || `Re: ${lead?.name || ""}`,
-    //                 message: generatedBody,
-    //             }));
-    //             setIsSubjectEdited(true);
-    //             showToast("Email content generated successfully!", { type: "success" });
-
-    //             // Clear the AI prompt after successful generation
-    //             setEmailForm(prev => ({ ...prev, aiPrompt: "" }));
-    //         } else {
-    //             console.error("Could not extract content from response. Full response:", data);
-    //             showToast("Failed to generate email content. Please try again.", { type: "error" });
-    //         }
-    //     } catch (error: any) {
-    //         console.error("Error generating email:", error);
-    //         console.error("Error response:", error.response?.data);
-    //         showToast(`Failed to generate email content: ${error.message}`, { type: "error" });
-    //     } finally {
-    //         setGeneratingContent(false);
-    //     }
-    // };
-
-
-
     const generateEmailFromPrompt = async () => {
         if (!emailForm.aiPrompt.trim()) {
             showToast("Please enter a prompt for AI generation", { type: "error" });
+            return;
+        }
+
+        // First check credits
+        const creditsAvailable = await checkEmailCredits();
+        
+        if (creditsAvailable === 0 && showCreditWarning) {
+            showToast(`Insufficient credits. You have only ${availableCredits} credits available for email generation. Please add more to proceed.`, { type: 'error' });
+            setShowCreditWarning(false);
             return;
         }
 
@@ -463,6 +476,11 @@ Instruction: ${emailForm.aiPrompt.trim()}
             );
 
             const data = response.data;
+
+            // Extract token usage and cost from response
+            const { inputTokens, outputTokens, usdCost, inrCost } = extractTokenUsage(data);
+
+            console.log("Token Usage:", { inputTokens, outputTokens, usdCost, inrCost });
 
             // ---- NORMALIZE ALL STRUCTURES ----
             let subject = "";
@@ -507,6 +525,9 @@ Instruction: ${emailForm.aiPrompt.trim()}
                 aiPrompt: "",   // reset prompt
             }));
 
+            // Add action log with correct token mapping
+            await addEmailActionLog(inputTokens, outputTokens, usdCost, inrCost);
+
             setIsSubjectEdited(true);
             showToast("Email content generated successfully!", { type: "success" });
         } catch (error) {
@@ -515,6 +536,73 @@ Instruction: ${emailForm.aiPrompt.trim()}
         } finally {
             console.log("Setting generatingContent to false");
             setGeneratingContent(false);
+        }
+    };
+
+    // Function for subject-based generation
+    const generateEmailFromSubject = async (subject: string) => {
+        // First check credits
+        const creditsAvailable = await checkEmailCredits();
+        
+        if (creditsAvailable === 0 && showCreditWarning) {
+            showToast(`Insufficient credits. You have only ${availableCredits} credits available for email generation. Please add more to proceed.`, { type: 'error' });
+            setShowCreditWarning(false);
+            return;
+        }
+
+        try {
+            setGeneratingContent(true);
+            const response = await apiAxios.post(
+                AI_GENERATE_API,
+                { subject },
+                {
+                    headers: {
+                        Authorization: AUTH_TOKEN,
+                        "Content-Type": "application/json",
+                    },
+                }
+            );
+
+            const data = response.data;
+
+            // Extract token usage and cost from response
+            const { inputTokens, outputTokens, usdCost, inrCost } = extractTokenUsage(data);
+
+            console.log("Token Usage (subject):", { inputTokens, outputTokens, usdCost, inrCost });
+
+            const generatedMessage = data.message?.generated_content || data.message?.message?.body || data.message?.body;
+            
+            if (generatedMessage) {
+                setEmailForm((prev) => ({ 
+                    ...prev, 
+                    message: generatedMessage 
+                }));
+                
+                // Add action log with correct token mapping
+                await addEmailActionLog(inputTokens, outputTokens, usdCost, inrCost);
+                
+                showToast("Email content generated successfully!", { type: "success" });
+            } else {
+                showToast("Failed to generate email content", { type: "error" });
+            }
+        } catch (error: any) {
+            console.error("Error generating email:", error);
+            showToast(`Failed to generate email content: ${error.message}`, { type: "error" });
+        } finally {
+            setGeneratingContent(false);
+        }
+    };
+
+    const handleConfirmGenerate = async () => {
+        await generateEmailFromSubject(subjectToGenerate);
+        setShowConfirmationPopup(false);
+        setIsSubjectEdited(true);
+    };
+
+    const handleGenerateButtonClick = () => {
+        if (emailForm.subject.trim()) {
+            setSubjectToGenerate(emailForm.subject);
+            setShowConfirmationPopup(true);
         }
     };
 
@@ -594,6 +682,13 @@ Instruction: ${emailForm.aiPrompt.trim()}
         };
     }, []);
 
+    // Check credits on component mount or when opening email composer
+    useEffect(() => {
+        if (!showComment) {
+            checkEmailCredits();
+        }
+    }, [showComment]);
+
     if (!lead) {
         return (
             <div className={`p-4 rounded-md ${theme === "dark" ? "bg-gray-800 text-white" : "bg-white text-gray-800"}`}>
@@ -617,6 +712,16 @@ Instruction: ${emailForm.aiPrompt.trim()}
                 : "bg-white text-gray-800 border-gray-500"
                 }`}
         >
+            {/* Credit Warning */}
+            {checkingCredits && (
+                <div className="mb-3 flex items-center gap-2 text-sm">
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    <span className={theme === "dark" ? "text-gray-300" : "text-gray-600"}>
+                        Checking credits...
+                    </span>
+                </div>
+            )}
+
             {/* Top Action Tabs */}
             <div
                 className={`flex gap-4 text-sm font-medium ${theme === "dark" ? "text-gray-300" : "text-gray-600"
@@ -1007,7 +1112,7 @@ Instruction: ${emailForm.aiPrompt.trim()}
                             </div>
                         )}
 
-                        {/* Message Textarea */}
+                      
                         <textarea
                             className={`w-full h-40 mt-3 rounded-md p-3 text-sm focus:outline-none focus:ring-1 ${theme === "dark"
                                 ? "bg-white-31 border-gray-600 text-white focus:ring-gray-500 !placeholder-gray-200"
@@ -1034,10 +1139,13 @@ Instruction: ${emailForm.aiPrompt.trim()}
         ${theme === "dark" ? "text-gray-200" : "text-gray-800"}`}
                             >
                                 <Sparkle size={16} />
-                                AI Assist
+                                AI Assist {generatingContent && <Loader2 className="w-3 h-3 animate-spin" />}
                             </span>
                             <p className={`text-xs flex gap-2 font-normal mb-2 
-        ${theme === "dark" ? "text-gray-200" : "text-gray-800"}`}>Describe the email you want to write and let AI do the rest</p>
+        ${theme === "dark" ? "text-gray-200" : "text-gray-800"}`}>
+                                Describe the email you want to write and let AI do the rest
+                                
+                            </p>
 
                             <div className="flex items-center w-full gap-3">
                                 <textarea
@@ -1155,6 +1263,18 @@ Instruction: ${emailForm.aiPrompt.trim()}
                     </div>
                 </div>
             )}
+
+            <ConfirmationPopup
+                show={showConfirmationPopup}
+                onConfirm={handleConfirmGenerate}
+                onCancel={() => {
+                    setShowConfirmationPopup(false);
+                    setIsSubjectEdited(true);
+                }}
+                title="Generate Email Content?"
+                message="Do you want to automatically generate an email body based on the subject?"
+                isLoading={generatingContent}
+            />
         </div>
     );
 }

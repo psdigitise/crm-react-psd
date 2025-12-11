@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { LoginPage } from './components/LoginPage';
 import { NotificationsPanel } from './components/NotificationsPanel';
@@ -44,6 +44,7 @@ import AccountActivationPage from './components/AccountActivationPage';
 import { UserDetailView } from './components/UserDetailView';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { Target } from 'lucide-react';
+import { SettingsModal } from './components/SettingsModal';
 
 function AppContent() {
   // Initialize login state from session storage with proper checking
@@ -57,8 +58,20 @@ function AppContent() {
   const [companyInfo, setCompanyInfo] = useState<any>(null);
   const [expiryStatus, setExpiryStatus] = useState<{ expired: boolean; daysLeft: number } | null>(null);
   const [showExpiryPopup, setShowExpiryPopup] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [initialSettingsTab, setInitialSettingsTab] = useState<'profile' | 'aiUsage' | 'websiteIntegration' | 'upgradePlan'>('profile');
 
 
+  const handleOpenSettingsModal = (tab: 'profile' | 'aiUsage' | 'websiteIntegration' | 'upgradePlan' = 'profile') => {
+    setInitialSettingsTab(tab);
+    setShowSettingsModal(true);
+  };
+
+  // A new function to handle the "Upgrade Now" button click in the expiry popup
+  const handleUpgradeNowClick = () => {
+    handleOpenSettingsModal('upgradePlan');
+    setShowExpiryPopup(false); // Close the expiry popup
+  };
   // Initialize states based on current URL
   const [activeMenuItem, setActiveMenuItem] = useState(() => {
     const path = window.location.pathname;
@@ -753,6 +766,12 @@ function AppContent() {
     setShowCreateModal(true);
   };
 
+  const [contactRefreshKey, setContactRefreshKey] = useState(0);
+  const handleContactCreationSuccess = useCallback(() => {
+    setContactRefreshKey(prevKey => prevKey + 1);
+    setShowCreateModal(false); // Close the modal
+  }, []);
+
   const handleCreateSubmit = (data: any) => {
     console.log(`${createModalType} created successfully:`, data);
 
@@ -1024,7 +1043,7 @@ function AppContent() {
       case 'contacts':
         return (
           <div className="p-4 sm:p-6">
-            <ContactsTable searchTerm={searchTerm} onContactClick={handleContactClick} />
+            <ContactsTable searchTerm={searchTerm} onContactClick={handleContactClick} key={contactRefreshKey} />
           </div>
         );
       case 'organizations':
@@ -1112,6 +1131,7 @@ function AppContent() {
             isOpen={showCreateModal}
             onClose={() => setShowCreateModal(false)}
             onSubmit={handleCreateSubmit}
+            onSuccess={handleContactCreationSuccess}
           />
         );
       case 'organization':
@@ -1252,6 +1272,12 @@ function AppContent() {
         message={authErrorMessage}
       />
 
+      <SettingsModal
+        isOpen={showSettingsModal}
+        onClose={() => setShowSettingsModal(false)}
+        initialTab={initialSettingsTab} // <-- Pass the initial tab
+      />
+
       {showExpiryPopup && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[9999]">
           <div className="bg-white dark:bg-[#1E1E2F] p-10 rounded-xl shadow-2xl max-w-md w-full text-center border border-gray-300 dark:border-gray-600">
@@ -1266,7 +1292,8 @@ function AppContent() {
             </p>
 
             <button
-              onClick={() =>window.location.href = "https://crm.erpnext.ai/#our-pricing"}
+              onClick={handleUpgradeNowClick}
+              // onClick={() =>window.location.href = "https://crm.erpnext.ai/#our-pricing"}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg text-lg font-semibold transition"
             >
               Upgrade Now

@@ -152,7 +152,8 @@ const UploadAttachmentPopup: React.FC<Props> = ({
         // formData.append("type", isImageFile(fileItem.file.name) ? "image" : "file");
         formData.append("type", fileItem.file.type || "application/octet-stream");
         formData.append("file", fileItem.file);
-        formData.append("is_private", fileItem.isPrivate ? "1" : "0");
+        // formData.append("is_private", fileItem.isPrivate ? "1" : "0");
+        formData.append("is_private", "0");
         formData.append("folder", "Home/Attachments");
 
         const response = await fetch("https://api.erpnext.ai/api/method/upload_file", {
@@ -347,7 +348,7 @@ const UploadAttachmentPopup: React.FC<Props> = ({
                             {(fileItem.file.size / 1024).toFixed(1)} KB
                           </p>
                         </div>
-                        <div className="flex items-center space-x-2">
+                        {/* <div className="flex items-center space-x-2">
                           <input
                             type="checkbox"
                             id={`private-${index}`}
@@ -368,7 +369,7 @@ const UploadAttachmentPopup: React.FC<Props> = ({
                           >
                             Private
                           </label>
-                        </div>
+                        </div> */}
                       </div>
                     </div>
                     <button
@@ -424,7 +425,7 @@ const UploadAttachmentPopup: React.FC<Props> = ({
 
           {/* Right: Attach + Set all as public/private */}
           <div className="flex gap-3 items-center mt-3 sm:mt-0">
-            {files.length > 0 && (
+            {/* {files.length > 0 && (
               <button
                 type="button"
                 onClick={() => {
@@ -438,7 +439,7 @@ const UploadAttachmentPopup: React.FC<Props> = ({
               >
                 {allPrivate ? 'Set all as public' : 'Set all as private'}
               </button>
-            )}
+            )} */}
 
             <button
               type="button"

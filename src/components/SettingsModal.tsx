@@ -19,6 +19,7 @@ import {
   AlertTriangle,
   Menu,
   ChevronLeft,
+  ArrowBigUpDash,
 } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import { getUserSession } from '../utils/session';
@@ -27,6 +28,7 @@ import { AUTH_TOKEN } from '../api/apiUrl';
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
+  initialTab: 'profile' | 'aiUsage' | 'websiteIntegration' | 'upgradePlan';
 }
 
 interface UserProfile {
@@ -71,14 +73,85 @@ interface AIUsageData {
     isUnlimited?: boolean;
   }>;
 }
+interface FeatureRow {
+  feature: string;
+  standard: string | boolean;
+  professional: string | boolean;
+  enterprise: string | boolean;
+}
 
-export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
+const crmFeatures: FeatureRow[] = [
+  { feature: 'Leads & Deals (Pipeline Management)', standard: true, professional: true, enterprise: 'Unlimited' },
+  { feature: 'Contacts & Organizations', standard: true, professional: true, enterprise: true },
+  { feature: 'Notes, Tasks & Call Logs', standard: true, professional: true, enterprise: true },
+  { feature: 'Email Tracking (Opened / Not Opened)', standard: true, professional: 'Up to 6 Users', enterprise: 'Unlimited' },
+  { feature: 'Website Lead Capture', standard: 'Standard', professional: true, enterprise: true },
+  { feature: 'Lead Assignment Rules', standard: true, professional: 'Advanced', enterprise: 'Auto Sync' },
+  { feature: 'Role-Based Access', standard: 'Basic', professional: 'Advanced', enterprise: 'Custom Roles' },
+  { feature: 'Meta Ads Lead Sync', standard: 'Periodic Sync', professional: true, enterprise: 'Auto Sync' },
+  { feature: 'AI Lead Score', standard: true, professional: 'Advanced', enterprise: true },
+  { feature: 'AI Assist Email', standard: 'Basic', professional: 'Advanced', enterprise: true },
+  { feature: 'Users', standard: 'Up to 3 Users', professional: 'Up to 6 Users', enterprise: 'Unlimited Users' },
+  { feature: 'Advanced Features (AP, SLA, Storage, Manager)', standard: '-', professional: '-', enterprise: 'All Included' },
+];
+
+const TableCellContent = ({ value, theme }: { value: string | boolean, theme: 'light' | 'dark' }) => {
+  const color = theme === 'dark' ? 'text-green-400' : 'text-green-600';
+  const defaultText = theme === 'dark' ? 'text-gray-300' : 'text-gray-700';
+  const dashText = theme === 'dark' ? 'text-gray-500' : 'text-gray-400';
+
+  if (value === true) {
+    return <CheckCircle className={`w-5 h-5 mx-auto ${color}`} />;
+  }
+  if (value === false || value === '-') {
+    return <span className={`block text-center ${dashText}`}>-</span>;
+  }
+  if (typeof value === 'string') {
+    return <span className={`block text-center text-sm font-medium ${defaultText}`}>{value}</span>;
+  }
+  return null;
+};
+
+// Component to render the full feature table
+const CRMFeatureTable = ({ theme }: { theme: 'light' | 'dark' }) => {
+  const tableHeaderClass = `py-3 px-4 text-left text-xs font-semibold uppercase tracking-wider ${theme === 'dark' ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'}`;
+  const tableRowClass = `border-b ${theme === 'dark' ? 'border-gray-700 hover:bg-gray-800' : 'border-gray-200 hover:bg-gray-50'} transition-colors`;
+  const tableCellClass = `py-3 px-4 whitespace-normal align-middle text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`;
+
+  return (
+    <div className={`mt-10 overflow-x-auto rounded-xl border ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'} shadow-lg`}>
+      <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+        <thead>
+          <tr>
+            <th className={tableHeaderClass} style={{ minWidth: '250px' }}>CRM Features</th>
+            <th className={tableHeaderClass} style={{ minWidth: '100px' }}>Standard</th>
+            <th className={tableHeaderClass} style={{ minWidth: '100px' }}>Professional</th>
+            <th className={tableHeaderClass} style={{ minWidth: '100px' }}>Enterprise</th>
+          </tr>
+        </thead>
+        <tbody className={`divide-y ${theme === 'dark' ? 'divide-gray-700' : 'divide-gray-200'}`}>
+          {crmFeatures.map((row) => (
+            <tr key={row.feature} className={tableRowClass}>
+              <td className={tableCellClass}>{row.feature}</td>
+              <td className={tableCellClass}><TableCellContent value={row.standard} theme={theme} /></td>
+              <td className={tableCellClass}><TableCellContent value={row.professional} theme={theme} /></td>
+              <td className={tableCellClass}><TableCellContent value={row.enterprise} theme={theme} /></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
+export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProps) {
   const { theme } = useTheme();
   const [activeSettingsTab, setActiveSettingsTab] = useState('profile');
   const [isLoading, setIsLoading] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [isGeneratingIntegration, setIsGeneratingIntegration] = useState(false);
+  const [isProcessingPayment, setIsProcessingPayment] = useState<string | null>(null); // To track which plan is being processed
   const [showHelp, setShowHelp] = useState(false);
   const [profileData, setProfileData] = useState<UserProfile>({
     email: '',
@@ -122,15 +195,48 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const sessionFullName = userSession?.full_name;
   const sessionCompany = userSession?.company;
 
+  // Load Razorpay script
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.async = true;
+    document.body.appendChild(script);
+
+    return () => {
+      // Find and remove the script when the component unmounts
+      const existingScript = document.querySelector('script[src="https://checkout.razorpay.com/v1/checkout.js"]');
+      if (existingScript) {
+        document.body.removeChild(existingScript);
+      }
+    };
+  }, []);
+
+
+
+  useEffect(() => {
+    if (isOpen) {
+      // Set the active tab based on the initialTab prop ONLY when opening
+      setActiveSettingsTab(initialTab);
+      if (sessionEmail) {
+        fetchUserProfile();
+      }
+    } else {
+      // Reset state when closing (optional, but good practice)
+      setPasswordData({ newPassword: '', confirmPassword: '' });
+      setPasswordErrors({});
+      setIsChangingPassword(false);
+    }
+  }, [isOpen, initialTab, sessionEmail]);
+
   // Check for mobile view on resize and initial load
   useEffect(() => {
     const checkMobileView = () => {
       setIsMobileView(window.innerWidth < 768);
     };
-    
+
     checkMobileView();
     window.addEventListener('resize', checkMobileView);
-    
+
     return () => window.removeEventListener('resize', checkMobileView);
   }, []);
 
@@ -153,19 +259,19 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     if (activeSettingsTab === 'websiteIntegration' && userSession) {
       const existingApiKey = localStorage.getItem('website_integration_api_key');
       const existingApiSecret = localStorage.getItem('website_integration_api_secret');
-      
+
       if (existingApiKey && existingApiSecret) {
         const nameParts = userSession.full_name?.split(' ') || [];
         const firstName = nameParts[0] || '';
         const lastName = nameParts.slice(1).join(' ') || '';
         const company = userSession.company || '';
-        
+
         const emailBase = company.toLowerCase()
           .replace(/\s+/g, '')
           .replace(/[^a-z0-9]/g, '')
           .substring(0, 30);
         const email = emailBase ? `${emailBase}@gmail.com` : '';
-        
+
         setWebsiteIntegrationData({
           first_name: firstName,
           last_name: lastName,
@@ -180,13 +286,13 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         const firstName = nameParts[0] || '';
         const lastName = nameParts.slice(1).join(' ') || '';
         const company = userSession.company || '';
-        
+
         const emailBase = company.toLowerCase()
           .replace(/\s+/g, '')
           .replace(/[^a-z0-9]/g, '')
           .substring(0, 30);
         const email = emailBase ? `${emailBase}@gmail.com` : '';
-        
+
         setWebsiteIntegrationData({
           first_name: firstName,
           last_name: lastName,
@@ -223,7 +329,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       if (response.ok) {
         const result = await response.json();
         const userData = result.data;
-        
+
         setProfileData({
           email: userData.name || sessionEmail || '',
           first_name: userData.first_name || sessionFullName?.split(' ')[0] || '',
@@ -300,12 +406,12 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         const result = await response.json();
         console.log('Profile updated successfully:', result);
         showSuccessToast('Profile updated successfully!');
-        
+
         if (userSession) {
           const updatedFullName = [profileData.first_name, profileData.last_name]
             .filter(Boolean)
             .join(' ');
-          
+
           userSession.full_name = updatedFullName;
           localStorage.setItem('userSession', JSON.stringify(userSession));
         }
@@ -324,31 +430,31 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
   const handlePasswordChange = async () => {
     const errors: Record<string, string> = {};
-    
+
     if (!passwordData.newPassword) {
       errors.newPassword = 'New password is required';
     } else if (passwordData.newPassword.length < 8) {
       errors.newPassword = 'Password must be at least 8 characters';
     }
-    
+
     if (!passwordData.confirmPassword) {
       errors.confirmPassword = 'Please confirm your password';
     } else if (passwordData.newPassword !== passwordData.confirmPassword) {
       errors.confirmPassword = 'Passwords do not match';
     }
-    
+
     if (Object.keys(errors).length > 0) {
       setPasswordErrors(errors);
       const firstError = Object.values(errors)[0];
       showErrorToast(firstError);
       return;
     }
-    
+
     if (!sessionEmail) {
       showErrorToast('User email not found');
       return;
     }
-    
+
     setIsLoading(true);
     try {
       const updateData = {
@@ -371,7 +477,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         const result = await response.json();
         console.log('Password updated successfully:', result);
         showSuccessToast('Password updated successfully!');
-        
+
         setPasswordData({
           newPassword: '',
           confirmPassword: ''
@@ -393,28 +499,28 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
   const handleFileUpload = async (file: File) => {
     if (!file) return;
-    
+
     const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
     const maxSize = 5 * 1024 * 1024;
-    
+
     if (!validTypes.includes(file.type)) {
       showErrorToast('Please upload a valid image file (JPEG, PNG, GIF, WebP)');
       return;
     }
-    
+
     if (file.size > maxSize) {
       showErrorToast('Image size should be less than 5MB');
       return;
     }
-    
+
     setIsUploadingPhoto(true);
-    
+
     try {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('is_private', '0');
       formData.append('folder', 'Home');
-      
+
       const uploadResponse = await fetch('https://api.erpnext.ai/api/method/upload_file', {
         method: 'POST',
         headers: {
@@ -422,20 +528,20 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         },
         body: formData
       });
-      
+
       if (uploadResponse.ok) {
         const uploadResult = await uploadResponse.json();
         console.log('File uploaded successfully:', uploadResult);
-        
+
         const fileUrl = uploadResult.message?.file_url;
-        
+
         if (fileUrl) {
           const updatedProfile = {
             ...profileData,
             user_image: fileUrl
           };
           setProfileData(updatedProfile);
-          
+
           const updateData = {
             doctype: 'User',
             name: sessionEmail,
@@ -443,7 +549,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               user_image: fileUrl
             }
           };
-          
+
           const updateResponse = await fetch('https://api.erpnext.ai/api/method/frappe.client.set_value', {
             method: 'POST',
             headers: {
@@ -452,7 +558,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             },
             body: JSON.stringify(updateData)
           });
-          
+
           if (updateResponse.ok) {
             showSuccessToast('Profile photo updated successfully!');
           } else {
@@ -500,7 +606,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       ...prev,
       [field]: value
     }));
-    
+
     if (passwordErrors[field]) {
       setPasswordErrors(prev => ({
         ...prev,
@@ -526,7 +632,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       const firstName = nameParts[0] || '';
       const lastName = nameParts.slice(1).join(' ') || '';
       const company = userSession.company || '';
-      
+
       const emailBase = company.toLowerCase()
         .replace(/\s+/g, '')
         .replace(/[^a-z0-9]/g, '')
@@ -552,11 +658,11 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       if (response.ok) {
         const result = await response.json();
         console.log('Website integration user created:', result);
-        
+
         if (result.message?.success) {
           localStorage.setItem('website_integration_api_key', result.message.api_key);
           localStorage.setItem('website_integration_api_secret', result.message.api_secret);
-          
+
           setWebsiteIntegrationData(prev => ({
             ...prev,
             first_name: firstName,
@@ -594,16 +700,194 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     }
   };
 
+  const handlePayment = async (planName: string, amount: number, planId: string) => {
+    if (!userSession || !userSession.email || !userSession.company) {
+      showErrorToast('User session is invalid. Please log in again.');
+      return;
+    }
+
+    if (!(window as any).Razorpay) {
+      showErrorToast('Payment gateway is not loaded. Please try again in a moment.');
+      return;
+    }
+
+    setIsProcessingPayment(planId);
+
+    const options = {
+      key: 'rzp_live_RbHLiSn5xiGADx', // Your Razorpay Key ID
+      amount: amount * 100, // Amount in the smallest currency unit (e.g., paise for INR)
+      currency: 'INR',
+      name: 'CRM Plan Upgrade',
+      description: `Payment for ${planName}`,
+      handler: async (response: any) => {
+        console.log('Razorpay success response:', response);
+        const { razorpay_payment_id, razorpay_order_id } = response;
+
+        try {
+          const payload = {
+            company: userSession.company,
+            amount: amount,
+            plan: planId,
+            order_id: razorpay_order_id || `ORD_${Date.now()}`, // Fallback if order_id is not present
+            payment_id: razorpay_payment_id,
+            created_at: new Date().toISOString().split('T')[0], // YYYY-MM-DD format
+            created_by: userSession.email,
+            status: 'success'
+          };
+
+          const apiResponse = await fetch('https://api.erpnext.ai/api/method/customcrm.payment.update_company', {
+            method: 'POST',
+            headers: {
+              'Authorization': AUTH_TOKEN,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+          });
+
+          if (apiResponse.ok) {
+            await apiResponse.json();
+            showSuccessToast(`Successfully upgraded to ${planName}!`);
+          } else {
+            const error = await apiResponse.json();
+            console.error('Failed to update company plan:', error);
+            showErrorToast(`Payment successful, but failed to update plan: ${error.message || 'Unknown error'}`);
+          }
+        } catch (error) {
+          console.error('Error updating company plan:', error);
+          showErrorToast('Payment successful, but an error occurred while updating your plan.');
+        } finally {
+          setIsProcessingPayment(null);
+        }
+      },
+      prefill: {
+        name: userSession.full_name || '',
+        email: userSession.email || '',
+      },
+      theme: {
+        color: theme === 'dark' ? '#8B5CF6' : '#2563EB' // Purple for dark, Blue for light
+      },
+      modal: {
+        ondismiss: () => {
+          console.log('Payment modal dismissed');
+          showInfoToast('Payment was cancelled.');
+          setIsProcessingPayment(null);
+        }
+      }
+    };
+
+    const rzp = new (window as any).Razorpay(options);
+    rzp.on('payment.failed', async (response: any) => {
+      console.error('Razorpay payment failed:', response.error);
+      showErrorToast(`Payment failed: ${response.error.description}`);
+
+      // Log the failed payment to your backend
+      if (userSession?.company && userSession?.email) {
+        try {
+          const { order_id, payment_id } = response.error.metadata;
+          const metadata = response.error?.metadata || {};
+          // const { order_id, payment_id } = metadata;
+
+          const payload = {
+            company: userSession.company,
+            amount: amount,
+            plan: planId,
+            // order_id: order_id || `ORD_FAIL_${Date.now()}`,
+            order_id: order_id || `ORD_FAIL_${Date.now()}`, // Use order_id from metadata or generate a fallback
+            payment_id: payment_id,
+            created_at: new Date().toISOString().split('T')[0],
+            created_by: userSession.email,
+            status: 'failed'
+          };
+
+          const apiResponse = await fetch('https://api.erpnext.ai/api/method/customcrm.payment.update_company', {
+            method: 'POST',
+            headers: {
+              'Authorization': AUTH_TOKEN,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+          });
+
+          if (apiResponse.ok) {
+            console.log('Failed payment attempt logged successfully.');
+          } else {
+            console.error('Failed to log the failed payment attempt:', await apiResponse.text());
+          }
+        } catch (error) {
+          console.error('Error logging the failed payment attempt:', error);
+        }
+      }
+      setIsProcessingPayment(null); // Reset processing state
+    });
+    rzp.open();
+  };
+
   const handleBuyMoreActions = () => {
     showInfoToast('Redirecting to purchase page...');
     setTimeout(() => {
       showSuccessToast('Purchase page opened in a new tab');
     }, 500);
   };
+  const handleContactSales = async () => {
+    if (!userSession || !userSession.email || !userSession.full_name || !userSession.company) {
+      showErrorToast('User details are incomplete. Please log in again.');
+      return;
+    }
+
+    // Use a simple prompt for phone number if not stored
+    // let userPhoneNumber = phoneNumber.trim();
+    // if (!userPhoneNumber) {
+    //   userPhoneNumber = prompt("Please enter your phone number for the Enterprise Plan inquiry:") || '';
+    //   if (!userPhoneNumber) {
+    //     showInfoToast('Phone number is required for the sales inquiry.');
+    //     return;
+    //   }
+    //   setPhoneNumber(userPhoneNumber); // Optionally store it if the user provides it
+    // }
+
+
+    setIsLoading(true); // Use isLoading for the API call state
+    try {
+      const payload = {
+        // API expects "name1" for the name field
+        name1: userSession.full_name,
+        email: userSession.email,
+        // phone_number: userPhoneNumber, // Use the collected phone number
+        company: userSession.company,
+      };
+
+      const response = await fetch('https://api.erpnext.ai/api/v2/document/On Request Form', {
+        method: 'POST',
+        headers: {
+          'Authorization': AUTH_TOKEN, // Use the existing AUTH_TOKEN
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (response.ok) {
+        // The API is posting a document, so a success response is likely a 200 or 201
+        const result = await response.json();
+        console.log('On Request Form submitted successfully:', result);
+        showSuccessToast('Sales team contacted! We will be in touch shortly.');
+        // Optional: Close the modal or switch tab
+        // onClose();
+      } else {
+        const errorText = await response.text(); // Get raw text for better error logging
+        console.error('Failed to submit On Request Form:', errorText);
+        showErrorToast(`Failed to contact sales. Error: ${errorText.substring(0, 50)}...`);
+      }
+    } catch (error) {
+      console.error('Error submitting On Request Form:', error);
+      showErrorToast('An unexpected error occurred. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const getToastStyles = (type: 'success' | 'error' | 'info') => {
     const baseStyles = "flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg max-w-sm";
-    
+
     if (theme === 'dark') {
       switch (type) {
         case 'success':
@@ -653,9 +937,11 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         { id: 'profile', label: 'Profile', icon: User },
         { id: 'aiUsage', label: 'AI Usage', icon: Zap },
         { id: 'websiteIntegration', label: 'Website Integration', icon: Key },
+        { id: 'upgradePlan', label: 'Update your plan', icon: ArrowBigUpDash },
       ],
     },
   ];
+
 
   // Mobile hamburger menu component
   const MobileMenu = () => (
@@ -692,8 +978,8 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                         setIsMobileMenuOpen(false);
                       }}
                       className={`w-full text-left px-4 py-3 rounded-lg text-base transition-colors ${isActive
-                          ? (theme === 'dark' ? 'bg-gray-700 text-white' : 'bg-gray-100 text-blue-600')
-                          : (theme === 'dark' ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-100')
+                        ? (theme === 'dark' ? 'bg-gray-700 text-white' : 'bg-gray-100 text-blue-600')
+                        : (theme === 'dark' ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-100')
                         }`}
                     >
                       <div className="flex items-center gap-3">
@@ -742,8 +1028,8 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   <div
                     onClick={handlePhotoClick}
                     className={`w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center text-xl md:text-2xl font-semibold cursor-pointer transition-all duration-200 overflow-hidden border-2 ${theme === 'dark'
-                        ? 'bg-gray-700 text-white border-gray-600 hover:border-purple-500'
-                        : 'bg-gray-200 text-gray-700 border-gray-300 hover:border-blue-500'
+                      ? 'bg-gray-700 text-white border-gray-600 hover:border-purple-500'
+                      : 'bg-gray-200 text-gray-700 border-gray-300 hover:border-blue-500'
                       } ${profileData.user_image ? 'border-solid' : 'border-dashed'}`}
                   >
                     {profileData.user_image ? (
@@ -779,7 +1065,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       </div>
                     )}
                   </div>
-                  
+
                   {isUploadingPhoto && (
                     <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2">
                       <div className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full flex items-center">
@@ -788,18 +1074,18 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       </div>
                     </div>
                   )}
-                  
+
                   <button
                     onClick={handlePhotoClick}
                     disabled={isUploadingPhoto}
                     className={`absolute -bottom-2 -right-2 p-1.5 rounded-full shadow-lg ${theme === 'dark'
-                        ? 'bg-purple-600 hover:bg-purple-700 text-white'
-                        : 'bg-blue-600 hover:bg-blue-700 text-white'
+                      ? 'bg-purple-600 hover:bg-purple-700 text-white'
+                      : 'bg-blue-600 hover:bg-blue-700 text-white'
                       } transition-colors ${isUploadingPhoto ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
                     <Camera className="w-3 h-3 md:w-4 md:h-4" />
                   </button>
-                  
+
                   <input
                     type="file"
                     ref={fileInputRef}
@@ -809,7 +1095,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     disabled={isUploadingPhoto}
                   />
                 </div>
-                
+
                 <div>
                   <h3 className={`text-lg md:text-xl font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
                     {profileData.full_name || profileData.first_name || 'User'}
@@ -819,12 +1105,12 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   </p>
                 </div>
               </div>
-              
-              <button 
+
+              <button
                 onClick={() => setIsChangingPassword(true)}
                 className={`px-4 py-2 flex items-center justify-center md:justify-start rounded-lg text-sm font-medium transition-colors ${theme === 'dark'
-                    ? 'bg-purple-600 hover:bg-purple-700 text-white'
-                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                  ? 'bg-purple-600 hover:bg-purple-700 text-white'
+                  : 'bg-blue-600 hover:bg-blue-700 text-white'
                   }`}
               >
                 <Lock className="w-4 h-4 mr-2" />
@@ -843,8 +1129,8 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   value={profileData.first_name}
                   onChange={(e) => handleInputChange('first_name', e.target.value)}
                   className={`w-full px-4 py-2 rounded-lg border ${theme === 'dark'
-                      ? 'bg-gray-800 border-gray-700 text-white'
-                      : 'bg-gray-100 border-gray-300 text-gray-900'
+                    ? 'bg-gray-800 border-gray-700 text-white'
+                    : 'bg-gray-100 border-gray-300 text-gray-900'
                     } focus:outline-none focus:ring-2 focus:ring-blue-500`}
                   required
                 />
@@ -858,8 +1144,8 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   value={profileData.last_name || ''}
                   onChange={(e) => handleInputChange('last_name', e.target.value)}
                   className={`w-full px-4 py-2 rounded-lg border ${theme === 'dark'
-                      ? 'bg-gray-800 border-gray-700 text-white'
-                      : 'bg-gray-100 border-gray-300 text-gray-900'
+                    ? 'bg-gray-800 border-gray-700 text-white'
+                    : 'bg-gray-100 border-gray-300 text-gray-900'
                     } focus:outline-none focus:ring-2 focus:ring-blue-500`}
                 />
               </div>
@@ -871,8 +1157,8 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 onClick={handleProfileUpdate}
                 disabled={isLoading || !profileData.first_name.trim()}
                 className={`px-6 py-3 flex items-center rounded-lg text-sm font-medium transition-colors ${theme === 'dark'
-                    ? 'bg-purple-600 hover:bg-purple-700 text-white'
-                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                  ? 'bg-purple-600 hover:bg-purple-700 text-white'
+                  : 'bg-blue-600 hover:bg-blue-700 text-white'
                   } ${isLoading || !profileData.first_name.trim() ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 {isLoading ? (
@@ -943,7 +1229,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   </span>
                 </div>
                 <div className={`h-2 rounded-full overflow-hidden ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'}`}>
-                  <div 
+                  <div
                     className={`h-full ${getUsageColor((aiUsageData.usedActions / aiUsageData.totalActions) * 100)} transition-all duration-500`}
                     style={{ width: `${calculatePercentage(aiUsageData.usedActions, aiUsageData.totalActions)}%` }}
                   />
@@ -959,7 +1245,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   </div>
                   <div className={`text-2xl font-bold mt-2 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>{aiUsageData.usedActions}</div>
                 </div>
-                
+
                 <div className={`p-4 rounded-lg ${theme === 'dark' ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
                   <div className="flex items-center justify-between">
                     <span className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Remaining</span>
@@ -969,7 +1255,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     {aiUsageData.remainingActions}
                   </div>
                 </div>
-                
+
                 <div className={`p-4 rounded-lg ${theme === 'dark' ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
                   <div className="flex items-center justify-between">
                     <span className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Monthly Limit</span>
@@ -999,21 +1285,21 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                         {feature.name}
                       </span>
                     </div>
-                    
+
                     <div className="flex flex-col items-center justify-center">
                       <span className={`text-lg font-semibold ${theme === 'dark' ? 'text-gray-300' : 'text-gray-800'}`}>
                         {feature.used}
                       </span>
                       {feature.total && (
                         <div className="w-16 md:w-24 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden mt-1">
-                          <div 
+                          <div
                             className={`h-full ${getUsageColor(calculatePercentage(feature.used, feature.total))}`}
                             style={{ width: `${calculatePercentage(feature.used, feature.total)}%` }}
                           />
                         </div>
                       )}
                     </div>
-                    
+
                     <div className="flex items-center justify-end">
                       {feature.isUnlimited ? (
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${theme === 'dark' ? 'bg-green-900/30 text-green-300' : 'bg-green-100 text-green-700'}`}>
@@ -1050,12 +1336,12 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             <button
               onClick={handleBuyMoreActions}
               className={`w-full md:w-auto mt-6 py-3 px-4 rounded-lg flex items-center justify-center gap-2 font-medium transition-all ${theme === 'dark'
-                  ? 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white'
-                  : 'bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white shadow-md'
+                ? 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white'
+                : 'bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white shadow-md'
                 }`}
             >
               <ShoppingCart className="w-5 h-5" />
-              Buy More 
+              Buy More
             </button>
           </div>
         );
@@ -1064,7 +1350,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         return (
           <div className="p-4 md:p-8">
             {/* Mobile Header */}
-            
+
 
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
@@ -1076,14 +1362,14 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   Generate API credentials for website integration
                 </p>
               </div>
-              
+
               {!websiteIntegrationData.isGenerated && !showHelp && (
                 <button
                   onClick={handleGenerateWebsiteIntegration}
                   disabled={isGeneratingIntegration}
                   className={`px-4 py-2 flex items-center justify-center md:justify-start rounded-lg text-sm font-medium transition-colors ${theme === 'dark'
-                      ? 'bg-purple-600 hover:bg-purple-700 text-white'
-                      : 'bg-blue-600 hover:bg-blue-700 text-white'
+                    ? 'bg-purple-600 hover:bg-purple-700 text-white'
+                    : 'bg-blue-600 hover:bg-blue-700 text-white'
                     } ${isGeneratingIntegration ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                   {isGeneratingIntegration ? (
@@ -1108,14 +1394,14 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   <button
                     onClick={() => setShowHelp(false)}
                     className={`p-2 rounded-lg transition-colors ${theme === 'dark'
-                        ? 'hover:bg-gray-800 text-gray-400 hover:text-white'
-                        : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'
+                      ? 'hover:bg-gray-800 text-gray-400 hover:text-white'
+                      : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'
                       }`}
                   >
                     <X className="w-5 h-5" />
                   </button>
                 </div>
-                
+
                 <div className={`p-6 rounded-lg ${theme === 'dark' ? 'bg-blue-900/30 border border-blue-800' : 'bg-blue-50 border border-blue-200'}`}>
                   <h5 className={`font-medium mb-4 text-lg ${theme === 'dark' ? 'text-blue-300' : 'text-blue-800'}`}>
                     How to use these credentials:
@@ -1151,7 +1437,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   <h4 className={`text-lg font-medium mb-6 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
                     API Credentials
                   </h4>
-                  
+
                   {/* Success Message */}
                   <div className={`mb-6 p-4 rounded-lg ${theme === 'dark' ? 'bg-green-900/30 border border-green-800' : 'bg-green-50 border border-green-200'}`}>
                     <div className="flex items-start">
@@ -1179,15 +1465,15 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                           value={websiteIntegrationData.api_key || ''}
                           readOnly
                           className={`flex-1 px-4 py-3 rounded-lg border font-mono text-sm truncate ${theme === 'dark'
-                              ? 'bg-gray-800 border-gray-700 text-gray-300'
-                              : 'bg-gray-100 border-gray-300 text-gray-900'
+                            ? 'bg-gray-800 border-gray-700 text-gray-300'
+                            : 'bg-gray-100 border-gray-300 text-gray-900'
                             }`}
                         />
                         <button
                           onClick={() => handleCopyToClipboard(websiteIntegrationData.api_key || '', 'API Key')}
                           className={`px-4 py-3 rounded-lg flex items-center justify-center ${theme === 'dark'
-                              ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
-                              : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+                            ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+                            : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
                             }`}
                           title="Copy to clipboard"
                         >
@@ -1195,7 +1481,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                         </button>
                       </div>
                     </div>
-                    
+
                     <div>
                       <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
                         API Secret
@@ -1206,22 +1492,22 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                           value={websiteIntegrationData.api_secret || ''}
                           readOnly
                           className={`flex-1 px-4 py-3 rounded-lg border font-mono text-sm truncate ${theme === 'dark'
-                              ? 'bg-gray-800 border-gray-700 text-gray-300'
-                              : 'bg-gray-100 border-gray-300 text-gray-900'
+                            ? 'bg-gray-800 border-gray-700 text-gray-300'
+                            : 'bg-gray-100 border-gray-300 text-gray-900'
                             }`}
                         />
                         <button
                           onClick={() => handleCopyToClipboard(websiteIntegrationData.api_secret || '', 'API Secret')}
                           className={`px-4 py-3 rounded-lg flex items-center justify-center ${theme === 'dark'
-                              ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
-                              : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+                            ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+                            : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
                             }`}
                           title="Copy to clipboard"
                         >
                           <Copy className="w-4 h-4" />
                         </button>
                       </div>
-                      
+
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between mt-2 gap-2">
                         <p className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
                           Keep this secret secure and never share it publicly.
@@ -1246,16 +1532,16 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       Generate API Credentials
                     </h4>
                     <p className={`text-sm max-w-md mb-6 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                      Click the "Generate Credentials" button to create API credentials for website integration. 
+                      Click the "Generate Credentials" button to create API credentials for website integration.
                       These credentials will be automatically generated using your account information.
                     </p>
-                    
+
                     <button
                       onClick={handleGenerateWebsiteIntegration}
                       disabled={isGeneratingIntegration}
                       className={`px-6 py-3 flex items-center rounded-lg text-sm font-medium transition-colors ${theme === 'dark'
-                          ? 'bg-purple-600 hover:bg-purple-700 text-white'
-                          : 'bg-blue-600 hover:bg-blue-700 text-white'
+                        ? 'bg-purple-600 hover:bg-purple-700 text-white'
+                        : 'bg-blue-600 hover:bg-blue-700 text-white'
                         } ${isGeneratingIntegration ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
                       {isGeneratingIntegration ? (
@@ -1276,6 +1562,101 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             )}
           </div>
         );
+
+      case 'upgradePlan':
+        return (
+          <div className="p-6">
+            <h2 className={`text-2xl font-bold mb-6 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+              Upgrade Your Plan
+            </h2>
+            <p className={`text-sm mt-2 mb-9 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+              Choose the plan that's right for you and unlock more features
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+              {/* Silver - STANDARD PLAN CRM */}
+              <div className={`border rounded-xl p-6 text-center ${theme === 'dark' ? 'border-gray-700 bg-gray-800 shadow-lg' : 'border-gray-200 bg-white shadow-md'}`}>
+                <h3 className={`text-xl font-semibold ${theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}>
+                  STANDARD PLAN CRM
+                </h3>
+                <ul className={`text-center mt-9 space-y-2 text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                  <li>Best for Growing Teams</li>
+                </ul>
+                <p className={`text-xl font-bold mt-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>₹1,500/mo</p>
+                <button
+                  onClick={() => handlePayment('STANDARD PLAN CRM', 1500, '1')}
+                  disabled={isProcessingPayment !== null}
+                  className={`mt-6 w-full px-4 py-2 rounded-lg font-medium transition-colors flex items-center justify-center ${isProcessingPayment !== null
+                    ? 'bg-gray-500 text-gray-300 cursor-not-allowed'
+                    : theme === 'dark'
+                      ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                      : 'bg-gray-300 text-gray-800 hover:bg-gray-400'
+                    }`}
+                >
+                  {isProcessingPayment === '1' ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    'Buy Now'
+                  )}
+                </button>
+              </div>
+
+              {/* Gold - PROFESSIONAL PLAN – CRM Pro (Highlighted) */}
+              <div className={`border rounded-xl p-6 text-center shadow-lg ${theme === 'dark'
+                ? 'border-purple-500 bg-gray-800 ring-2 ring-purple-500'
+                : 'border-blue-500 bg-white ring-2 ring-blue-500'
+                }`}>
+                <h3 className={`text-xl font-semibold ${theme === 'dark' ? 'text-purple-400' : 'text-blue-600'}`}>
+                  PROFESSIONAL PLAN – CRM Pro
+                </h3>
+                <ul className={`text-center mt-4 space-y-2 text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                  <li>For Large Teams & Enterprises</li>
+                </ul>
+                <p className={`text-xl font-bold mt-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>₹2,500 /mo</p>
+                <button
+                  onClick={() => handlePayment('PROFESSIONAL PLAN – CRM Pro', 2500, '2')}
+                  disabled={isProcessingPayment !== null}
+                  className={`mt-6 mb w-full px-4 py-2 rounded-lg font-medium transition-colors flex items-center justify-center ${isProcessingPayment !== null
+                    ? 'bg-gray-500 text-white cursor-not-allowed'
+                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                    }`}
+                >
+                  {isProcessingPayment === '2' ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    'Buy Now'
+                  )}
+                </button>
+              </div>
+
+              {/* Platinum - ENTERPRISE PLAN – CRM Max */}
+              <div className={`border rounded-xl p-6 text-center shadow-lg ${theme === 'dark' ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
+                <h3 className={`text-xl font-semibold ${theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}>
+                  ENTERPRISE PLAN – CRM Max
+                </h3>
+                <ul className={`text-center mt-4 space-y-2 text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                  <li>For Multi-Location Companies</li>
+                </ul>
+                <p className={`text-xl font-bold mt-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>On Request</p>
+                <button
+                  onClick={handleContactSales}
+                  disabled={isProcessingPayment !== null}
+                  className={`mt-6 w-full px-4 py-2 rounded-lg font-medium transition-colors ${isProcessingPayment !== null ? 'bg-purple-800 text-gray-400 cursor-not-allowed' : 'bg-purple-600 text-white hover:bg-purple-700'}`}
+                >
+                  Contact Sales
+                </button>
+              </div>
+            </div>
+            <CRMFeatureTable theme={theme} />
+          </div>
+        );
+
 
       default:
         return (
@@ -1344,8 +1725,8 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             <button
               onClick={onClose}
               className={`p-2 rounded-lg transition-colors ${theme === 'dark'
-                  ? 'hover:bg-gray-800 text-gray-400 hover:text-white'
-                  : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'
+                ? 'hover:bg-gray-800 text-gray-400 hover:text-white'
+                : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'
                 }`}
             >
               <X className="w-6 h-6" />
@@ -1372,8 +1753,8 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                               <button
                                 onClick={() => setActiveSettingsTab(item.id)}
                                 className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${isActive
-                                    ? (theme === 'dark' ? 'bg-gray-700 text-white' : 'bg-white text-blue-600 border border-blue-200')
-                                    : (theme === 'dark' ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-100')
+                                  ? (theme === 'dark' ? 'bg-gray-700 text-white' : 'bg-white text-blue-600 border border-blue-200')
+                                  : (theme === 'dark' ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-100')
                                   }`}
                               >
                                 <div className="flex items-center gap-2">
@@ -1430,8 +1811,8 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     setIsChangingPassword(false);
                   }}
                   className={`p-2 rounded-lg transition-colors ${theme === 'dark'
-                      ? 'hover:bg-gray-800 text-gray-400 hover:text-white'
-                      : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'
+                    ? 'hover:bg-gray-800 text-gray-400 hover:text-white'
+                    : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'
                     }`}
                 >
                   <X className="w-5 h-5" />
@@ -1449,8 +1830,8 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       value={passwordData.newPassword}
                       onChange={(e) => handlePasswordInputChange('newPassword', e.target.value)}
                       className={`w-full px-4 py-2 rounded-lg border ${theme === 'dark'
-                          ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-400'
-                          : 'bg-gray-100 border-gray-300 text-gray-900 placeholder-gray-500'
+                        ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-400'
+                        : 'bg-gray-100 border-gray-300 text-gray-900 placeholder-gray-500'
                         } ${passwordErrors.newPassword ? 'border-red-500' : ''} focus:outline-none focus:ring-2 focus:ring-blue-500`}
                       placeholder="Enter new password"
                     />
@@ -1473,8 +1854,8 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       value={passwordData.confirmPassword}
                       onChange={(e) => handlePasswordInputChange('confirmPassword', e.target.value)}
                       className={`w-full px-4 py-2 rounded-lg border ${theme === 'dark'
-                          ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-400'
-                          : 'bg-gray-100 border-gray-300 text-gray-900 placeholder-gray-500'
+                        ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-400'
+                        : 'bg-gray-100 border-gray-300 text-gray-900 placeholder-gray-500'
                         } ${passwordErrors.confirmPassword ? 'border-red-500' : ''} focus:outline-none focus:ring-2 focus:ring-blue-500`}
                       placeholder="Confirm new password"
                     />
@@ -1492,8 +1873,8 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       setIsChangingPassword(false);
                     }}
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${theme === 'dark'
-                        ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
-                        : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+                      ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+                      : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
                       }`}
                   >
                     Cancel
@@ -1502,10 +1883,10 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     onClick={handlePasswordChange}
                     disabled={isLoading}
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${isLoading
-                        ? 'opacity-50 cursor-not-allowed'
-                        : theme === 'dark'
-                          ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                          : 'bg-blue-600 hover:bg-blue-700 text-white'
+                      ? 'opacity-50 cursor-not-allowed'
+                      : theme === 'dark'
+                        ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                        : 'bg-blue-600 hover:bg-blue-700 text-white'
                       }`}
                   >
                     {isLoading ? (

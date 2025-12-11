@@ -205,7 +205,7 @@ const LeadsFilesUploadPopup: React.FC<LeadsFilesUploadPopupProps> = ({
                         <p className={`text-xs font-normal ${textSecondaryColor}`}>
                           {(f.file.size / 1024).toFixed(1)} KB
                         </p>
-                        <label className="flex items-center gap-2 mt-1 text-xs font-normal">
+                        {/* <label className="flex items-center gap-2 mt-1 text-xs font-normal">
                           <input
                             type="checkbox"
                             checked={f.isPrivate}
@@ -215,7 +215,7 @@ const LeadsFilesUploadPopup: React.FC<LeadsFilesUploadPopupProps> = ({
                             className={`rounded ${textColor} ${theme === "dark" ? "bg-gray-700" : "bg-white"}`}
                           />
                           <span className={textSecondaryColor}>Private</span>
-                        </label>
+                        </label> */}
                       </div>
                     </div>
                     <button

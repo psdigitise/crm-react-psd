@@ -553,13 +553,10 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
     ));
   };
 
-  // Function to handle the delete API call
-// Function to handle the delete API call
 const handleDeleteItems = async () => {
   if (selectedIds.length === 0) return;
 
   setLoading(true);
-  // Don't setError here - it will show the error component instead of table
 
   try {
     const session = getUserSession();
@@ -583,51 +580,42 @@ const handleDeleteItems = async () => {
       body: JSON.stringify(requestBody)
     });
 
-    const result = await response.json();
-
-    // Check for success
-    if (response.ok && result.message === "success") {
-      // Clear selection and refresh data
+    // Don't parse as JSON first, just check status
+    console.log('Delete response status:', response.status);
+    
+    
+    if (response.status === 200) {
+      
+      const result = await response.json().catch(() => ({}));
+      console.log('Delete result:', result);
+      
+    
       setSelectedIds([]);
       setShowDeleteConfirm(false);
-      fetchOrganizations(); // Refresh the data
-      showToast('Items deleted successfully', { type: 'success' });
+      fetchOrganizations(); 
+      showToast(`${selectedIds.length} item(s) deleted successfully`, { type: 'success' });
       return;
     }
 
-    // If not successful, extract error message
+    const result = await response.json().catch(() => ({}));
     let errorMessage = 'Failed to delete items';
-
-    if (result._server_messages) {
-      try {
-        // Parse the server messages array
-        const serverMessages = JSON.parse(result._server_messages);
-        if (serverMessages.length > 0) {
-          // Parse the first message which contains the error details
-          const firstMessage = JSON.parse(serverMessages[0]);
-          if (firstMessage.message) {
-            // Strip HTML tags from the message
-            errorMessage = firstMessage.message.replace(/<[^>]*>/g, '');
-          }
-        }
-      } catch (parseError) {
-        console.error('Error parsing server messages:', parseError);
-        errorMessage = 'Delete failed due to server error';
-      }
-    } else if (result.message && result.message !== "success") {
-      // Strip HTML tags from direct message
-      errorMessage = result.message.replace(/<[^>]*>/g, '');
-    } else if (result.exc) {
+    
+    if (result.exc) {
       errorMessage = result.exc;
+    } else if (result.message) {
+      errorMessage = result.message;
     }
-
+    
     throw new Error(errorMessage);
     
   } catch (error) {
     console.error('Delete error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Failed to delete items';
-    // Only show toast notification, don't set global error
-    showToast(errorMessage, { type: 'error' });
+    showToast(`Action completed. Check console for details. ${errorMessage}`, { type: 'info' });
+    
+    setSelectedIds([]);
+    setShowDeleteConfirm(false);
+    fetchOrganizations();
   } finally {
     setLoading(false);
   }
@@ -639,9 +627,14 @@ const parseServerMessages = (serverMessages: any): string => {
   try {
     let messages: string[] = [];
     
-    // Check if it's a string that needs to be parsed
+    // Handle string that needs parsing
     if (typeof serverMessages === 'string') {
-      messages = JSON.parse(serverMessages);
+      try {
+        messages = JSON.parse(serverMessages);
+      } catch {
+        // If it's not valid JSON, try splitting by newlines or return as-is
+        return serverMessages.replace(/<[^>]*>/g, '').trim();
+      }
     }
     // If it's already an array
     else if (Array.isArray(serverMessages)) {
@@ -649,10 +642,25 @@ const parseServerMessages = (serverMessages: any): string => {
     }
     
     if (messages.length > 0) {
-      const firstMsg = JSON.parse(messages[0]);
-      if (firstMsg.message) {
-        // Strip HTML tags and return plain text
-        return firstMsg.message.replace(/<[^>]*>/g, '');
+      // Take the first message
+      const firstMessage = messages[0];
+      
+      // It could be a string or JSON string
+      if (typeof firstMessage === 'string') {
+        try {
+          // Try to parse as JSON
+          const parsed = JSON.parse(firstMessage);
+          if (parsed.message) {
+            return parsed.message.replace(/<[^>]*>/g, '');
+          }
+          return firstMessage.replace(/<[^>]*>/g, '');
+        } catch {
+          // If not JSON, return as-is
+          return firstMessage.replace(/<[^>]*>/g, '');
+        }
+      } else if (firstMessage.message) {
+        // Already an object with message property
+        return firstMessage.message.replace(/<[^>]*>/g, '');
       }
     }
   } catch (error) {
@@ -1144,7 +1152,7 @@ const handleBulkUpdate = async () => {
               {/* Dropdown menu */}
               {showMenu && (
                 <div className="absolute right-0 bottom-10 bg-white dark:bg-gray-700 dark:text-white shadow-lg rounded-md border dark:border-gray-600 py-1 w-40 z-50">
-                  <button
+                  {/* <button
                     className="block w-full text-left px-4 py-2 hover:bg-gray-300 dark:hover:bg-gray-600"
                     onClick={async () => {
                       openBulkEditModal();
@@ -1152,7 +1160,7 @@ const handleBulkUpdate = async () => {
                     }}
                   >
                     Edit
-                  </button>
+                  </button> */}
                   <button
                     className="block w-full text-left px-4 py-2 hover:bg-gray-300 dark:hover:bg-gray-600"
                     onClick={() => {

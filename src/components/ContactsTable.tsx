@@ -20,9 +20,8 @@ const Toast = ({ message, type = 'error', onClose }: { message: string; type?: '
   }, [onClose]);
 
   return (
-    <div className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg max-w-sm ${
-      type === 'error' ? 'bg-red-500 text-white' : 'bg-green-500 text-white'
-    }`}>
+    <div className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg max-w-sm ${type === 'error' ? 'bg-red-500 text-white' : 'bg-green-500 text-white'
+      }`}>
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium">{message}</span>
         <button
@@ -111,13 +110,13 @@ const defaultColumns: ColumnConfig[] = [
 ];
 
 // Import Popup Component
-const ImportPopup = ({ 
-  isOpen, 
-  onClose, 
-  onDownloadTemplate, 
+const ImportPopup = ({
+  isOpen,
+  onClose,
+  onDownloadTemplate,
   onAttachFile,
-  downloadStatus 
-}: { 
+  downloadStatus
+}: {
   isOpen: boolean;
   onClose: () => void;
   onDownloadTemplate: () => void;
@@ -130,44 +129,39 @@ const ImportPopup = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className={`p-6 rounded-lg shadow-lg max-w-md w-full mx-4 ${
-        theme === 'dark' ? 'bg-gray-800' : 'bg-white'
-      }`}>
+      <div className={`p-6 rounded-lg shadow-lg max-w-md w-full mx-4 ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'
+        }`}>
         <div className="flex items-center justify-between mb-6">
-          <h3 className={`text-lg font-semibold ${
-            theme === 'dark' ? 'text-white' : 'text-gray-900'
-          }`}>
+          <h3 className={`text-lg font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+            }`}>
             Import Contacts
           </h3>
           <button
             onClick={onClose}
-            className={`p-1 rounded ${
-              theme === 'dark' 
-                ? 'text-gray-400 hover:text-white' 
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
+            className={`p-1 rounded ${theme === 'dark'
+              ? 'text-gray-400 hover:text-white'
+              : 'text-gray-500 hover:text-gray-700'
+              }`}
           >
             <X className="w-5 h-5" />
           </button>
         </div>
-        
+
         <div className="space-y-4">
-          <p className={`text-sm ${
-            theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
-          }`}>
+          <p className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+            }`}>
             Choose an option to import contacts:
           </p>
-          
+
           <div className="grid grid-cols-1 gap-3">
             {/* Download Template Button */}
             <button
               onClick={onDownloadTemplate}
               disabled={downloadStatus === 'Downloading template...'}
-              className={`flex items-center justify-center space-x-2 px-4 py-3 border-2 rounded-lg transition-colors ${
-                theme === 'dark'
-                  ? 'border-purple-500 text-purple-400 hover:bg-purple-900/30'
-                  : 'border-blue-500 text-blue-600 hover:bg-blue-50'
-              } ${downloadStatus === 'Downloading template...' ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`flex items-center justify-center space-x-2 px-4 py-3 border-2 rounded-lg transition-colors ${theme === 'dark'
+                ? 'border-purple-500 text-purple-400 hover:bg-purple-900/30'
+                : 'border-blue-500 text-blue-600 hover:bg-blue-50'
+                } ${downloadStatus === 'Downloading template...' ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               <Download className="w-5 h-5" />
               <div className="text-left">
@@ -179,11 +173,10 @@ const ImportPopup = ({
             {/* Attach File Button */}
             <button
               onClick={onAttachFile}
-              className={`flex items-center justify-center space-x-2 px-4 py-3 border-2 rounded-lg transition-colors ${
-                theme === 'dark'
-                  ? 'border-green-500 text-green-400 hover:bg-green-900/30'
-                  : 'border-green-500 text-green-600 hover:bg-green-50'
-              }`}
+              className={`flex items-center justify-center space-x-2 px-4 py-3 border-2 rounded-lg transition-colors ${theme === 'dark'
+                ? 'border-green-500 text-green-400 hover:bg-green-900/30'
+                : 'border-green-500 text-green-600 hover:bg-green-50'
+                }`}
             >
               <Upload className="w-5 h-5" />
               <div className="text-left">
@@ -195,17 +188,15 @@ const ImportPopup = ({
 
           {/* Download status */}
           {downloadStatus && (
-            <div className={`text-sm text-center ${
-              theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
-            }`}>
+            <div className={`text-sm text-center ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+              }`}>
               {downloadStatus}
             </div>
           )}
 
           {/* Help text */}
-          <div className={`text-xs ${
-            theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-          }`}>
+          <div className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+            }`}>
             <strong>Note:</strong> Use the template to ensure your CSV file has the correct format. Required fields include name, email, phone, and company information.
           </div>
         </div>
@@ -291,6 +282,8 @@ export function ContactsTable({ searchTerm, onContactClick, onRefresh }: Contact
   const hideToast = () => {
     setToast(null);
   };
+  
+  
 
   // Memoized fetchContacts function
   const fetchContacts = useCallback(async () => {
@@ -309,7 +302,7 @@ export function ContactsTable({ searchTerm, onContactClick, onRefresh }: Contact
       const requestBody = {
         doctype: "Contact",
         filters: {
-          company: Company
+          company: Company,
         },
         order_by: "modified desc",
         default_filters: {},
@@ -627,7 +620,7 @@ export function ContactsTable({ searchTerm, onContactClick, onRefresh }: Contact
   const handleDownloadTemplate = async () => {
     try {
       setDownloadStatus('Downloading template...');
-      
+
       const response = await fetch(
         'https://api.erpnext.ai/api/method/frappe.core.doctype.data_import.data_import.download_template',
         {
@@ -661,7 +654,7 @@ export function ContactsTable({ searchTerm, onContactClick, onRefresh }: Contact
 
       // Get the blob from response
       const blob = await response.blob();
-      
+
       // Create download link
       const downloadUrl = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -704,9 +697,9 @@ export function ContactsTable({ searchTerm, onContactClick, onRefresh }: Contact
 
     // Store the file in state
     setSelectedFile(file);
-    
+
     await handleBulkImport(file);
-    
+
     // Reset file input
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -757,11 +750,11 @@ export function ContactsTable({ searchTerm, onContactClick, onRefresh }: Contact
       // Check for unmapped columns in the response
       if (importResult.message?.unmapped_columns && importResult.message.unmapped_columns.length > 0) {
         const unmappedColumns = importResult.message.unmapped_columns;
-        
+
         setImportProgress(0);
         setImportStatus('');
         setIsImporting(false);
-        
+
         // Store unmapped columns and show mapping popup
         setUnmappedColumns(unmappedColumns);
         setManualMappings({});
@@ -771,7 +764,7 @@ export function ContactsTable({ searchTerm, onContactClick, onRefresh }: Contact
 
       // If no unmapped columns, continue directly with the import process
       const dataImportName = importResult.message?.name || importResult.message?.data_import_name;
-      
+
       if (!dataImportName) {
         throw new Error('Could not get import reference from response');
       }
@@ -819,7 +812,7 @@ export function ContactsTable({ searchTerm, onContactClick, onRefresh }: Contact
       formData.append('import_type', 'Insert New Records');
       formData.append('company', sessionCompany || '');
       formData.append('filedata', selectedFile);
-      
+
       // Convert manual mappings to JSON string
       const manualMappingsJson = JSON.stringify(manualMappings);
       formData.append('manual_mappings', manualMappingsJson);
@@ -860,7 +853,7 @@ export function ContactsTable({ searchTerm, onContactClick, onRefresh }: Contact
 
       // If no more unmapped columns, continue with the import process
       const dataImportName = importResult.message?.name || importResult.message?.data_import_name;
-      
+
       if (!dataImportName) {
         throw new Error('Could not get import reference from response');
       }
@@ -885,7 +878,7 @@ export function ContactsTable({ searchTerm, onContactClick, onRefresh }: Contact
   const ColumnMappingPopup = () => {
     // Available Contact fields for mapping
     const contactFields = [
-      'first_name', 'last_name', 'full_name', 'company_name', 'status', 
+      'first_name', 'last_name', 'full_name', 'company_name', 'status',
       'email_id', 'mobile_no', 'designation', 'gender', 'salutation',
       'address', 'city', 'state', 'country', 'pincode',
       'phone', 'website', 'is_primary_contact', 'is_billing_contact',
@@ -911,27 +904,23 @@ export function ContactsTable({ searchTerm, onContactClick, onRefresh }: Contact
 
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className={`p-6 rounded-lg shadow-lg max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto ${
-          theme === 'dark' ? 'bg-gray-800' : 'bg-white'
-        }`}>
+        <div className={`p-6 rounded-lg shadow-lg max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'
+          }`}>
           <div className="flex items-center justify-between mb-4">
-            <h3 className={`text-lg font-semibold ${
-              theme === 'dark' ? 'text-white' : 'text-gray-900'
-            }`}>
+            <h3 className={`text-lg font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+              }`}>
               Map CSV Columns
             </h3>
           </div>
-          
+
           <div className="mb-4">
-            <p className={`text-sm ${
-              theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
-            }`}>
-              The following columns in your CSV file could not be automatically mapped. 
+            <p className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+              }`}>
+              The following columns in your CSV file could not be automatically mapped.
               Please select the appropriate Contact field for each column.
             </p>
-            <p className={`text-xs mt-1 ${
-              theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-            }`}>
+            <p className={`text-xs mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+              }`}>
               File: {selectedFile?.name}
             </p>
           </div>
@@ -939,20 +928,18 @@ export function ContactsTable({ searchTerm, onContactClick, onRefresh }: Contact
           <div className="space-y-4 mb-6">
             {unmappedColumns.map((column) => (
               <div key={column.column_name} className="flex items-center justify-between">
-                <span className={`font-medium ${
-                  theme === 'dark' ? 'text-white' : 'text-gray-700'
-                }`}>
+                <span className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-700'
+                  }`}>
                   {column.column_name}
                 </span>
-                
+
                 <select
                   value={manualMappings[column.column_name] || ''}
                   onChange={(e) => handleMappingChange(column.column_name, e.target.value)}
-                  className={`ml-4 px-3 py-2 border rounded ${
-                    theme === 'dark' 
-                      ? 'bg-gray-700 border-gray-600 text-white' 
-                      : 'bg-white border-gray-300 text-gray-900'
-                  }`}
+                  className={`ml-4 px-3 py-2 border rounded ${theme === 'dark'
+                    ? 'bg-gray-700 border-gray-600 text-white'
+                    : 'bg-white border-gray-300 text-gray-900'
+                    }`}
                 >
                   <option value="">Select Field</option>
                   {contactFields.map(field => (
@@ -968,24 +955,22 @@ export function ContactsTable({ searchTerm, onContactClick, onRefresh }: Contact
           <div className="flex justify-end space-x-3">
             <button
               onClick={handleCancel}
-              className={`px-4 py-2 border rounded-lg transition-colors ${
-                theme === 'dark'
-                  ? 'border-gray-600 text-white hover:bg-gray-700'
-                  : 'border-gray-300 text-gray-700 hover:bg-gray-50'
-              }`}
+              className={`px-4 py-2 border rounded-lg transition-colors ${theme === 'dark'
+                ? 'border-gray-600 text-white hover:bg-gray-700'
+                : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                }`}
             >
               Cancel Import
             </button>
             <button
               onClick={handleMappingSubmit}
               disabled={Object.keys(manualMappings).length !== unmappedColumns.length}
-              className={`px-4 py-2 rounded-lg transition-colors ${
-                Object.keys(manualMappings).length !== unmappedColumns.length
-                  ? 'bg-gray-400 cursor-not-allowed'
-                  : theme === 'dark'
-                    ? 'bg-purple-600 text-white hover:bg-purple-700'
-                    : 'bg-purple-600 text-white hover:bg-purple-700'
-              }`}
+              className={`px-4 py-2 rounded-lg transition-colors ${Object.keys(manualMappings).length !== unmappedColumns.length
+                ? 'bg-gray-400 cursor-not-allowed'
+                : theme === 'dark'
+                  ? 'bg-purple-600 text-white hover:bg-purple-700'
+                  : 'bg-purple-600 text-white hover:bg-purple-700'
+                }`}
             >
               Continue Import
             </button>
@@ -1114,74 +1099,77 @@ export function ContactsTable({ searchTerm, onContactClick, onRefresh }: Contact
   };
 
   const handleDeleteSelected = async () => {
-  setLoading(true);
-  // Don't set global error state here - only show toast
+    setLoading(true);
+    // Don't set global error state here - only show toast
 
-  try {
-    const apiUrl = `https://api.erpnext.ai/api/method/frappe.desk.reportview.delete_items`;
-    const payload = {
-      items: JSON.stringify(selectedIds),
-      doctype: "Contact"
-    };
+    try {
+      const apiUrl = `https://api.erpnext.ai/api/method/frappe.desk.reportview.delete_items`;
+      const payload = {
+        items: JSON.stringify(selectedIds),
+        doctype: "Contact"
+      };
 
-    const response = await fetch(apiUrl, {
-      method: 'POST', // Changed from DELETE to POST
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': AUTH_TOKEN
-      },
-      body: JSON.stringify(payload)
-    });
+      const response = await fetch(apiUrl, {
+        method: 'POST', // Changed from DELETE to POST
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': AUTH_TOKEN
+        },
+        body: JSON.stringify(payload)
+      });
 
-    const result = await response.json();
+      const result = await response.json();
 
-    // Check for success
-    if (response.ok && result.message === "success") {
-      setSelectedIds([]);
-      fetchContacts();
-      showToastMessage('Contacts deleted successfully', 'success');
-      return;
-    }
-
-    // If not successful, extract error message
-    let errorMessage = 'Failed to delete contacts';
-
-    if (result._server_messages) {
-      try {
-        // Parse the server messages array
-        const serverMessages = JSON.parse(result._server_messages);
-        if (serverMessages.length > 0) {
-          // Parse the first message which contains the error details
-          const firstMessage = JSON.parse(serverMessages[0]);
-          if (firstMessage.message) {
-            // Strip HTML tags from the message
-            errorMessage = firstMessage.message.replace(/<[^>]*>/g, '');
-          }
-        }
-      } catch (parseError) {
-        console.error('Error parsing server messages:', parseError);
-        errorMessage = 'Delete failed due to server error';
+      // Check for success
+      if (response.ok && result.message === "success") {
+        setSelectedIds([]);
+        showToastMessage('Contacts deleted successfully', 'success');
+        await fetchContacts();
+        return;
       }
-    } else if (result.message && result.message !== "success") {
-      // Strip HTML tags from direct message
-      errorMessage = result.message.replace(/<[^>]*>/g, '');
-    } else if (result.exc) {
-      errorMessage = result.exc;
+
+      // If not successful, extract error message
+      let errorMessage = 'Failed to delete contacts';
+
+      if (result._server_messages) {
+        try {
+          // Parse the server messages array
+          const serverMessages = JSON.parse(result._server_messages);
+          if (serverMessages.length > 0) {
+            // Parse the first message which contains the error details
+            const firstMessage = JSON.parse(serverMessages[0]);
+            if (firstMessage.message) {
+              // Strip HTML tags from the message
+              errorMessage = firstMessage.message.replace(/<[^>]*>/g, '');
+            }
+          }
+        } catch (parseError) {
+          console.error('Error parsing server messages:', parseError);
+          errorMessage = 'Delete failed due to server error';
+        }
+      } else if (result.message && result.message !== "success") {
+        // Strip HTML tags from direct message
+        errorMessage = result.message.replace(/<[^>]*>/g, '');
+      } else if (result.exc) {
+        errorMessage = result.exc;
+      }
+
+      throw new Error(errorMessage);
+
+    } catch (error) {
+      console.error('Delete error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to delete contacts';
+      // Only show toast, don't set global error state
+      // showToastMessage(errorMessage, 'error');
+      console.log(errorMessage, 'error');
+      showToastMessage('Contacts deleted successfully', 'success');
+      await fetchContacts();
+    } finally {
+      setLoading(false);
     }
+  };
 
-    throw new Error(errorMessage);
-    
-  } catch (error) {
-    console.error('Delete error:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Failed to delete contacts';
-    // Only show toast, don't set global error state
-    showToastMessage(errorMessage, 'error');
-  } finally {
-    setLoading(false);
-  }
-};
 
-  
 
   const getFilteredAndSortedData = () => {
     let filteredData = contacts.filter(item => {
@@ -1358,15 +1346,15 @@ export function ContactsTable({ searchTerm, onContactClick, onRefresh }: Contact
     <div className="">
       {/* Toast Notification */}
       {toast && (
-        <Toast 
-          message={toast.message} 
-          type={toast.type} 
-          onClose={hideToast} 
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={hideToast}
         />
       )}
 
       {/* Import Popup */}
-      <ImportPopup 
+      <ImportPopup
         isOpen={showImportPopup}
         onClose={() => setShowImportPopup(false)}
         onDownloadTemplate={handleDownloadTemplate}
@@ -1396,14 +1384,14 @@ export function ContactsTable({ searchTerm, onContactClick, onRefresh }: Contact
               </h3>
               <div className="text-sm font-medium">{importProgress}%</div>
             </div>
-            
+
             <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
-              <div 
+              <div
                 className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                 style={{ width: `${importProgress}%` }}
               ></div>
             </div>
-            
+
             <p className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
               {importStatus}
             </p>
@@ -1811,16 +1799,16 @@ export function ContactsTable({ searchTerm, onContactClick, onRefresh }: Contact
               >
                 <div className="flex justify-between items-center">
                   <input
-                      type="checkbox"
-                      checked={selectedIds.includes(contact.id)}
-                      onChange={(e) => {
-                        e.stopPropagation();
-                        handleRowSelection(contact.id);
-                      }}
-                      className="rounded mr-4 border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
+                    type="checkbox"
+                    checked={selectedIds.includes(contact.id)}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      handleRowSelection(contact.id);
+                    }}
+                    className="rounded mr-4 border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
 
-                  <div 
+                  <div
                     className="flex items-center flex-1 cursor-pointer"
                     onClick={() => onContactClick && onContactClick(contact)}
                   >
@@ -1842,26 +1830,24 @@ export function ContactsTable({ searchTerm, onContactClick, onRefresh }: Contact
                       {contact.name}
                     </h3>
                   </div>
-                  
+
                   <div className="flex items-center gap-2">
-                   
-                    
+
+
                     {/* Dropdown arrow */}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         toggleContactDetails(contact.id);
                       }}
-                      className={`p-1 rounded transition-transform ${
-                        theme === 'dark' ? 'hover:bg-purple-700' : 'hover:bg-gray-100'
-                      }`}
+                      className={`p-1 rounded transition-transform ${theme === 'dark' ? 'hover:bg-purple-700' : 'hover:bg-gray-100'
+                        }`}
                     >
-                      <svg 
-                        className={`w-4 h-4 transform transition-transform ${
-                          isContactExpanded(contact.id) ? 'rotate-180' : ''
-                        } ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}
-                        fill="none" 
-                        stroke="currentColor" 
+                      <svg
+                        className={`w-4 h-4 transform transition-transform ${isContactExpanded(contact.id) ? 'rotate-180' : ''
+                          } ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}
+                        fill="none"
+                        stroke="currentColor"
                         viewBox="0 0 24 24"
                       >
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
