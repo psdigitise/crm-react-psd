@@ -1584,7 +1584,7 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
                 </ul>
                 <p className={`text-xl font-bold mt-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>₹1,500/mo</p>
                 <button
-                  onClick={() => handlePayment('STANDARD PLAN CRM', 1500, '1')}
+                  onClick={() => handlePayment('STANDARD PLAN CRM', 1, '1')}
                   disabled={isProcessingPayment !== null}
                   className={`mt-6 w-full px-4 py-2 rounded-lg font-medium transition-colors flex items-center justify-center ${isProcessingPayment !== null
                     ? 'bg-gray-500 text-gray-300 cursor-not-allowed'
@@ -1617,7 +1617,7 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
                 </ul>
                 <p className={`text-xl font-bold mt-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>₹2,500 /mo</p>
                 <button
-                  onClick={() => handlePayment('PROFESSIONAL PLAN – CRM Pro', 2500, '2')}
+                  onClick={() => handlePayment('PROFESSIONAL PLAN – CRM Pro', 1, '2')}
                   disabled={isProcessingPayment !== null}
                   className={`mt-6 mb w-full px-4 py-2 rounded-lg font-medium transition-colors flex items-center justify-center ${isProcessingPayment !== null
                     ? 'bg-gray-500 text-white cursor-not-allowed'
