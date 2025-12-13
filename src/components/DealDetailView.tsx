@@ -462,138 +462,138 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
 
 
   const generateAndFetchCompanyIntelligence = async () => {
-  if (!editedDeal.organization_name) {
-    showToast('Organization name is required to generate company intelligence', { type: 'error' });
-    return;
-  }
-
-  setIsGeneratingIntelligence(true);
-  setIntelligenceError(null);
-
-  try {
-    const session = getUserSession();
-    const sessionCompany = session?.company || '';
-
-   
-    const creditsResponse = await apiAxios.post(
-      '/api/method/customcrm.api.check_credits_available',
-      {
-        type: 'report',
-        company: sessionCompany
-      },
-      {
-        headers: {
-          'Authorization': AUTH_TOKEN,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
-
-    const creditsData = creditsResponse.data.message;
-
-  
-    if (!creditsData.status) {
-      const credits = creditsData.available_credits || 0;
-      showToast(`Insufficient credits. You have only ${credits} credits available. Please add more to proceed.`, { type: 'error' });
-      setIsGeneratingIntelligence(false);
+    if (!editedDeal.organization_name) {
+      showToast('Organization name is required to generate company intelligence', { type: 'error' });
       return;
     }
 
-    
-    const generateResponse = await apiAxios.post(
-      '/api/method/customcrm.email.generate_companyinfo.generate_company_report',
-      {
-        company_name: editedDeal.organization_name
-      },
-      {
-        headers: {
-          'Authorization': AUTH_TOKEN,
-          'Content-Type': 'application/json'
+    setIsGeneratingIntelligence(true);
+    setIntelligenceError(null);
+
+    try {
+      const session = getUserSession();
+      const sessionCompany = session?.company || '';
+
+
+      const creditsResponse = await apiAxios.post(
+        '/api/method/customcrm.api.check_credits_available',
+        {
+          type: 'report',
+          company: sessionCompany
+        },
+        {
+          headers: {
+            'Authorization': AUTH_TOKEN,
+            'Content-Type': 'application/json'
+          }
         }
+      );
+
+      const creditsData = creditsResponse.data.message;
+
+
+      if (!creditsData.status) {
+        const credits = creditsData.available_credits || 0;
+        showToast(`Insufficient credits. You have only ${credits} credits available. Please add more to proceed.`, { type: 'error' });
+        setIsGeneratingIntelligence(false);
+        return;
       }
-    );
 
-    if (!generateResponse.data || !generateResponse.data.message) {
-      throw new Error('Failed to generate company intelligence report');
-    }
 
-    const companyIntelligenceData = generateResponse.data.message;
-    
-   
-    const inputToken = companyIntelligenceData.cost?.input_tokens || 0;
-    const outputToken = companyIntelligenceData.cost?.output_tokens || 0;
-    const usdCost = companyIntelligenceData.cost?.usd || 0;
-    const inrCost = companyIntelligenceData.cost?.inr || 0;
-
-    
-    const saveResponse = await apiAxios.post(
-      '/api/method/frappe.client.set_value',
-      {
-        doctype: "CRM Deal",
-        name: deal.name,
-        fieldname: {
-          company_info: JSON.stringify(companyIntelligenceData)
+      const generateResponse = await apiAxios.post(
+        '/api/method/customcrm.email.generate_companyinfo.generate_company_report',
+        {
+          company_name: editedDeal.organization_name
+        },
+        {
+          headers: {
+            'Authorization': AUTH_TOKEN,
+            'Content-Type': 'application/json'
+          }
         }
-      },
-      {
-        headers: {
-          'Authorization': AUTH_TOKEN,
-          'Content-Type': 'application/json'
-        }
+      );
+
+      if (!generateResponse.data || !generateResponse.data.message) {
+        throw new Error('Failed to generate company intelligence report');
       }
-    );
 
-    if (saveResponse.data && saveResponse.data.message) {
-      setCompanyIntelligence(companyIntelligenceData);
-      showToast('Company intelligence generated and saved successfully!', { type: 'success' });
+      const companyIntelligenceData = generateResponse.data.message;
 
-     
-      try {
-        await apiAxios.post(
-          '/api/method/customcrm.api.add_action_log',
-          {
+
+      const inputToken = companyIntelligenceData.cost?.input_tokens || 0;
+      const outputToken = companyIntelligenceData.cost?.output_tokens || 0;
+      const usdCost = companyIntelligenceData.cost?.usd || 0;
+      const inrCost = companyIntelligenceData.cost?.inr || 0;
+
+
+      const saveResponse = await apiAxios.post(
+        '/api/method/frappe.client.set_value',
+        {
+          doctype: "CRM Deal",
+          name: deal.name,
+          fieldname: {
+            company_info: JSON.stringify(companyIntelligenceData)
+          }
+        },
+        {
+          headers: {
+            'Authorization': AUTH_TOKEN,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (saveResponse.data && saveResponse.data.message) {
+        setCompanyIntelligence(companyIntelligenceData);
+        showToast('Company intelligence generated and saved successfully!', { type: 'success' });
+
+
+        try {
+          await apiAxios.post(
+            '/api/method/customcrm.api.add_action_log',
+            {
               doc: "CRM Deal",
               parent: deal.name,
               type: "report",
               data_ctrx: inputToken,
               output_token: outputToken,
               usd: usdCost,
-              inr: inrCost 
-            
-          },
-          {
-            headers: {
-              'Authorization': AUTH_TOKEN,
-              'Content-Type': 'application/json'
+              inr: inrCost
+
+            },
+            {
+              headers: {
+                'Authorization': AUTH_TOKEN,
+                'Content-Type': 'application/json'
+              }
             }
-          }
-        );
-        console.log('Action log added successfully');
-      } catch (logError) {
-        console.error('Failed to add action log:', logError);
-        // Don't show error to user as this is just logging
+          );
+          console.log('Action log added successfully');
+        } catch (logError) {
+          console.error('Failed to add action log:', logError);
+          // Don't show error to user as this is just logging
+        }
+
+      } else {
+        throw new Error('Failed to save company intelligence data');
       }
-      
-    } else {
-      throw new Error('Failed to save company intelligence data');
+
+    } catch (error: any) {
+      console.error('Error generating company intelligence:', error);
+
+      // Try to fetch existing data if generation fails
+      await fetchExistingCompanyIntelligence();
+
+      // Show appropriate error message
+      if (error.response?.data?.message) {
+        setIntelligenceError(`Generation failed: ${error.response.data.message}`);
+      } else {
+        setIntelligenceError('Failed to generate company intelligence. Please try again.');
+      }
+    } finally {
+      setIsGeneratingIntelligence(false);
     }
-
-  } catch (error: any) {
-    console.error('Error generating company intelligence:', error);
-
-    // Try to fetch existing data if generation fails
-    await fetchExistingCompanyIntelligence();
-
-    // Show appropriate error message
-    if (error.response?.data?.message) {
-      setIntelligenceError(`Generation failed: ${error.response.data.message}`);
-    } else {
-      setIntelligenceError('Failed to generate company intelligence. Please try again.');
-    }
-  } finally {
-    setIsGeneratingIntelligence(false);
-  }
-};
+  };
 
 
 
@@ -1992,23 +1992,59 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
       allActivities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
       setActivities(allActivities);
 
+      // In your fetchAllActivities function, replace the filtering logic with this:
       const filteredActivities = allActivities.filter(activity => {
         // Skip filtering for non-text based activities
-        if (!activity.description && !activity.title) return true;
+        if (!activity.description && !activity.title && !activity.callData) return true;
 
         const description = (activity.description || '').toLowerCase();
         const title = (activity.title || '').toLowerCase();
 
-        const isCompanyIntelligence =
-          description.includes('company intelligence') ||
-          description.includes('company_info') ||
-          description.includes('intelligence report') ||
-          description.includes('intelligence generated') ||
-          description.includes('company information') ||
-          title.includes('company intelligence') ||
-          title.includes('intelligence report') ||
-          // Add more keywords as needed
-          false;
+        // For call activities, check if they have any notes/tasks related to company intelligence
+        if (activity.callData) {
+          const callNotes = activity.callData._notes || [];
+          const hasIntelNote = callNotes.some(note =>
+            note.content?.toLowerCase().includes('company intelligence') ||
+            note.content?.toLowerCase().includes('company info') ||
+            note.content?.toLowerCase().includes('intelligence report')
+          );
+          return !hasIntelNote;
+        }
+
+        // Comprehensive list of keywords to filter out
+        const companyIntelKeywords = [
+          'company intelligence',
+          'company info',
+          'company_info',
+          'intelligence report',
+          'intelligence generated',
+          'company information',
+          'company report',
+          'business intelligence',
+          'ai intelligence',
+          'scorecard',
+          'market intelligence',
+          'competitor intelligence',
+          'financial intelligence',
+          'leadership intelligence',
+          'technology landscape',
+          'digital transformation',
+          'ai capabilities',
+          'business strategy',
+          'key leadership',
+          'financial health',
+          'competitor analysis',
+          'strengths',
+          'weaknesses',
+          'opportunities',
+          'threats',
+          'swot',
+          'recommendations'
+        ];
+
+        const isCompanyIntelligence = companyIntelKeywords.some(keyword =>
+          description.includes(keyword) || title.includes(keyword)
+        );
 
         return !isCompanyIntelligence;
       });
@@ -3315,7 +3351,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
 
         {activeTab === 'notes' && (
           <div className="space-y-6">
-           
+
             <div>
               <div className={`${cardBgColor} rounded-lg shadow-sm border ${borderColor} max-sm:p-3 p-6`}>
                 <div className='flex justify-between items-center gap-5 mb-6'>
@@ -5461,8 +5497,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                       onClick={generateAndFetchCompanyIntelligence}
                       disabled={!editedDeal.organization_name}
                       className={`px-4 py-2 rounded-lg flex items-center space-x-2 text-white ${theme === 'dark'
-                          ? 'bg-purple-600 hover:bg-purple-700'
-                          : 'bg-blue-600 hover:bg-blue-700'
+                        ? 'bg-purple-600 hover:bg-purple-700'
+                        : 'bg-blue-600 hover:bg-blue-700'
                         } disabled:opacity-50`}
                       title={!editedDeal.organization_name
                         ? "Organization name is required"
@@ -5477,8 +5513,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                     <button
                       disabled
                       className={`px-4 py-2 rounded-lg flex items-center space-x-2 ${theme === 'dark'
-                          ? 'bg-purple-600 text-white'
-                          : 'bg-blue-600 text-white'
+                        ? 'bg-purple-600 text-white'
+                        : 'bg-blue-600 text-white'
                         } opacity-50`}
                     >
                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -5491,8 +5527,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
               {/* Warning if organization name is not set */}
               {!editedDeal.organization_name && (
                 <div className={`p-3 mb-4 rounded-lg ${theme === 'dark'
-                    ? 'bg-yellow-900/30 text-yellow-300 border border-yellow-700'
-                    : 'bg-yellow-100 text-yellow-800 border border-yellow-300'
+                  ? 'bg-yellow-900/30 text-yellow-300 border border-yellow-700'
+                  : 'bg-yellow-100 text-yellow-800 border border-yellow-300'
                   }`}>
                   <div className="flex items-center gap-2">
                     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -5534,8 +5570,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                   {/* Overall Scorecard */}
                   {companyIntelligence.json?.scorecard && (
                     <div className={`rounded-lg border p-4 sm:p-6 ${theme === 'dark'
-                        ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
-                        : 'bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200'
+                      ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
+                      : 'bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200'
                       }`}>
                       <div className="flex flex-col sm:flex-row sm:items-start justify-between mb-4 sm:mb-6 gap-3">
                         <div className="flex-1">
@@ -5548,18 +5584,18 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                         </div>
                         <div className="text-right">
                           <div className={`text-2xl sm:text-3xl font-bold mb-1 ${companyIntelligence.json.scorecard.final_percentage >= 80
-                              ? 'text-green-500' :
-                              companyIntelligence.json.scorecard.final_percentage >= 60
-                                ? 'text-yellow-500' :
-                                'text-red-500'
+                            ? 'text-green-500' :
+                            companyIntelligence.json.scorecard.final_percentage >= 60
+                              ? 'text-yellow-500' :
+                              'text-red-500'
                             }`}>
                             {companyIntelligence.json.scorecard.final_percentage || 0}%
                           </div>
                           <span className={`text-xs sm:text-sm px-2 py-1 sm:px-3 sm:py-1 rounded-full font-medium ${companyIntelligence.json.scorecard.final_percentage >= 80
-                              ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300' :
-                              companyIntelligence.json.scorecard.final_percentage >= 60
-                                ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300' :
-                                'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300'
+                            ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300' :
+                            companyIntelligence.json.scorecard.final_percentage >= 60
+                              ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300' :
+                              'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300'
                             }`}>
                             {companyIntelligence.json.scorecard.final_percentage >= 80 ? 'Very High' :
                               companyIntelligence.json.scorecard.final_percentage >= 60 ? 'High' :
@@ -5574,8 +5610,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                             <div className="absolute inset-0 flex items-center justify-center">
                               <div className="text-center">
                                 <span className={`text-2xl sm:text-4xl font-bold block ${companyIntelligence.json.scorecard.final_percentage >= 80 ? 'text-green-500' :
-                                    companyIntelligence.json.scorecard.final_percentage >= 60 ? 'text-yellow-500' :
-                                      'text-red-500'
+                                  companyIntelligence.json.scorecard.final_percentage >= 60 ? 'text-yellow-500' :
+                                    'text-red-500'
                                   }`}>
                                   {companyIntelligence.json.scorecard.final_percentage || 0}
                                 </span>
@@ -5642,19 +5678,19 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                         const score = companyIntelligence.json.scorecard[item.key] || 0;
                         return (
                           <div key={index} className={`p-3 sm:p-4 rounded-lg border ${theme === 'dark'
-                              ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
-                              : 'bg-white border-gray-200'
+                            ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
+                            : 'bg-white border-gray-200'
                             } transition-colors`}>
                             <div className="flex items-center justify-between mb-1 sm:mb-2">
                               <span className={`text-xs sm:text-sm font-medium ${textColor}`}>{item.label}</span>
                               <div className={`w-2 h-2 rounded-full ${score >= 8 ? 'bg-green-500' :
-                                  score >= 6 ? 'bg-yellow-500' :
-                                    'bg-red-500'
+                                score >= 6 ? 'bg-yellow-500' :
+                                  'bg-red-500'
                                 }`} />
                             </div>
                             <p className={`text-xl sm:text-2xl font-bold ${score >= 8 ? 'text-green-500' :
-                                score >= 6 ? 'text-yellow-500' :
-                                  'text-red-500'
+                              score >= 6 ? 'text-yellow-500' :
+                                'text-red-500'
                               }`}>
                               {score}
                             </p>
@@ -5668,8 +5704,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                   {/* Identity & Overview */}
                   {companyIntelligence.json?.identity_and_overview && (
                     <div className={`rounded-lg border ${theme === 'dark'
-                        ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
-                        : 'bg-white border-gray-200'
+                      ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
+                      : 'bg-white border-gray-200'
                       } p-4 sm:p-6`}>
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2">
                         <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>
@@ -5729,8 +5765,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                   {/* Company Snapshot */}
                   {companyIntelligence.json?.Company_Snapshot && (
                     <div className={`rounded-lg border ${theme === 'dark'
-                        ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
-                        : 'bg-white border-gray-200'
+                      ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
+                      : 'bg-white border-gray-200'
                       } p-4 sm:p-6`}>
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2">
                         <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>Company SnapShot</h4>
@@ -5748,8 +5784,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                   {/* Business & Strategy */}
                   {companyIntelligence.json?.business_and_strategy && (
                     <div className={`rounded-lg border ${theme === 'dark'
-                        ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
-                        : 'bg-white border-gray-200'
+                      ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
+                      : 'bg-white border-gray-200'
                       } p-4 sm:p-6`}>
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2">
                         <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>Business Overview & Segments</h4>
@@ -5772,8 +5808,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                   {/* Markets & Geographic Footprint */}
                   {companyIntelligence.json?.markets_and_geographic_footprint && (
                     <div className={`rounded-lg border ${theme === 'dark'
-                        ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
-                        : 'bg-white border-gray-200'
+                      ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
+                      : 'bg-white border-gray-200'
                       } p-4 sm:p-6`}>
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2">
                         <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>Markets & Geographic Footprint</h4>
@@ -5791,8 +5827,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                   {/* Key Leadership */}
                   {companyIntelligence.json?.key_leadership && (
                     <div className={`rounded-lg border ${theme === 'dark'
-                        ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
-                        : 'bg-white border-gray-200'
+                      ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
+                      : 'bg-white border-gray-200'
                       } p-4 sm:p-6`}>
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2">
                         <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>Key Leadership & Decision-Makers</h4>
@@ -5826,8 +5862,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                   {/* Technology Landscape */}
                   {companyIntelligence.json?.technology_landscape && (
                     <div className={`rounded-lg border ${theme === 'dark'
-                        ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
-                        : 'bg-white border-gray-200'
+                      ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
+                      : 'bg-white border-gray-200'
                       } p-4 sm:p-6`}>
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2">
                         <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>Technology Landscape</h4>
@@ -5850,8 +5886,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                   {/* Digital Transformation Readiness */}
                   {companyIntelligence.json?.digital_transformation_readiness && (
                     <div className={`rounded-lg border ${theme === 'dark'
-                        ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
-                        : 'bg-white border-gray-200'
+                      ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
+                      : 'bg-white border-gray-200'
                       } p-4 sm:p-6`}>
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2">
                         <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>Digital Transformation Readiness</h4>
@@ -5869,8 +5905,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                   {/* AI Capabilities & Adoption */}
                   {companyIntelligence.json?.ai_capabilities_adoption && (
                     <div className={`rounded-lg border ${theme === 'dark'
-                        ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
-                        : 'bg-white border-gray-200'
+                      ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
+                      : 'bg-white border-gray-200'
                       } p-4 sm:p-6`}>
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2">
                         <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>AI Capabilities & AI Adoption Maturity</h4>
@@ -5888,8 +5924,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                   {/* Integration & Enterprise Systems */}
                   {companyIntelligence.json?.integration_and_enterprise_systems && (
                     <div className={`rounded-lg border ${theme === 'dark'
-                        ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
-                        : 'bg-white border-gray-200'
+                      ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
+                      : 'bg-white border-gray-200'
                       } p-4 sm:p-6`}>
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2">
                         <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>Integration & Enterprise Systems</h4>
@@ -5907,8 +5943,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                   {/* Financial Health */}
                   {companyIntelligence.json?.financial_health && (
                     <div className={`rounded-lg border ${theme === 'dark'
-                        ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
-                        : 'bg-white border-gray-200'
+                      ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
+                      : 'bg-white border-gray-200'
                       } p-4 sm:p-6`}>
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2">
                         <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>Financial Health</h4>
@@ -5931,8 +5967,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                   {/* Social, News & Events Signals */}
                   {companyIntelligence.json?.social_event_signals && (
                     <div className={`rounded-lg border ${theme === 'dark'
-                        ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
-                        : 'bg-white border-gray-200'
+                      ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
+                      : 'bg-white border-gray-200'
                       } p-4 sm:p-6`}>
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2">
                         <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>Social, News & Events Signals</h4>
@@ -5950,8 +5986,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                   {/* Competitor & Peer Comparison */}
                   {companyIntelligence.json?.Competitor_and_peer_comparison && (
                     <div className={`rounded-lg border ${theme === 'dark'
-                        ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
-                        : 'bg-white border-gray-200'
+                      ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
+                      : 'bg-white border-gray-200'
                       } p-4 sm:p-6`}>
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2">
                         <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>Competitor & Peer Comparison</h4>
@@ -5969,8 +6005,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                   {/* Opportunities for Improvement */}
                   {companyIntelligence.json?.opportunities_for_improvement && (
                     <div className={`rounded-lg border ${theme === 'dark'
-                        ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
-                        : 'bg-white border-gray-200'
+                      ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
+                      : 'bg-white border-gray-200'
                       } p-4 sm:p-6`}>
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2">
                         <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>Opportunities for Improvement</h4>
@@ -5988,8 +6024,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                   {/* Strengths */}
                   {companyIntelligence.json?.strengths && (
                     <div className={`rounded-lg border ${theme === 'dark'
-                        ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
-                        : 'bg-white border-gray-200'
+                      ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
+                      : 'bg-white border-gray-200'
                       } p-4 sm:p-6`}>
                       <div className="flex items-center justify-between mb-3 sm:mb-4">
                         <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>Strengths</h4>
@@ -6008,8 +6044,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                   {/* Risks */}
                   {companyIntelligence.json?.risks && (
                     <div className={`rounded-lg border ${theme === 'dark'
-                        ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
-                        : 'bg-white border-gray-200'
+                      ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
+                      : 'bg-white border-gray-200'
                       } p-4 sm:p-6`}>
                       <div className="flex items-center justify-between mb-3 sm:mb-4">
                         <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>Risks</h4>
@@ -6028,8 +6064,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                   {/* Recommendations */}
                   {companyIntelligence.json?.recommendations && (
                     <div className={`rounded-lg border ${theme === 'dark'
-                        ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
-                        : 'bg-white border-gray-200'
+                      ? 'bg-gradient-to-r from-dark-secondary to-dark-tertiary border-purple-500/30'
+                      : 'bg-white border-gray-200'
                       } p-4 sm:p-6`}>
                       <div className="flex items-center justify-between mb-3 sm:mb-4">
                         <h4 className={`text-lg sm:text-xl font-semibold ${textColor}`}>Recommendations</h4>

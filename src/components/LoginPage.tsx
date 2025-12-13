@@ -13,7 +13,6 @@ import {
 import { setUserSession } from '../utils/session';
 import { FiPhone } from 'react-icons/fi';
 import axios from 'axios';
-
 import { useNavigate } from 'react-router-dom';
 import { GoogleLogin } from '@react-oauth/google';
 import { FaFacebook } from 'react-icons/fa';
@@ -78,10 +77,11 @@ const Toast: React.FC<ToastProps> = ({ message, type, isVisible, onClose }) => {
   return (
     <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top-2">
       <div
-        className={`flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg border ${type === 'success'
+        className={`flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg border ${
+          type === 'success'
             ? 'bg-green-50 border-green-200 text-green-800'
             : 'bg-red-50 border-red-200 text-red-800'
-          }`}
+        }`}
       >
         {type === 'success' ? (
           <CheckCircle className="w-5 h-5 text-green-600" />
@@ -91,10 +91,11 @@ const Toast: React.FC<ToastProps> = ({ message, type, isVisible, onClose }) => {
         <p className="text-sm font-medium max-w-sm">{message}</p>
         <button
           onClick={onClose}
-          className={`ml-2 ${type === 'success'
+          className={`ml-2 ${
+            type === 'success'
               ? 'text-green-600 hover:text-green-800'
               : 'text-red-600 hover:text-red-800'
-            }`}
+          }`}
         >
           <X className="w-4 h-4" />
         </button>
@@ -142,28 +143,28 @@ const GoogleSignupModal: React.FC<GoogleSignupModalProps> = ({
         return !value
           ? 'First name is required'
           : value.length < 2
-            ? 'First name must be at least 2 characters'
-            : '';
+          ? 'First name must be at least 2 characters'
+          : '';
       case 'last_name':
         return !value
           ? 'Last name is required'
           : value.length < 2
-            ? 'Last name must be at least 2 characters'
-            : '';
+          ? 'Last name must be at least 2 characters'
+          : '';
       case 'phone':
         return !value ? 'Phone number is required' : '';
       case 'company':
         return !value
           ? 'Company name is required'
           : value.length < 2
-            ? 'Company name must be at least 2 characters'
-            : '';
+          ? 'Company name must be at least 2 characters'
+          : '';
       case 'no_employees':
         return !value
           ? 'Number of employees is required'
           : !/^\d+$/.test(value)
-            ? 'Please enter a valid number'
-            : '';
+          ? 'Please enter a valid number'
+          : '';
       default:
         return '';
     }
@@ -336,7 +337,6 @@ function getTodayISODate() {
   return today.toISOString().slice(0, 10);
 }
 
-
 const CustomGoogleLoginButton: React.FC<{ onSuccess: (response: any) => void; onError: () => void }> = ({
   onSuccess,
   onError
@@ -344,7 +344,6 @@ const CustomGoogleLoginButton: React.FC<{ onSuccess: (response: any) => void; on
   const googleButtonRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Add CSS to style Google button as icon-only but keep the logo visible
     const style = document.createElement('style');
     style.textContent = `
       .google-login-icon-only div[role="button"] {
@@ -358,7 +357,6 @@ const CustomGoogleLoginButton: React.FC<{ onSuccess: (response: any) => void; on
         justify-content: center !important;
       }
       
-      /* Hide the text but keep the logo */
       .google-login-icon-only div[role="button"] > div:first-child {
         visibility: hidden !important;
       }
@@ -382,7 +380,6 @@ const CustomGoogleLoginButton: React.FC<{ onSuccess: (response: any) => void; on
         height: 48px !important;
       }
       
-      /* Alternative approach - target specific Google button elements */
       .google-login-icon-only .nsm7Bb-HzV7m-LgbsSe {
         padding: 0 !important;
         width: 48px !important;
@@ -416,13 +413,10 @@ const CustomGoogleLoginButton: React.FC<{ onSuccess: (response: any) => void; on
         width="48"
         theme="filled_blue"
         shape="circle"
-        
       />
     </div>
   );
 };
-
-
 
 const CustomFacebookLoginButton: React.FC<{
   onSuccess: (response: any) => void;
@@ -431,7 +425,6 @@ const CustomFacebookLoginButton: React.FC<{
 }> = ({ onSuccess, onError, loading }) => {
   const handleFacebookLogin = async () => {
     try {
-      // Load Facebook SDK if not already loaded
       if (!window.FB) {
         await loadFacebookSDK();
         await initializeFacebookSDK();
@@ -486,7 +479,7 @@ const CustomFacebookLoginButton: React.FC<{
       type="button"
       onClick={handleFacebookLogin}
       disabled={loading}
-      className=" flex items-center justify-center bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+      className="flex items-center justify-center bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
       title="Continue with Facebook"
     >
       <FaFacebook className="w-12 h-12" />
@@ -494,7 +487,6 @@ const CustomFacebookLoginButton: React.FC<{
   );
 };
 
-// Extend Window interface to include FB
 declare global {
   interface Window {
     FB: any;
@@ -512,6 +504,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [passwordError, setPasswordError] = useState('');
+  const [isNavigating, setIsNavigating] = useState(false);
   const navigate = useNavigate();
 
   // Google signup modal state
@@ -573,6 +566,96 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 
   const hideToast = () => {
     setToast(prev => ({ ...prev, isVisible: false }));
+  };
+
+  /* ---------- White Background Logo Reload Function ---------- */
+  const whiteLogoReload = () => {
+    // Create white background overlay with logo
+    const overlay = document.createElement('div');
+    overlay.id = 'white-logo-overlay';
+    
+    // CSS for full-screen white background with centered logo
+    overlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 999999;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    `;
+    
+    // Create logo container
+    const logoContainer = document.createElement('div');
+    logoContainer.style.cssText = `
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+    `;
+    
+
+    const logoImg = new Image();
+    logoImg.src = '/app/assets/images/Erpnextlogo.png';
+    logoImg.alt = 'Loading';
+    logoImg.style.cssText = `
+      width: 200px;
+      height: auto;
+      animation: pulse 1.5s ease-in-out infinite;
+    `;
+    
+   
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes pulse {
+        0%, 100% { 
+          opacity: 0.8; 
+          transform: scale(1); 
+        }
+        50% { 
+          opacity: 1; 
+          transform: scale(1.05); 
+        }
+      }
+    `;
+    document.head.appendChild(style);
+    
+ 
+    logoContainer.appendChild(logoImg);
+    overlay.appendChild(logoContainer);
+    document.body.appendChild(overlay);
+    
+
+    overlay.offsetHeight;
+    
+    // Fade in the white overlay
+    setTimeout(() => {
+      overlay.style.opacity = '1';
+    }, 10);
+    
+    // Store reload flag
+    localStorage.setItem('smoothReload', 'true');
+    
+    // Wait for overlay to be fully visible, then reload
+    setTimeout(() => {
+      window.location.reload();
+    }, 100);
+    
+    // Clean up function for unmounting
+    return () => {
+      if (document.getElementById('white-logo-overlay')) {
+        document.body.removeChild(overlay);
+      }
+      if (style.parentNode) {
+        document.head.removeChild(style);
+      }
+    };
   };
 
   /* ---------- Validation ---------- */
@@ -639,7 +722,6 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 
   /* ---------- Change Handlers ---------- */
 
-  // Login
   const handleEmailChange = (value: string) => {
     setEmail(value);
     setEmailError(validateEmail(value));
@@ -650,13 +732,11 @@ export function LoginPage({ onLogin }: LoginPageProps) {
     setLoginPasswordError(validateLoginPassword(value));
   };
 
-  // Phone
   const handlePhoneChange = (value: string) => {
     setPhoneNumber(value);
     setPhoneError(validatePhone(value));
   };
 
-  // Register
   const handleFirstNameChange = (value: string) => {
     setRegisterData(prev => ({ ...prev, first_name: value }));
     setFirstNameError(validateFirstName(value));
@@ -676,7 +756,6 @@ export function LoginPage({ onLogin }: LoginPageProps) {
     setCompanyData(prev => ({ ...prev, no_employees: value }));
     setEmployeesError(validateEmployees(value));
   };
-
 
   const handleGoogleUserDataChange = (newUserData: any) => {
     setGoogleUserData(newUserData);
@@ -712,7 +791,6 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           body: formData,
           headers: {
             Accept: 'application/json',
-            // Authorization:"token 03e70b45d943129:40caf2b1273e23e"
           }
         }
       );
@@ -736,9 +814,15 @@ export function LoginPage({ onLogin }: LoginPageProps) {
         };
 
         setUserSession(sessionData);
-        onLogin();
         showToast('Successfully logged in!', 'success');
-        window.location.reload();
+        
+        // Update parent state
+        onLogin();
+        
+        // Use white background logo reload
+        setTimeout(() => {
+          whiteLogoReload();
+        }, 800);
       } else {
         const errorMessage =
           result.message?.message ||
@@ -766,7 +850,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
     }
   };
 
-  /* ---------- Register (Email/Password) – WORKING VERSION ---------- */
+  /* ---------- Register (Email/Password) ---------- */
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -914,7 +998,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
         throw new Error('User creation failed: No response message');
       }
 
-      // ✅ Success - setup (if needed) & show toast
+      // ✅ Success
       const userEmail = registerData.email;
 
       setRegisterData({
@@ -1051,9 +1135,16 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           // Clean up stored credentials after successful login
           localStorage.removeItem('google_token');
           localStorage.removeItem('google_credential');
-          onLogin();
+          
           showToast('Successfully logged in with Google!', 'success');
-          window.location.reload();
+          
+          // Update parent state
+          onLogin();
+          
+          // Use white background logo reload
+          setTimeout(() => {
+            whiteLogoReload();
+          }, 800);
         } else {
           throw new Error(
             loginData.message?.message ||
@@ -1085,81 +1176,84 @@ export function LoginPage({ onLogin }: LoginPageProps) {
   };
 
   const handleGoogleAccountCreation = async (userData: any) => {
-  setLoading(true);
+    setLoading(true);
 
-  try {
-    const storedCredential = localStorage.getItem('google_credential');
-    if (!storedCredential) {
-      throw new Error('Google credential not found');
-    }
-
-    const credentialResponse = JSON.parse(storedCredential);
-    const token = credentialResponse.credential;
-
-    if (!token) {
-      throw new Error('Google token not found');
-    }
-
-    const loginRes = await axios.get(
-      'https://api.erpnext.ai/api/method/customcrm.google_auth.login_with_google',
-      {
-        params: {
-          token: token,
-          redirect_to: 'dashboard',
-          company: userData.company,
-          first_name: userData.first_name,
-          last_name: userData.last_name,
-          mobile_no: userData.phone,
-          no_of_emp: userData.no_employees
-        },
-        headers: {
-          'Content-Type': 'application/json'
-        }
+    try {
+      const storedCredential = localStorage.getItem('google_credential');
+      if (!storedCredential) {
+        throw new Error('Google credential not found');
       }
-    );
 
-    const loginData = loginRes.data;
+      const credentialResponse = JSON.parse(storedCredential);
+      const token = credentialResponse.credential;
 
-    if (loginData.message && loginData.message.success_key === 1) {
-      const sessionData = {
-        company: loginData.message.company || '',
-        username: loginData.message.username || '',
-        email: loginData.message.email || '',
-        full_name: loginData.full_name || '',
-        sid: loginData.message.sid || '',
-        api_key: loginData.message.api_key || '',
-        api_secret: loginData.message.api_secret || '',
-        role_profile: loginData.message.role_profile || ''
-      };
+      if (!token) {
+        throw new Error('Google token not found');
+      }
 
-      setUserSession(sessionData);
-      setShowGoogleSignupModal(false);
-      localStorage.removeItem('google_token');
-      localStorage.removeItem('google_credential');
-
-      onLogin();
-      showToast('Account created successfully!', 'success');
-      
-      // ADD THIS LINE - Reload after successful account creation
-      window.location.reload();
-      
-      navigate('/dashboard');
-    } else {
-      throw new Error(
-        loginData.message?.message || 'Failed to create account'
+      const loginRes = await axios.get(
+        'https://api.erpnext.ai/api/method/customcrm.google_auth.login_with_google',
+        {
+          params: {
+            token: token,
+            redirect_to: 'dashboard',
+            company: userData.company,
+            first_name: userData.first_name,
+            last_name: userData.last_name,
+            mobile_no: userData.phone,
+            no_of_emp: userData.no_employees
+          },
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
       );
+
+      const loginData = loginRes.data;
+
+      if (loginData.message && loginData.message.success_key === 1) {
+        const sessionData = {
+          company: loginData.message.company || '',
+          username: loginData.message.username || '',
+          email: loginData.message.email || '',
+          full_name: loginData.full_name || '',
+          sid: loginData.message.sid || '',
+          api_key: loginData.message.api_key || '',
+          api_secret: loginData.message.api_secret || '',
+          role_profile: loginData.message.role_profile || ''
+        };
+
+        setUserSession(sessionData);
+        setShowGoogleSignupModal(false);
+        localStorage.removeItem('google_token');
+        localStorage.removeItem('google_credential');
+
+        showToast('Account created successfully!', 'success');
+        
+        // Update parent state
+        onLogin();
+        
+        // Use white background logo reload
+        setTimeout(() => {
+          whiteLogoReload();
+        }, 800);
+        
+      } else {
+        throw new Error(
+          loginData.message?.message || 'Failed to create account'
+        );
+      }
+    } catch (err: any) {
+      const errorMessage =
+        err.response?.data?.message ||
+        err.message ||
+        'Failed to create account';
+      setError(errorMessage);
+      showToast(errorMessage, 'error');
+    } finally {
+      setLoading(false);
     }
-  } catch (err: any) {
-    const errorMessage =
-      err.response?.data?.message ||
-      err.message ||
-      'Failed to create account';
-    setError(errorMessage);
-    showToast(errorMessage, 'error');
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   const handleFacebookLogin = async (response: any) => {
     try {
@@ -1205,9 +1299,15 @@ export function LoginPage({ onLogin }: LoginPageProps) {
         localStorage.removeItem('facebook_token');
 
         showToast('Successfully logged in with Facebook!', 'success');
-
+        
+        // Update parent state
         onLogin();
-        window.location.reload();
+        
+        // Use white background logo reload
+        setTimeout(() => {
+          whiteLogoReload();
+        }, 800);
+        
       } else {
         throw new Error(data.message?.message || 'Facebook login failed.');
       }
@@ -1231,333 +1331,335 @@ export function LoginPage({ onLogin }: LoginPageProps) {
   /* ---------- JSX ---------- */
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-[#2A2352] to-black flex items-center justify-center px-4">
-      {/* Toast */}
-      <Toast
-        message={toast.message}
-        type={toast.type}
-        isVisible={toast.isVisible}
-        onClose={hideToast}
-      />
+    <>
+      <div className="min-h-screen bg-gradient-to-br from-black via-[#2A2352] to-black flex items-center justify-center px-4">
+        {/* Toast */}
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          isVisible={toast.isVisible}
+          onClose={hideToast}
+        />
 
-      {/* Google Signup Modal */}
-      <GoogleSignupModal
-        isOpen={showGoogleSignupModal}
-        onClose={() => setShowGoogleSignupModal(false)}
-        onAgree={handleGoogleAccountCreation}
-        userData={googleUserData}
-        onUserDataChange={handleGoogleUserDataChange}
-      />
+        {/* Google Signup Modal */}
+        <GoogleSignupModal
+          isOpen={showGoogleSignupModal}
+          onClose={() => setShowGoogleSignupModal(false)}
+          onAgree={handleGoogleAccountCreation}
+          userData={googleUserData}
+          onUserDataChange={handleGoogleUserDataChange}
+        />
 
-      <div className="max-w-md w-full">
-        {/* Logo */}
-        <div className="text-center">
+        <div className="max-w-md w-full">
+          {/* Logo */}
           <div className="text-center">
-            <div className="inline-flex items-center space-x-2 ">
-              <img
-                src="/login/assets/images/Erpnextlogo.png"
-                alt="Erpnext Logo"
-                className="w-[300px] h-100 filter invert brightness-0 saturate-100 sepia hue-rotate-[90deg] contrast-125"
-              />
+            <div className="text-center">
+              <div className="inline-flex items-center space-x-2 ">
+                <img
+                  src="/app/assets/images/Erpnextlogo.png"
+                  alt="Erpnext Logo"
+                  className="w-[300px] h-100 filter invert brightness-0 saturate-100 sepia hue-rotate-[90deg] contrast-125"
+                />
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Card */}
-        <div className="bg-white/10 backdrop-blur-md rounded-lg shadow-sm border border-gray-200 p-8">
-          {isRegisterMode ? (
-            /* ---------- Register Form (working) ---------- */
-            <form onSubmit={handleRegister} className="space-y-6">
-              <h1 className="text-[1.7rem] text-center font-[600] text-white">
-                Create Account
-              </h1>
+          {/* Card */}
+          <div className="bg-white/10 backdrop-blur-md rounded-lg shadow-sm border border-gray-200 p-8">
+            {isRegisterMode ? (
+              /* ---------- Register Form ---------- */
+              <form onSubmit={handleRegister} className="space-y-6">
+                <h1 className="text-[1.7rem] text-center font-[600] text-white">
+                  Create Account
+                </h1>
 
-              {error && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                  <p className="text-red-800 text-sm">{error}</p>
-                </div>
-              )}
-
-              {/* Full Name */}
-              <div>
-                <label className="block text-sm font-medium text-white mb-1">
-                  Full Name <span className="text-red-500">*</span>
-                </label>
-                <div className="relative border border-white rounded-lg">
-                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <input
-                    type="text"
-                    value={registerData.first_name}
-                    onChange={e => handleFirstNameChange(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 border border-transparent rounded-lg bg-transparent text-white placeholder-white focus:outline-none"
-                    placeholder="John"
-                    disabled={loading}
-                  />
-                </div>
-                {firstNameError && (
-                  <p className="text-red-400 text-sm mt-1">{firstNameError}</p>
+                {error && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <p className="text-red-800 text-sm">{error}</p>
+                  </div>
                 )}
-              </div>
 
-              {/* Email */}
-              <div>
-                <label className="block text-sm font-medium text-white mb-1">
-                  Work Email <span className="text-red-500">*</span>
-                </label>
-                <div className="relative border border-white rounded-lg">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <input
-                    type="email"
-                    value={registerData.email}
-                    onChange={e => handleRegisterEmailChange(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 border border-transparent rounded-lg bg-transparent text-white placeholder-white focus:outline-none"
-                    placeholder="your@email.com"
-                    disabled={loading}
-                  />
+                {/* Full Name */}
+                <div>
+                  <label className="block text-sm font-medium text-white mb-1">
+                    Full Name <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative border border-white rounded-lg">
+                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    <input
+                      type="text"
+                      value={registerData.first_name}
+                      onChange={e => handleFirstNameChange(e.target.value)}
+                      className="w-full pl-10 pr-4 py-3 border border-transparent rounded-lg bg-transparent text-white !placeholder-gray-400 focus:outline-none"
+                      placeholder="John"
+                      disabled={loading}
+                    />
+                  </div>
+                  {firstNameError && (
+                    <p className="text-red-400 text-sm mt-1">{firstNameError}</p>
+                  )}
                 </div>
-                {registerEmailError && (
-                  <p className="text-red-400 text-sm mt-1">{registerEmailError}</p>
-                )}
-              </div>
 
-              {/* Phone */}
-              <div>
-                <label className="block text-sm font-medium text-white mb-1">
-                  Phone Number <span className="text-red-500">*</span>
-                </label>
-                <div className="relative border border-white rounded-lg">
-                  <FiPhone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <input
-                    type="tel"
-                    value={phoneNumber}
-                    onChange={e => handlePhoneChange(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 border border-transparent rounded-lg bg-transparent text-white placeholder-white focus:outline-none"
-                    placeholder="Enter phone number"
-                    disabled={loading}
-                  />
+                {/* Email */}
+                <div>
+                  <label className="block text-sm font-medium text-white mb-1">
+                    Work Email <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative border border-white rounded-lg">
+                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    <input
+                      type="email"
+                      value={registerData.email}
+                      onChange={e => handleRegisterEmailChange(e.target.value)}
+                      className="w-full pl-10 pr-4 py-3 border border-transparent rounded-lg bg-transparent text-white !placeholder-gray-400 focus:outline-none"
+                      placeholder="your@email.com"
+                      disabled={loading}
+                    />
+                  </div>
+                  {registerEmailError && (
+                    <p className="text-red-400 text-sm mt-1">{registerEmailError}</p>
+                  )}
                 </div>
-                {phoneError && (
-                  <p className="text-red-400 text-sm mt-1">{phoneError}</p>
-                )}
-              </div>
 
-              {/* Company Name */}
-              <div>
-                <label className="block text-sm font-medium text-white mb-1">
-                  Company Name <span className="text-red-500">*</span>
-                </label>
-                <div className="relative border border-white rounded-lg">
-                  <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <input
-                    type="text"
-                    value={companyData.company_name}
-                    onChange={e => handleCompanyNameChange(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 border border-transparent rounded-lg bg-transparent text-white placeholder-white focus:outline-none"
-                    placeholder="Your Company"
-                    disabled={loading}
-                  />
+                {/* Phone */}
+                <div>
+                  <label className="block text-sm font-medium text-white mb-1">
+                    Phone Number <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative border border-white rounded-lg">
+                    <FiPhone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    <input
+                      type="tel"
+                      value={phoneNumber}
+                      onChange={e => handlePhoneChange(e.target.value)}
+                      className="w-full pl-10 pr-4 py-3 border border-transparent rounded-lg bg-transparent text-white !placeholder-gray-400 focus:outline-none"
+                      placeholder="Enter phone number"
+                      disabled={loading}
+                    />
+                  </div>
+                  {phoneError && (
+                    <p className="text-red-400 text-sm mt-1">{phoneError}</p>
+                  )}
                 </div>
-                {companyNameError && (
-                  <p className="text-red-400 text-sm mt-1">{companyNameError}</p>
-                )}
-              </div>
 
-              {/* Employees */}
-              <div>
-                <label className="block text-sm font-medium text-white mb-1">
-                  No. of Employees <span className="text-red-500">*</span>
-                </label>
-                <div className="relative border border-white rounded-lg">
-                  <input
-                    type="text"
-                    value={companyData.no_employees || ''}
-                    onChange={e => {
-                      const value = e.target.value;
-                      if (/^\d*$/.test(value)) {
-                        handleEmployeesChange(value);
-                      }
+                {/* Company Name */}
+                <div>
+                  <label className="block text-sm font-medium text-white mb-1">
+                    Company Name <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative border border-white rounded-lg">
+                    <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    <input
+                      type="text"
+                      value={companyData.company_name}
+                      onChange={e => handleCompanyNameChange(e.target.value)}
+                      className="w-full pl-10 pr-4 py-3 border border-transparent rounded-lg bg-transparent text-white !placeholder-gray-400 focus:outline-none"
+                      placeholder="Your Company"
+                      disabled={loading}
+                    />
+                  </div>
+                  {companyNameError && (
+                    <p className="text-red-400 text-sm mt-1">{companyNameError}</p>
+                  )}
+                </div>
+
+                {/* Employees */}
+                <div>
+                  <label className="block text-sm font-medium text-white mb-1">
+                    No. of Employees <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative border border-white rounded-lg">
+                    <input
+                      type="text"
+                      value={companyData.no_employees || ''}
+                      onChange={e => {
+                        const value = e.target.value;
+                        if (/^\d*$/.test(value)) {
+                          handleEmployeesChange(value);
+                        }
+                      }}
+                      className="w-full pl-4 pr-4 py-3 border border-transparent rounded-lg bg-transparent text-white !placeholder-gray-400 focus:outline-none"
+                      placeholder="50"
+                      disabled={loading}
+                    />
+                  </div>
+                  {employeesError && (
+                    <p className="text-red-400 text-sm mt-1">{employeesError}</p>
+                  )}
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading || !!passwordError}
+                  className="w-full bg-white text-[#2D243C] py-3 rounded-lg font-medium hover:bg-gray-100 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin mr-2 inline" />
+                      Creating Account...
+                    </>
+                  ) : (
+                    'Create Account'
+                  )}
+                </button>
+
+                <div className="text-center">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsRegisterMode(false);
+                      setError('');
                     }}
-                    className="w-full pl-4 pr-4 py-3 border border-transparent rounded-lg bg-transparent text-white placeholder-white focus:outline-none"
-                    placeholder="50"
+                    className="text-sm text-white"
                     disabled={loading}
+                  >
+                    Already have an account? Sign in
+                  </button>
+                </div>
+              </form>
+            ) : (
+              /* ---------- Login Form ---------- */
+              <form onSubmit={handleLogin} className="space-y-6">
+                <div className="text-left mb-4">
+                  <h1 className="text-3xl font-bold text-white">Sign in</h1>
+                  <p className="text-sm text-gray-300 mt-1 italic">to access CRM</p>
+                </div>
+
+                {error && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <p className="text-red-800 text-sm">{error}</p>
+                  </div>
+                )}
+
+                {/* Email */}
+                <div>
+                  <label className="block text-sm font-medium text-white mb-1">
+                    Email Address
+                  </label>
+                  <div className="relative border border-white rounded-lg">
+                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={e => handleEmailChange(e.target.value)}
+                      className="w-full pl-10 pr-4 py-3 border border-transparent rounded-lg bg-transparent text-white !placeholder-gray-400 focus:outline-none"
+                      placeholder="Enter Email Address"
+                      disabled={loading}
+                    />
+                  </div>
+                  {emailError && (
+                    <p className="text-red-400 text-sm mt-1">{emailError}</p>
+                  )}
+                </div>
+
+                {/* Password */}
+                <div>
+                  <label className="block text-sm font-medium text-white mb-1">
+                    Password
+                  </label>
+                  <div className="relative border border-white rounded-lg">
+                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
+                      onChange={e => handlePasswordChange(e.target.value)}
+                      className="w-full pl-10 pr-4 py-3 border border-transparent rounded-lg bg-transparent text-white !placeholder-gray-400 focus:outline-none"
+                      placeholder="••••••"
+                      disabled={loading}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      disabled={loading}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="w-5 h-5" />
+                      ) : (
+                        <Eye className="w-5 h-5" />
+                      )}
+                    </button>
+                  </div>
+                  {loginPasswordError && (
+                    <p className="text-red-400 text-sm mt-1">
+                      {loginPasswordError}
+                    </p>
+                  )}
+                </div>
+
+                {/* Forgot Password */}
+                <div className="text-right">
+                  <button
+                    type="button"
+                    className="text-md font-medium text-white hover:underline"
+                    disabled={loading}
+                    onClick={() => navigate('/ForgotPassword')}
+                  >
+                    Forgot Password?
+                  </button>
+                </div>
+
+                {/* Login Button */}
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-white text-[#2D243C] py-3 rounded-lg font-medium hover:bg-gray-100 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin mr-2 inline" />
+                      Signing in...
+                    </>
+                  ) : (
+                    'Login'
+                  )}
+                </button>
+
+                {/* Divider */}
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-gray-300" />
+                  </div>
+                  <div className="relative flex justify-center text-sm">
+                    <span className="px-2 bg-transparent text-white">or</span>
+                  </div>
+                </div>
+
+                
+                <div className="flex justify-center gap-6">
+                  {/* Google Login - Icon Only */}
+                  <CustomGoogleLoginButton
+                    onSuccess={handleGoogleLogin}
+                    onError={() => {
+                      showToast('Google login failed. Please try again.', 'error');
+                    }}
+                  />
+
+                  
+                  <CustomFacebookLoginButton
+                    onSuccess={handleFacebookLogin}
+                    onError={handleFacebookError}
+                    loading={loading}
                   />
                 </div>
-                {employeesError && (
-                  <p className="text-red-400 text-sm mt-1">{employeesError}</p>
-                )}
-              </div>
 
-              <button
-                type="submit"
-                disabled={loading || !!passwordError}
-                className="w-full bg-white text-[#2D243C] py-3 rounded-lg font-medium hover:bg-gray-100 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin mr-2 inline" />
-                    Creating Account...
-                  </>
-                ) : (
-                  'Create Account'
-                )}
-              </button>
-
-              <div className="text-center">
+                {/* Create New Account */}
                 <button
                   type="button"
                   onClick={() => {
-                    setIsRegisterMode(false);
+                    setIsRegisterMode(true);
                     setError('');
-                  }}
-                  className="text-sm text-white"
+                  }}  
+                  className="w-full bg-white border border-white text-[#2D243C] py-3 rounded-lg font-medium hover:bg-gray-100 transition-colors"
                   disabled={loading}
                 >
-                  Already have an account? Sign in
+                  Create New Account
                 </button>
-              </div>
-            </form>
-          ) : (
-            /* ---------- Login Form ---------- */
-            <form onSubmit={handleLogin} className="space-y-6">
-              <div className="text-left mb-4">
-                <h1 className="text-3xl font-bold text-white">Sign in</h1>
-                <p className="text-sm text-gray-300 mt-1 italic">to access CRM</p>
-              </div>
-
-              {error && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                  <p className="text-red-800 text-sm">{error}</p>
-                </div>
-              )}
-
-              {/* Email */}
-              <div>
-                <label className="block text-sm font-medium text-white mb-1">
-                  Email Address
-                </label>
-                <div className="relative border border-white rounded-lg">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={e => handleEmailChange(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 border border-transparent rounded-lg bg-transparent text-white placeholder-white focus:outline-none"
-                    placeholder="Enter Email Address"
-                    disabled={loading}
-                  />
-                </div>
-                {emailError && (
-                  <p className="text-red-400 text-sm mt-1">{emailError}</p>
-                )}
-              </div>
-
-              {/* Password */}
-              <div>
-                <label className="block text-sm font-medium text-white mb-1">
-                  Password
-                </label>
-                <div className="relative border border-white rounded-lg">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={e => handlePasswordChange(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 border border-transparent rounded-lg bg-transparent text-white placeholder-white focus:outline-none"
-                    placeholder="••••••"
-                    disabled={loading}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                    disabled={loading}
-                  >
-                    {showPassword ? (
-                      <EyeOff className="w-5 h-5" />
-                    ) : (
-                      <Eye className="w-5 h-5" />
-                    )}
-                  </button>
-                </div>
-                {loginPasswordError && (
-                  <p className="text-red-400 text-sm mt-1">
-                    {loginPasswordError}
-                  </p>
-                )}
-              </div>
-
-              {/* Forgot Password */}
-              <div className="text-right">
-                <button
-                  type="button"
-                  className="text-md font-medium text-white hover:underline"
-                  disabled={loading}
-                  onClick={() => navigate('/ForgotPassword')}
-                >
-                  Forgot Password?
-                </button>
-              </div>
-
-              {/* Login Button */}
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-white text-[#2D243C] py-3 rounded-lg font-medium hover:bg-gray-100 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin mr-2 inline" />
-                    Signing in...
-                  </>
-                ) : (
-                  'Login'
-                )}
-              </button>
-
-              {/* Divider */}
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-300" />
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-transparent text-white">or</span>
-                </div>
-              </div>
-
-              
-              <div className="flex justify-center gap-6">
-                {/* Google Login - Icon Only */}
-                <CustomGoogleLoginButton
-                  onSuccess={handleGoogleLogin}
-                  onError={() => {
-                    showToast('Google login failed. Please try again.', 'error');
-                  }}
-                />
-
-                
-                <CustomFacebookLoginButton
-                  onSuccess={handleFacebookLogin}
-                  onError={handleFacebookError}
-                  loading={loading}
-                />
-              </div>
-
-              {/* Create New Account */}
-              <button
-                type="button"
-                onClick={() => {
-                  setIsRegisterMode(true);
-                  setError('');
-                }}  
-                className="w-full bg-white border border-white text-[#2D243C] py-3 rounded-lg font-medium hover:bg-gray-100 transition-colors"
-                disabled={loading}
-              >
-                Create New Account
-              </button>
-            </form>
-          )}
+              </form>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

@@ -64,7 +64,7 @@
 //         if (error.response?.status === 401 || error.response?.status === 403) {
 //             console.error('Authentication failed. Please check your credentials.');
 //             // You could redirect to login page here if needed
-//             // window.location.href = '/login';
+//             // window.location.href = '/app';
 //         }
 //         return Promise.reject(error);
 //     }
@@ -92,13 +92,16 @@ export const apiAxios = axios.create({
     baseURL: apiUrl.apiUrlConfig,
 });
 
+// api/apiUrl.ts
 export const getAuthToken = () => {
     const session = getUserSession();
     if (session?.api_key && session?.api_secret) {
         return `token ${session.api_key}:${session.api_secret}`;
     }
-    console.warn("Session API credentials not found.");
-    return null; // Don't throw error
+    
+    // For development/debugging, you might want to log this
+    console.warn("Session API credentials not found. User might not be logged in.");
+    return null;
 };
 
 // ✅ Add this line back for old imports
@@ -118,7 +121,7 @@ apiAxios.interceptors.response.use(
     (error) => {
         if (error.response?.status === 401 || error.response?.status === 403) {
             console.error('Authentication failed.');
-            // window.location.href = '/login';
+            // window.location.href = '/app';
         }
         return Promise.reject(error);
     }

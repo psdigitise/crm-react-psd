@@ -1714,7 +1714,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
       // 5. Update state with the new intelligence data
       setCompanyIntelligence(intelligenceData);
 
-      showToast('Company intelligence report generated and saved successfully', { type: 'success' });
+
     } catch (error) {
       console.error('Error fetching company intelligence:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to generate company intelligence report';
@@ -1755,7 +1755,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
       }));
 
       // Note: We're NOT creating an activity log here
-      showToast('Company intelligence report saved successfully', { type: 'success' });
+      showToast('Company intelligence report Generated and  saved successfully', { type: 'success' });
 
     } catch (error) {
       console.error('Error saving company intelligence:', error);
@@ -3391,7 +3391,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
                           required
                         />
                         {/* Custom calendar icon */}
-                        <div className={`absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
+                        <div className={`absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none ${theme === 'dark' ? 'text-gray-400' : 'text-transparent'}`}>
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                           </svg>
@@ -4681,6 +4681,8 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
 
                   replyData={replyData}
                   recipientEmail={editedLead.email}
+                  recipientFirstName={editedLead.firstName} 
+
 
                 />
               )}
@@ -5509,6 +5511,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
                   refreshEmails={refreshComments}
                   replyData={replyData}
                   recipientEmail={editedLead.email}
+                  recipientFirstName={editedLead.firstName}
                 />
               )}
             </div>
@@ -6269,6 +6272,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
                   refreshEmails={refreshEmails}
                   replyData={replyData}
                   recipientEmail={editedLead.email}
+                  recipientFirstName={editedLead.firstName}
                 />
               )}
 

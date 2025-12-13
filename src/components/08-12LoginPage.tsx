@@ -81,8 +81,8 @@ const Toast: React.FC<ToastProps> = ({ message, type, isVisible, onClose }) => {
     <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top-2">
       <div
         className={`flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg border ${type === 'success'
-            ? 'bg-green-50 border-green-200 text-green-800'
-            : 'bg-red-50 border-red-200 text-red-800'
+          ? 'bg-green-50 border-green-200 text-green-800'
+          : 'bg-red-50 border-red-200 text-red-800'
           }`}
       >
         {type === 'success' ? (
@@ -94,8 +94,8 @@ const Toast: React.FC<ToastProps> = ({ message, type, isVisible, onClose }) => {
         <button
           onClick={onClose}
           className={`ml-2 ${type === 'success'
-              ? 'text-green-600 hover:text-green-800'
-              : 'text-red-600 hover:text-red-800'
+            ? 'text-green-600 hover:text-green-800'
+            : 'text-red-600 hover:text-red-800'
             }`}
         >
           <X className="w-4 h-4" />
@@ -418,7 +418,7 @@ const CustomGoogleLoginButton: React.FC<{ onSuccess: (response: any) => void; on
         width="48"
         theme="filled_blue"
         shape="circle"
-        
+
       />
     </div>
   );
@@ -745,9 +745,11 @@ export function LoginPage({ onLogin }: LoginPageProps) {
         };
 
         setUserSession(sessionData);
-        onLogin();
-        showToast('Successfully logged in!', 'success');
-        window.location.reload();
+        setTimeout(() => {
+          onLogin();
+          showToast('Successfully logged in!', 'success');
+          // REMOVE window.location.reload();
+        }, 100);
       } else {
         const errorMessage =
           result.message?.message ||
@@ -1059,9 +1061,11 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           // Clean up stored credentials after successful login
           localStorage.removeItem('google_token');
           localStorage.removeItem('google_credential');
-          onLogin();
-          showToast('Successfully logged in with Google!', 'success');
-          window.location.reload();
+          setTimeout(() => {
+            onLogin();
+            showToast('Successfully logged in with Google!', 'success');
+            // REMOVE window.location.reload();
+          }, 100);
         } else {
           throw new Error(
             loginData.message?.message ||
@@ -1145,10 +1149,13 @@ export function LoginPage({ onLogin }: LoginPageProps) {
         localStorage.removeItem('google_token');
         localStorage.removeItem('google_credential');
 
-        onLogin();
-        showToast('Account created successfully!', 'success');
-        navigate('/dashboard');
-      } else {
+        setTimeout(() => {
+    onLogin();
+    showToast('Account created successfully!', 'success');
+    // REMOVE window.location.reload();
+    navigate('/dashboard');
+  }, 100);
+} else {
         throw new Error(
           loginData.message?.message || 'Failed to create account'
         );
@@ -1259,7 +1266,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           <div className="text-center">
             <div className="inline-flex items-center space-x-2 ">
               <img
-                src="/login/assets/images/Erpnextlogo.png"
+                src="/app/assets/images/Erpnextlogo.png"
                 alt="Erpnext Logo"
                 className="w-[300px] h-100 filter invert brightness-0 saturate-100 sepia hue-rotate-[90deg] contrast-125"
               />
@@ -1528,7 +1535,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                 </div>
               </div>
 
-              
+
               <div className="flex justify-center gap-6">
                 {/* Google Login - Icon Only */}
                 <CustomGoogleLoginButton
@@ -1538,7 +1545,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                   }}
                 />
 
-                
+
                 <CustomFacebookLoginButton
                   onSuccess={handleFacebookLogin}
                   onError={handleFacebookError}
@@ -1552,7 +1559,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                 onClick={() => {
                   setIsRegisterMode(true);
                   setError('');
-                }}  
+                }}
                 className="w-full bg-white border border-white text-[#2D243C] py-3 rounded-lg font-medium hover:bg-gray-100 transition-colors"
                 disabled={loading}
               >

@@ -113,15 +113,33 @@ export default function ForgotPasswordPage() {
 
             if (axios.isAxiosError(error)) {
                 if (error.response) {
-                    // Extract the specific error message from the nested structure
-                    const apiError = error.response.data?.message?.error;
-
-                    if (apiError === "Not a valid system user") {
+                    // Handle 404 response with "not found" message
+                    if (error.response.status === 404 && error.response.data?.message === "not found") {
                         errorMessage = "No account found with this email address.";
-                    } else if (apiError) {
-                        errorMessage = apiError;
-                    } else {
-                        errorMessage = `Server error: ${error.response.status}`;
+                    }
+                    // Check for nested error messages in different formats
+                    else if (error.response.data?.message?.error) {
+                        const apiError = error.response.data.message.error;
+
+                        if (apiError === "Not a valid system user") {
+                            errorMessage = "No account found with this email address.";
+                        } else if (apiError) {
+                            errorMessage = apiError;
+                        }
+                    }
+                    // Direct message check
+                    else if (error.response.data?.message) {
+                        const apiMessage = error.response.data.message;
+
+                        if (apiMessage === "not found" || apiMessage === "Not a valid system user") {
+                            errorMessage = "No account found with this email address.";
+                        } else if (apiMessage) {
+                            errorMessage = apiMessage;
+                        }
+                    }
+                    // Generic server error
+                    else if (error.response.status >= 400) {
+                        errorMessage = `Error: ${error.response.status}. Please try again.`;
                     }
                 } else if (error.request) {
                     errorMessage = "No response from server. Please check your connection.";
@@ -162,7 +180,7 @@ export default function ForgotPasswordPage() {
 
                         <div className="space-y-3">
                             <button
-                                onClick={() => navigate("/")}
+                               onClick={() => navigate("/")}
                                 className="w-full bg-white text-[#2D243C] py-3 rounded-lg font-medium hover:bg-gray-100 transition-colors"
                             >
                                 Back to Login
@@ -198,7 +216,7 @@ export default function ForgotPasswordPage() {
                 <div className="text-center mb-8">
                     <div className="inline-flex items-center space-x-2">
                         <img
-                            src="../../login/public/assets/images/Erpnextlogo.png"
+                            src="../../app/public/assets/images/Erpnextlogo.png"
                             alt="ERPNext.ai"
                             className="w-[300px] filter invert brightness-0 saturate-100 sepia hue-rotate-[90deg] contrast-125"
                         />
@@ -233,7 +251,7 @@ export default function ForgotPasswordPage() {
                                         setEmail(e.target.value);
                                         setError("");
                                     }}
-                                    className="w-full pl-10 pr-4 py-3 border border-transparent rounded-lg bg-transparent text-white placeholder-gray-300 focus:outline-none"
+                                    className="w-full pl-10 pr-4 py-3 border border-transparent rounded-lg bg-transparent text-white !placeholder-gray-400 focus:outline-none"
                                     placeholder="your@email.com"
                                     disabled={loading}
                                 />
@@ -245,15 +263,15 @@ export default function ForgotPasswordPage() {
                             disabled={loading || !email}
                             className={`w-full py-3 rounded-lg font-medium transition-colors ${!loading && email
                                 ? 'bg-white text-[#2D243C] hover:bg-gray-100'
-                                : 'bg-gray-400 text-gray-700 cursor-not-allowed'
+                                : 'bg-gray-200 text-black cursor-not-allowed'
                                 }`}
                         >
                             {loading ? "Sending Instructions..." : "Send Reset Instructions"}
                         </button>
-                        {/* Back Button */}
+                       
                         <div className="flex justify-center mt-4">
                             <button
-                                onClick={() => navigate("/")}
+                               onClick={() => navigate("/")}
                                 className="flex items-center gap-2 text-white mb-6 hover:text-gray-300 transition-colors hover:underline"
                             >
                                 Back to Login

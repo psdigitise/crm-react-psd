@@ -62,17 +62,20 @@ interface WebsiteIntegrationData {
 }
 
 interface AIUsageData {
-  totalActions: number;
-  usedActions: number;
-  remainingActions: number;
-  features: Array<{
-    name: string;
-    used: number;
-    remaining: number | null;
-    total?: number;
-    isUnlimited?: boolean;
-  }>;
+  company: string;
+  plan_id: string;
+  start_date: string;
+  end_date: string;
+  credits_allocated: number;
+  credits_used: number;
+  credits_remaining: number;
+  usage_breakdown: {
+    email: number;
+    score: number;
+    report: number;
+  };
 }
+
 interface FeatureRow {
   feature: string;
   standard: string | boolean;
@@ -151,7 +154,8 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [isGeneratingIntegration, setIsGeneratingIntegration] = useState(false);
-  const [isProcessingPayment, setIsProcessingPayment] = useState<string | null>(null); // To track which plan is being processed
+  const [isProcessingPayment, setIsProcessingPayment] = useState<string | null>(null);
+  const [isLoadingAIUsage, setIsLoadingAIUsage] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [profileData, setProfileData] = useState<UserProfile>({
     email: '',
@@ -176,14 +180,18 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
     isGenerated: false
   });
   const [aiUsageData, setAiUsageData] = useState<AIUsageData>({
-    totalActions: 100,
-    usedActions: 78,
-    remainingActions: 22,
-    features: [
-      { name: 'AI Lead Score', used: 32, remaining: 18, total: 50 },
-      { name: 'AI Email Assist', used: 20, remaining: 30, total: 50 },
-      { name: 'Company Intelligence', used: 6, remaining: null, isUnlimited: true },
-    ]
+    company: '',
+    plan_id: '',
+    start_date: '',
+    end_date: '',
+    credits_allocated: 0,
+    credits_used: 0,
+    credits_remaining: 0,
+    usage_breakdown: {
+      email: 0,
+      score: 0,
+      report: 0
+    }
   });
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobileView, setIsMobileView] = useState(false);
@@ -203,7 +211,6 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
     document.body.appendChild(script);
 
     return () => {
-      // Find and remove the script when the component unmounts
       const existingScript = document.querySelector('script[src="https://checkout.razorpay.com/v1/checkout.js"]');
       if (existingScript) {
         document.body.removeChild(existingScript);
@@ -211,17 +218,13 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
     };
   }, []);
 
-
-
   useEffect(() => {
     if (isOpen) {
-      // Set the active tab based on the initialTab prop ONLY when opening
       setActiveSettingsTab(initialTab);
       if (sessionEmail) {
         fetchUserProfile();
       }
     } else {
-      // Reset state when closing (optional, but good practice)
       setPasswordData({ newPassword: '', confirmPassword: '' });
       setPasswordErrors({});
       setIsChangingPassword(false);
@@ -253,6 +256,13 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
       fetchUserProfile();
     }
   }, [isOpen, sessionEmail]);
+
+  // Fetch AI usage data when AI Usage tab is active
+  useEffect(() => {
+    if (isOpen && activeSettingsTab === 'aiUsage' && sessionCompany) {
+      fetchAIUsageData();
+    }
+  }, [isOpen, activeSettingsTab, sessionCompany]);
 
   // Initialize website integration data when tab is active
   useEffect(() => {
@@ -313,6 +323,59 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
       return () => clearTimeout(timer);
     }
   }, [toasts]);
+
+  const fetchAIUsageData = async () => {
+    if (!sessionCompany) {
+      showErrorToast('Company information not found');
+      return;
+    }
+
+    setIsLoadingAIUsage(true);
+    try {
+      const response = await fetch(
+        `https://api.erpnext.ai/api/method/customcrm.api.credits_usage?company=${encodeURIComponent(sessionCompany)}`,
+        {
+          headers: {
+            'Authorization': AUTH_TOKEN,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (response.ok) {
+        const result = await response.json();
+        const usageData = result.message;
+
+        if (usageData) {
+          setAiUsageData({
+            company: usageData.company || '',
+            plan_id: usageData.plan_id || '',
+            start_date: usageData.start_date || '',
+            end_date: usageData.end_date || '',
+            credits_allocated: usageData.credits_allocated || 0,
+            credits_used: usageData.credits_used || 0,
+            credits_remaining: usageData.credits_remaining || 0,
+            usage_breakdown: usageData.usage_breakdown || {
+              email: 0,
+              score: 0,
+              report: 0
+            }
+          });
+        } else {
+          showErrorToast('No usage data available');
+        }
+      } else {
+        const error = await response.json();
+        console.error('Failed to fetch AI usage data:', error);
+        showErrorToast('Failed to load AI usage data');
+      }
+    } catch (error) {
+      console.error('Error fetching AI usage data:', error);
+      showErrorToast('Error loading AI usage data');
+    } finally {
+      setIsLoadingAIUsage(false);
+    }
+  };
 
   const fetchUserProfile = async () => {
     try {
@@ -714,8 +777,8 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
     setIsProcessingPayment(planId);
 
     const options = {
-      key: 'rzp_live_RbHLiSn5xiGADx', // Your Razorpay Key ID
-      amount: amount * 100, // Amount in the smallest currency unit (e.g., paise for INR)
+      key: 'rzp_live_RbHLiSn5xiGADx',
+      amount: amount * 100,
       currency: 'INR',
       name: 'CRM Plan Upgrade',
       description: `Payment for ${planName}`,
@@ -728,9 +791,9 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
             company: userSession.company,
             amount: amount,
             plan: planId,
-            order_id: razorpay_order_id || `ORD_${Date.now()}`, // Fallback if order_id is not present
+            order_id: razorpay_order_id || `ORD_${Date.now()}`,
             payment_id: razorpay_payment_id,
-            created_at: new Date().toISOString().split('T')[0], // YYYY-MM-DD format
+            created_at: new Date().toISOString().split('T')[0],
             created_by: userSession.email,
             status: 'success'
           };
@@ -764,7 +827,7 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
         email: userSession.email || '',
       },
       theme: {
-        color: theme === 'dark' ? '#8B5CF6' : '#2563EB' // Purple for dark, Blue for light
+        color: theme === 'dark' ? '#8B5CF6' : '#2563EB'
       },
       modal: {
         ondismiss: () => {
@@ -780,19 +843,16 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
       console.error('Razorpay payment failed:', response.error);
       showErrorToast(`Payment failed: ${response.error.description}`);
 
-      // Log the failed payment to your backend
       if (userSession?.company && userSession?.email) {
         try {
           const { order_id, payment_id } = response.error.metadata;
           const metadata = response.error?.metadata || {};
-          // const { order_id, payment_id } = metadata;
 
           const payload = {
             company: userSession.company,
             amount: amount,
             plan: planId,
-            // order_id: order_id || `ORD_FAIL_${Date.now()}`,
-            order_id: order_id || `ORD_FAIL_${Date.now()}`, // Use order_id from metadata or generate a fallback
+            order_id: order_id || `ORD_FAIL_${Date.now()}`,
             payment_id: payment_id,
             created_at: new Date().toISOString().split('T')[0],
             created_by: userSession.email,
@@ -817,7 +877,7 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
           console.error('Error logging the failed payment attempt:', error);
         }
       }
-      setIsProcessingPayment(null); // Reset processing state
+      setIsProcessingPayment(null);
     });
     rzp.open();
   };
@@ -828,52 +888,36 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
       showSuccessToast('Purchase page opened in a new tab');
     }, 500);
   };
+
   const handleContactSales = async () => {
     if (!userSession || !userSession.email || !userSession.full_name || !userSession.company) {
       showErrorToast('User details are incomplete. Please log in again.');
       return;
     }
 
-    // Use a simple prompt for phone number if not stored
-    // let userPhoneNumber = phoneNumber.trim();
-    // if (!userPhoneNumber) {
-    //   userPhoneNumber = prompt("Please enter your phone number for the Enterprise Plan inquiry:") || '';
-    //   if (!userPhoneNumber) {
-    //     showInfoToast('Phone number is required for the sales inquiry.');
-    //     return;
-    //   }
-    //   setPhoneNumber(userPhoneNumber); // Optionally store it if the user provides it
-    // }
-
-
-    setIsLoading(true); // Use isLoading for the API call state
+    setIsLoading(true);
     try {
       const payload = {
-        // API expects "name1" for the name field
         name1: userSession.full_name,
         email: userSession.email,
-        // phone_number: userPhoneNumber, // Use the collected phone number
         company: userSession.company,
       };
 
       const response = await fetch('https://api.erpnext.ai/api/v2/document/On Request Form', {
         method: 'POST',
         headers: {
-          'Authorization': AUTH_TOKEN, // Use the existing AUTH_TOKEN
+          'Authorization': AUTH_TOKEN,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(payload),
       });
 
       if (response.ok) {
-        // The API is posting a document, so a success response is likely a 200 or 201
         const result = await response.json();
         console.log('On Request Form submitted successfully:', result);
         showSuccessToast('Sales team contacted! We will be in touch shortly.');
-        // Optional: Close the modal or switch tab
-        // onClose();
       } else {
-        const errorText = await response.text(); // Get raw text for better error logging
+        const errorText = await response.text();
         console.error('Failed to submit On Request Form:', errorText);
         showErrorToast(`Failed to contact sales. Error: ${errorText.substring(0, 50)}...`);
       }
@@ -942,7 +986,6 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
     },
   ];
 
-
   // Mobile hamburger menu component
   const MobileMenu = () => (
     <div className={`fixed inset-0 z-[75] ${theme === 'dark' ? 'bg-gray-900' : 'bg-white'}`}>
@@ -1006,21 +1049,6 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
       case 'profile':
         return (
           <div className="p-4 md:p-8">
-            {/* Profile Section - Mobile Header */}
-            {/* <div className="md:hidden mb-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className={`text-xl font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                  Profile Settings
-                </h2>
-                <button
-                  onClick={() => setIsMobileMenuOpen(true)}
-                  className={`p-2 rounded-lg ${theme === 'dark' ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-700'}`}
-                >
-                  <Menu className="w-6 h-6" />
-                </button>
-              </div>
-            </div> */}
-
             {/* Profile Header */}
             <div className="flex flex-col md:flex-row md:items-start justify-between mb-8">
               <div className="flex items-center gap-4 mb-4 md:mb-0">
@@ -1177,181 +1205,256 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
       case 'aiUsage':
         return (
           <div className="p-4 md:p-6">
-            {/* Mobile Header */}
-            {/* <div className="md:hidden mb-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className={`text-xl font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+            {/* Header with Refresh Button */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+              <div>
+                <h3 className={`text-xl font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
                   AI Usage
-                </h2>
-                <button
-                  onClick={() => setIsMobileMenuOpen(true)}
-                  className={`p-2 rounded-lg ${theme === 'dark' ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-700'}`}
-                >
-                  <Menu className="w-6 h-6" />
-                </button>
+                </h3>
+                <p className={`text-sm mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                  Track your AI feature usage and manage your plan
+                </p>
               </div>
-            </div> */}
-
-            {/* Header */}
-            <div className="mb-8">
-              <h3 className={`text-xl font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                AI Usage
-              </h3>
-              <p className={`text-sm mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                Track your AI feature usage and manage your plan
-              </p>
+              
+              
+              {/* <button
+                onClick={fetchAIUsageData}
+                disabled={isLoadingAIUsage}
+                className={`px-4 py-2 flex items-center justify-center rounded-lg text-sm font-medium transition-colors ${theme === 'dark'
+                  ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+                  : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+                  } ${isLoadingAIUsage ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                {isLoadingAIUsage ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Refreshing...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Refresh
+                  </>
+                )}
+              </button> */}
             </div>
 
-            {/* Main Usage Card */}
-            <div className={`rounded-xl p-4 md:p-6 mb-8 ${theme === 'dark' ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200 shadow-sm'}`}>
-              <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-2">
-                <div>
-                  <h4 className={`text-lg font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-800'}`}>
-                    Monthly Usage Summary
-                  </h4>
-                  <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                    Resets on the 1st of each month
-                  </p>
-                </div>
-                <div className={`px-3 py-1 rounded-full text-sm font-medium ${theme === 'dark' ? 'bg-purple-900/30 text-purple-300' : 'bg-purple-100 text-purple-700'}`}>
-                  This Month
-                </div>
+            {/* Loading State */}
+            {isLoadingAIUsage ? (
+              <div className="flex flex-col items-center justify-center py-16">
+                <Loader2 className={`w-12 h-12 animate-spin mb-4 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`} />
+                <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                  Loading AI usage data...
+                </p>
               </div>
-
-              {/* Progress Bar */}
-              <div className="mb-6">
-                <div className="flex items-center justify-between mb-2">
-                  <span className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                    {aiUsageData.usedActions} / {aiUsageData.totalActions} Actions
-                  </span>
-                  <span className={`text-sm font-medium ${aiUsageData.remainingActions < 10 ? 'text-red-500' : theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                    {aiUsageData.remainingActions} remaining
-                  </span>
-                </div>
-                <div className={`h-2 rounded-full overflow-hidden ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'}`}>
-                  <div
-                    className={`h-full ${getUsageColor((aiUsageData.usedActions / aiUsageData.totalActions) * 100)} transition-all duration-500`}
-                    style={{ width: `${calculatePercentage(aiUsageData.usedActions, aiUsageData.totalActions)}%` }}
-                  />
-                </div>
-              </div>
-
-              {/* Stats Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                <div className={`p-4 rounded-lg ${theme === 'dark' ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
-                  <div className="flex items-center justify-between">
-                    <span className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Total Used</span>
-                    <Zap className={`w-4 h-4 ${theme === 'dark' ? 'text-yellow-400' : 'text-yellow-500'}`} />
+            ) : (
+              <>
+                {/* Main Usage Card */}
+                <div className={`rounded-xl p-4 md:p-6 mb-8 ${theme === 'dark' ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200 shadow-sm'}`}>
+                  <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-2">
+                    <div>
+                      <h4 className={`text-lg font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-800'}`}>
+                        Monthly Usage Summary
+                      </h4>
+                      <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                        Period: {aiUsageData.start_date} to {aiUsageData.end_date}
+                      </p>
+                    </div>
+                   
                   </div>
-                  <div className={`text-2xl font-bold mt-2 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>{aiUsageData.usedActions}</div>
-                </div>
 
-                <div className={`p-4 rounded-lg ${theme === 'dark' ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
-                  <div className="flex items-center justify-between">
-                    <span className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Remaining</span>
-                    <AlertTriangle className={`w-4 h-4 ${aiUsageData.remainingActions < 10 ? 'text-red-400' : theme === 'dark' ? 'text-green-400' : 'text-green-500'}`} />
-                  </div>
-                  <div className={`text-2xl font-bold mt-2 ${theme === 'dark' ? 'text-white' : 'text-black'} ${aiUsageData.remainingActions < 10 ? 'text-red-500' : ''}`}>
-                    {aiUsageData.remainingActions}
-                  </div>
-                </div>
-
-                <div className={`p-4 rounded-lg ${theme === 'dark' ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
-                  <div className="flex items-center justify-between">
-                    <span className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Monthly Limit</span>
-                    <Info className={`w-4 h-4 ${theme === 'dark' ? 'text-blue-400' : 'text-blue-500'}`} />
-                  </div>
-                  <div className={`text-2xl font-bold mt-2 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>{aiUsageData.totalActions}</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Feature Usage Table */}
-            <div className={`rounded-xl overflow-hidden border ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
-              {/* Table Header */}
-              <div className={`grid grid-cols-3 p-4 border-b ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
-                <div className={`font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>Feature</div>
-                <div className={`font-medium text-center ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>Used</div>
-                <div className={`font-medium text-right ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>Remaining</div>
-              </div>
-
-              {/* Table Rows */}
-              <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                {aiUsageData.features.map((feature, index) => (
-                  <div key={index} className="grid grid-cols-3 p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                    <div className="flex items-center">
-                      <Zap className={`w-4 h-4 mr-3 ${theme === 'dark' ? 'text-yellow-400' : 'text-yellow-500'}`} />
-                      <span className={`font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                        {feature.name}
+                  {/* Progress Bar */}
+                  <div className="mb-6">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                        {aiUsageData.credits_used} / {aiUsageData.credits_allocated} Credits
+                      </span>
+                      <span className={`text-sm font-medium ${aiUsageData.credits_remaining < 10 ? 'text-red-500' : theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                        {aiUsageData.credits_remaining} remaining
                       </span>
                     </div>
+                    <div className={`h-2 rounded-full overflow-hidden ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'}`}>
+                      <div
+                        className={`h-full ${getUsageColor((aiUsageData.credits_used / aiUsageData.credits_allocated) * 100)} transition-all duration-500`}
+                        style={{ width: `${calculatePercentage(aiUsageData.credits_used, aiUsageData.credits_allocated)}%` }}
+                      />
+                    </div>
+                  </div>
 
-                    <div className="flex flex-col items-center justify-center">
-                      <span className={`text-lg font-semibold ${theme === 'dark' ? 'text-gray-300' : 'text-gray-800'}`}>
-                        {feature.used}
-                      </span>
-                      {feature.total && (
-                        <div className="w-16 md:w-24 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden mt-1">
-                          <div
-                            className={`h-full ${getUsageColor(calculatePercentage(feature.used, feature.total))}`}
-                            style={{ width: `${calculatePercentage(feature.used, feature.total)}%` }}
-                          />
-                        </div>
-                      )}
+                  {/* Stats Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                    <div className={`p-4 rounded-lg ${theme === 'dark' ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
+                      <div className="flex items-center justify-between">
+                        <span className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Total Used</span>
+                        <Zap className={`w-4 h-4 ${theme === 'dark' ? 'text-yellow-400' : 'text-yellow-500'}`} />
+                      </div>
+                      <div className={`text-2xl font-bold mt-2 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                        {aiUsageData.credits_used}
+                      </div>
                     </div>
 
-                    <div className="flex items-center justify-end">
-                      {feature.isUnlimited ? (
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${theme === 'dark' ? 'bg-green-900/30 text-green-300' : 'bg-green-100 text-green-700'}`}>
-                          Unlimited
+                    <div className={`p-4 rounded-lg ${theme === 'dark' ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
+                      <div className="flex items-center justify-between">
+                        <span className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Remaining</span>
+                        <AlertTriangle className={`w-4 h-4 ${aiUsageData.credits_remaining < 10 ? 'text-red-400' : theme === 'dark' ? 'text-green-400' : 'text-green-500'}`} />
+                      </div>
+                      <div className={`text-2xl font-bold mt-2 ${theme === 'dark' ? 'text-white' : 'text-black'} ${aiUsageData.credits_remaining < 10 ? 'text-red-500' : ''}`}>
+                        {aiUsageData.credits_remaining}
+                      </div>
+                    </div>
+
+                    <div className={`p-4 rounded-lg ${theme === 'dark' ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
+                      <div className="flex items-center justify-between">
+                        <span className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Monthly Limit</span>
+                        <Info className={`w-4 h-4 ${theme === 'dark' ? 'text-blue-400' : 'text-blue-500'}`} />
+                      </div>
+                      <div className={`text-2xl font-bold mt-2 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+                        {aiUsageData.credits_allocated}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Feature Usage Table */}
+                <div className={`rounded-xl overflow-hidden border ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
+                  {/* Table Header */}
+                  <div className={`grid grid-cols-2 p-4 border-b ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
+                    <div className={`font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>Feature</div>
+                    <div className={`font-medium text-center ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>Credits Used</div>
+                    {/* <div className={`font-medium text-right ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>Description</div> */}
+                  </div>
+
+                  {/* Table Rows */}
+                  <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                    {/* AI Email Assist */}
+                    <div className="grid grid-cols-2 p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                      <div className="flex items-center">
+                        <Mail className={`w-4 h-4 mr-3 ${theme === 'dark' ? 'text-blue-400' : 'text-blue-500'}`} />
+                        <span className={`font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                          AI Email Assist
                         </span>
-                      ) : feature.remaining !== null ? (
-                        <span className={`text-lg font-semibold ${feature.remaining < 5 ? 'text-red-500' : theme === 'dark' ? 'text-gray-300' : 'text-gray-800'}`}>
-                          {feature.remaining}
+                      </div>
+
+                      <div className="flex flex-col items-center justify-center">
+                        <span className={`text-lg font-semibold ${theme === 'dark' ? 'text-gray-300' : 'text-gray-800'}`}>
+                          {aiUsageData.usage_breakdown.email}
                         </span>
-                      ) : (
+                        {aiUsageData.credits_allocated > 0 && (
+                          <div className="w-16 md:w-24 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden mt-1">
+                            <div
+                              className={`h-full ${getUsageColor(calculatePercentage(aiUsageData.usage_breakdown.email, aiUsageData.credits_allocated))}`}
+                              style={{ width: `${calculatePercentage(aiUsageData.usage_breakdown.email, aiUsageData.credits_allocated)}%` }}
+                            />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* <div className="flex items-center justify-end">
                         <span className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
-                          -
+                          Email composition & analysis
                         </span>
-                      )}
+                      </div> */}
+                    </div>
+
+                    {/* AI Lead Score */}
+                    <div className="grid grid-cols-2 p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                      <div className="flex items-center">
+                        <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                        <span className={`font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                          AI Lead Score
+                        </span>
+                      </div>
+
+                      <div className="flex flex-col items-center justify-center">
+                        <span className={`text-lg font-semibold ${theme === 'dark' ? 'text-gray-300' : 'text-gray-800'}`}>
+                          {aiUsageData.usage_breakdown.score}
+                        </span>
+                        {aiUsageData.credits_allocated > 0 && (
+                          <div className="w-16 md:w-24 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden mt-1">
+                            <div
+                              className={`h-full ${getUsageColor(calculatePercentage(aiUsageData.usage_breakdown.score, aiUsageData.credits_allocated))}`}
+                              style={{ width: `${calculatePercentage(aiUsageData.usage_breakdown.score, aiUsageData.credits_allocated)}%` }}
+                            />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* <div className="flex items-center justify-end">
+                        <span className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                          Lead scoring & prioritization
+                        </span>
+                      </div> */}
+                    </div>
+
+                    {/* Company Intelligence Report */}
+                    <div className="grid grid-cols-2 p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                      <div className="flex items-center">
+                        <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span className={`font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                          Company Intelligence
+                        </span>
+                      </div>
+
+                      <div className="flex flex-col items-center justify-center">
+                        <span className={`text-lg font-semibold ${theme === 'dark' ? 'text-gray-300' : 'text-gray-800'}`}>
+                          {aiUsageData.usage_breakdown.report}
+                        </span>
+                        {aiUsageData.credits_allocated > 0 && (
+                          <div className="w-16 md:w-24 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden mt-1">
+                            <div
+                              className={`h-full ${getUsageColor(calculatePercentage(aiUsageData.usage_breakdown.report, aiUsageData.credits_allocated))}`}
+                              style={{ width: `${calculatePercentage(aiUsageData.usage_breakdown.report, aiUsageData.credits_allocated)}%` }}
+                            />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* <div className="flex items-center justify-end">
+                        <span className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                          Company research & insights
+                        </span>
+                      </div> */}
                     </div>
                   </div>
-                ))}
-              </div>
 
-              {/* Table Footer */}
-              <div className={`p-4 border-t ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
-                <div className="flex items-center justify-between">
-                  <span className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                    Total actions this month
-                  </span>
-                  <span className={`font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                    {aiUsageData.usedActions} / {aiUsageData.totalActions}
-                  </span>
+                  {/* Table Footer */}
+                  <div className={`p-4 border-t ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
+                    <div className="flex items-center justify-evenly">
+                      <span className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                        Total credits used this month
+                      </span>
+                      <span className={`font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                        {aiUsageData.credits_used} / {aiUsageData.credits_allocated}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
 
-            {/* Buy More Button */}
-            <button
-              onClick={handleBuyMoreActions}
-              className={`w-full md:w-auto mt-6 py-3 px-4 rounded-lg flex items-center justify-center gap-2 font-medium transition-all ${theme === 'dark'
-                ? 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white'
-                : 'bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white shadow-md'
-                }`}
-            >
-              <ShoppingCart className="w-5 h-5" />
-              Buy More
-            </button>
+                {/* Buy More Button */}
+                <button
+                  onClick={handleBuyMoreActions}
+                  className={`w-full justify-self-end md:w-auto mt-6 py-3 px-4 rounded-lg flex items-center justify-center gap-2 font-medium transition-all ${theme === 'dark'
+                    ? 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white'
+                    : 'bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white shadow-md'
+                    }`}
+                >
+                  <ShoppingCart className="w-5 h-5" />
+                  Buy More 
+                </button>
+              </>
+            )}
           </div>
         );
 
       case 'websiteIntegration':
         return (
           <div className="p-4 md:p-8">
-            {/* Mobile Header */}
-
-
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
               <div>
@@ -1584,7 +1687,7 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
                 </ul>
                 <p className={`text-xl font-bold mt-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>₹1,500/mo</p>
                 <button
-                  onClick={() => handlePayment('STANDARD PLAN CRM', 1, '1')}
+                  onClick={() => handlePayment('STANDARD PLAN CRM', 1500, '1')}
                   disabled={isProcessingPayment !== null}
                   className={`mt-6 w-full px-4 py-2 rounded-lg font-medium transition-colors flex items-center justify-center ${isProcessingPayment !== null
                     ? 'bg-gray-500 text-gray-300 cursor-not-allowed'
@@ -1617,7 +1720,7 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
                 </ul>
                 <p className={`text-xl font-bold mt-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>₹2,500 /mo</p>
                 <button
-                  onClick={() => handlePayment('PROFESSIONAL PLAN – CRM Pro', 1, '2')}
+                  onClick={() => handlePayment('PROFESSIONAL PLAN – CRM Pro', 2500, '2')}
                   disabled={isProcessingPayment !== null}
                   className={`mt-6 mb w-full px-4 py-2 rounded-lg font-medium transition-colors flex items-center justify-center ${isProcessingPayment !== null
                     ? 'bg-gray-500 text-white cursor-not-allowed'
@@ -1656,7 +1759,6 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
             <CRMFeatureTable theme={theme} />
           </div>
         );
-
 
       default:
         return (

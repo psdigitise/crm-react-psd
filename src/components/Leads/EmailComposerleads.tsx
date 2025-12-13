@@ -437,6 +437,22 @@ export default function EmailComposerleads({
         }
     };
 
+    // Function to extract recipient name from email string
+    const extractRecipientName = (emailString: string): string => {
+        if (!emailString) return "";
+        
+        const firstRecipient = emailString.split(',')[0].trim();
+        
+        // Try to extract name from format like "John Doe <john@example.com>"
+        const nameMatch = firstRecipient.match(/(.*)<(.*)>/);
+        if (nameMatch && nameMatch[1]) {
+            return nameMatch[1].trim();
+        }
+        
+        // Use the email username part as fallback
+        return firstRecipient.split('@')[0].trim();
+    };
+
     const generateEmailFromPrompt = async () => {
         if (!emailForm.aiPrompt.trim()) {
             showToast("Please enter a prompt for AI generation", { type: "error" });
@@ -464,9 +480,27 @@ Message: ${emailForm.message || "No message"}
 Instruction: ${emailForm.aiPrompt.trim()}
         `.trim();
 
+            // Get user session data
+            const userSession = getUserSession();
+            
+            // Extract recipient name
+            let recipientName = extractRecipientName(emailForm.recipient);
+            
+            // Fallback to lead name if no recipient name found
+            if (!recipientName && lead?.name) {
+                recipientName = lead.name;
+            }
+
+            // Get sender name from session
+            const senderName = userSession?.full_name || userSession?.username || "User";
+
             const response = await apiAxios.post(
                 AI_GENERATE_API,
-                { purpose: formattedPrompt },
+                { 
+                    purpose: formattedPrompt,
+                    recipient_name: recipientName,  // Add recipient name
+                    sender_name: senderName         // Add sender name
+                },
                 {
                     headers: {
                         Authorization: AUTH_TOKEN,
@@ -540,7 +574,7 @@ Instruction: ${emailForm.aiPrompt.trim()}
     };
 
     // Function for subject-based generation
-    const generateEmailFromSubject = async (subject: string) => {
+    const generateEmailFromSubject = async (subject: string, recipientName?: string, senderName?: string) => {
         // First check credits
         const creditsAvailable = await checkEmailCredits();
         
@@ -552,9 +586,29 @@ Instruction: ${emailForm.aiPrompt.trim()}
 
         try {
             setGeneratingContent(true);
+            
+            const userSession = getUserSession();
+            
+            // Get recipient name if not provided
+            let finalRecipientName = recipientName;
+            if (!finalRecipientName) {
+                finalRecipientName = extractRecipientName(emailForm.recipient);
+            }
+            
+            if (!finalRecipientName && lead?.name) {
+                finalRecipientName = lead.name;
+            }
+
+            // Get sender name if not provided
+            const finalSenderName = senderName || userSession?.full_name || userSession?.username || "User";
+
             const response = await apiAxios.post(
                 AI_GENERATE_API,
-                { subject },
+                { 
+                    subject,
+                    recipient_name: finalRecipientName,
+                    sender_name: finalSenderName
+                },
                 {
                     headers: {
                         Authorization: AUTH_TOKEN,
@@ -594,7 +648,19 @@ Instruction: ${emailForm.aiPrompt.trim()}
     };
 
     const handleConfirmGenerate = async () => {
-        await generateEmailFromSubject(subjectToGenerate);
+        // Get user session data
+        const userSession = getUserSession();
+        
+        // Extract recipient name
+        let recipientName = extractRecipientName(emailForm.recipient);
+        
+        if (!recipientName && lead?.name) {
+            recipientName = lead.name;
+        }
+
+        const senderName = userSession?.full_name || userSession?.username || "User";
+
+        await generateEmailFromSubject(subjectToGenerate, recipientName, senderName);
         setShowConfirmationPopup(false);
         setIsSubjectEdited(true);
     };
@@ -1023,8 +1089,6 @@ Instruction: ${emailForm.aiPrompt.trim()}
                             </div>
                         </div>
 
-
-
                         {/* Cc Field */}
                         {shouldShowCc && (
                             <div
@@ -1063,8 +1127,6 @@ Instruction: ${emailForm.aiPrompt.trim()}
                             </div>
                         )}
 
-
-
                         <div
                             className={`flex items-center gap-2 border-b pb-1 ${theme === "dark" ? "border-gray-600" : "border-gray-300"}`}
                         >
@@ -1080,8 +1142,6 @@ Instruction: ${emailForm.aiPrompt.trim()}
                                 placeholder="Enter email subject"
                             />
                         </div>
-
-
                     </div>
 
                     {/* File attachments */}

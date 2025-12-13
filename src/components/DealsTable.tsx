@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronDown, ChevronUp, Phone, Loader2, Filter, Settings, X, ChevronLeft, ChevronRight, RefreshCcw, Download, Upload } from 'lucide-react';
+import { ChevronDown, ChevronUp, Phone, Loader2, Filter, Settings, X, ChevronLeft, ChevronRight, RefreshCcw, Download, Upload, LayoutGrid, List } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import { getUserSession } from '../utils/session';
 import { FaCircleDot } from 'react-icons/fa6';
@@ -155,6 +155,9 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
   const [isExporting, setIsExporting] = useState(false);
   const [exportFormat, setExportFormat] = useState<'Excel' | 'CSV'>('Excel');
   const [expandedDeals, setExpandedDeals] = useState<Set<string>>(new Set());
+
+  // View mode state
+  const [view, setView] = useState<'table' | 'kanban'>('table');
 
   // Import state
   const [isImporting, setIsImporting] = useState(false);
@@ -1512,6 +1515,109 @@ const handleExport = async (exportType: string = 'Excel', exportAll: boolean = t
     }
   };
 
+  // Kanban View Component
+  const KanbanView = ({ deals, onDealClick, theme }: { deals: Deal[], onDealClick: (deal: Deal) => void, theme: string }) => {
+    const kanbanColumns = [
+      'Qualification',
+      'Demo/Making',
+      'Proposal/Quotation',
+      'Negotiation',
+      'Won',
+      'Lost',
+      'Ready to Close',
+      'Junk'];
+
+    const dealsByStatus = kanbanColumns.reduce((acc, status) => {
+      acc[status] = deals.filter(deal => deal.status === status);
+      return acc;
+    }, {} as Record<string, Deal[]>);
+
+    return (
+      <div className="flex overflow-x-auto p-4 space-x-4">
+        {kanbanColumns.map(status => (
+          <div key={status} className="w-72 flex-shrink-0">
+            <div className={`p-3 rounded-t-lg ${theme === 'dark' ? 'bg-purplebg' : 'bg-gray-100'}`}>
+              <h3 className={`font-semibold text-sm flex items-center justify-between ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
+                <span>{status}</span>
+                <span className={`text-xs px-2 py-0.5 rounded-full ${theme === 'dark' ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-600'}`}>
+                  {dealsByStatus[status].length}
+                </span>
+              </h3>
+            </div>
+            <div className={`p-2 rounded-b-lg h-full ${theme === 'dark' ? 'bg-dark-accent' : 'bg-gray-50'}`}>
+              <div className="space-y-3 max-h-[calc(100vh-20rem)] overflow-y-auto">
+                {dealsByStatus[status].map(deal => (
+                  <div
+                    key={deal.id}
+                    onClick={() => onDealClick?.(deal)}
+                    className={`p-3 rounded-lg shadow-sm cursor-pointer transition-all ${theme === 'dark' ? 'bg-gray-800 hover:bg-gray-700 border border-gray-700' : 'bg-white hover:bg-gray-50 border'}`}
+                  >
+                    <div className="flex items-center mb-2">
+                      <div className={`w-6 h-6 rounded-full flex items-center justify-center mr-2 ${theme === 'dark' ? 'bg-purple-700' : 'bg-gray-200'}`}>
+                        <span className={`text-xs font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>
+                          {deal.first_name?.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                      <p className={`font-semibold text-sm truncate ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                        {deal.name}
+                      </p>
+                    </div>
+                    <p className={`text-xs truncate ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                      {deal.organization}
+                    </p>
+                    <div className="flex items-center justify-between mt-3 pt-2 border-t border-gray-200 dark:border-gray-700">
+                      <div className="flex items-center">
+                        {(() => {
+                          let assignedNames: string[] = [];
+                          if (Array.isArray(deal.assignedTo)) {
+                            assignedNames = deal.assignedTo.map(name => name.trim()).filter(name => name);
+                          } else if (typeof deal.assignedTo === 'string') {
+                            try {
+                              const parsed = JSON.parse(deal.assignedTo);
+                              if (Array.isArray(parsed)) {
+                                assignedNames = parsed.map(name => name.trim()).filter(name => name);
+                              } else {
+                                assignedNames = deal.assignedTo.split(',').map(name => name.trim()).filter(name => name);
+                              }
+                            } catch {
+                              assignedNames = deal.assignedTo.split(',').map(name => name.trim()).filter(name => name);
+                            }
+                          }
+
+                          if (assignedNames.length > 0) {
+                            return (
+                              <div
+                                className={`w-5 h-5 rounded-full flex items-center justify-center border-2 ${theme === "dark" ? "bg-purplebg border-purplebg" : "bg-gray-200 border-white"}`}
+                                title={assignedNames.join(', ')}
+                              >
+                                <span className={`text-xs font-semibold ${theme === "dark" ? "text-white" : "text-gray-700"}`}>
+                                  {assignedNames[0].charAt(0).toUpperCase()}
+                                </span>
+                              </div>
+                            );
+                          }
+                          return null;
+                        })()}
+                      </div>
+                      <p className={`text-xs ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}`}>
+                        {deal.lastModified}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+                {dealsByStatus[status].length === 0 && (
+                  <div className={`text-center py-4 text-xs ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}`}>
+                    No deals
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   if (loading) {
     return (
       <div className={`rounded-lg shadow-sm border p-8 ${theme === 'dark'
@@ -1828,6 +1934,30 @@ const handleExport = async (exportType: string = 'Excel', exportAll: boolean = t
           </div>
         </div>
         <div className="flex items-center space-x-2">
+          {/* View Switcher */}
+          <div className={`flex items-center p-1 rounded-lg ${theme === 'dark' ? 'bg-dark-accent' : 'bg-gray-200'}`}>
+            <button
+              onClick={() => setView('table')}
+              className={`px-3 py-1 text-sm rounded-md flex items-center space-x-2 transition-colors ${view === 'table'
+                ? theme === 'dark' ? 'bg-purplebg text-white' : 'bg-white text-gray-800 shadow-sm'
+                : theme === 'dark' ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-500 hover:bg-gray-100'
+                }`}
+            >
+              <List className="w-4 h-4" />
+              <span>Table</span>
+            </button>
+            <button
+              onClick={() => setView('kanban')}
+              className={`px-3 py-1 text-sm rounded-md flex items-center space-x-2 transition-colors ${view === 'kanban'
+                ? theme === 'dark' ? 'bg-purplebg text-white' : 'bg-white text-gray-800 shadow-sm'
+                : theme === 'dark' ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-500 hover:bg-gray-100'
+                }`}
+            >
+              <LayoutGrid className="w-4 h-4" />
+              <span>Kanban</span>
+            </button>
+          </div>
+
           {/* Only show download button when there's data */}
           {filteredDataLength > 0 && (
             <button
@@ -1841,7 +1971,7 @@ const handleExport = async (exportType: string = 'Excel', exportAll: boolean = t
               <Upload className="w-4 h-4" />
             </button>
           )}
-          <span className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>
+          <span className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-600'} ${view === 'kanban' ? 'hidden' : ''}`}>
             Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredDataLength)} of {filteredDataLength} results
           </span>
           <select
@@ -1870,8 +2000,12 @@ const handleExport = async (exportType: string = 'Excel', exportAll: boolean = t
         ? ' bg-custom-gradient border-transparent !rounded-none'
         : 'bg-white border-gray-200'
         }`}>
-        <div className="w-full">
-          {/* ================= Desktop Table View ================= */}
+        {view === 'kanban' ? (
+          <KanbanView deals={getFilteredAndSortedData()} onDealClick={(deal) => onDealClick?.(deal)} theme={theme} />
+        ) : (
+          <div className="w-full">
+            {/* ================= Desktop Table View ================= */}
+
           <div className="hidden md:block overflow-x-auto">
             <table className="w-full">
               <thead className={`border-b ${theme === 'dark' ? 'bg-purplebg border-transparent ' : 'bg-gray-50 border-gray-200'
@@ -2025,8 +2159,8 @@ const handleExport = async (exportType: string = 'Excel', exportAll: boolean = t
               </div>
             ))}
           </div>
-        </div>
-
+          </div>
+        )}
         {paginatedData.length === 0 && !loading && (
           <div className="text-center py-12">
             <div className={theme === 'dark' ? 'text-white' : 'text-gray-500'}>No results found</div>
@@ -2038,7 +2172,7 @@ const handleExport = async (exportType: string = 'Excel', exportAll: boolean = t
       </div>
 
       {/* Pagination */}
-      {totalPages > 1 && (
+      {totalPages > 1 && view === 'table' && (
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>
             Page {currentPage} of {totalPages}

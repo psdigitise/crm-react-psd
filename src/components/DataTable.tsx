@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronDown, ChevronUp, Phone, Loader2, ChevronLeft, ChevronRight, Filter, X, Settings, RefreshCcw, Upload, Download } from 'lucide-react';
+import { ChevronDown, ChevronUp, Phone, Loader2, ChevronLeft, ChevronRight, Filter, X, Settings, RefreshCcw, Upload, Download, LayoutGrid, List } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import { getUserSession } from '../utils/session';
 import { FaCircleDot } from 'react-icons/fa6';
@@ -177,6 +177,9 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
   const [isExporting, setIsExporting] = useState(false);
   const [exportFormat, setExportFormat] = useState<'Excel' | 'CSV'>('Excel');
 
+  // View mode state
+  const [view, setView] = useState<'table' | 'kanban'>('table');
+
 
 
 
@@ -206,7 +209,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
     status: ['New', 'Contacted', 'Qualified', 'Lost', 'Unqualified', 'Junk', 'Nurture'],
     territory: [] as string[],
     industry: [] as string[],
-    
+
   });
 
   const showToast = (message: string, type: 'error' | 'success' = 'error') => {
@@ -1903,6 +1906,101 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
     setSelectedIds(allFilteredIds);
   };
 
+  // Kanban View Component
+  const KanbanView = ({ leads, onLeadClick, theme }: { leads: Lead[], onLeadClick: (lead: Lead) => void, theme: string }) => {
+    const kanbanColumns = filterOptions.status;
+
+    const leadsByStatus = kanbanColumns.reduce((acc, status) => {
+      acc[status] = leads.filter(lead => lead.status === status);
+      return acc;
+    }, {} as Record<string, Lead[]>);
+
+    return (
+      <div className="flex overflow-x-auto p-4 space-x-4">
+        {kanbanColumns.map(status => (
+          <div key={status} className="w-72 flex-shrink-0">
+            <div className={`p-3 rounded-t-lg ${theme === 'dark' ? 'bg-purplebg' : 'bg-gray-100'}`}>
+              <h3 className={`font-semibold text-sm flex items-center justify-between ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
+                <span>{status}</span>
+                <span className={`text-xs px-2 py-0.5 rounded-full ${theme === 'dark' ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-600'}`}>
+                  {leadsByStatus[status].length}
+                </span>
+              </h3>
+            </div>
+            <div className={`p-2 rounded-b-lg h-full ${theme === 'dark' ? 'bg-dark-accent' : 'bg-gray-50'}`}>
+              <div className="space-y-3 max-h-[calc(100vh-20rem)] overflow-y-auto">
+                {leadsByStatus[status].map(lead => (
+                  <div
+                    key={lead.id}
+                    onClick={() => onLeadClick(lead)}
+                    className={`p-3 rounded-lg shadow-sm cursor-pointer transition-all ${theme === 'dark' ? 'bg-gray-800 hover:bg-gray-700 border border-gray-700' : 'bg-white hover:bg-gray-50 border'}`}
+                  >
+                    <div className="flex items-center mb-2">
+                      <div className={`w-6 h-6 rounded-full flex items-center justify-center mr-2 ${theme === 'dark' ? 'bg-purple-700' : 'bg-gray-200'}`}>
+                        <span className={`text-xs font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>
+                          {lead.firstName?.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                      <p className={`font-semibold text-sm truncate ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                        {lead.name}
+                      </p>
+                    </div>
+                    <p className={`text-xs truncate ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                      {lead.organization}
+                    </p>
+                    <div className="flex items-center justify-between mt-3 pt-2 border-t border-gray-200 dark:border-gray-700">
+                      <div className="flex items-center">
+                        {(() => {
+                          let assignedNames: string[] = [];
+                          if (Array.isArray(lead.assignedTo)) {
+                            assignedNames = lead.assignedTo.map(name => name.trim()).filter(name => name);
+                          } else if (typeof lead.assignedTo === 'string') {
+                            try {
+                              const parsed = JSON.parse(lead.assignedTo);
+                              if (Array.isArray(parsed)) {
+                                assignedNames = parsed.map(name => name.trim()).filter(name => name);
+                              } else {
+                                assignedNames = lead.assignedTo.split(',').map(name => name.trim()).filter(name => name);
+                              }
+                            } catch {
+                              assignedNames = lead.assignedTo.split(',').map(name => name.trim()).filter(name => name);
+                            }
+                          }
+
+                          if (assignedNames.length > 0) {
+                            return (
+                              <div
+                                className={`w-5 h-5 rounded-full flex items-center justify-center border-2 ${theme === "dark" ? "bg-purplebg border-purplebg" : "bg-gray-200 border-white"}`}
+                                title={assignedNames.join(', ')}
+                              >
+                                <span className={`text-xs font-semibold ${theme === "dark" ? "text-white" : "text-gray-700"}`}>
+                                  {assignedNames[0].charAt(0).toUpperCase()}
+                                </span>
+                              </div>
+                            );
+                          }
+                          return null;
+                        })()}
+                      </div>
+                      <p className={`text-xs ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}`}>
+                        {lead.lastModified}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+                {leadsByStatus[status].length === 0 && (
+                  <div className={`text-center py-4 text-xs ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}`}>
+                    No leads
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div className="">
       {/* Toast Notification */}
@@ -2253,6 +2351,32 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
         </div>
 
         <div className="flex items-center space-x-2">
+        {/* View Switcher */}
+        <div className={`flex items-center p-1 rounded-lg ${theme === 'dark' ? 'bg-dark-accent' : 'bg-gray-200'}`}>
+          <button
+            onClick={() => setView('table')}
+            className={`px-3 py-1 text-sm rounded-md flex items-center space-x-2 transition-colors ${view === 'table'
+              ? theme === 'dark' ? 'bg-purplebg text-white' : 'bg-white text-gray-800 shadow-sm'
+              : theme === 'dark' ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-500 hover:bg-gray-100'
+              }`}
+          >
+            <List className="w-4 h-4" />
+            <span>Table</span>
+          </button>
+          <button
+            onClick={() => setView('kanban')}
+            className={`px-3 py-1 text-sm rounded-md flex items-center space-x-2 transition-colors ${view === 'kanban'
+              ? theme === 'dark' ? 'bg-purplebg text-white' : 'bg-white text-gray-800 shadow-sm'
+              : theme === 'dark' ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-500 hover:bg-gray-100'
+              }`}
+          >
+            <LayoutGrid className="w-4 h-4" />
+            <span>Kanban</span>
+          </button>
+        </div>
+
+
+
           <div className="flex items-center space-x-2">
             {filteredDataLength > 0 && (
               <div title="Export Excel">
@@ -2269,7 +2393,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
             )}
           </div>
 
-          <span className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>
+          <span className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-600'} ${view === 'kanban' ? 'hidden' : ''}`}>
             Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredDataLength)} of {filteredDataLength} results
           </span>
           <select
@@ -2277,7 +2401,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
             onChange={(e) => {
               setItemsPerPage(Number(e.target.value));
               setCurrentPage(1);
-            }}
+            }} 
             className={`text-sm border rounded px-2 py-1 ${theme === 'dark'
               ? 'bg-white-31 border-white text-white'
               : 'border-gray-300'
@@ -2298,8 +2422,12 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
           : 'bg-white border-gray-200'
           }`}
       >
-        <div className="w-full">
-          {/* ================= Desktop Table View ================= */}
+        {view === 'kanban' ? (
+          <KanbanView leads={getFilteredAndSortedData()} onLeadClick={handleLeadOpen} theme={theme} />
+        ) : (
+          <div className="w-full">
+            {/* ================= Desktop Table View ================= */}
+
           <div className="hidden md:block overflow-x-auto">
             <table className="w-full">
               <thead
@@ -2510,8 +2638,8 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
               </div>
             ))}
           </div>
-        </div>
-
+          </div>
+        )}
         {/* ================= No Results ================= */}
         {paginatedData.length === 0 && !loading && (
           <div className="text-center py-12">
@@ -2529,7 +2657,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
       </div>
 
       {/* Pagination */}
-      {totalPages > 1 && (
+      {totalPages > 1 && view === 'table' && (
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>
             Page {currentPage} of {totalPages}

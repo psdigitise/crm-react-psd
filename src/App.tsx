@@ -265,7 +265,7 @@ function AppContent() {
 
   const initializeStateFromUrl = async () => {
     const path = window.location.pathname;
-    const cleanPath = path.replace('/login', '');
+    const cleanPath = path.replace('/app', '');
 
     // Handle detail views with API fetching
     if (cleanPath.startsWith('/leads/')) {
@@ -286,7 +286,7 @@ function AppContent() {
       } catch (error) {
         console.error('Error fetching lead:', error);
         setActiveMenuItem('leads');
-        window.history.replaceState({}, '', '/login/leads');
+        window.history.replaceState({}, '', '/app/leads');
         return;
       }
     }
@@ -313,7 +313,7 @@ function AppContent() {
       } catch (error) {
         console.error('Error fetching deal:', error);
         setActiveMenuItem('deals');
-        window.history.replaceState({}, '', '/login/deals');
+        window.history.replaceState({}, '', '/app/deals');
         return;
       }
     }
@@ -336,7 +336,7 @@ function AppContent() {
       } catch (error) {
         console.error('Error fetching contact:', error);
         setActiveMenuItem('contacts');
-        window.history.replaceState({}, '', '/login/contacts');
+        window.history.replaceState({}, '', '/app/contacts');
         return;
       }
     }
@@ -359,7 +359,7 @@ function AppContent() {
       } catch (error) {
         console.error('Error fetching organization:', error);
         setActiveMenuItem('organizations');
-        window.history.replaceState({}, '', '/login/organizations');
+        window.history.replaceState({}, '', '/app/organizations');
         return;
       }
     }
@@ -382,7 +382,7 @@ function AppContent() {
       } catch (error) {
         console.error('Error fetching user:', error);
         setActiveMenuItem('users');
-        window.history.replaceState({}, '', '/login/users');
+        window.history.replaceState({}, '', '/app/users');
         return;
       }
     }
@@ -403,7 +403,7 @@ function AppContent() {
       } else {
         setActiveMenuItem('dashboard');
         setIsInDetailView(false);
-        window.history.replaceState({}, '', '/login/');
+        window.history.replaceState({}, '', '/app/');
       }
     }
   };
@@ -411,20 +411,20 @@ function AppContent() {
   useEffect(() => {
     if (!isLoggedIn) return;
 
-    let path = '/login/';
+    let path = '/app/';
 
     if (selectedLead) {
-      path = `/login/leads/${selectedLead.id}`;
+      path = `/app/leads/${selectedLead.id}`;
     } else if (selectedDeal) {
-      path = `/login/deals/${selectedDeal.id}`;
+      path = `/app/deals/${selectedDeal.id}`;
     } else if (selectedContact) {
-      path = `/login/contacts/${selectedContact.id}`;
+      path = `/app/contacts/${selectedContact.id}`;
     } else if (selectedOrganization) {
-      path = `/login/organizations/${selectedOrganization.id}`;
+      path = `/app/organizations/${selectedOrganization.id}`;
     } else if (selectedUser) {
-      path = `/login/users/${selectedUser.id}`;
+      path = `/app/users/${selectedUser.id}`;
     } else if (activeMenuItem !== 'dashboard') {
-      path = `/login/${activeMenuItem}`;
+      path = `/app/${activeMenuItem}`;
     }
 
     if (window.location.pathname !== path) {
@@ -1311,7 +1311,7 @@ function App() {
   return (
     <GoogleOAuthProvider clientId='340526796460-ejl46ghv0ret26cfdltc82l9hf0ag62b.apps.googleusercontent.com'>
       <ThemeProvider>
-        <Router basename="/login">
+        <Router basename="/app">
           <Routes>
             <Route path="/" element={<AppContent />} />
             <Route path="/update-password" element={<AccountActivationPage />} />

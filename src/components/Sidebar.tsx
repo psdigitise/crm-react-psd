@@ -243,7 +243,7 @@ export function Sidebar({ isCollapsed, onToggle, activeItem, onItemClick }: Side
                   <div className="flex items-center space-x-3 mb-2">
                     {/* Logo */}
                     <img
-                      src="/login/assets/images/Erpnextlogo.png"
+                      src="/app/assets/images/Erpnextlogo.png"
                       alt="ERPNext Logo"
                       className={`w-[250px] h-auto transition duration-300 ${theme === "dark"
                         ? "filter invert brightness-0 saturate-100 sepia hue-rotate-[90deg] contrast-125"
@@ -342,7 +342,7 @@ export function Sidebar({ isCollapsed, onToggle, activeItem, onItemClick }: Side
               // Collapsed Logo/Company Icon
               <div className="flex items-center justify-center w-full">
                 <img
-                  src="/login/assets/images/Erpnextlogo.png"
+                  src="/app/assets/images/Erpnextlogo.png"
                   alt="ERPNext Logo"
                   className={`w-8 h-8 transition duration-300 ${theme === "dark"
                     ? "filter invert brightness-0 saturate-100 sepia hue-rotate-[90deg] contrast-125"

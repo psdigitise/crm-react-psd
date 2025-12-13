@@ -1256,7 +1256,7 @@ export default function ContactDetails({
                       </div>
                     </div>
                     <div className="flex items-center gap-1 ml-2 shrink-0">
-                      {/* Set As Primary Button - Only show if not already primary */}
+                      
                       {!emailItem.is_primary && (
                         <button
                           onClick={(e) => {

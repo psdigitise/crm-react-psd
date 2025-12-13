@@ -209,8 +209,8 @@ function CreateAddressModal({ isOpen, onClose, onSubmit }: CreateAddressModalPro
               <div className="md:col-span-2">
                 <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
                   }`}>
-                  Address Title
-                </label>
+                  Address Title <span className='text-red-500'>*</span>
+                </label> 
                 <input
                   type="text"
                   name="address_title"
@@ -256,7 +256,7 @@ function CreateAddressModal({ isOpen, onClose, onSubmit }: CreateAddressModalPro
               <div>
                 <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
                   }`}>
-                  Country
+                  Country <span className='text-red-500'>*</span>
                 </label>
                 <input
                   type="text"
@@ -279,7 +279,7 @@ function CreateAddressModal({ isOpen, onClose, onSubmit }: CreateAddressModalPro
               <div className="md:col-span-2">
                 <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
                   }`}>
-                  Address
+                  Address <span className='text-red-500'>*</span>
                 </label>
                 <input
                   type="text"
@@ -302,7 +302,7 @@ function CreateAddressModal({ isOpen, onClose, onSubmit }: CreateAddressModalPro
               <div className="md:col-span-2">
                 <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
                   }`}>
-                  City
+                  City <span className='text-red-500'>*</span>
                 </label>
                 <input
                   type="text"

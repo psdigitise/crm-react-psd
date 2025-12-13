@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ChevronDown, ChevronUp, Loader2, ChevronLeft, ChevronRight, Filter, X, Settings, RefreshCcw } from 'lucide-react';
+import { ChevronDown, ChevronUp, Loader2, ChevronLeft, ChevronRight, Filter, X, Settings, RefreshCcw, LayoutGrid, List } from 'lucide-react';
 import { showToast } from '../utils/toast';
 import { Menu } from 'lucide-react';
 import { Header } from './Header';
@@ -147,6 +147,9 @@ export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0, onMenuTo
   const [columns, setColumns] = useState<ColumnConfig[]>(defaultColumns);
   const [showColumnSettings, setShowColumnSettings] = useState(false);
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
+
+  // View mode state
+  const [view, setView] = useState<'table' | 'kanban'>('table');
 
   // Combine external and internal refresh triggers
   useEffect(() => {
@@ -493,6 +496,78 @@ export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0, onMenuTo
   const handleSelectAllFiltered = () => {
     const allFilteredIds = getFilteredAndSortedData().map(task => task.name);
     setSelectedTasks(allFilteredIds);
+  };
+
+  // Kanban View Component
+  const KanbanView = ({ tasks, onTaskClick, theme }: { tasks: Task[], onTaskClick: (task: Task) => void, theme: string }) => {
+    const kanbanColumns = ['Backlog', 'Todo', 'In Progress', 'Done', 'Canceled', 'Open'];
+
+    const tasksByStatus = kanbanColumns.reduce((acc, status) => {
+      acc[status] = tasks.filter(task => task.status === status);
+      return acc;
+    }, {} as Record<string, Task[]>);
+
+    return (
+      <div className="flex overflow-x-auto p-4 space-x-4">
+        {kanbanColumns.map(status => (
+          <div key={status} className="w-72 flex-shrink-0">
+            <div className={`p-3 rounded-t-lg ${theme === 'dark' ? 'bg-purplebg' : 'bg-gray-100'}`}>
+              <h3 className={`font-semibold text-sm flex items-center justify-between ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
+                <span>{status}</span>
+                <span className={`text-xs px-2 py-0.5 rounded-full ${theme === 'dark' ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-600'}`}>
+                  {tasksByStatus[status].length}
+                </span>
+              </h3>
+            </div>
+            <div className={`p-2 rounded-b-lg h-full ${theme === 'dark' ? 'bg-dark-accent' : 'bg-gray-50'}`}>
+              <div className="space-y-3 max-h-[calc(100vh-20rem)] overflow-y-auto">
+                {tasksByStatus[status].map(task => (
+                  <div
+                    key={task.name}
+                    onClick={() => onTaskClick(task)}
+                    className={`p-3 rounded-lg shadow-sm cursor-pointer transition-all ${theme === 'dark' ? 'bg-gray-800 hover:bg-gray-700 border border-gray-700' : 'bg-white hover:bg-gray-50 border'}`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <p className={`font-semibold text-sm truncate ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                        {task.title}
+                      </p>
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${priorityColors[task.priority]}`}>
+                        {task.priority}
+                      </span>
+                    </div>
+                    <p className={`text-xs truncate mb-3 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                      {task.description || 'No description'}
+                    </p>
+                    <div className="flex items-center justify-between mt-3 pt-2 border-t border-gray-200 dark:border-gray-700">
+                      <div className="flex items-center">
+                        {task.assigned_to && (
+                          <div
+                            className={`w-5 h-5 rounded-full flex items-center justify-center border-2 ${theme === "dark" ? "bg-purplebg border-purplebg" : "bg-gray-200 border-white"}`}
+                            title={task.assigned_to}
+                          >
+                            <span className={`text-xs font-semibold ${theme === "dark" ? "text-white" : "text-gray-700"}`}>
+                              {task.assigned_to.charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      <p className={`text-xs ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}`}>
+                        Due: {task.due_date ? formatDateForDisplay(task.due_date) : 'N/A'}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+                {tasksByStatus[status].length === 0 && (
+                  <div className={`text-center py-4 text-xs ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}`}>
+                    No tasks
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
   };
 
   const handleBulkDelete = () => {
@@ -863,7 +938,30 @@ export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0, onMenuTo
           </div>
 
           <div className="flex items-center space-x-2">
-            <span className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>
+            {/* View Switcher */}
+            <div className={`flex items-center p-1 rounded-lg ${theme === 'dark' ? 'bg-dark-accent' : 'bg-gray-200'}`}>
+              <button
+                onClick={() => setView('table')}
+                className={`px-3 py-1 text-sm rounded-md flex items-center space-x-2 transition-colors ${view === 'table'
+                    ? theme === 'dark' ? 'bg-purplebg text-white' : 'bg-white text-gray-800 shadow-sm'
+                    : theme === 'dark' ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-500 hover:bg-gray-100'
+                  }`}
+              >
+                <List className="w-4 h-4" />
+                <span>Table</span>
+              </button>
+              <button
+                onClick={() => setView('kanban')}
+                className={`px-3 py-1 text-sm rounded-md flex items-center space-x-2 transition-colors ${view === 'kanban'
+                    ? theme === 'dark' ? 'bg-purplebg text-white' : 'bg-white text-gray-800 shadow-sm'
+                    : theme === 'dark' ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-500 hover:bg-gray-100'
+                  }`}
+              >
+                <LayoutGrid className="w-4 h-4" />
+                <span>Kanban</span>
+              </button>
+            </div>
+            <span className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-600'} ${view === 'kanban' ? 'hidden' : ''}`}>
               Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredDataLength)} of {filteredDataLength} results
             </span>
             <select
@@ -892,8 +990,11 @@ export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0, onMenuTo
             : 'bg-white border-gray-200'
             }`}
         >
-          <div className="w-full">
-            {/* Desktop Table View */}
+          {view === 'kanban' ? (
+            <KanbanView tasks={getFilteredAndSortedData()} onTaskClick={handleRowClick} theme={theme} />
+          ) : (
+            <div className="w-full">
+              {/* Desktop Table View */}
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full">
                 <thead
@@ -1130,8 +1231,8 @@ export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0, onMenuTo
                 </div>
               ))}
             </div>
-          </div>
-
+            </div>
+          )}
           {paginatedData.length === 0 && !loading && (
             <div className="text-center py-12">
               <div className={theme === 'dark' ? 'text-white' : 'text-gray-500'}>No tasks found</div>
@@ -1143,7 +1244,7 @@ export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0, onMenuTo
         </div>
 
         {/* Pagination */}
-        {totalPages > 1 && (
+        {totalPages > 1 && view === 'table' && (
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-4">
             <div className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>
               Page {currentPage} of {totalPages}

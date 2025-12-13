@@ -198,7 +198,7 @@ function CreateAddressModal({ isOpen, onClose, onSubmit }: CreateAddressModalPro
               <div className="md:col-span-2">
                 <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'
                   }`}>
-                  Address Title
+                  Address Title <span className='text-red-500'>*</span>
                 </label>
                 <input
                   type="text"
@@ -221,7 +221,7 @@ function CreateAddressModal({ isOpen, onClose, onSubmit }: CreateAddressModalPro
               <div>
                 <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'
                   }`}>
-                  Address Type
+                  Address Type 
                 </label>
                 <select
                   name="address_type"
@@ -245,7 +245,7 @@ function CreateAddressModal({ isOpen, onClose, onSubmit }: CreateAddressModalPro
               <div>
                 <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'
                   }`}>
-                  Country
+                  Country <span className='text-red-500'>*</span>
                 </label>
                 <input
                   type="text"
@@ -268,7 +268,7 @@ function CreateAddressModal({ isOpen, onClose, onSubmit }: CreateAddressModalPro
               <div className="md:col-span-2">
                 <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'
                   }`}>
-                  Address
+                  Address <span className='text-red-500'>*</span>
                 </label>
                 <input
                   type="text"
@@ -291,7 +291,7 @@ function CreateAddressModal({ isOpen, onClose, onSubmit }: CreateAddressModalPro
               <div className="md:col-span-2">
                 <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'
                   }`}>
-                  City
+                  City <span className='text-red-500'>*</span>
                 </label>
                 <input
                   type="text"
