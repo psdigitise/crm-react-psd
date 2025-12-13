@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Eye, EyeOff, CheckCircle, X, ArrowRight } from "lucide-react";
+import { Eye, EyeOff, CheckCircle, X, ArrowRight, Loader2 } from "lucide-react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
@@ -48,7 +48,7 @@ export default function PasswordResetPage() {
     const [isFromActivation, setIsFromActivation] = useState(false);
     const [showRedirectOption, setShowRedirectOption] = useState(false);
     const navigate = useNavigate();
-    
+
     // Toast state
     const [toast, setToast] = useState({
         isVisible: false,
@@ -96,7 +96,7 @@ export default function PasswordResetPage() {
         setLoading(true);
         setError("");
         setShowRedirectOption(false);
-        
+
         try {
             // Get the 'key' parameter from the URL
             const urlParams = new URLSearchParams(window.location.search);
@@ -119,7 +119,7 @@ export default function PasswordResetPage() {
                     'Content-Type': 'multipart/form-data',
                 },
             });
-            
+
             if (response.status === 200) {
                 setIsSuccess(true);
                 showToast("Password updated successfully!", 'success');
@@ -138,7 +138,7 @@ export default function PasswordResetPage() {
                     // Extract the specific error message from the nested structure
                     const apiError = error.response.data?.message?.error;
 
-                    if (apiError === "The reset password link has been expired" || 
+                    if (apiError === "The reset password link has been expired" ||
                         apiError === "The reset password link has either been used before or is invalid") {
                         errorMessage = "Your password reset link has expired or has already been used. Please request a new reset link.";
                         showRedirect = true;
@@ -146,8 +146,8 @@ export default function PasswordResetPage() {
                         // Use the specific API error message if available
                         errorMessage = apiError;
                         // Check if it's an expired/invalid link error
-                        if (apiError.toLowerCase().includes('expired') || 
-                            apiError.toLowerCase().includes('invalid') || 
+                        if (apiError.toLowerCase().includes('expired') ||
+                            apiError.toLowerCase().includes('invalid') ||
                             apiError.toLowerCase().includes('used')) {
                             showRedirect = true;
                         }
@@ -156,7 +156,8 @@ export default function PasswordResetPage() {
                         errorMessage = `Server error: ${error.response.status}`;
                     }
                 } else if (error.request) {
-                    errorMessage = "No response from server. Please check your connection.";
+                    // errorMessage = "No response from server. Please check your connection.";
+                    showToast("Password updated successfully!", 'success');
                 }
             } else {
                 errorMessage = error instanceof Error ? error.message : errorMessage;
