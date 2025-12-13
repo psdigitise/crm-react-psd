@@ -96,7 +96,7 @@ export function BulkEditPopup({ isOpen, onClose, selectedIds, theme, onSuccess }
       setLoading(true);
       setError(null);
       
-      const apiUrl = 'https://api.erpnext.ai/api/method/frappe.desk.doctype.bulk_update.bulk_update.submit_cancel_or_update_docs';
+      const apiUrl = 'https://api.erpnext.ai/api/method/frappe.desk.doctype.bulk_update.bulk_update.submit_Cancel_or_update_docs';
       
       // Prepare the payload as specified
       const payload = {

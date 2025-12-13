@@ -1,18 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Menu, MoreHorizontal, Edit, Trash2, Phone, Clock, X, Timer, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Filter, Settings, RefreshCcw, Download } from 'lucide-react';
-import { SlCallIn, SlCallOut } from 'react-icons/sl';
 import { BsCheckCircle, BsThreeDots } from 'react-icons/bs';
 import { showToast } from '../utils/toast';
 import { Header } from './Header';
 import { useTheme } from './ThemeProvider';
 import { getUserSession } from '../utils/session';
-import { LuSquareUserRound, LuTimer } from 'react-icons/lu';
-import { FaRegClock } from 'react-icons/fa6';
-import { GoArrowUpRight } from 'react-icons/go';
-import { FaUserFriends } from 'react-icons/fa';
-import { HiOutlineArrowRight } from 'react-icons/hi';
-import { Lead, LeadDetailView } from './LeadDetailView';
-import { Deal, DealDetailView } from './DealDetailView';
 import { CallDetailsPopup } from './CallLogPopups/CallDetailsPopup';
 import { AUTH_TOKEN } from '../api/apiUrl';
 import { api } from '../api/apiService';
@@ -148,6 +140,81 @@ const EditCallModal: React.FC<EditCallModalProps> = ({
   users,
   loadingUsers
 }) => {
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const validateField = (name: string, value: string): string => {
+    switch (name) {
+      case 'type':
+        if (!value.trim()) return 'Type is required';
+        return '';
+      
+      case 'to':
+        if (!value.trim()) return 'To field is required';
+        return '';
+      
+      case 'from':
+        if (!value.trim()) return 'From field is required';
+        return '';
+      
+     
+      case 'duration':
+        if (value && (parseInt(value) < 0 || isNaN(parseInt(value)))) {
+          return 'Duration must be a positive number';
+        }
+        return '';
+      
+      default:
+        return '';
+    }
+  };
+
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+    
+    // Validate all fields
+    newErrors.type = validateField('type', callForm.type);
+    newErrors.to = validateField('to', callForm.to);
+    newErrors.from = validateField('from', callForm.from);
+    newErrors.caller = validateField('caller', callForm.caller);
+    newErrors.receiver = validateField('receiver', callForm.receiver);
+    newErrors.duration = validateField('duration', callForm.duration);
+    
+    setErrors(newErrors);
+    
+    // Check if any errors exist
+    return !Object.values(newErrors).some(error => error !== '');
+  };
+
+  const handleFieldChange = (name: string, value: string) => {
+    const updatedForm = { ...callForm };
+    
+    if (name === 'type') {
+      // Reset caller/receiver when type changes
+      updatedForm.type = value;
+      updatedForm.caller = value === 'Incoming' ? '' : callForm.caller;
+      updatedForm.receiver = value === 'Outgoing' ? '' : callForm.receiver;
+    } else {
+      updatedForm[name as keyof typeof callForm] = value;
+    }
+
+    setCallForm(updatedForm);
+
+    // Validate the changed field in real-time
+    const error = validateField(name, value);
+    setErrors(prev => ({
+      ...prev,
+      [name]: error
+    }));
+  };
+
+  const handleSave = () => {
+    if (validateForm()) {
+      onSave();
+    } else {
+      showToast('Please fix the validation errors', { type: 'error' });
+    }
+  };
+
   if (!isOpen) return null;
 
   const textColor = theme === 'dark' ? 'text-white' : 'text-gray-900';
@@ -155,16 +222,6 @@ const EditCallModal: React.FC<EditCallModalProps> = ({
   const cardBgColor = theme === 'dark' ? 'bg-slate-800' : 'bg-white';
   const inputBgColor = theme === 'dark' ? 'bg-slate-700 text-white' : 'bg-white';
   const borderColor = theme === 'dark' ? 'border-gray-600' : 'border-gray-300';
-
-  const handleTypeChange = (type: string) => {
-    setCallForm({
-      ...callForm,
-      type,
-      // Reset the fields when type changes
-      caller: type === 'Incoming' ? '' : callForm.caller,
-      receiver: type === 'Outgoing' ? '' : callForm.receiver
-    });
-  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
@@ -181,20 +238,25 @@ const EditCallModal: React.FC<EditCallModalProps> = ({
         </div>
 
         {/* Form */}
-        <div className="px-6 pb-6  grid grid-cols-2 gap-4 ">
+        <div className="px-6 pb-6 grid grid-cols-2 gap-4">
           {/* Type */}
           <div>
             <label className={`block text-sm font-medium ${textColor} mb-2`}>
-              Type <span className="text-red-500">*</span>
+              Type 
             </label>
             <select
               value={callForm.type}
-              onChange={(e) => handleTypeChange(e.target.value)}
-              className={`w-full px-3 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${inputBgColor}`}
+              onChange={(e) => handleFieldChange('type', e.target.value)}
+              className={`w-full px-3 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${inputBgColor} ${
+                errors.type ? 'border-red-500' : ''
+              }`}
             >
               <option value="Incoming">Incoming</option>
               <option value="Outgoing">Outgoing</option>
             </select>
+            {errors.type && (
+              <p className="text-red-500 text-xs mt-1">{errors.type}</p>
+            )}
           </div>
 
           {/* To */}
@@ -205,13 +267,17 @@ const EditCallModal: React.FC<EditCallModalProps> = ({
             <input
               type="text"
               value={callForm.to}
-              onChange={(e) => setCallForm({ ...callForm, to: e.target.value })}
-               className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
-                      ? 'bg-gray-800 border-gray-600 text-white !placeholder-gray-400'
-                      : 'bg-white border-gray-300 text-gray-900 !placeholder-gray-500'
-                      }`}
+              onChange={(e) => handleFieldChange('to', e.target.value)}
+              className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                theme === 'dark'
+                  ? 'bg-gray-800 border-gray-600 text-white !placeholder-gray-400'
+                  : 'bg-white border-gray-300 text-gray-900 !placeholder-gray-500'
+              } ${errors.to ? 'border-red-500' : ''}`}
               placeholder="To"
             />
+            {errors.to && (
+              <p className="text-red-500 text-xs mt-1">{errors.to}</p>
+            )}
           </div>
 
           {/* From */}
@@ -222,13 +288,17 @@ const EditCallModal: React.FC<EditCallModalProps> = ({
             <input
               type="text"
               value={callForm.from}
-              onChange={(e) => setCallForm({ ...callForm, from: e.target.value })}
-              className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
-                      ? 'bg-gray-800 border-gray-600 text-white !placeholder-gray-400'
-                      : 'bg-white border-gray-300 text-gray-900 !placeholder-gray-500'
-                      }`}
+              onChange={(e) => handleFieldChange('from', e.target.value)}
+              className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                theme === 'dark'
+                  ? 'bg-gray-800 border-gray-600 text-white !placeholder-gray-400'
+                  : 'bg-white border-gray-300 text-gray-900 !placeholder-gray-500'
+              } ${errors.from ? 'border-red-500' : ''}`}
               placeholder="From"
             />
+            {errors.from && (
+              <p className="text-red-500 text-xs mt-1">{errors.from}</p>
+            )}
           </div>
 
           {/* Status */}
@@ -236,7 +306,7 @@ const EditCallModal: React.FC<EditCallModalProps> = ({
             <label className={`block text-sm font-medium ${textColor} mb-2`}>Status</label>
             <select
               value={callForm.status}
-              onChange={(e) => setCallForm({ ...callForm, status: e.target.value })}
+              onChange={(e) => handleFieldChange('status', e.target.value)}
               className={`w-full px-3 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${inputBgColor}`}
             >
               {["Initiated", "Ringing", "In Progress", "Completed", "Failed", "Busy", "No Answer", "Queued", "Canceled"].map(status => (
@@ -251,23 +321,32 @@ const EditCallModal: React.FC<EditCallModalProps> = ({
             <input
               type="number"
               value={callForm.duration}
-              onChange={(e) => setCallForm({ ...callForm, duration: e.target.value })}
-               className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
-                      ? 'bg-gray-800 border-gray-600 text-white !placeholder-gray-400'
-                      : 'bg-white border-gray-300 text-gray-900 !placeholder-gray-500'
-                      }`}
-              placeholder="Call duration"
+              onChange={(e) => handleFieldChange('duration', e.target.value)}
+              className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                theme === 'dark'
+                  ? 'bg-gray-800 border-gray-600 text-white !placeholder-gray-400'
+                  : 'bg-white border-gray-300 text-gray-900 !placeholder-gray-500'
+              } ${errors.duration ? 'border-red-500' : ''}`}
+              placeholder="Call duration in seconds"
+              min="0"
             />
+            {errors.duration && (
+              <p className="text-red-500 text-xs mt-1">{errors.duration}</p>
+            )}
           </div>
 
           {/* Caller (Only show for Outgoing) */}
           {callForm.type === 'Outgoing' && (
             <div>
-              <label className={`block text-sm font-medium ${textColor} mb-2`}>Caller</label>
+              <label className={`block text-sm font-medium ${textColor} mb-2`}>
+                Caller 
+              </label>
               <select
                 value={callForm.caller}
-                onChange={(e) => setCallForm({ ...callForm, caller: e.target.value })}
-                className={`w-full px-3 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${inputBgColor}`}
+                onChange={(e) => handleFieldChange('caller', e.target.value)}
+                className={`w-full px-3 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${inputBgColor} ${
+                  errors.caller ? 'border-red-500' : ''
+                }`}
                 disabled={loadingUsers}
               >
                 <option value="">Select Caller</option>
@@ -280,17 +359,24 @@ const EditCallModal: React.FC<EditCallModalProps> = ({
               {loadingUsers && (
                 <div className={`text-xs mt-1 ${textSecondaryColor}`}>Loading users...</div>
               )}
+              {errors.caller && (
+                <p className="text-red-500 text-xs mt-1">{errors.caller}</p>
+              )}
             </div>
           )}
 
           {/* Receiver (Only show for Incoming) */}
           {callForm.type === 'Incoming' && (
             <div>
-              <label className={`block text-sm font-medium ${textColor} mb-2`}>Call Received By</label>
+              <label className={`block text-sm font-medium ${textColor} mb-2`}>
+                Call Received By 
+              </label>
               <select
                 value={callForm.receiver}
-                onChange={(e) => setCallForm({ ...callForm, receiver: e.target.value })}
-                className={`w-full px-3 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${inputBgColor}`}
+                onChange={(e) => handleFieldChange('receiver', e.target.value)}
+                className={`w-full px-3 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${inputBgColor} ${
+                  errors.receiver ? 'border-red-500' : ''
+                }`}
                 disabled={loadingUsers}
               >
                 <option value="">Select Receiver</option>
@@ -303,6 +389,9 @@ const EditCallModal: React.FC<EditCallModalProps> = ({
               {loadingUsers && (
                 <div className={`text-xs mt-1 ${textSecondaryColor}`}>Loading users...</div>
               )}
+              {errors.receiver && (
+                <p className="text-red-500 text-xs mt-1">{errors.receiver}</p>
+              )}
             </div>
           )}
         </div>
@@ -310,10 +399,13 @@ const EditCallModal: React.FC<EditCallModalProps> = ({
         {/* Actions */}
         <div className="flex justify-end p-6 pt-0">
           <button
-            onClick={onSave}
+            onClick={handleSave}
             disabled={isLoading}
-            className={`px-6 py-2.5 rounded-lg text-white font-medium transition-colors ${theme === 'dark' ? 'bg-purple-600 hover:bg-purple-700' : 'bg-purple-600 hover:bg-purple-700'
-              } disabled:opacity-50 disabled:cursor-not-allowed`}
+            className={`px-6 py-2.5 rounded-lg text-white font-medium transition-colors ${
+              theme === 'dark' 
+                ? 'bg-purple-600 hover:bg-purple-700' 
+                : 'bg-purple-600 hover:bg-purple-700'
+            } disabled:opacity-50 disabled:cursor-not-allowed`}
           >
             {isLoading ? 'Updating...' : 'Update'}
           </button>

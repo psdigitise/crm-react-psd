@@ -107,7 +107,7 @@ export function CreateUsers({ isOpen, onClose, onSubmit }: CreateTodoModalProps)
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50"
                 >
                   <option value="open">Open</option>
-                  <option value="cancelled">Cancelled</option>
+                  <option value="Cancelled">Cancelled</option>
                   <option value="closed">Closed</option>
                 </select>
               </div>

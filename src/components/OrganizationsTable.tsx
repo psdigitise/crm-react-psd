@@ -2,11 +2,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ChevronDown, ChevronUp, Globe, Building2, IndianRupee, Users, Loader2, ChevronLeft, ChevronRight, Filter, X, Settings, RefreshCcw, Download, Upload } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import { showToast } from '../utils/toast';
-import { exportToExcel } from '../utils/exportUtils';
 import { getUserSession } from '../utils/session';
 import { BsThreeDots } from 'react-icons/bs';
 import { AUTH_TOKEN } from '../api/apiUrl';
 import { api } from '../api/apiService';
+import { ExportPopup } from './LeadsPopup/ExportPopup';
+import * as XLSX from 'xlsx';
 
 interface Organization {
   id: string;
@@ -111,6 +112,11 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
     territory: [] as string[],
     currency: [] as string[]
   });
+
+  // Export state
+  const [isExportPopupOpen, setIsExportPopupOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportFormat, setExportFormat] = useState<'Excel' | 'CSV'>('Excel');
 
   const [bulkEdit, setBulkEdit] = useState<BulkEditState>({
     showModal: false,
@@ -945,6 +951,52 @@ const handleBulkUpdate = async () => {
   const visibleColumns = getVisibleColumns();
   const filteredDataLength = getFilteredAndSortedData().length;
 
+  const handleExport = async (exportType: string = 'Excel', exportAll: boolean = true) => {
+    setIsExporting(true);
+    try {
+      const dataToExport = exportAll ? getFilteredAndSortedData() : organizations.filter(org => selectedIds.includes(org.id));
+
+      // Define the columns and their order for the export
+      const exportConfig: { header: string; key: keyof Organization }[] = [
+        { header: 'Organization Name', key: 'organization_name' },
+        { header: 'Website', key: 'website' },
+        { header: 'Industry', key: 'industry' },
+        { header: 'Annual Revenue', key: 'annual_revenue' },
+        { header: 'Employees', key: 'no_of_employees' },
+        { header: 'Territory', key: 'territory' },
+        { header: 'Currency', key: 'currency' },
+      ];
+
+      const headers = exportConfig.map(col => col.header);
+      const data = dataToExport.map(org => {
+        return exportConfig.map(col => org[col.key] ?? '');
+      });
+
+      const worksheet = XLSX.utils.aoa_to_sheet([headers, ...data]);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Organizations");
+
+      const fileExtension = exportType.toLowerCase() === 'csv' ? 'csv' : 'xlsx';
+      const scope = exportAll ? 'all' : 'selected';
+      const fileName = `organizations_${scope}_${new Date().toISOString().split("T")[0]}.${fileExtension}`;
+
+      XLSX.writeFile(workbook, fileName, { bookType: exportType === 'Excel' ? 'xlsx' : 'csv' });
+
+      setIsExportPopupOpen(false);
+      showToast('Export completed successfully!', { type: 'success' });
+    } catch (error) {
+      console.error("Export failed:", error);
+      showToast(`Export failed: ${error instanceof Error ? error.message : 'Unknown error'}`, { type: 'error' });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleFormatChange = (format: string) => {
+    if (format === 'Excel' || format === 'CSV') {
+      setExportFormat(format as 'Excel' | 'CSV');
+    }
+  };
   return (
     <div className="">
       {/* Action Bar */}
@@ -1090,16 +1142,16 @@ const handleBulkUpdate = async () => {
 
         <div className="flex items-center space-x-2">
           <div className="flex items-center space-x-2">
-            {getFilteredAndSortedData().length > 0 && (
-              <div title="Export Excel">
+            {filteredDataLength > 0 && (
+              <div title="Export Data">
                 <button
-                  onClick={() => exportToExcel(getFilteredAndSortedData(), 'Organizations')}
+                  onClick={() => setIsExportPopupOpen(true)}
                   className={`px-3 py-2 text-sm border rounded-lg transition-colors ${theme === 'dark'
                     ? 'border-purple-500/30 text-white hover:bg-purple-800/50'
                     : 'border-gray-300 hover:bg-gray-50'
                     }`}
                 >
-                  <Upload  className="w-4 h-4" />
+                  <Upload className="w-4 h-4" />
                 </button>
               </div>
             )}
@@ -1603,6 +1655,18 @@ const handleBulkUpdate = async () => {
           </div>
         </div>
       )}
+
+      <ExportPopup
+        isOpen={isExportPopupOpen}
+        onClose={() => setIsExportPopupOpen(false)}
+        onConfirm={handleExport}
+        recordCount={filteredDataLength}
+        theme={theme}
+        isLoading={isExporting}
+        onFormatChange={handleFormatChange}
+        selectedCount={selectedIds.length}
+        onRefresh={fetchOrganizations}
+      />
     </div>
   );
 }

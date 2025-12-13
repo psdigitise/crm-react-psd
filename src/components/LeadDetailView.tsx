@@ -4681,8 +4681,6 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
 
                   replyData={replyData}
                   recipientEmail={editedLead.email}
-                  recipientFirstName={editedLead.firstName} 
-
 
                 />
               )}
@@ -5117,7 +5115,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>Type <span className='text-red-500'>*</span></label>
+                  <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>Type </label>
                   <select
                     value={callForm.type}
                     onChange={(e) => {
@@ -5511,7 +5509,6 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
                   refreshEmails={refreshComments}
                   replyData={replyData}
                   recipientEmail={editedLead.email}
-                  recipientFirstName={editedLead.firstName}
                 />
               )}
             </div>
@@ -6272,7 +6269,6 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
                   refreshEmails={refreshEmails}
                   replyData={replyData}
                   recipientEmail={editedLead.email}
-                  recipientFirstName={editedLead.firstName}
                 />
               )}
 

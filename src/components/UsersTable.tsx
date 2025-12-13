@@ -322,70 +322,7 @@ export function UsersTable({ searchTerm, onUserClick, refreshTrigger }: UsersTab
             <RefreshCcw className="w-4 h-4" />
           </button>
 
-          <div className="relative">
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className={`px-3 py-2 text-sm border rounded-lg transition-colors flex items-center space-x-1 ${filters.status.length > 0
-                ? theme === 'dark'
-                  ? 'border-purple-500 bg-purplebg/30 text-purple-300'
-                  : 'border-blue-500 bg-blue-50 text-blue-700'
-                : theme === 'dark'
-                  ? 'border-purple-500/30 text-white hover:bg-purple-800/50'
-                  : 'border-gray-300 hover:bg-gray-50'
-                }`}
-            >
-              <Filter className="w-4 h-4" />
-              <span>Filter</span>
-              {filters.status.length > 0 && (
-                <span className="bg-blue-600 text-white text-sm font-semibold rounded-full w-5 h-5 flex items-center justify-center">
-                  {filters.status.length}
-                </span>
-              )}
-            </button>
-
-            {showFilters && (
-              <div className={`absolute top-full left-0 mt-2 w-80 rounded-lg shadow-lg z-10 p-4 ${theme === 'dark'
-                ? 'bg-dark-accent border border-purple-500/30'
-                : 'bg-white border border-gray-200'
-                }`}>
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Filters</h3>
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={clearFilters}
-                      className={`text-sm ${theme === 'dark' ? 'text-white hover:text-white' : 'text-gray-500 hover:text-gray-700'
-                        }`}
-                    >
-                      Clear All
-                    </button>
-                    <button
-                      onClick={() => setShowFilters(false)}
-                     className={`p-1 rounded ${theme === 'dark'
-                      ? 'text-gray-400 hover:text-white'
-                      : 'text-gray-500 hover:text-gray-700'
-                      }`}
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <FilterDropdown
-                    title="Status"
-                    options={['Active', 'Inactive']}
-                    selected={filters.status}
-                    onChange={(value) => setFilters(prev => ({
-                      ...prev,
-                      status: prev.status.includes(value)
-                        ? prev.status.filter(item => item !== value)
-                        : [...prev.status, value]
-                    }))}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
+          
 
           <div className="relative">
             <button

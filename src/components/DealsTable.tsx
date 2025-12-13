@@ -20,6 +20,7 @@ interface Deal {
   name: string;
   organization: string;
   first_name: string;
+  lastName?: string;
   status: string;
   email: string;
   mobileNo: string;
@@ -255,6 +256,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
         id: apiDeal.name || Math.random().toString(),
         organization: apiDeal.organization || 'N/A',
         first_name: apiDeal.first_name || 'Unknown',
+        lastName: apiDeal.last_name || '',
         name: apiDeal.name || 'Unknown',
         status: apiDeal.status || 'Qualification',
         email: apiDeal.email || 'N/A',
@@ -917,87 +919,81 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
   };
 
   // Export to Excel
-  // Alternative approach using axios
-const handleExport = async (exportType: string = 'Excel', exportAll: boolean = true) => {
-  setIsExporting(true);
+  const handleExport = async (exportType: string = 'Excel', exportAll: boolean = true) => {
+    setIsExporting(true);
 
-  try {
-    const session = getUserSession();
-    const sessionCompany = session?.company;
+    try {
+      const dataToExport = exportAll ? getFilteredAndSortedData() : deals.filter(deal => selectedDeals.includes(deal.id));
 
-    const baseUrl = "https://api.erpnext.ai/api/method/frappe.desk.reportview.export_query";
+      // Define the exact order and columns you want for the export
+      const exportColumnsConfig: { key: keyof Deal; label: string }[] = [
+        { key: 'name', label: 'Deal Name' },
+        { key: 'first_name', label: 'First Name' },
+        { key: 'lastName', label: 'Last Name' },
+        { key: 'organization', label: 'Organization' },
+        { key: 'status', label: 'Status' },
+        { key: 'email', label: 'Email' },
+        { key: 'mobileNo', label: 'Mobile No' },
+        { key: 'assignedTo', label: 'Assigned To' },
+        { key: 'closeDate', label: 'Close Date' },
+        { key: 'territory', label: 'Territory' },
+        { key: 'annualRevenue', label: 'Annual Revenue' },
+        { key: 'industry', label: 'Industry' },
+        { key: 'website', label: 'Website' },
+      ];
 
-    // Simple field list
-    const fields = ['organization', 'email', 'mobile_no', 'annual_revenue', 'status', 'owner', 'modified'];
+      const headers = exportColumnsConfig.map(col => col.label);
 
-    const params: any = {
-      file_format_type: exportType,
-      doctype: 'CRM Deal',
-      fields: JSON.stringify(fields),
-      filters: JSON.stringify({ company: sessionCompany }),
-      order_by: 'modified desc',
-      view: 'Report'
-    };
+      const data = dataToExport.map(deal => {
+        return exportColumnsConfig.map(col => {
+          if (col.key === 'assignedTo') {
+            let assignedNames: string[] = [];
+            if (typeof deal.assignedTo === 'string' && deal.assignedTo.startsWith('[')) {
+              try {
+                const parsed = JSON.parse(deal.assignedTo);
+                if (Array.isArray(parsed)) {
+                  assignedNames = parsed;
+                }
+              } catch { /* ignore parse error */ }
+            } else if (typeof deal.assignedTo === 'string') {
+              assignedNames = deal.assignedTo.split(',').map(s => s.trim());
+            }
+            return assignedNames.join(',');
+          }
+          return deal[col.key as keyof Deal] ?? '';
+        });
+      });
 
-    if (!exportAll && selectedDeals.length > 0) {
-      params.selected_items = JSON.stringify(selectedDeals);
+      const worksheet = XLSX.utils.aoa_to_sheet([headers, ...data]);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Deals");
+
+      const fileExtension = exportType.toLowerCase() === 'csv' ? 'csv' : 'xlsx';
+      const scope = exportAll ? 'all' : 'selected';
+      const fileName = `deals_${scope}_${new Date().toISOString().split("T")[0]}.${fileExtension}`;
+
+      XLSX.writeFile(workbook, fileName, { bookType: exportType === 'Excel' ? 'xlsx' : 'csv' });
+
+      setIsExportPopupOpen(false);
+      showToast('Export completed successfully!', 'success');
+
+    } catch (error: any) {
+      console.error("Export failed:", error);
+      if (error.response?.data instanceof Blob) {
+        try {
+          const text = await error.response.data.text();
+          const errorData = JSON.parse(text);
+          showToast(`Export failed: ${errorData.message || errorData.exception || 'Unknown error'}`);
+        } catch {
+          showToast(`Export failed: ${error.message}`);
+        }
+      } else {
+        showToast(`Export failed: ${error.response?.data?.message || error.message}`);
+      }
+    } finally {
+      setIsExporting(false);
     }
-
-    console.log('Export params:', params);
-
-    const response = await axios.get(baseUrl, {
-      params,
-      headers: {
-        'Authorization': AUTH_TOKEN
-      },
-      responseType: 'blob'
-    });
-
-    // Get content type from response
-    const contentType = response.headers['content-type'] || '';
-    console.log('Content-Type:', contentType);
-    
-    // Determine file extension based on content type
-    let fileExtension = 'xlsx';
-    if (contentType.includes('csv')) {
-      fileExtension = 'csv';
-    } else if (contentType.includes('excel') || contentType.includes('spreadsheet')) {
-      fileExtension = 'xlsx';
-    } else if (exportType === 'CSV') {
-      fileExtension = 'csv';
-    }
-
-    const scope = exportAll ? 'all' : 'selected';
-    const dateStr = new Date().toISOString().split('T')[0];
-    const filename = `deals_${scope}_${dateStr}.${fileExtension}`;
-
-    // Create blob with the correct MIME type
-    const blob = new Blob([response.data], {
-      type: contentType || (exportType === 'Excel' 
-        ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
-        : 'text/csv')
-    });
-
-    // Download file
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
-
-    setIsExportPopupOpen(false);
-    showToast('Export completed!', 'success');
-
-  } catch (error: any) {
-    console.error('Export error:', error);
-    showToast(`Export failed: ${error.message || 'Unknown error'}`);
-  } finally {
-    setIsExporting(false);
-  }
-};
+  };
 
   // Add format change handler
   const handleFormatChange = (format: string) => {

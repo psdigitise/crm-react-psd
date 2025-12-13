@@ -514,7 +514,7 @@ export default function ContactDetails({
   const handleSetPrimaryEmail = async (emailAddress: string) => {
     try {
       setemailLoading(true);
-      
+
       const session = getUserSession();
       if (!session) {
         showToast('Session not found', { type: 'error' });
@@ -539,12 +539,12 @@ export default function ContactDetails({
       }
 
       await response.json();
-      
+
       showToast('Email set as primary successfully', { type: 'success' });
-      
+
       // Refresh contact details to get updated email list
       await fetchContactDetails();
-      
+
     } catch (error) {
       console.error('Error setting primary email:', error);
       showToast('Failed to set email as primary', { type: 'error' });
@@ -1033,8 +1033,8 @@ export default function ContactDetails({
                   }
                 }}
                 className={`w-full px-2 py-1 border rounded text-sm ${isDark
-                    ? 'bg-dark-secondary text-white border-white/20 focus:border-purple-400'
-                    : 'bg-white text-gray-800 border-gray-300 focus:border-blue-400'
+                  ? 'bg-dark-secondary text-white border-white/20 focus:border-purple-400'
+                  : 'bg-white text-gray-800 border-gray-300 focus:border-blue-400'
                   } focus:outline-none`}
                 disabled={loading}
               >
@@ -1072,8 +1072,8 @@ export default function ContactDetails({
                 onBlur={() => handleBlur(field as string)}
                 onKeyDown={(e) => handleKeyDown(e, field as string)}
                 className={`w-full px-2 py-1 pr-8 border rounded text-sm ${isDark
-                    ? 'bg-dark-secondary text-white border-white/20 focus:border-purple-400'
-                    : 'bg-white text-gray-800 border-gray-300 focus:border-blue-400'
+                  ? 'bg-dark-secondary text-white border-white/20 focus:border-purple-400'
+                  : 'bg-white text-gray-800 border-gray-300 focus:border-blue-400'
                   } focus:outline-none`}
                 disabled={loading}
               />
@@ -1088,8 +1088,8 @@ export default function ContactDetails({
           <div className="flex items-center min-h-[32px] w-48">
             <p
               className={`w-full px-2 py-1 rounded text-sm cursor-pointer transition-colors ${isDark
-                  ? "text-white hover:bg-white/10"
-                  : "text-gray-800 hover:bg-gray-100"
+                ? "text-white hover:bg-white/10"
+                : "text-gray-800 hover:bg-gray-100"
                 } ${!value || value === 'N/A' ? 'italic opacity-60' : ''}`}
               onClick={() => handleSingleClick(field)}
               title="Click to edit"
@@ -1219,8 +1219,8 @@ export default function ContactDetails({
             <button
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
               className={`w-full px-3 py-2 border rounded text-left flex items-center justify-between text-sm ${isDark
-                  ? 'bg-dark-secondary text-white border-white/20 hover:border-purple-400'
-                  : 'bg-white text-gray-800 border-gray-300 hover:border-blue-400'
+                ? 'bg-dark-secondary text-white border-white/20 hover:border-purple-400'
+                : 'bg-white text-gray-800 border-gray-300 hover:border-blue-400'
                 } transition-colors focus:outline-none`}
             >
               <span className={`truncate ${!selectedEmail ? 'text-gray-500 italic' : ''}`}>
@@ -1238,8 +1238,8 @@ export default function ContactDetails({
 
             {isDropdownOpen && (
               <div className={`absolute top-full left-0 w-full max-w-[calc(100vw-2rem)] mt-1 border rounded shadow-lg z-10 max-h-60 overflow-y-auto ${isDark
-                  ? 'bg-gray-800 border-white/20 text-white'
-                  : 'bg-white border-gray-300 text-gray-800'
+                ? 'bg-gray-800 border-white/20 text-white'
+                : 'bg-white border-gray-300 text-gray-800'
                 }`}>
                 {emails.map((emailItem, index) => (
                   <div
@@ -1250,13 +1250,20 @@ export default function ContactDetails({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="font-medium truncate">{emailItem.email_id}</span>
-                        {emailItem.is_primary && (
-                          <span className="text-xs text-green-500 shrink-0">(Primary)</span>
-                        )}
+
                       </div>
                     </div>
                     <div className="flex items-center gap-1 ml-2 shrink-0">
-                      
+
+                      {emailItem.is_primary ? (
+                        <span className="text-xs text-green-500 font-medium shrink-0">(Primary)</span>
+                      ) : (
+
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs text-gray-400"></span> {/* This is the "0" from your image */}
+
+                        </div>
+                      )}
                       {!emailItem.is_primary && (
                         <button
                           onClick={(e) => {
@@ -1523,8 +1530,8 @@ export default function ContactDetails({
             <button
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
               className={`w-full px-3 py-2 border rounded text-left flex items-center justify-between text-sm ${isDark
-                  ? 'bg-dark-secondary text-white border-white/20 hover:border-purple-400'
-                  : 'bg-white text-gray-800 border-gray-300 hover:border-blue-400'
+                ? 'bg-dark-secondary text-white border-white/20 hover:border-purple-400'
+                : 'bg-white text-gray-800 border-gray-300 hover:border-blue-400'
                 } transition-colors focus:outline-none`}
             >
               <span className={`truncate ${!selectedPhone ? 'text-gray-500 italic' : ''}`}>
@@ -1542,8 +1549,8 @@ export default function ContactDetails({
 
             {isDropdownOpen && (
               <div className={`absolute top-full left-0 w-full max-w-[calc(100vw-2rem)] mt-1 border rounded shadow-lg z-10 max-h-60 overflow-y-auto ${isDark
-                  ? 'bg-gray-800 border-white/20 text-white'
-                  : 'bg-white border-gray-300 text-gray-800'
+                ? 'bg-gray-800 border-white/20 text-white'
+                : 'bg-white border-gray-300 text-gray-800'
                 }`}>
                 {phones.map((phoneItem, index) => (
                   <div
@@ -1554,60 +1561,70 @@ export default function ContactDetails({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="font-medium truncate">{phoneItem.phone}</span>
-                        {(phoneItem.is_primary_phone || phoneItem.is_primary_mobile_no) && (
-                          <span className="text-xs text-green-500 shrink-0">(Primary)</span>
-                        )}
+                       
                       </div>
                     </div>
                     <div className="flex items-center gap-1 ml-2 shrink-0">
-                      {/* Set As Primary Button - Only show if not already primary */}
-                      {!(phoneItem.is_primary_phone || phoneItem.is_primary_mobile_no) && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleSetPrimaryMobile(phoneItem.phone);
-                            setIsDropdownOpen(false);
-                          }}
-                          className={`p-1 rounded text-xs font-medium ${isDark
-                            ? ' text-white'
-                            : ' text-black'
-                            }`}
-                          title="Set as primary"
-                        >
-                          <CheckCircle size={14} />
-                        </button>
+                      {/* Status indicator */}
+                      {(phoneItem.is_primary_phone || phoneItem.is_primary_mobile_no) ? (
+                        <span className="text-xs text-green-500 font-medium shrink-0">(Primary)</span>
+                      ) : (
+                        <div className="flex items-center gap-1">
+                          {/* Clean status indicator */}
+                         
+                        </div>
                       )}
 
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setEditingPhone(phoneItem);
-                          setNewPhoneValue(phoneItem.phone);
-                          setIsDropdownOpen(false);
-                        }}
-                        className={`p-1 rounded ${isDark
-                          ? 'hover:bg-white/20 text-gray-300 hover:text-white'
-                          : 'hover:bg-gray-200 text-gray-500 hover:text-gray-700'
-                          }`}
-                        title="Edit phone number"
-                      >
-                        <Edit size={14} />
-                      </button>
+                      {/* Action buttons - only show for non-primary phones */}
+                      {!(phoneItem.is_primary_phone || phoneItem.is_primary_mobile_no) && (
+                        <>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSetPrimaryMobile(phoneItem.phone);
+                              setIsDropdownOpen(false);
+                            }}
+                            className={`p-1 rounded ${isDark
+                              ? 'hover:bg-white/20 text-gray-300 hover:text-white'
+                              : 'hover:bg-gray-200 text-gray-500 hover:text-gray-700'
+                              }`}
+                            title="Set as primary"
+                          >
+                            <CheckCircle size={14} />
+                          </button>
 
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setDeletingPhone(phoneItem);
-                          setIsDropdownOpen(false);
-                        }}
-                        className={`p-1 rounded ${isDark
-                          ? 'hover:bg-red-500/20 text-gray-300 hover:text-red-300'
-                          : 'hover:bg-red-50 text-gray-500 hover:text-red-600'
-                          }`}
-                        title="Delete phone number"
-                      >
-                        <Trash2 size={14} />
-                      </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingPhone(phoneItem);
+                              setNewPhoneValue(phoneItem.phone);
+                              setIsDropdownOpen(false);
+                            }}
+                            className={`p-1 rounded ${isDark
+                              ? 'hover:bg-white/20 text-gray-300 hover:text-white'
+                              : 'hover:bg-gray-200 text-gray-500 hover:text-gray-700'
+                              }`}
+                            title="Edit phone number"
+                          >
+                            <Edit size={14} />
+                          </button>
+
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeletingPhone(phoneItem);
+                              setIsDropdownOpen(false);
+                            }}
+                            className={`p-1 rounded ${isDark
+                              ? 'hover:bg-red-500/20 text-gray-300 hover:text-red-300'
+                              : 'hover:bg-red-50 text-gray-500 hover:text-red-600'
+                              }`}
+                            title="Delete phone number"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -1711,95 +1728,95 @@ export default function ContactDetails({
   };
 
   const renderAddressField = () => {
-  const isEditing = editingField === "address";
-  const value = contact.address as string;
+    const isEditing = editingField === "address";
+    const value = contact.address as string;
 
-  return (
-    <div className="text-sm flex items-center gap-2 py-1">
-      <p className={`w-32 shrink-0 ${isDark ? "text-white/80" : "text-gray-600"}`}>
-        Address:
-      </p>
+    return (
+      <div className="text-sm flex items-center gap-2 py-1">
+        <p className={`w-32 shrink-0 ${isDark ? "text-white/80" : "text-gray-600"}`}>
+          Address:
+        </p>
 
-      {isEditing ? (
-        <div className="w-48 relative">
-          {loadingAddresses ? (
-            <div className="flex items-center gap-2">
-              <Loader2 className="w-4 h-4 animate-spin text-purple-600" />
-              <span className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>
-                Loading addresses...
-              </span>
-            </div>
-          ) : (
-            <>
-              <select
-                ref={selectRef}
-                value={editValue}
-                onChange={(e) => setEditValue(e.target.value)}
-                onBlur={() => handleBlur("address")}
-                className={`w-full px-2 py-1 pr-8 border rounded text-sm ${isDark
-                  ? "bg-dark-secondary text-white border-white/20 focus:border-purple-400"
-                  : "bg-white text-gray-800 border-gray-300 focus:border-blue-400"
-                } focus:outline-none appearance-none`}
-                disabled={loading}
-              >
-                <option 
-                  value="" 
-                  className={isDark ? "text-gray-400 bg-dark-secondary" : "text-gray-500"}
-                >
-                  Select Address...
-                </option>
-                {addressOptions.map((addr) => (
-                  <option 
-                    key={addr.name} 
-                    value={addr.name}
-                    className={isDark ? "text-white bg-dark-secondary" : "text-gray-800"}
-                  >
-                    {addr.name}
-                  </option>
-                ))}
-              </select>
-              {/* Custom dropdown arrow */}
-              <div className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
-                <svg 
-                  className={`w-4 h-4 ${isDark ? "text-gray-400" : "text-gray-500"}`} 
-                  fill="none" 
-                  stroke="currentColor" 
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-              {loading && (
-                <div className="absolute inset-y-0 right-2 flex items-center">
-                  <Loader2 className="w-4 h-4 animate-spin text-purple-600" />
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      ) : (
-        <div className="flex items-center min-h-[32px] w-48">
-          <div
-            className={`w-full px-2 py-1 rounded text-sm cursor-pointer transition-colors ${isDark
-              ? "text-white hover:bg-white/10"
-              : "text-gray-800 hover:bg-gray-100"
-            } ${!value || value === "N/A" ? (isDark ? "text-gray-400 italic" : "text-gray-500 italic") : ""}`}
-            onClick={() => handleSingleClick("address")}
-            title="Click to edit address"
-          >
-            {value && value !== "N/A" ? (
-              <div className="truncate" title={value}>
-                {value}
+        {isEditing ? (
+          <div className="w-48 relative">
+            {loadingAddresses ? (
+              <div className="flex items-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin text-purple-600" />
+                <span className={`text-xs ${isDark ? "text-gray-400" : "text-gray-500"}`}>
+                  Loading addresses...
+                </span>
               </div>
             ) : (
-              <span>Select Address...</span>
+              <>
+                <select
+                  ref={selectRef}
+                  value={editValue}
+                  onChange={(e) => setEditValue(e.target.value)}
+                  onBlur={() => handleBlur("address")}
+                  className={`w-full px-2 py-1 pr-8 border rounded text-sm ${isDark
+                    ? "bg-dark-secondary text-white border-white/20 focus:border-purple-400"
+                    : "bg-white text-gray-800 border-gray-300 focus:border-blue-400"
+                    } focus:outline-none appearance-none`}
+                  disabled={loading}
+                >
+                  <option
+                    value=""
+                    className={isDark ? "text-gray-400 bg-dark-secondary" : "text-gray-500"}
+                  >
+                    Select Address...
+                  </option>
+                  {addressOptions.map((addr) => (
+                    <option
+                      key={addr.name}
+                      value={addr.name}
+                      className={isDark ? "text-white bg-dark-secondary" : "text-gray-800"}
+                    >
+                      {addr.name}
+                    </option>
+                  ))}
+                </select>
+                {/* Custom dropdown arrow */}
+                <div className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
+                  <svg
+                    className={`w-4 h-4 ${isDark ? "text-gray-400" : "text-gray-500"}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+                {loading && (
+                  <div className="absolute inset-y-0 right-2 flex items-center">
+                    <Loader2 className="w-4 h-4 animate-spin text-purple-600" />
+                  </div>
+                )}
+              </>
             )}
           </div>
-        </div>
-      )}
-    </div>
-  );
-};
+        ) : (
+          <div className="flex items-center min-h-[32px] w-48">
+            <div
+              className={`w-full px-2 py-1 rounded text-sm cursor-pointer transition-colors ${isDark
+                ? "text-white hover:bg-white/10"
+                : "text-gray-800 hover:bg-gray-100"
+                } ${!value || value === "N/A" ? (isDark ? "text-gray-400 italic" : "text-gray-500 italic") : ""}`}
+              onClick={() => handleSingleClick("address")}
+              title="Click to edit address"
+            >
+              {value && value !== "N/A" ? (
+                <div className="truncate" title={value}>
+                  {value}
+                </div>
+              ) : (
+                <span>Select Address...</span>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   const AddEmailPopup = () => {
     if (!addingEmail) return null;

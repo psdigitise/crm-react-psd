@@ -965,7 +965,10 @@ export default function OrganizationDetails({
                     } focus:outline-none max-w-[200px]`}
                   disabled={loading}
                 >
-                  <option value="">Select {label.toLowerCase()}...</option>
+                  <option className={`px-4 py-2 rounded border ${isDark
+                ? 'border-gray-600 text-white hover:bg-gray-700'
+                : 'border-gray-300 text-gray-700 hover:bg-gray-100'
+                } transition-colors`} value="">Select {label.toLowerCase()}...</option>
                   {getDropdownOptions(field as string).map((option) => (
                     <option
                       key={option}

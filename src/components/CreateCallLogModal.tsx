@@ -109,13 +109,7 @@ export function CreateCallLogModal({
         if (!value.trim()) return 'From field is required';
         return '';
       
-      case 'caller':
-        if (formData.type === 'Outgoing' && !value.trim()) return 'Caller is required for outgoing calls';
-        return '';
-      
-      case 'receiver':
-        if (formData.type === 'Incoming' && !value.trim()) return 'Receiver is required for incoming calls';
-        return '';
+     
       
       case 'duration':
         if (value && (parseInt(value) < 0 || isNaN(parseInt(value)))) {
@@ -290,7 +284,7 @@ export function CreateCallLogModal({
             {/* Type Field */}
             <div>
               <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>
-                Type <span className="text-red-500">*</span>
+                Type 
               </label>
               <select
                 name="type"
@@ -408,7 +402,7 @@ export function CreateCallLogModal({
             {formData.type === 'Outgoing' && (
               <div>
                 <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>
-                  Caller <span className="text-red-500">*</span>
+                  Caller
                 </label>
                 <select
                   name="caller"
@@ -443,7 +437,7 @@ export function CreateCallLogModal({
             {formData.type === 'Incoming' && (
               <div>
                 <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>
-                  Call Received By <span className="text-red-500">*</span>
+                  Call Received By 
                 </label>
                 <select
                   name="receiver"

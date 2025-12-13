@@ -832,7 +832,7 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
       modal: {
         ondismiss: () => {
           console.log('Payment modal dismissed');
-          showInfoToast('Payment was cancelled.');
+          showInfoToast('Payment was Cancelled.');
           setIsProcessingPayment(null);
         }
       }
@@ -1932,8 +1932,8 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
                       value={passwordData.newPassword}
                       onChange={(e) => handlePasswordInputChange('newPassword', e.target.value)}
                       className={`w-full px-4 py-2 rounded-lg border ${theme === 'dark'
-                        ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-400'
-                        : 'bg-gray-100 border-gray-300 text-gray-900 placeholder-gray-500'
+                        ? 'bg-gray-800 border-gray-700 text-white !placeholder-gray-400'
+                        : 'bg-gray-100 border-gray-300 text-gray-900 !placeholder-gray-500'
                         } ${passwordErrors.newPassword ? 'border-red-500' : ''} focus:outline-none focus:ring-2 focus:ring-blue-500`}
                       placeholder="Enter new password"
                     />
@@ -1956,8 +1956,8 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
                       value={passwordData.confirmPassword}
                       onChange={(e) => handlePasswordInputChange('confirmPassword', e.target.value)}
                       className={`w-full px-4 py-2 rounded-lg border ${theme === 'dark'
-                        ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-400'
-                        : 'bg-gray-100 border-gray-300 text-gray-900 placeholder-gray-500'
+                        ? 'bg-gray-800 border-gray-700 text-white !placeholder-gray-400'
+                        : 'bg-gray-100 border-gray-300 text-gray-900 !placeholder-gray-500'
                         } ${passwordErrors.confirmPassword ? 'border-red-500' : ''} focus:outline-none focus:ring-2 focus:ring-blue-500`}
                       placeholder="Confirm new password"
                     />

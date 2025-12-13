@@ -269,7 +269,7 @@ export function AssignToPopup({ isOpen, onClose, selectedIds, theme, onSuccess }
                         onClick={onClose}
                         className={`px-4 py-2 mb-2 rounded-xl w-full text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 `}
                     >
-                        cancel
+                        Cancel
                     </button>
                     <button
                         onClick={handleAssign}

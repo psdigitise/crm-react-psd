@@ -233,12 +233,34 @@ export function NotesPage({
     setOpenDropdown(openDropdown === noteId ? null : noteId);
   };
 
-  function formatRelativeDate(dateStr?: string | null) {
-    if (!dateStr) return '';
-    const parsed = new Date(dateStr.replace(' ', 'T'));
-    if (isNaN(parsed.getTime())) return '';
-    return formatDistanceToNow(parsed, { addSuffix: true });
+  // Remove the duplicate formatRelativeDate function at the bottom of the file
+// And update the one inside the component to properly handle the date format
+
+function formatRelativeDate(dateStr?: string | null) {
+  if (!dateStr) return '';
+  
+  // Handle different date formats
+  let parsed: Date;
+  
+  if (dateStr.includes('T')) {
+    // Already in ISO format with T separator
+    parsed = new Date(dateStr);
+  } else {
+    // Replace space with T for ISO format
+    parsed = new Date(dateStr.replace(' ', 'T'));
   }
+  
+  if (isNaN(parsed.getTime())) return '';
+  
+  const distance = formatDistanceToNow(parsed, { addSuffix: true });
+  
+  // Convert "less than a minute ago" to "now"
+  if (distance === 'less than a minute ago') {
+    return 'now';
+  }
+  
+  return distance;
+}
 
   const handleDeleteClick = (noteId: string, event: React.MouseEvent) => {
     event.stopPropagation();

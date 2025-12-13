@@ -3838,7 +3838,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>Type <span className='text-red-500'>*</span></label>
+                  <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>Type </label>
                   <select
                     value={callForm.type}
                     onChange={(e) => {

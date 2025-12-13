@@ -2,11 +2,12 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ChevronDown, ChevronUp, Mail, Phone, Building2, Loader2, ChevronLeft, ChevronRight, Filter, X, Settings, RefreshCcw, Download, Upload } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import { showToast } from '../utils/toast';
-import { exportToExcel } from '../utils/exportUtils';
 import { getUserSession } from '../utils/session';
 import { BsThreeDots } from 'react-icons/bs';
 import { AUTH_TOKEN } from '../api/apiUrl';
 import { api } from '../api/apiService';
+import { ExportPopup } from './LeadsPopup/ExportPopup';
+import * as XLSX from 'xlsx';
 import axios from 'axios';
 
 // Add toast notification component
@@ -105,7 +106,6 @@ const defaultColumns: ColumnConfig[] = [
   { key: 'phone', label: 'Phone', visible: true, sortable: true },
   { key: 'company_name', label: 'Company Name', visible: true, sortable: true },
   { key: 'lastContact', label: 'Last Contact', visible: true, sortable: true },
-  { key: 'status', label: 'Status', visible: false, sortable: true },
   { key: 'assignedTo', label: 'Assigned To', visible: false, sortable: true },
 ];
 
@@ -265,6 +265,11 @@ export function ContactsTable({ searchTerm, onContactClick, onRefresh }: Contact
   // Toast state
   const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
 
+  // Export state
+  const [isExportPopupOpen, setIsExportPopupOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportFormat, setExportFormat] = useState<'Excel' | 'CSV'>('Excel');
+
   const userSession = getUserSession();
   const Company = userSession?.company;
 
@@ -317,8 +322,8 @@ export function ContactsTable({ searchTerm, onContactClick, onRefresh }: Contact
         kanban_columns: "[]",
         kanban_fields: "[]",
         page_length: 1000,
-        page_length_count: 1000,
-        rows: JSON.stringify(["name", "full_name", "company_name", "email_id", "mobile_no", "modified", "image", "status", "owner"]),
+        page_length_count: 1000, // This should be a large number to fetch all
+        rows: JSON.stringify(["name", "full_name", "company_name", "email_id", "mobile_no", "modified", "image", "status", "owner", "salutation", "designation", "gender"]),
         title_field: "",
         view: {
           custom_view_name: 10,
@@ -343,12 +348,12 @@ export function ContactsTable({ searchTerm, onContactClick, onRefresh }: Contact
         lastContact: formatDate(apiContact.modified),
         assignedTo: apiContact.owner || 'N/A',
         // Keep original API fields
-        middle_name: apiContact.middle_name,
-        last_name: apiContact.last_name,
-        user: apiContact.user,
-        salutation: apiContact.salutation,
-        designation: apiContact.designation,
-        gender: apiContact.gender,
+        middle_name: apiContact.middle_name || '',
+        last_name: apiContact.last_name || '',
+        user: apiContact.user || '',
+        salutation: apiContact.salutation || '',
+        designation: apiContact.designation || '',
+        gender: apiContact.gender || '',
         creation: apiContact.creation,
         modified: apiContact.modified,
         email_id: apiContact.email_id,
@@ -411,8 +416,8 @@ export function ContactsTable({ searchTerm, onContactClick, onRefresh }: Contact
         kanban_columns: "[]",
         kanban_fields: "[]",
         page_length: 1000,
-        page_length_count: 1000,
-        rows: JSON.stringify(["name", "full_name", "company_name", "email_id", "mobile_no", "modified", "image", "status", "owner"]),
+        page_length_count: 1000, // This should be a large number to fetch all
+        rows: JSON.stringify(["name", "full_name", "company_name", "email_id", "mobile_no", "modified", "image", "status", "owner", "salutation", "designation", "gender"]),
         title_field: "",
         view: {
           custom_view_name: 10,
@@ -435,12 +440,12 @@ export function ContactsTable({ searchTerm, onContactClick, onRefresh }: Contact
         position: apiContact.designation || 'N/A',
         lastContact: formatDate(apiContact.modified),
         assignedTo: apiContact.owner || 'N/A',
-        middle_name: apiContact.middle_name,
-        last_name: apiContact.last_name,
-        user: apiContact.user,
-        salutation: apiContact.salutation,
-        designation: apiContact.designation,
-        gender: apiContact.gender,
+        middle_name: apiContact.middle_name || '',
+        last_name: apiContact.last_name || '',
+        user: apiContact.user || '',
+        salutation: apiContact.salutation || '',
+        designation: apiContact.designation || '',
+        gender: apiContact.gender || '',
         creation: apiContact.creation,
         modified: apiContact.modified,
         email_id: apiContact.email_id,
@@ -1342,6 +1347,54 @@ export function ContactsTable({ searchTerm, onContactClick, onRefresh }: Contact
   const visibleColumns = getVisibleColumns();
   const filteredDataLength = getFilteredAndSortedData().length;
 
+  const handleExport = async (exportType: string = 'Excel', exportAll: boolean = true) => {
+    setIsExporting(true);
+    try {
+      const dataToExport = exportAll ? getFilteredAndSortedData() : contacts.filter(contact => selectedIds.includes(contact.id));
+
+      // Define the columns and their order for the export
+      const exportConfig: { header: string; key: keyof Contact }[] = [
+        { header: 'Salutation', key: 'salutation' },
+        { header: 'Full Name', key: 'full_name' },
+        { header: 'Company Name', key: 'company_name' },
+        { header: 'Designation', key: 'designation' },
+        { header: 'Position', key: 'position' },
+        { header: 'Email', key: 'email' },
+        { header: 'Phone', key: 'phone' },
+        { header: 'Gender', key: 'gender' },
+      ];
+
+      const headers = exportConfig.map(col => col.header);
+      const data = dataToExport.map(contact => {
+        return exportConfig.map(col => contact[col.key] ?? '');
+      });
+
+      const worksheet = XLSX.utils.aoa_to_sheet([headers, ...data]);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Contacts");
+
+      const fileExtension = exportType.toLowerCase() === 'csv' ? 'csv' : 'xlsx';
+      const scope = exportAll ? 'all' : 'selected';
+      const fileName = `contacts_${scope}_${new Date().toISOString().split("T")[0]}.${fileExtension}`;
+
+      XLSX.writeFile(workbook, fileName, { bookType: exportType === 'Excel' ? 'xlsx' : 'csv' });
+
+      setIsExportPopupOpen(false);
+      showToastMessage('Export completed successfully!', 'success');
+    } catch (error) {
+      console.error("Export failed:", error);
+      showToastMessage(`Export failed: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleFormatChange = (format: string) => {
+    if (format === 'Excel' || format === 'CSV') {
+      setExportFormat(format as 'Excel' | 'CSV');
+    }
+  };
+
   return (
     <div className="">
       {/* Toast Notification */}
@@ -1551,10 +1604,10 @@ export function ContactsTable({ searchTerm, onContactClick, onRefresh }: Contact
 
         <div className="flex items-center space-x-2">
           <div className="flex items-center space-x-2">
-            {getFilteredAndSortedData().length > 0 && (
-              <div title="Export Excel">
+            <div title="Export Data">
+              {filteredDataLength > 0 && (
                 <button
-                  onClick={() => exportToExcel(getFilteredAndSortedData(), 'Contacts')}
+                  onClick={() => setIsExportPopupOpen(true)}
                   className={`px-3 py-2 text-sm border rounded-lg transition-colors ${theme === 'dark'
                     ? 'border-purple-500/30 text-white hover:bg-purple-800/50'
                     : 'border-gray-300 hover:bg-gray-50'
@@ -1562,8 +1615,8 @@ export function ContactsTable({ searchTerm, onContactClick, onRefresh }: Contact
                 >
                   <Upload className="w-4 h-4" />
                 </button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
           <span className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>
@@ -2135,6 +2188,18 @@ export function ContactsTable({ searchTerm, onContactClick, onRefresh }: Contact
           </div>
         </div>
       )}
+
+      <ExportPopup
+        isOpen={isExportPopupOpen}
+        onClose={() => setIsExportPopupOpen(false)}
+        onConfirm={handleExport}
+        recordCount={filteredDataLength}
+        theme={theme}
+        isLoading={isExporting}
+        onFormatChange={handleFormatChange}
+        selectedCount={selectedIds.length}
+        onRefresh={fetchContacts}
+      />
     </div>
   );
 }

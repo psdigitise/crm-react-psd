@@ -116,41 +116,6 @@ export function Sidebar({ isCollapsed, onToggle, activeItem, onItemClick }: Side
     return () => clearInterval(interval);
   }, []);
 
-  // const fetchNotifications = async () => {
-  //   try {
-  //     const session = getUserSession();
-  //     const sessionCompany = session?.company;
-
-  //     let apiUrl = 'https://api.erpnext.ai/api/v2/document/CRM Notification?fields=["name","creation","modified","message"]';
-
-  //     // Add company filter if company exists in session
-  //     if (sessionCompany) {
-  //       apiUrl += `&filters=[["company","=","${sessionCompany}"]]`;
-  //     }
-
-  //     const response = await fetch(apiUrl, {
-  //       method: 'GET',
-  //       headers: {
-  //         'Content-Type': 'application/json',
-  //         'Authorization': AUTH_TOKEN
-  //       }
-  //     });
-
-  //     if (response.ok) {
-  //       const result = await response.json();
-  //       const newNotifications = result.data || [];
-
-  //       // Set the unread count to the actual number of notifications
-  //       const totalNotifications = newNotifications.length;
-  //       setNotifications(newNotifications);
-  //       setUnreadCount(totalNotifications);
-  //     }
-  //   } catch (error) {
-  //     console.error('Error fetching notifications:', error);
-  //   }
-  // };
-
-
   const fetchNotifications = async () => {
     try {
       const session = getUserSession();
@@ -269,9 +234,9 @@ export function Sidebar({ isCollapsed, onToggle, activeItem, onItemClick }: Side
                           ? "text-gray-300"
                           : "text-gray-500"
                           }`}
-                        title="username"
+                        title="full_name"
                       >
-                        {Username || "Administrator"}
+                        {sessionfullname || "Administrator"}
                       </p>
                     </div>
                   </div>
@@ -646,10 +611,6 @@ export function Sidebar({ isCollapsed, onToggle, activeItem, onItemClick }: Side
         </div>
       </div>
 
-      {/* <SettingsModal
-        isOpen={showSettingsModal}
-        onClose={() => setShowSettingsModal(false)}
-      /> */}
       <SettingsModal
         isOpen={showSettingsModal}
         onClose={() => setShowSettingsModal(false)}

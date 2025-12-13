@@ -11,7 +11,7 @@ interface ConfirmationPopupProps {
   title: string;
   message: string;
   confirmText?: string;
-  cancelText?: string;
+  CancelText?: string;
   isLoading?: boolean;
 }
 
@@ -22,7 +22,7 @@ export const ConfirmationPopup: React.FC<ConfirmationPopupProps> = ({
   title,
   message,
   confirmText = "Generate",
-  cancelText = "Cancel",
+  CancelText = "Cancel",
   isLoading = false,
 }) => {
   const { theme } = useTheme();
@@ -61,7 +61,7 @@ export const ConfirmationPopup: React.FC<ConfirmationPopupProps> = ({
                 : 'bg-gray-200 hover:bg-gray-300 text-gray-800'
               } disabled:opacity-50`}
           >
-            {cancelText}
+            {CancelText}
           </button>
           <button
             onClick={onConfirm}

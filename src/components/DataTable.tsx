@@ -14,6 +14,7 @@ import { api } from '../api/apiService';
 import { ExportPopup } from './LeadsPopup/ExportPopup';
 import { LinkedItemsPopup } from './LeadsPopup/LinkedItemsPopup';
 import axios from 'axios';
+import * as XLSX from 'xlsx';
 
 // Add toast notification component
 const Toast = ({ message, type = 'error', onClose }: { message: string; type?: 'error' | 'success'; onClose: () => void }) => {
@@ -206,7 +207,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
 
   // Available filter options
   const [filterOptions, setFilterOptions] = useState({
-    status: ['New', 'Contacted', 'Qualified', 'Lost', 'Unqualified', 'Junk', 'Nurture'],
+    status: ['New', 'Contacted', 'Qualified', 'Unqualified', 'Junk', 'Nurture'],
     territory: [] as string[],
     industry: [] as string[],
 
@@ -1319,201 +1320,165 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
   };
 
   const handleExport = async (exportType: string = 'Excel', exportAll: boolean = true) => {
-  setIsExporting(true);
+    setIsExporting(true);
 
-  try {
-    const session = getUserSession();
-    const sessionCompany = session?.company;
+    try {
+      const session = getUserSession();
+      const sessionCompany = session?.company;
 
-    const baseUrl = "https://api.erpnext.ai/api/method/frappe.desk.reportview.export_query";
+      const exportFilters: any = {
+        company: sessionCompany,
+        converted: 0
+      };
 
-    const exportFilters: any = {
-      company: sessionCompany,
-      converted: 0
-    };
+      const dataToExport = exportAll ? getFilteredAndSortedData() : leads.filter(lead => selectedIds.includes(lead.id));
 
-    if (filters.status.length > 0) {
-      exportFilters['status'] = ['in', filters.status];
-    }
-    if (filters.territory.length > 0) {
-      exportFilters['territory'] = ['in', filters.territory];
-    }
-    if (filters.industry.length > 0) {
-      exportFilters['industry'] = ['in', filters.industry];
-    }
-    if (filters.assignedTo.length > 0) {
-      exportFilters['_assign'] = ['in', filters.assignedTo];
-    }
-
-    const columnToFieldMap: Record<string, string> = {
-      'name': 'name',
-      'firstName': 'first_name',
-      'lastName': 'last_name',
-      'organization': 'organization',
-      'status': 'status',
-      'email': 'email',
-      'mobile': 'mobile_no',
-      'assignedTo': '_assign',
-      'lastModified': 'modified',
-      'territory': 'territory',
-      'industry': 'industry',
-      'website': 'website',
-      'leadId': 'name',
-      'jobTitle': 'job_title',
-      'source': 'source',
-      'salutation': 'salutation'
-    };
-
-    // Define the desired export order
-    const preferredOrder = [
-      'name', 
-      'firstName', 
-      'lastName', 
-      'organization', 
-      
-      'email', 
-      'mobile', 
-      'assignedTo', 
-      'territory',
-      'industry',
-      'website',
-      'jobTitle',
-      'source',
-      'salutation',
-      'leadId',
-      'status', 
-      'lastModified',
-    ];
-
-    // Get visible columns from user settings
-    const visibleColumnsFromSettings = columns.filter(col => col.visible);
-    
-    // Add firstName and lastName to export even if they're not visible in the table
-    const exportColumns = [...visibleColumnsFromSettings];
-    
-    // Add firstName if not already in export columns
-    if (!exportColumns.find(col => col.key === 'firstName')) {
-      exportColumns.push({ key: 'firstName', label: 'First Name', visible: true, sortable: true });
-    }
-    
-    // Add lastName if not already in export columns
-    if (!exportColumns.find(col => col.key === 'lastName')) {
-      exportColumns.push({ key: 'lastName', label: 'Last Name', visible: true, sortable: true });
-    }
-
-    // Remove duplicates (in case firstName/lastName were already visible)
-    const uniqueColumns = exportColumns.filter((col, index, self) =>
-      index === self.findIndex((t) => t.key === col.key)
-    );
-
-    // Sort columns according to preferred order
-    const sortedColumns = uniqueColumns.sort((a, b) => {
-      const indexA = preferredOrder.indexOf(a.key);
-      const indexB = preferredOrder.indexOf(b.key);
-      // Put items not in preferredOrder at the end, maintaining their relative order
-      const posA = indexA === -1 ? 999 + exportColumns.indexOf(a) : indexA;
-      const posB = indexB === -1 ? 999 + exportColumns.indexOf(b) : indexB;
-      return posA - posB;
-    });
-
-    console.log('Export column order:', sortedColumns.map(col => `${col.key} (${col.label})`));
-
-    // Map to field names in the correct order
-    const visibleFields = sortedColumns
-      .map(col => columnToFieldMap[col.key] || col.key)
-      .filter((field, index, self) => self.indexOf(field) === index)
-      .map(field => `\`tabCRM Lead\`.\`${field}\``);
-
-    console.log('Export fields:', visibleFields);
-
-    // Build order_by parameter
-    let orderBy = "`tabCRM Lead`.`modified` desc";
-    if (sortField) {
-      const fieldName = columnToFieldMap[sortField] || sortField;
-      orderBy = `\`tabCRM Lead\`.\`${fieldName}\` ${sortDirection}`;
-    }
-
-    const params: any = {
-      file_format_type: exportType,
-      title: "CRM Lead",
-      doctype: "CRM Lead",
-      fields: JSON.stringify(visibleFields),
-      order_by: orderBy,
-      filters: JSON.stringify(exportFilters),
-      view: "Report",
-      with_comment_count: 1
-    };
-
-    if (!exportAll && selectedIds.length > 0) {
-      params.selected_items = JSON.stringify(selectedIds);
-      console.log('Exporting selected items:', selectedIds);
-    } else {
-      params.page_length = 500;
-      params.start = 0;
-      console.log('Exporting all filtered records');
-    }
-
-    console.log('Export params:', params);
-
-    const response = await axios.get(baseUrl, {
-      params,
-      headers: {
-        'Authorization': AUTH_TOKEN,
-        'Content-Type': 'application/json'
-      },
-      responseType: "blob"
-    });
-
-    if (response.data.type === 'application/json') {
-      const text = await response.data.text();
-      const errorData = JSON.parse(text);
-      throw new Error(errorData.message || errorData.exception || 'Export failed');
-    }
-
-    const fileExtension = exportType.toLowerCase() === 'csv' ? 'csv' : 'xlsx';
-    const mimeType = exportType.toLowerCase() === 'csv'
-      ? 'text/csv'
-      : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-
-    const blob = new Blob([response.data], {
-      type: mimeType
-    });
-
-    const downloadUrl = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = downloadUrl;
-
-    const scope = exportAll ? 'all' : 'selected';
-    a.download = `leads_${scope}_${new Date().toISOString().split("T")[0]}.${fileExtension}`;
-
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(downloadUrl);
-
-    setIsExportPopupOpen(false);
-    await fetchLeads();
-    showToast('Export completed successfully!', 'success');
-
-  } catch (error: any) {
-    console.error("Export failed:", error);
-    console.error("Error response:", error.response?.data);
-
-    if (error.response?.data instanceof Blob) {
-      try {
-        const text = await error.response.data.text();
-        const errorData = JSON.parse(text);
-        showToast(`Export failed: ${errorData.message || errorData.exception || 'Unknown error'}`);
-      } catch {
-        showToast(`Export failed: ${error.message}`);
+      if (filters.status.length > 0) {
+        exportFilters['status'] = ['in', filters.status];
       }
-    } else {
-      showToast(`Export failed: ${error.response?.data?.message || error.message}`);
+      if (filters.territory.length > 0) {
+        exportFilters['territory'] = ['in', filters.territory];
+      }
+      if (filters.industry.length > 0) {
+        exportFilters['industry'] = ['in', filters.industry];
+      }
+      if (filters.assignedTo.length > 0) {
+        exportFilters['_assign'] = ['in', filters.assignedTo];
+      }
+
+      const columnToFieldMap: Record<string, string> = {
+        'name': 'name',
+        'firstName': 'first_name',
+        'lastName': 'last_name', // This is correct
+        'organization': 'organization',
+        'status': 'status',
+        'email': 'email',
+        'mobile': 'mobile_no',
+        'assignedTo': '_assign',
+        'lastModified': 'modified',
+        'territory': 'territory',
+        'industry': 'industry',
+        'website': 'website',
+        'leadId': 'name',
+        'jobTitle': 'job_title',
+        'source': 'source',
+        'salutation': 'salutation'
+      };
+
+      // Define the desired export order
+      const preferredOrder = [
+        'name',
+        'firstName',
+        'lastName',
+        'organization',
+        'email',
+        'mobile',
+        'assignedTo',
+        'status',
+        'territory',
+        'industry',
+        'website',
+        'jobTitle',
+        'source',
+        'salutation',
+        'leadId'
+      ];
+
+
+      // Get visible columns from user settings
+      const visibleColumnsFromSettings = columns.filter(col => col.visible);
+
+      // Add firstName and lastName to export even if they're not visible in the table
+      const exportColumns = [...visibleColumnsFromSettings];
+
+      // Add firstName if not already in export columns
+      if (!exportColumns.find(col => col.key === 'firstName')) {
+        exportColumns.push({ key: 'firstName', label: 'First Name', visible: true, sortable: true });
+      }
+
+      // Add lastName if not already in export columns
+      if (!exportColumns.find(col => col.key === 'lastName')) {
+        exportColumns.push({ key: 'lastName', label: 'Last Name', visible: true, sortable: true });
+      }
+
+      // Remove duplicates (in case firstName/lastName were already visible)
+      const uniqueColumns = exportColumns.filter((col, index, self) =>
+        index === self.findIndex((t) => t.key === col.key)
+      );
+
+      // Remove 'lastModified' from export
+      const columnsForExport = uniqueColumns.filter(col => col.key !== 'lastModified');
+
+      // Sort columns according to preferred order
+      const sortedColumns = columnsForExport.sort((a, b) => {
+        const indexA = preferredOrder.indexOf(a.key);
+        const indexB = preferredOrder.indexOf(b.key);
+        // Put items not in preferredOrder at the end, maintaining their relative order
+        const posA = indexA === -1 ? 999 + columnsForExport.indexOf(a) : indexA;
+        const posB = indexB === -1 ? 999 + columnsForExport.indexOf(b) : indexB;
+        return posA - posB;
+      });
+
+      console.log('Export column order:', sortedColumns.map(col => `${col.key} (${col.label})`));
+
+      const headers = sortedColumns.map(col => {
+        if (col.key === 'assignedTo') return 'Assign';
+        return col.label;
+      });
+
+      const data = dataToExport.map(lead => {
+        return sortedColumns.map(col => {
+          if (col.key === 'assignedTo') {
+            let assignedNames: string[] = [];
+            if (typeof lead.assignedTo === 'string' && lead.assignedTo.startsWith('[')) {
+              try {
+                const parsed = JSON.parse(lead.assignedTo);
+                if (Array.isArray(parsed)) {
+                  assignedNames = parsed;
+                }
+              } catch { /* ignore parse error */ }
+            } else if (typeof lead.assignedTo === 'string') {
+              assignedNames = lead.assignedTo.split(',').map(s => s.trim());
+            }
+            return assignedNames.join(',');
+          }
+          return lead[col.key as keyof Lead] ?? '';
+        });
+      });
+
+      const worksheet = XLSX.utils.aoa_to_sheet([headers, ...data]);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Leads");
+
+      const fileExtension = exportType.toLowerCase() === 'csv' ? 'csv' : 'xlsx';
+      const scope = exportAll ? 'all' : 'selected';
+      const fileName = `leads_${scope}_${new Date().toISOString().split("T")[0]}.${fileExtension}`;
+
+      XLSX.writeFile(workbook, fileName, { bookType: exportType === 'Excel' ? 'xlsx' : 'csv' });
+
+      setIsExportPopupOpen(false);
+      showToast('Export completed successfully!', 'success');
+
+    } catch (error: any) {
+      console.error("Export failed:", error);
+      console.error("Error response:", error.response?.data);
+
+      if (error.response?.data instanceof Blob) {
+        try {
+          const text = await error.response.data.text();
+          const errorData = JSON.parse(text);
+          showToast(`Export failed: ${errorData.message || errorData.exception || 'Unknown error'}`);
+        } catch {
+          showToast(`Export failed: ${error.message}`);
+        }
+      } else {
+        showToast(`Export failed: ${error.response?.data?.message || error.message}`);
+      }
+    } finally {
+      setIsExporting(false);
     }
-  } finally {
-    setIsExporting(false);
-  }
-};
+
+  };
 
   const handleFormatChange = (format: string) => {
     if (format === 'Excel' || format === 'CSV') {
@@ -1521,141 +1486,6 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
     }
   };
 
-  // const handleDeleteConfirmation = async () => {
-  //   if (selectedIds.length === 0) {
-  //     console.error("No leads selected for deletion.");
-  //     setIsDeletePopupOpen(false);
-  //     return;
-  //   }
-
-  //   setIsDeleting(true);
-
-  //   try {
-  //     const requestBody = {
-  //       doctype: "CRM Lead",
-  //       items: JSON.stringify(selectedIds),
-  //     };
-
-  //     const response = await fetch(
-  //       "https://api.erpnext.ai/api/method/frappe.desk.reportview.delete_items",
-  //       {
-  //         method: 'POST',
-  //         headers: {
-  //           'Content-Type': 'application/json',
-  //           'Authorization': AUTH_TOKEN
-  //         },
-  //         body: JSON.stringify(requestBody)
-  //       }
-  //     );
-
-  //     if (!response.ok) {
-  //       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-  //     }
-
-  //     const result = await response.json();
-  //     console.log("Leads deleted successfully:", result);
-
-  //     if (result && result.message === "ok") {
-  //       setIsDeletePopupOpen(false);
-  //       setSelectedIds([]);
-  //       setShowDropdown(false);
-  //       await fetchLeads();
-  //       showToast('Leads deleted successfully!', 'success');
-  //     } else {
-  //       throw new Error("Cannot delete or cancel because CRM Lead is linked with CRM Notification");
-  //     }
-
-  //   } catch (error: any) {
-  //     console.log("=== ERROR DETAILS ===");
-  //     console.log("Full error:", error);
-  //     console.log("Error response:", error.response?.data);
-
-  //     let errorMessage = "Deletion failed";
-
-  //     if (error.response?.data?._server_messages) {
-  //       console.log("_server_messages found:", error.response.data._server_messages);
-
-  //       try {
-  //         const serverMessages = error.response.data._server_messages;
-  //         let parsedMessages;
-
-  //         if (typeof serverMessages === 'string') {
-  //           parsedMessages = JSON.parse(serverMessages);
-  //         } else if (Array.isArray(serverMessages)) {
-  //           parsedMessages = serverMessages;
-  //         } else {
-  //           parsedMessages = [serverMessages];
-  //         }
-
-  //         console.log("Parsed messages:", parsedMessages);
-
-  //         if (Array.isArray(parsedMessages) && parsedMessages.length > 0) {
-  //           const firstMessage = parsedMessages[0];
-
-  //           if (typeof firstMessage === 'string') {
-  //             const cleanedJsonString = firstMessage
-  //               .replace(/\\"/g, '"')
-  //               .replace(/\\\\/g, '\\')
-  //               .replace(/^"|"$/g, '');
-
-  //             console.log("Cleaned JSON string:", cleanedJsonString);
-
-  //             try {
-  //               const messageObj = JSON.parse(cleanedJsonString);
-  //               console.log("Message object:", messageObj);
-
-  //               if (messageObj.message) {
-  //                 errorMessage = messageObj.message;
-  //                 errorMessage = errorMessage.replace(/<[^>]*>/g, '');
-  //               }
-  //             } catch (innerParseError) {
-  //               console.log("Inner parse failed, using string as is:", cleanedJsonString);
-  //               errorMessage = cleanedJsonString;
-  //             }
-  //           } else if (firstMessage.message) {
-  //             errorMessage = firstMessage.message;
-  //             errorMessage = errorMessage.replace(/<[^>]*>/g, '');
-  //           }
-  //         }
-  //       } catch (parseError) {
-  //         console.log("Parse error, trying fallback extraction:", parseError);
-  //         try {
-  //           const rawString = typeof error.response?.data?._server_messages === 'string'
-  //             ? error.response.data._server_messages
-  //             : JSON.stringify(error.response?.data?._server_messages || '');
-
-  //           const regex = /"message":\s*"([^"]*)"/;
-  //           const match = rawString.match(regex);
-  //           if (match && match[1]) {
-  //             errorMessage = match[1]
-  //               .replace(/<[^>]*>/g, '')
-  //               .replace(/\\"/g, '"')
-  //               .replace(/\\\\/g, '\\');
-  //           }
-  //         } catch (fallbackError) {
-  //           console.log("Fallback also failed");
-  //         }
-  //       }
-  //     }
-  //     else if (error.response?.data?.message) {
-  //       errorMessage = error.response.data.message;
-  //       errorMessage = errorMessage.replace(/<[^>]*>/g, '');
-  //     }
-  //     else if (error.response?.data?.exception) {
-  //       errorMessage = error.response.data.exception;
-  //     }
-  //     else if (error.message) {
-  //       errorMessage = error.message;
-  //     }
-
-  //     console.log("Final message to display:", errorMessage);
-
-  //     setIsDeletePopupOpen(false);
-  //     showToast(`${errorMessage}`, 'error');
-  //   } finally {
-  //     setIsDeleting(false);
-  //   }
-  // };
 
   // Updated checkLinkedItems function
   const checkLinkedItems = async () => {
@@ -2295,7 +2125,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
                     />
                   )}
 
-                  
+
                 </div>
               </div>
             )}
@@ -2351,29 +2181,29 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
         </div>
 
         <div className="flex items-center space-x-2">
-        {/* View Switcher */}
-        <div className={`flex items-center p-1 rounded-lg ${theme === 'dark' ? 'bg-dark-accent' : 'bg-gray-200'}`}>
-          <button
-            onClick={() => setView('table')}
-            className={`px-3 py-1 text-sm rounded-md flex items-center space-x-2 transition-colors ${view === 'table'
-              ? theme === 'dark' ? 'bg-purplebg text-white' : 'bg-white text-gray-800 shadow-sm'
-              : theme === 'dark' ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-500 hover:bg-gray-100'
-              }`}
-          >
-            <List className="w-4 h-4" />
-            <span>Table</span>
-          </button>
-          <button
-            onClick={() => setView('kanban')}
-            className={`px-3 py-1 text-sm rounded-md flex items-center space-x-2 transition-colors ${view === 'kanban'
-              ? theme === 'dark' ? 'bg-purplebg text-white' : 'bg-white text-gray-800 shadow-sm'
-              : theme === 'dark' ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-500 hover:bg-gray-100'
-              }`}
-          >
-            <LayoutGrid className="w-4 h-4" />
-            <span>Kanban</span>
-          </button>
-        </div>
+          {/* View Switcher */}
+          <div className={`flex items-center p-1 rounded-lg ${theme === 'dark' ? 'bg-dark-accent' : 'bg-gray-200'}`}>
+            <button
+              onClick={() => setView('table')}
+              className={`px-3 py-1 text-sm rounded-md flex items-center space-x-2 transition-colors ${view === 'table'
+                ? theme === 'dark' ? 'bg-purplebg text-white' : 'bg-white text-gray-800 shadow-sm'
+                : theme === 'dark' ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-500 hover:bg-gray-100'
+                }`}
+            >
+              <List className="w-4 h-4" />
+              <span>Table</span>
+            </button>
+            <button
+              onClick={() => setView('kanban')}
+              className={`px-3 py-1 text-sm rounded-md flex items-center space-x-2 transition-colors ${view === 'kanban'
+                ? theme === 'dark' ? 'bg-purplebg text-white' : 'bg-white text-gray-800 shadow-sm'
+                : theme === 'dark' ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-500 hover:bg-gray-100'
+                }`}
+            >
+              <LayoutGrid className="w-4 h-4" />
+              <span>Kanban</span>
+            </button>
+          </div>
 
 
 
@@ -2401,7 +2231,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
             onChange={(e) => {
               setItemsPerPage(Number(e.target.value));
               setCurrentPage(1);
-            }} 
+            }}
             className={`text-sm border rounded px-2 py-1 ${theme === 'dark'
               ? 'bg-white-31 border-white text-white'
               : 'border-gray-300'
@@ -2428,216 +2258,216 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
           <div className="w-full">
             {/* ================= Desktop Table View ================= */}
 
-          <div className="hidden md:block overflow-x-auto">
-            <table className="w-full">
-              <thead
-                className={`border-b ${theme === 'dark'
-                  ? 'bg-purplebg border-transparent'
-                  : 'bg-gray-50 border-gray-200'
-                  }`}
-              >
-                <tr className="divide-x-[1px]">
-                  <th className="px-6 py-3 text-left">
-                    <input
-                      type="checkbox"
-                      checked={
-                        paginatedData.length > 0 &&
-                        selectedIds.length === paginatedData.length
-                      }
-                      onChange={handleSelectAll}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                  </th>
-                  {visibleColumns.map((column) => (
-                    <th
-                      key={column.key}
-                      className={`px-6 py-3 text-left text-sm font-semibold uppercase tracking-wider ${theme === 'dark' ? 'text-white' : 'text-gray-500'
-                        }`}
-                    >
-                      {column.sortable ? (
-                        <SortButton field={column.key}>{column.label}</SortButton>
-                      ) : (
-                        column.label
-                      )}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-
-              <tbody
-                className={`divide-y ${theme === 'dark' ? 'divide-white' : 'divide-gray-200'
-                  }`}
-              >
-                {paginatedData.map((lead) => (
-                  <tr
-                    key={lead.id}
-                    className={`transition-colors cursor-pointer ${theme === 'dark'
-                      ? 'hover:bg-purple-800/20'
-                      : 'hover:bg-gray-50'
-                      }`}
-                    onClick={() => handleLeadOpen(lead)}
-                  >
-                    <td
-                      className="px-6 py-4 whitespace-nowrap"
-                      onClick={(e) => e.stopPropagation()}
-                    >
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full">
+                <thead
+                  className={`border-b ${theme === 'dark'
+                    ? 'bg-purplebg border-transparent'
+                    : 'bg-gray-50 border-gray-200'
+                    }`}
+                >
+                  <tr className="divide-x-[1px]">
+                    <th className="px-6 py-3 text-left">
                       <input
                         type="checkbox"
-                        checked={selectedIds.includes(lead.id)}
-                        onChange={(e) => {
-                          e.stopPropagation();
-                          handleRowSelection(lead.id);
-                        }}
+                        checked={
+                          paginatedData.length > 0 &&
+                          selectedIds.length === paginatedData.length
+                        }
+                        onChange={handleSelectAll}
                         className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                       />
-                    </td>
-
-                    {/* === Render all columns === */}
+                    </th>
                     {visibleColumns.map((column) => (
-                      <td key={column.key} className="px-6 py-4 whitespace-nowrap">
-                        {renderCell(lead, column.key, theme)}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* ================= Mobile Card View ================= */}
-          <div className="block md:hidden space-y-4">
-            {paginatedData.map((lead) => (
-              <div
-                key={lead.id}
-                className={`p-4 rounded-lg border ${theme === 'dark'
-                  ? 'bg-purplebg border-transparent'
-                  : 'bg-white border-gray-200'
-                  } shadow-sm`}
-              >
-                <div className="flex justify-between items-center">
-
-                  <input
-                    type="checkbox"
-                    checked={selectedIds.includes(lead.id)}
-                    onChange={(e) => {
-                      e.stopPropagation();
-                      handleRowSelection(lead.id);
-                    }}
-                    className="rounded mr-4 border-gray-300 text-blue-600 focus:ring-blue-500"
-                  />
-                  <div
-                    className="flex items-center flex-1 cursor-pointer"
-                    onClick={() => onLeadClick(lead)}
-                  >
-
-                    <div
-                      className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 ${theme === 'dark' ? 'bg-purple-700' : 'bg-gray-200'
-                        }`}
-                    >
-                      <span
-                        className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-800'
+                      <th
+                        key={column.key}
+                        className={`px-6 py-3 text-left text-sm font-semibold uppercase tracking-wider ${theme === 'dark' ? 'text-white' : 'text-gray-500'
                           }`}
                       >
-                        {lead.firstName?.charAt(0).toUpperCase()}
-                      </span>
-                    </div>
-                    <h3
-                      className={`text-base font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'
-                        }`}
-                    >
-                      {lead.name}
-                    </h3>
-                  </div>
+                        {column.sortable ? (
+                          <SortButton field={column.key}>{column.label}</SortButton>
+                        ) : (
+                          column.label
+                        )}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
 
-                  <div className="flex items-center gap-2">
-                    {/* Status badge for mobile */}
-                    <span
-                      className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(lead.status)}`}
-                    >
-                      <FaCircleDot className="w-2 h-2 mr-1" />
-                      {lead.status}
-                    </span>
-
-                    {/* Dropdown arrow */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleLeadDetails(lead.id);
-                      }}
-                      className={`p-1 rounded transition-transform ${theme === 'dark' ? 'hover:bg-purple-700' : 'hover:bg-gray-100'
+                <tbody
+                  className={`divide-y ${theme === 'dark' ? 'divide-white' : 'divide-gray-200'
+                    }`}
+                >
+                  {paginatedData.map((lead) => (
+                    <tr
+                      key={lead.id}
+                      className={`transition-colors cursor-pointer ${theme === 'dark'
+                        ? 'hover:bg-purple-800/20'
+                        : 'hover:bg-gray-50'
                         }`}
+                      onClick={() => handleLeadOpen(lead)}
                     >
-                      <svg
-                        className={`w-4 h-4 transform transition-transform ${isLeadExpanded(lead.id) ? 'rotate-180' : ''
-                          } ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
+                      <td
+                        className="px-6 py-4 whitespace-nowrap"
+                        onClick={(e) => e.stopPropagation()}
                       >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.includes(lead.id)}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            handleRowSelection(lead.id);
+                          }}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                      </td>
 
-                {/* Collapsible details section */}
-                {isLeadExpanded(lead.id) && (
-                  <div className="mt-3 pt-3 border-t border-gray-200">
-                    {/* Render all other columns as label:value */}
-                    {visibleColumns.map((column) =>
-                      column.key !== 'name' && column.key !== 'status' ? (
-                        <div
-                          key={column.key}
-                          className="flex justify-between text-sm py-1"
+                      {/* === Render all columns === */}
+                      {visibleColumns.map((column) => (
+                        <td key={column.key} className="px-6 py-4 whitespace-nowrap">
+                          {renderCell(lead, column.key, theme)}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* ================= Mobile Card View ================= */}
+            <div className="block md:hidden space-y-4">
+              {paginatedData.map((lead) => (
+                <div
+                  key={lead.id}
+                  className={`p-4 rounded-lg border ${theme === 'dark'
+                    ? 'bg-purplebg border-transparent'
+                    : 'bg-white border-gray-200'
+                    } shadow-sm`}
+                >
+                  <div className="flex justify-between items-center">
+
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.includes(lead.id)}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        handleRowSelection(lead.id);
+                      }}
+                      className="rounded mr-4 border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <div
+                      className="flex items-center flex-1 cursor-pointer"
+                      onClick={() => onLeadClick(lead)}
+                    >
+
+                      <div
+                        className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 ${theme === 'dark' ? 'bg-purple-700' : 'bg-gray-200'
+                          }`}
+                      >
+                        <span
+                          className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-800'
+                            }`}
                         >
-                          <span
-                            className={`font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-500'
-                              }`}
+                          {lead.firstName?.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                      <h3
+                        className={`text-base font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                          }`}
+                      >
+                        {lead.name}
+                      </h3>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      {/* Status badge for mobile */}
+                      <span
+                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(lead.status)}`}
+                      >
+                        <FaCircleDot className="w-2 h-2 mr-1" />
+                        {lead.status}
+                      </span>
+
+                      {/* Dropdown arrow */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleLeadDetails(lead.id);
+                        }}
+                        className={`p-1 rounded transition-transform ${theme === 'dark' ? 'hover:bg-purple-700' : 'hover:bg-gray-100'
+                          }`}
+                      >
+                        <svg
+                          className={`w-4 h-4 transform transition-transform ${isLeadExpanded(lead.id) ? 'rotate-180' : ''
+                            } ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Collapsible details section */}
+                  {isLeadExpanded(lead.id) && (
+                    <div className="mt-3 pt-3 border-t border-gray-200">
+                      {/* Render all other columns as label:value */}
+                      {visibleColumns.map((column) =>
+                        column.key !== 'name' && column.key !== 'status' ? (
+                          <div
+                            key={column.key}
+                            className="flex justify-between text-sm py-1"
                           >
-                            {column.label}:
-                          </span>
-                          <span
-                            className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'
-                              }`}
-                          >
-                            {column.key === 'assignedTo' ? (
-                              (() => {
-                                let assignedNames: string[] = [];
-                                if (Array.isArray(lead.assignedTo)) {
-                                  assignedNames = lead.assignedTo.map(name => name.trim()).filter(name => name);
-                                } else if (typeof lead.assignedTo === 'string') {
-                                  try {
-                                    const parsed = JSON.parse(lead.assignedTo);
-                                    if (Array.isArray(parsed)) {
-                                      assignedNames = parsed.map(name => name.trim()).filter(name => name);
-                                    } else {
+                            <span
+                              className={`font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-500'
+                                }`}
+                            >
+                              {column.label}:
+                            </span>
+                            <span
+                              className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                                }`}
+                            >
+                              {column.key === 'assignedTo' ? (
+                                (() => {
+                                  let assignedNames: string[] = [];
+                                  if (Array.isArray(lead.assignedTo)) {
+                                    assignedNames = lead.assignedTo.map(name => name.trim()).filter(name => name);
+                                  } else if (typeof lead.assignedTo === 'string') {
+                                    try {
+                                      const parsed = JSON.parse(lead.assignedTo);
+                                      if (Array.isArray(parsed)) {
+                                        assignedNames = parsed.map(name => name.trim()).filter(name => name);
+                                      } else {
+                                        assignedNames = lead.assignedTo.split(',').map(name => name.trim()).filter(name => name);
+                                      }
+                                    } catch {
                                       assignedNames = lead.assignedTo.split(',').map(name => name.trim()).filter(name => name);
                                     }
-                                  } catch {
-                                    assignedNames = lead.assignedTo.split(',').map(name => name.trim()).filter(name => name);
                                   }
-                                }
 
-                                if (assignedNames.length === 0) {
-                                  return 'Unassigned';
-                                } else if (assignedNames.length === 1) {
-                                  return assignedNames[0];
-                                } else {
-                                  return `${assignedNames.slice(0, 2).join(', ')}${assignedNames.length > 2 ? ` +${assignedNames.length - 2}` : ''}`;
-                                }
-                              })()
-                            ) : (
-                              lead[column.key] || 'N/A'
-                            )}
-                          </span>
-                        </div>
-                      ) : null
-                    )}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
+                                  if (assignedNames.length === 0) {
+                                    return 'Unassigned';
+                                  } else if (assignedNames.length === 1) {
+                                    return assignedNames[0];
+                                  } else {
+                                    return `${assignedNames.slice(0, 2).join(', ')}${assignedNames.length > 2 ? ` +${assignedNames.length - 2}` : ''}`;
+                                  }
+                                })()
+                              ) : (
+                                lead[column.key] || 'N/A'
+                              )}
+                            </span>
+                          </div>
+                        ) : null
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         )}
         {/* ================= No Results ================= */}

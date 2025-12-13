@@ -12,11 +12,22 @@ import EmojiPicker from "emoji-picker-react";
 import { getAuthToken } from "../../api/apiUrl";
 import { showToast } from "../../utils/toast";
 
-// Dummy showToast for demo. Replace with your own toast/snackbar.
-// const showToast = (msg, opts) => alert(msg);
-
 const API_BASE_URL = "https://api.erpnext.ai/api/method";
 const AUTH_TOKEN = getAuthToken();
+
+// File upload configuration
+const MAX_FILE_SIZE = 1 * 1024 * 1024; // 1MB in bytes
+const ALLOWED_FILE_TYPES = [
+  'image/jpeg',
+  'image/png',
+  'image/gif',
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'text/plain'
+];
 
 interface CommentEmailProps {
   lead: {
@@ -69,6 +80,26 @@ export default function Commentemailleads({
 
   const hasMessageContent = comment.trim().length > 0;
   
+  // Create a new file input ref for this component
+  const commentFileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Function to validate file before upload
+  const validateFile = (file: File): boolean => {
+    // Check file size
+    if (file.size > MAX_FILE_SIZE) {
+      showToast(`Size exceeds the maximum allowed file size. Maximum size is 1MB.`, { type: 'error' });
+      return false;
+    }
+
+    // Check file type (optional - you can remove this if you want to allow all file types)
+    if (!ALLOWED_FILE_TYPES.includes(file.type)) {
+      showToast(`File type not allowed. Allowed types: images, PDF, Word, Excel, text files.`, { type: 'error' });
+      return false;
+    }
+
+    return true;
+  };
+
   const getUserInfo = () => {
     try {
       const session = sessionStorage.getItem('userSession');
@@ -114,11 +145,92 @@ export default function Commentemailleads({
     };
   }, []);
 
+  // Updated handleFileChange function with validation
+  const handleCommentFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    if (!lead) {
+      showToast("No lead selected for attachment", { type: "error" });
+      return;
+    }
+
+    const validFiles: File[] = [];
+
+    // Validate all files first
+    for (const file of Array.from(files)) {
+      if (validateFile(file)) {
+        validFiles.push(file);
+      }
+    }
+
+    // If no valid files after validation, return early
+    if (validFiles.length === 0) {
+      if (commentFileInputRef.current) {
+        commentFileInputRef.current.value = "";
+      }
+      return;
+    }
+
+    // Upload only valid files
+    const newAttachments: any[] = [];
+    const newUploadedFiles: { name: string; url: string }[] = [];
+
+    for (const file of validFiles) {
+      const formData = new FormData();
+      formData.append("doctype", "CRM Lead");
+      formData.append("docname", lead?.name || "");
+      formData.append("file", file);
+      formData.append("is_private", "0");
+      formData.append("folder", "Home/Attachments");
+
+      try {
+        const response = await fetch("https://api.erpnext.ai/api/method/upload_file/", {
+          method: "POST",
+          headers: {
+            Authorization: AUTH_TOKEN,
+          },
+          body: formData,
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.message?.name) {
+          const fileUrl = `https://api.erpnext.ai${data.message.file_url}`;
+          const fileName = data.message.file_name;
+          const name = data.message.name;
+
+          newAttachments.push(name);
+          newUploadedFiles.push({ name: fileName, url: fileUrl });
+          showToast(`File "${fileName}" uploaded successfully.`, { type: 'success' });
+        } else {
+          showToast(`Failed to upload ${file.name}`, { type: "error" });
+        }
+      } catch (err) {
+        console.error("Upload failed:", err);
+        showToast(`Error uploading ${file.name}`, { type: "error" });
+      }
+    }
+
+    // Update state with new attachments
+    setAttachments(prev => [...prev, ...newAttachments]);
+    setUploadedFiles(prev => [...prev, ...newUploadedFiles]);
+
+    if (commentFileInputRef.current) {
+      commentFileInputRef.current.value = "";
+    }
+  };
+
   const sendComment = async () => {
     const { email, username } = getUserInfo();
     if (!comment.trim()) {
       showToast("Please type your comment.", { type: "warning" });
       return;
+    }
+
+    // Validate all attached files before sending
+    if (uploadedFiles.length > 0) {
+      showToast(`Validating ${uploadedFiles.length} attachment(s)...`, { type: 'info' });
     }
 
     setLoading(true);
@@ -232,6 +344,12 @@ export default function Commentemailleads({
     }
   };
 
+  // Remove file from attachments
+  const removeFile = (index: number) => {
+    setUploadedFiles(prev => prev.filter((_, i) => i !== index));
+    setAttachments(prev => prev.filter((_, i) => i !== index));
+  };
+
   return (
     <div
       className={`max-full mx-auto rounded-md shadow-sm p-4 space-y-4 mb-5 border ${theme === 'dark'
@@ -261,20 +379,18 @@ export default function Commentemailleads({
               {uploadedFiles.map((file, index) => (
                 <div
                   key={index}
-                  className={`flex items-center border px-3 py-1 rounded ${theme === 'dark'
-                      ? 'bg-gray-700 border-gray-600 text-white'
-                      : 'bg-gray-100 !border-gray-300 text-gray-800'
+                  className={`flex items-center border px-3 py-1 rounded-md ${theme === 'dark'
+                      ? 'bg-gray-800 border-gray-700 text-white'
+                      : 'bg-gray-100 border-gray-300 text-gray-800'
                     }`}
                 >
-                  <span className={`mr-2 flex items-center gap-1 truncate max-w-[200px] ${theme === 'dark' ? 'text-gray-200' : '!text-gray-700'
+                  <span className={`mr-2 flex items-center gap-1 truncate max-w-[150px] ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'
                     }`}>
                     📎 {file.name}
                   </span>
                   <button
-                    onClick={() => {
-                      setUploadedFiles((prev) => prev.filter((_, i) => i !== index));
-                    }}
-                    className={`text-lg leading-none ${theme === 'dark' ? 'text-gray-300 hover:text-white' : 'text-gray-500 hover:text-gray-700'
+                    onClick={() => removeFile(index)}
+                    className={`text-lg leading-none ${theme === 'dark' ? 'text-gray-300 hover:text-white' : 'text-gray-500 hover:text-gray-800'
                       }`}
                   >
                     ×
@@ -286,8 +402,8 @@ export default function Commentemailleads({
 
           <textarea
             className={`w-full h-40 rounded-md p-3 text-sm focus:outline-none focus:ring-1 placeholder:font-normal ${theme === 'dark'
-              ? 'bg-white-31 border-gray-600 text-white focus:ring-gray-500 placeholder:text-gray-400'
-              : 'bg-white border border-gray-300 !text-gray-800 focus:ring-gray-300 placeholder:!text-gray-500'
+              ? 'bg-white-31 border-gray-600 text-white focus:ring-gray-500 !placeholder-gray-300'
+              : 'bg-white border border-gray-300 text-gray-800 focus:ring-gray-300 !placeholder-gray-500'
               }`}
             value={comment}
             placeholder={isFocused ? "" : `Hi john\n \nCan you please provide more details on this...`}
@@ -303,22 +419,20 @@ export default function Commentemailleads({
               }`}
           >
             <div className="flex items-center gap-4 relative">
-              <>
-                <Paperclip
-                  className="cursor-pointer"
-                  size={18}
-                  onClick={() => fileInputRef?.current?.click()}
-                />
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleFileChange}
-                  multiple
-                  style={{ display: "none" }}
-                />
-              </>
+              <Paperclip
+                className={`cursor-pointer ${theme === 'dark' ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-800'}`}
+                size={18}
+                onClick={() => commentFileInputRef.current?.click()}
+              />
+              <input
+                type="file"
+                ref={commentFileInputRef}
+                onChange={handleCommentFileChange}
+                multiple
+                style={{ display: "none" }}
+              />
               <Smile
-                className="cursor-pointer"
+                className={`cursor-pointer ${theme === 'dark' ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-800'}`}
                 size={18}
                 onClick={() => setShowEmojiPicker(!showEmojiPicker)}
               />
@@ -339,7 +453,8 @@ export default function Commentemailleads({
             
             <div className="flex items-center gap-3">
               <button
-                className="text-red-500 text-base font-semibold px-5 py-2"
+                className={`text-base font-semibold px-5 py-2 transition-colors ${theme === 'dark' ? 'text-red-400 hover:text-red-300' : 'text-red-500 hover:text-red-600'
+                  }`}
                 type="button"
                 onClick={handleDiscard}
                 disabled={loading}
@@ -347,7 +462,12 @@ export default function Commentemailleads({
                 Discard
               </button>
               <button
-                className={`bg-purplebg text-base font-semibold text-white px-5 py-2 rounded-md flex items-center gap-1 hover:bg-purple-700 ${!hasMessageContent ? "opacity-50 cursor-not-allowed" : ""
+                className={`text-base font-semibold px-5 py-2 rounded-md flex items-center gap-1 transition-colors
+                  ${loading || !hasMessageContent
+                    ? "bg-gray-400 text-white cursor-not-allowed"
+                    : theme === 'dark'
+                      ? "bg-purple-600 hover:bg-purple-500 text-white"
+                      : "bg-purplebg hover:bg-purple-700 text-white"
                   }`}
                 onClick={sendComment}
                 disabled={loading || !hasMessageContent}
