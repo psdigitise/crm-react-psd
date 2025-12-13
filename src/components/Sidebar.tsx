@@ -24,7 +24,7 @@ import { useTheme } from './ThemeProvider';
 import { getUserSession, clearUserSession } from '../utils/session';
 import { AUTH_TOKEN } from '../api/apiUrl';
 import { SettingsModal } from './SettingsModal';
-
+import { getAuthToken } from '../api/apiUrl';
 interface SidebarProps {
   isCollapsed: boolean;
   onToggle: () => void;
@@ -66,6 +66,7 @@ export function Sidebar({ isCollapsed, onToggle, activeItem, onItemClick }: Side
   const Username = userSession?.username || sessionfullname;
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [modalInitialTab, setModalInitialTab] = useState<'profile' | 'aiUsage' | 'websiteIntegration' | 'upgradePlan'>('profile');
+  const token = getAuthToken();
 
   const handleUpgradeNowClick = () => {
     setModalInitialTab('upgradePlan'); // Set the desired tab
@@ -79,7 +80,7 @@ export function Sidebar({ isCollapsed, onToggle, activeItem, onItemClick }: Side
 
     fetch(`https://api.erpnext.ai/api/v2/document/Company/${encodeURIComponent(companyName)}`, {
       headers: {
-        'Authorization': AUTH_TOKEN,
+        'Authorization': token,
         'Content-Type': 'application/json'
       }
     })
@@ -141,7 +142,7 @@ export function Sidebar({ isCollapsed, onToggle, activeItem, onItemClick }: Side
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
+          'Authorization': token
         }
       });
 

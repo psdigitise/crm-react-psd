@@ -15,6 +15,7 @@ import { ExportPopup } from './LeadsPopup/ExportPopup';
 import { LinkedItemsPopup } from './LeadsPopup/LinkedItemsPopup';
 import axios from 'axios';
 import * as XLSX from 'xlsx';
+import { getAuthToken } from '../api/apiUrl';
 
 // Add toast notification component
 const Toast = ({ message, type = 'error', onClose }: { message: string; type?: 'error' | 'success'; onClose: () => void }) => {
@@ -212,6 +213,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
     industry: [] as string[],
 
   });
+  const token = getAuthToken();
 
   const showToast = (message: string, type: 'error' | 'success' = 'error') => {
     setToast({ message, type });
@@ -239,7 +241,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
         {
           params: { lead_id: leadId },
           headers: {
-            Authorization: AUTH_TOKEN,
+            Authorization: token,
           }
         }
       );
@@ -264,7 +266,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
           name: leadId,
           fieldname: { lead_score: score, lead_summary: summary }
         },
-        { headers: { Authorization: AUTH_TOKEN } }
+        { headers: { Authorization: token } }
       );
 
       console.log("Lead score & summary updated!");
@@ -496,7 +498,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
         {
           method: 'POST',
           headers: {
-            'Authorization': AUTH_TOKEN,
+            'Authorization': token,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
@@ -587,7 +589,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
         {
           method: 'POST',
           headers: {
-            'Authorization': AUTH_TOKEN,
+            'Authorization': token,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify(startImportPayload)
@@ -646,7 +648,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
         {
           method: 'POST',
           headers: {
-            'Authorization': AUTH_TOKEN,
+            'Authorization': token,
           },
           body: formData
         }
@@ -734,7 +736,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
         {
           method: 'POST',
           headers: {
-            'Authorization': AUTH_TOKEN,
+            'Authorization': token,
           },
           body: formData
         }
@@ -1510,7 +1512,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': AUTH_TOKEN
+            'Authorization': token
           },
           body: JSON.stringify({
             doctype: "CRM Lead",
@@ -1554,7 +1556,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': AUTH_TOKEN
+              'Authorization': token
             },
             body: JSON.stringify({
               doctype: "CRM Lead",
@@ -1602,7 +1604,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': AUTH_TOKEN
+              'Authorization': token
             },
             body: JSON.stringify({
               items: itemsToUnlink,
@@ -1627,7 +1629,7 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': AUTH_TOKEN
+              'Authorization': token
             },
             body: JSON.stringify({
               doctype: "CRM Lead",

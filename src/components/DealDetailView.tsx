@@ -32,6 +32,7 @@ import { CreateOrganizationPopup } from './DealPopups/CreateOrganizationPopup';
 import { CreateTerritoryPopup } from './DealPopups/CreateTerritoryPopup';
 import { Building2 } from "lucide-react";
 import { RefreshCw } from 'lucide-react';
+import { getAuthToken } from '../api/apiUrl';
 
 // Add these new interfaces
 interface UserInfo {
@@ -347,6 +348,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
     const name = getCallerName(call);
     return (name && name.length > 0) ? name.charAt(0).toUpperCase() : "U";
   }, [getCallerName]);
+  const token = getAuthToken();
 
 
   const tabs = [
@@ -409,7 +411,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         {
           method: 'POST',
           headers: {
-            'Authorization': AUTH_TOKEN,
+            'Authorization': token,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
@@ -483,7 +485,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         },
         {
           headers: {
-            'Authorization': AUTH_TOKEN,
+            'Authorization': token,
             'Content-Type': 'application/json'
           }
         }
@@ -507,7 +509,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         },
         {
           headers: {
-            'Authorization': AUTH_TOKEN,
+            'Authorization': token,
             'Content-Type': 'application/json'
           }
         }
@@ -537,7 +539,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         },
         {
           headers: {
-            'Authorization': AUTH_TOKEN,
+            'Authorization': token,
             'Content-Type': 'application/json'
           }
         }
@@ -563,7 +565,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
             },
             {
               headers: {
-                'Authorization': AUTH_TOKEN,
+                'Authorization': token,
                 'Content-Type': 'application/json'
               }
             }
@@ -608,7 +610,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         },
         {
           headers: {
-            'Authorization': AUTH_TOKEN,
+            'Authorization': token,
             'Content-Type': 'application/json'
           }
         }
@@ -649,7 +651,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         },
         {
           headers: {
-            'Authorization': AUTH_TOKEN,
+            'Authorization': token,
             'Content-Type': 'application/json'
           }
         }
@@ -703,7 +705,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         {
           method: 'POST',
           headers: {
-            'Authorization': AUTH_TOKEN,
+            'Authorization': token,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
@@ -730,7 +732,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
               {
                 method: 'POST',
                 headers: {
-                  'Authorization': AUTH_TOKEN,
+                  'Authorization': token,
                   'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
@@ -827,7 +829,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
       const response = await fetch(url, {
         method: 'POST',
         headers: {
-          'Authorization': AUTH_TOKEN,
+          'Authorization': token,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -874,7 +876,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         {
           method: 'POST',
           headers: {
-            'Authorization': AUTH_TOKEN,
+            'Authorization': token,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
@@ -904,7 +906,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         {
           method: 'POST',
           headers: {
-            'Authorization': AUTH_TOKEN,
+            'Authorization': token,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
@@ -982,7 +984,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         },
         {
           headers: {
-            'Authorization': AUTH_TOKEN,
+            'Authorization': token,
             'Content-Type': 'application/json'
           }
         }
@@ -1034,7 +1036,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         },
         {
           headers: {
-            'Authorization': AUTH_TOKEN,
+            'Authorization': token,
             'Content-Type': 'application/json'
           }
         }
@@ -1100,7 +1102,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         },
         {
           headers: {
-            'Authorization': AUTH_TOKEN,
+            'Authorization': token,
             'Content-Type': 'application/json'
           }
         }
@@ -1136,7 +1138,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         },
         {
           headers: {
-            'Authorization': AUTH_TOKEN,
+            'Authorization': token,
             'Content-Type': 'application/json'
           }
         }
@@ -1210,7 +1212,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
       const response = await fetch(`${API_BASE_URL}/method/frappe.client.insert`, {
         method: 'POST',
         headers: {
-          'Authorization': AUTH_TOKEN,
+          'Authorization': token,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -1317,7 +1319,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
       const response = await fetch(`${API_BASE_URL}/method/frappe.client.set_value`, {
         method: 'POST',
         headers: {
-          'Authorization': AUTH_TOKEN,
+          'Authorization': token,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -1354,7 +1356,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
       const response = await fetch(`${API_BASE_URL}/v2/document/CRM Call Log/${name}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': AUTH_TOKEN,
+          'Authorization': token,
           'Content-Type': 'application/json'
         }
       });
@@ -1418,7 +1420,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         },
         {
           headers: {
-            'Authorization': AUTH_TOKEN,
+            'Authorization': token,
             'Content-Type': 'application/json'
           }
         }
@@ -1479,7 +1481,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         {
           method: 'POST',
           headers: {
-            'Authorization': AUTH_TOKEN,
+            'Authorization': token,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
@@ -1524,7 +1526,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         {
           method: 'DELETE',
           headers: {
-            'Authorization': AUTH_TOKEN,
+            'Authorization': token,
             'Content-Type': 'application/json'
           }
         }
@@ -1582,7 +1584,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         {
           method: 'POST',
           headers: {
-            'Authorization': AUTH_TOKEN,
+            'Authorization': token,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
@@ -1622,7 +1624,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         {
           method: 'POST',
           headers: {
-            'Authorization': AUTH_TOKEN,
+            'Authorization': token,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
@@ -1662,7 +1664,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         {
           method: 'POST',
           headers: {
-            'Authorization': AUTH_TOKEN,
+            'Authorization': token,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
@@ -1765,7 +1767,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         fetch(`https://api.erpnext.ai/api/method/crm.fcrm.doctype.crm_call_log.crm_call_log.get_call_log`, {
           method: 'POST',
           headers: {
-            'Authorization': AUTH_TOKEN,
+            'Authorization': token,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({ name })
@@ -1795,7 +1797,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         {
           method: 'POST',
           headers: {
-            'Authorization': AUTH_TOKEN,
+            'Authorization': token,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
@@ -2080,7 +2082,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         {
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': AUTH_TOKEN
+            'Authorization': token
           }
         }
       );
@@ -2212,7 +2214,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         },
         {
           headers: {
-            'Authorization': AUTH_TOKEN,
+            'Authorization': token,
             'Content-Type': 'application/json'
           }
         }
@@ -2347,7 +2349,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         payload,
         {
           headers: {
-            'Authorization': AUTH_TOKEN,
+            'Authorization': token,
             'Content-Type': 'application/json',
           },
         }
@@ -2379,7 +2381,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
           {
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': AUTH_TOKEN
+              'Authorization': token
             }
           }
         );
@@ -2417,7 +2419,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
           {
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': AUTH_TOKEN
+              'Authorization': token
             }
           }
         );
@@ -2471,7 +2473,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
         },
         {
           headers: {
-            'Authorization': AUTH_TOKEN,
+            'Authorization': token,
             'Content-Type': 'application/json'
           }
         }
@@ -2574,7 +2576,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
           },
           {
             headers: {
-              'Authorization': AUTH_TOKEN,
+              'Authorization': token,
               'Content-Type': 'application/json'
             }
           }

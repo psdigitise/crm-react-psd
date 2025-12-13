@@ -6,7 +6,7 @@ import { Header } from './Header';
 import { useTheme } from './ThemeProvider';
 import { getUserSession } from '../utils/session';
 import { BsThreeDots } from 'react-icons/bs';
-import { AUTH_TOKEN } from '../api/apiUrl';
+import { AUTH_TOKEN, getAuthToken } from '../api/apiUrl';
 import { api } from '../api/apiService';
 
 interface Task {
@@ -150,6 +150,7 @@ export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0, onMenuTo
 
   // View mode state
   const [view, setView] = useState<'table' | 'kanban'>('table');
+  const token =  getAuthToken();
 
   // Combine external and internal refresh triggers
   useEffect(() => {
@@ -251,7 +252,7 @@ export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0, onMenuTo
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
+          'Authorization': token
         },
         body: JSON.stringify({
           txt: "",
@@ -312,7 +313,7 @@ export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0, onMenuTo
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
+          'Authorization': token
         },
         body: JSON.stringify(requestBody)
       });
@@ -345,7 +346,7 @@ export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0, onMenuTo
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
+          'Authorization': token
         },
         body: JSON.stringify(requestBody)
       });

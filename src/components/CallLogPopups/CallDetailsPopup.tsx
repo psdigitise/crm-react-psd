@@ -84,6 +84,7 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
         content: ''
     });
     const [userOptions, setUserOptions] = useState<{ value: string; label: string; }[]>([]);
+    const token =  getAuthToken();
 
     useEffect(() => {
         console.log("=== CallDetailsPopup Mount ===");
@@ -114,7 +115,7 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': AUTH_TOKEN,
+                    'Authorization': token,
                 },
                 body: JSON.stringify(insertPayload)
             });
@@ -137,7 +138,7 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': AUTH_TOKEN,
+                    'Authorization': token,
                 },
                 body: JSON.stringify(addToCallLogPayload)
             });
@@ -189,7 +190,7 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': AUTH_TOKEN,
+                    'Authorization': token,
                 },
                 body: JSON.stringify(payload),
             });
@@ -245,7 +246,7 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
 
             const response = await fetch('https://api.erpnext.ai/api/method/frappe.client.set_value', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': AUTH_TOKEN, },
+                headers: { 'Content-Type': 'application/json', 'Authorization': token, },
                 body: JSON.stringify(payload)
             });
 
@@ -399,7 +400,7 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': AUTH_TOKEN,
+                    'Authorization': token,
                 },
                 body: JSON.stringify(payload)
             });
@@ -423,7 +424,7 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': AUTH_TOKEN,
+                        'Authorization': token,
                     },
                     body: JSON.stringify(addToCallLogPayload)
                 });
@@ -478,7 +479,7 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
                     },
                     {
                         headers: {
-                            'Authorization': AUTH_TOKEN,
+                            'Authorization': token,
                             'Content-Type': 'application/json'
                         }
                     }

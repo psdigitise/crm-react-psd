@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { IoCloseOutline } from "react-icons/io5";
-import { apiAxios, AUTH_TOKEN } from "../../api/apiUrl";
+import { apiAxios, AUTH_TOKEN, getAuthToken } from "../../api/apiUrl";
 import { Listbox } from "@headlessui/react";
 import { getUserSession } from "../../utils/session";
 import { showToast } from "../../utils/toast";
@@ -57,6 +57,7 @@ export const CreateOrganizationPopup: React.FC<CreateOrganizationPopupProps> = (
     const [industrySearch, setIndustrySearch] = useState("");
     const [isIndustryLoading, setIsIndustryLoading] = useState(false);
     const [isCreating, setIsCreating] = useState(false);
+    const token =  getAuthToken();
 
     const handleChange = (field: string, value: string) => {
         setFormData((prev) => ({ ...prev, [field]: value }));
@@ -102,7 +103,7 @@ export const CreateOrganizationPopup: React.FC<CreateOrganizationPopupProps> = (
                 {
                     headers: {
                         "Content-Type": "application/json",
-                        Authorization: AUTH_TOKEN,
+                        Authorization: token,
                     },
                 }
             );
@@ -138,7 +139,7 @@ export const CreateOrganizationPopup: React.FC<CreateOrganizationPopupProps> = (
                 {
                     headers: {
                         "Content-Type": "application/json",
-                        Authorization: AUTH_TOKEN,
+                        Authorization: token,
                     },
                 }
             );
@@ -174,7 +175,7 @@ export const CreateOrganizationPopup: React.FC<CreateOrganizationPopupProps> = (
                 {
                     headers: {
                         "Content-Type": "application/json",
-                        Authorization: AUTH_TOKEN,
+                        Authorization: token,
                     },
                 }
             );
@@ -226,7 +227,7 @@ export const CreateOrganizationPopup: React.FC<CreateOrganizationPopupProps> = (
                 {
                     headers: {
                         "Content-Type": "application/json",
-                        Authorization: AUTH_TOKEN,
+                        Authorization: token,
                     },
                 }
             );
@@ -274,7 +275,7 @@ export const CreateOrganizationPopup: React.FC<CreateOrganizationPopupProps> = (
                 {
                     headers: {
                         "Content-Type": "application/json",
-                        Authorization: AUTH_TOKEN,
+                        Authorization: token,
                     },
                 }
             );

@@ -1,6 +1,6 @@
 import React from 'react';
 import { IoCloseOutline } from 'react-icons/io5';
-import { apiAxios, AUTH_TOKEN } from '../../api/apiUrl';
+import { apiAxios, AUTH_TOKEN, getAuthToken } from '../../api/apiUrl';
 
 interface AttachmentPrivatePopupProps {
     closePopup: () => void;
@@ -19,6 +19,7 @@ export const AttachmentPrivatePopup: React.FC<AttachmentPrivatePopupProps> = ({
     fetchAttachments,
 }) => {
     const [isUpdating, setIsUpdating] = React.useState(false);
+    const token = getAuthToken();
 
     const handleTogglePrivacy = async () => {
         setIsUpdating(true);
@@ -36,7 +37,7 @@ export const AttachmentPrivatePopup: React.FC<AttachmentPrivatePopupProps> = ({
                 {
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': AUTH_TOKEN
+                        'Authorization': token
                     }
                 }
             );
@@ -103,13 +104,13 @@ export const AttachmentPrivatePopup: React.FC<AttachmentPrivatePopupProps> = ({
                         onClick={handleTogglePrivacy}
                         disabled={isUpdating}
                         className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 ${attachment.is_private
-                                ? 'bg-green-600 text-white hover:bg-green-700 focus:ring-green-500'
-                                : 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500'
+                            ? 'bg-green-600 text-white hover:bg-green-700 focus:ring-green-500'
+                            : 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500'
                             }`}
                     >
                         {isUpdating ? 'Updating...' : attachment.is_private ? 'Make Public' : 'Make Private'}
                     </button>
-                 
+
                 </div>
             </div>
         </div>

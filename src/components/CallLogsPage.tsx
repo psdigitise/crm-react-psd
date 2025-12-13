@@ -8,6 +8,7 @@ import { getUserSession } from '../utils/session';
 import { CallDetailsPopup } from './CallLogPopups/CallDetailsPopup';
 import { AUTH_TOKEN } from '../api/apiUrl';
 import { api } from '../api/apiService';
+import { getAuthToken } from '../api/apiUrl';
 
 interface Note {
   name: string;
@@ -147,22 +148,22 @@ const EditCallModal: React.FC<EditCallModalProps> = ({
       case 'type':
         if (!value.trim()) return 'Type is required';
         return '';
-      
+
       case 'to':
         if (!value.trim()) return 'To field is required';
         return '';
-      
+
       case 'from':
         if (!value.trim()) return 'From field is required';
         return '';
-      
-     
+
+
       case 'duration':
         if (value && (parseInt(value) < 0 || isNaN(parseInt(value)))) {
           return 'Duration must be a positive number';
         }
         return '';
-      
+
       default:
         return '';
     }
@@ -170,7 +171,7 @@ const EditCallModal: React.FC<EditCallModalProps> = ({
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
-    
+
     // Validate all fields
     newErrors.type = validateField('type', callForm.type);
     newErrors.to = validateField('to', callForm.to);
@@ -178,16 +179,16 @@ const EditCallModal: React.FC<EditCallModalProps> = ({
     newErrors.caller = validateField('caller', callForm.caller);
     newErrors.receiver = validateField('receiver', callForm.receiver);
     newErrors.duration = validateField('duration', callForm.duration);
-    
+
     setErrors(newErrors);
-    
+
     // Check if any errors exist
     return !Object.values(newErrors).some(error => error !== '');
   };
 
   const handleFieldChange = (name: string, value: string) => {
     const updatedForm = { ...callForm };
-    
+
     if (name === 'type') {
       // Reset caller/receiver when type changes
       updatedForm.type = value;
@@ -242,14 +243,13 @@ const EditCallModal: React.FC<EditCallModalProps> = ({
           {/* Type */}
           <div>
             <label className={`block text-sm font-medium ${textColor} mb-2`}>
-              Type 
+              Type
             </label>
             <select
               value={callForm.type}
               onChange={(e) => handleFieldChange('type', e.target.value)}
-              className={`w-full px-3 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${inputBgColor} ${
-                errors.type ? 'border-red-500' : ''
-              }`}
+              className={`w-full px-3 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${inputBgColor} ${errors.type ? 'border-red-500' : ''
+                }`}
             >
               <option value="Incoming">Incoming</option>
               <option value="Outgoing">Outgoing</option>
@@ -268,11 +268,10 @@ const EditCallModal: React.FC<EditCallModalProps> = ({
               type="text"
               value={callForm.to}
               onChange={(e) => handleFieldChange('to', e.target.value)}
-              className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                theme === 'dark'
-                  ? 'bg-gray-800 border-gray-600 text-white !placeholder-gray-400'
-                  : 'bg-white border-gray-300 text-gray-900 !placeholder-gray-500'
-              } ${errors.to ? 'border-red-500' : ''}`}
+              className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
+                ? 'bg-gray-800 border-gray-600 text-white !placeholder-gray-400'
+                : 'bg-white border-gray-300 text-gray-900 !placeholder-gray-500'
+                } ${errors.to ? 'border-red-500' : ''}`}
               placeholder="To"
             />
             {errors.to && (
@@ -289,11 +288,10 @@ const EditCallModal: React.FC<EditCallModalProps> = ({
               type="text"
               value={callForm.from}
               onChange={(e) => handleFieldChange('from', e.target.value)}
-              className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                theme === 'dark'
-                  ? 'bg-gray-800 border-gray-600 text-white !placeholder-gray-400'
-                  : 'bg-white border-gray-300 text-gray-900 !placeholder-gray-500'
-              } ${errors.from ? 'border-red-500' : ''}`}
+              className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
+                ? 'bg-gray-800 border-gray-600 text-white !placeholder-gray-400'
+                : 'bg-white border-gray-300 text-gray-900 !placeholder-gray-500'
+                } ${errors.from ? 'border-red-500' : ''}`}
               placeholder="From"
             />
             {errors.from && (
@@ -322,11 +320,10 @@ const EditCallModal: React.FC<EditCallModalProps> = ({
               type="number"
               value={callForm.duration}
               onChange={(e) => handleFieldChange('duration', e.target.value)}
-              className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                theme === 'dark'
-                  ? 'bg-gray-800 border-gray-600 text-white !placeholder-gray-400'
-                  : 'bg-white border-gray-300 text-gray-900 !placeholder-gray-500'
-              } ${errors.duration ? 'border-red-500' : ''}`}
+              className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
+                ? 'bg-gray-800 border-gray-600 text-white !placeholder-gray-400'
+                : 'bg-white border-gray-300 text-gray-900 !placeholder-gray-500'
+                } ${errors.duration ? 'border-red-500' : ''}`}
               placeholder="Call duration in seconds"
               min="0"
             />
@@ -339,14 +336,13 @@ const EditCallModal: React.FC<EditCallModalProps> = ({
           {callForm.type === 'Outgoing' && (
             <div>
               <label className={`block text-sm font-medium ${textColor} mb-2`}>
-                Caller 
+                Caller
               </label>
               <select
                 value={callForm.caller}
                 onChange={(e) => handleFieldChange('caller', e.target.value)}
-                className={`w-full px-3 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${inputBgColor} ${
-                  errors.caller ? 'border-red-500' : ''
-                }`}
+                className={`w-full px-3 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${inputBgColor} ${errors.caller ? 'border-red-500' : ''
+                  }`}
                 disabled={loadingUsers}
               >
                 <option value="">Select Caller</option>
@@ -369,14 +365,13 @@ const EditCallModal: React.FC<EditCallModalProps> = ({
           {callForm.type === 'Incoming' && (
             <div>
               <label className={`block text-sm font-medium ${textColor} mb-2`}>
-                Call Received By 
+                Call Received By
               </label>
               <select
                 value={callForm.receiver}
                 onChange={(e) => handleFieldChange('receiver', e.target.value)}
-                className={`w-full px-3 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${inputBgColor} ${
-                  errors.receiver ? 'border-red-500' : ''
-                }`}
+                className={`w-full px-3 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${inputBgColor} ${errors.receiver ? 'border-red-500' : ''
+                  }`}
                 disabled={loadingUsers}
               >
                 <option value="">Select Receiver</option>
@@ -401,11 +396,10 @@ const EditCallModal: React.FC<EditCallModalProps> = ({
           <button
             onClick={handleSave}
             disabled={isLoading}
-            className={`px-6 py-2.5 rounded-lg text-white font-medium transition-colors ${
-              theme === 'dark' 
-                ? 'bg-purple-600 hover:bg-purple-700' 
-                : 'bg-purple-600 hover:bg-purple-700'
-            } disabled:opacity-50 disabled:cursor-not-allowed`}
+            className={`px-6 py-2.5 rounded-lg text-white font-medium transition-colors ${theme === 'dark'
+              ? 'bg-purple-600 hover:bg-purple-700'
+              : 'bg-purple-600 hover:bg-purple-700'
+              } disabled:opacity-50 disabled:cursor-not-allowed`}
           >
             {isLoading ? 'Updating...' : 'Update'}
           </button>
@@ -470,6 +464,7 @@ const fetchUsers = async (): Promise<User[]> => {
   try {
     const session = getUserSession();
     const sessionCompany = session?.company;
+    const token = getAuthToken();
 
     if (!session) {
       showToast('Session expired. Please login again.', { type: 'error' });
@@ -488,7 +483,7 @@ const fetchUsers = async (): Promise<User[]> => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': AUTH_TOKEN
+        'Authorization': token
       },
       body: JSON.stringify(requestBody)
     });
@@ -513,14 +508,14 @@ const fetchUsers = async (): Promise<User[]> => {
   }
 };
 
-export function CallLogsPage({ 
-  onCreateCallLog, 
-  leadName, 
-  refreshTrigger = 0, 
-  onMenuToggle, 
+export function CallLogsPage({
+  onCreateCallLog,
+  leadName,
+  refreshTrigger = 0,
+  onMenuToggle,
   searchTerm,
   onNavigateToDeal,
-  onNavigateToLead 
+  onNavigateToLead
 }: CallLogsPageProps) {
   const { theme } = useTheme();
   const [callLogs, setCallLogs] = useState<CallLog[]>([]);
@@ -605,6 +600,7 @@ export function CallLogsPage({
       setLoading(true);
 
       const session = getUserSession();
+      const token = getAuthToken();
 
       if (!session) {
         setCallLogs([]);
@@ -652,7 +648,7 @@ export function CallLogsPage({
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': AUTH_TOKEN
+              'Authorization': token
             },
             body: JSON.stringify({
               name: item.name // Use the name from the first API call
@@ -775,6 +771,7 @@ export function CallLogsPage({
     try {
       setCallsLoading(true);
       const session = getUserSession();
+      const token = getAuthToken();
 
       if (!session) {
         showToast('Session expired. Please login again.', { type: 'error' });
@@ -810,7 +807,7 @@ export function CallLogsPage({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
+          'Authorization': token
         },
         body: JSON.stringify(payload)
       });
@@ -834,6 +831,7 @@ export function CallLogsPage({
   const handleDelete = async (callLogName: string) => {
     try {
       const session = getUserSession();
+      const token = getAuthToken();
 
       if (!session) {
         showToast('Session expired. Please login again.', { type: 'error' });
@@ -845,7 +843,7 @@ export function CallLogsPage({
       const response = await fetch(apiUrl, {
         method: 'DELETE',
         headers: {
-          'Authorization': AUTH_TOKEN
+          'Authorization': token
         }
       });
 
@@ -949,7 +947,7 @@ export function CallLogsPage({
     }
 
     console.log('Opening reference:', callLog.reference_doctype, callLog.id);
-    
+
     // Show loading state
     setNavigationLoading(true);
     setShowPopup(false); // Close the popup
@@ -1027,7 +1025,7 @@ export function CallLogsPage({
         ? 'bg-gradient-to-br from-dark-primary via-dark-secondary to-dark-tertiary'
         : 'bg-gray-50'
         }`}>
-        
+
         <div className="p-4 sm:p-6">
           <div className="flex items-center justify-center">
             <div className={theme === 'dark' ? 'text-white' : 'text-gray-600'}>Loading call logs...</div>
@@ -1080,9 +1078,9 @@ export function CallLogsPage({
                     <button
                       onClick={() => setShowColumnSettings(false)}
                       className={`p-1 rounded ${theme === 'dark'
-                      ? 'text-gray-400 hover:text-white'
-                      : 'text-gray-500 hover:text-gray-700'
-                      }`}
+                        ? 'text-gray-400 hover:text-white'
+                        : 'text-gray-500 hover:text-gray-700'
+                        }`}
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -1159,13 +1157,13 @@ export function CallLogsPage({
                           currentItems.every(item => selectedCallLogs.includes(item.name))
                         }
                         onChange={() => {
-                          const allCurrentPageSelected = currentItems.every(item => 
+                          const allCurrentPageSelected = currentItems.every(item =>
                             selectedCallLogs.includes(item.name)
                           );
-                          
+
                           if (allCurrentPageSelected) {
                             // Deselect all on current page
-                            setSelectedCallLogs(prev => 
+                            setSelectedCallLogs(prev =>
                               prev.filter(id => !currentItems.some(item => item.name === id))
                             );
                           } else {
@@ -1318,14 +1316,14 @@ export function CallLogsPage({
                 >
                   <div className="flex justify-between items-center">
                     <input
-                        type="checkbox"
-                        checked={selectedCallLogs.includes(callLog.name)}
-                        onChange={(e) => {
-                          e.stopPropagation();
-                          toggleCallLogSelection(callLog.name);
-                        }}
-                        className="rounded mr-4 border-gray-300 text-blue-600 focus:ring-blue-500"
-                      />
+                      type="checkbox"
+                      checked={selectedCallLogs.includes(callLog.name)}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        toggleCallLogSelection(callLog.name);
+                      }}
+                      className="rounded mr-4 border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
 
                     <div
                       className="flex items-center flex-1 cursor-pointer"
@@ -1345,7 +1343,7 @@ export function CallLogsPage({
                     </div>
 
                     <div className="flex items-center gap-2">
-                      
+
 
                       {/* Dropdown arrow */}
                       <button

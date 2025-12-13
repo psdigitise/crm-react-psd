@@ -15,6 +15,7 @@ import { Loader2, Mail } from "lucide-react";
 import { RiShining2Line } from "react-icons/ri";
 import { getAuthToken } from "../../api/apiUrl";
 
+
 type Activity = {
   id: string;
   type: string;
@@ -27,7 +28,8 @@ type Lead = {
 };
 
 const API_BASE_URL = "https://api.erpnext.ai/api";
-const AUTH_TOKEN =  getAuthToken();
+const AUTH_TOKEN = getAuthToken();
+const token = getAuthToken();
 
 const ActivityTimeline: React.FC<{ deal: Lead; theme?: "light" | "dark" }> = ({
   deal,
@@ -59,7 +61,7 @@ const ActivityTimeline: React.FC<{ deal: Lead; theme?: "light" | "dark" }> = ({
         {
           method: "POST",
           headers: {
-            Authorization: AUTH_TOKEN,
+            Authorization: token,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({ name: deal.name }),
@@ -136,16 +138,14 @@ const ActivityTimeline: React.FC<{ deal: Lead; theme?: "light" | "dark" }> = ({
 
   return (
     <div
-      className={`relative rounded-lg shadow-sm border p-6 pb-24 ${
-        theme === "dark"
+      className={`relative rounded-lg shadow-sm border p-6 pb-24 ${theme === "dark"
           ? `bg-gray-900 border-gray-700`
           : "bg-white border-gray-200"
-      }`}
+        }`}
     >
       <h3
-        className={`text-lg font-semibold mb-6 ${
-          theme === "dark" ? "text-white" : "text-gray-900"
-        }`}
+        className={`text-lg font-semibold mb-6 ${theme === "dark" ? "text-white" : "text-gray-900"
+          }`}
       >
         Activity
       </h3>
@@ -157,9 +157,8 @@ const ActivityTimeline: React.FC<{ deal: Lead; theme?: "light" | "dark" }> = ({
       ) : activities.length === 0 ? (
         <div className="text-center py-8">
           <RiShining2Line
-            className={`w-12 h-12 ${
-              theme === "dark" ? "text-gray-500" : "text-gray-400"
-            } mx-auto mb-4`}
+            className={`w-12 h-12 ${theme === "dark" ? "text-gray-500" : "text-gray-400"
+              } mx-auto mb-4`}
           />
           <p
             className={`${theme === "dark" ? "text-white" : "text-gray-500"}`}

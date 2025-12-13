@@ -38,7 +38,8 @@ export interface UserSession {
   sid?: string;
   api_key?: string;
   api_secret?: string;
-  role_profile?:string;
+  role_profile?: string;
+  plan_id?: string;
 }
 
 // export function setUserSession(sessionData: UserSession): void {
@@ -86,7 +87,8 @@ export function getAuthHeaders(): Record<string, string> {
   const session = getUserSession();
   if (session && session.api_key && session.api_secret) {
     return {
-      'Authorization': AUTH_TOKEN
+      // 'Authorization': AUTH_TOKEN
+      Authorization: AUTH_TOKEN ?? ''
     };
   }
   // Fallback to existing token

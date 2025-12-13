@@ -21,7 +21,8 @@ interface CommentEmailProps {
   onClose?: () => void;
 }
 
-const AUTH_TOKEN =  getAuthToken();
+//const AUTH_TOKEN =  getAuthToken();
+const token = getAuthToken();
 const UPLOAD_API_URL = "https://api.erpnext.ai/api/method/upload_file";
 
 // File upload configuration
@@ -95,7 +96,7 @@ export default function Commentemail({
       try {
         const response = await axios.post(UPLOAD_API_URL, formData, {
           headers: {
-            Authorization: AUTH_TOKEN,
+            Authorization: token,
             "Content-Type": "multipart/form-data",
           },
         });
@@ -171,7 +172,7 @@ export default function Commentemail({
       const commentResponse = await fetch(`https://api.erpnext.ai/api/method/frappe.desk.form.utils.add_comment`, {
         method: "POST",
         headers: {
-          Authorization: AUTH_TOKEN,
+          Authorization: token,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -193,7 +194,7 @@ export default function Commentemail({
           await fetch(`https://api.erpnext.ai/api/method/crm.api.comment.add_attachments`, {
             method: "POST",
             headers: {
-              Authorization: AUTH_TOKEN,
+              Authorization: token,
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
@@ -277,7 +278,7 @@ export default function Commentemail({
             onChange={e => setComment(e.target.value)}
             disabled={loading}
           ></textarea>
-          
+
           {/* File upload section */}
           <input
             type="file"
@@ -286,7 +287,7 @@ export default function Commentemail({
             multiple
             style={{ display: 'none' }}
           />
-          
+
           {/* Display uploaded files */}
           {uploadedFiles.length > 0 && (
             <div className="flex flex-wrap gap-3 mt-3">
@@ -313,7 +314,7 @@ export default function Commentemail({
               ))}
             </div>
           )}
-          
+
           {/* Action Buttons */}
           <div
             className={`flex justify-between items-center text-sm mt-4 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'

@@ -440,6 +440,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
   const [userOptions, setUserOptions] = useState<{ value: string; label: string; }[]>([]);
   const composerRef = useRef<HTMLDivElement>(null);
   const commentRef = useRef<HTMLDivElement>(null);
+  const token = getAuthToken();
 
   // UI Theme Variables
   const bgColor = theme === 'dark'
@@ -566,7 +567,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
       const response = await fetch(`${API_BASE_URL}/method/frappe.client.get`, {
         method: 'POST',
         headers: {
-          'Authorization': AUTH_TOKEN,
+          'Authorization': token,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -657,7 +658,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
         {
           method: "POST",
           headers: {
-            "Authorization": AUTH_TOKEN,
+            "Authorization": token,
             "Content-Type": "application/json"
           },
           body: JSON.stringify({
@@ -765,7 +766,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
         fetch(`https://api.erpnext.ai/api/method/crm.fcrm.doctype.crm_call_log.crm_call_log.get_call_log`, {
           method: 'POST',
           headers: {
-            'Authorization': AUTH_TOKEN,
+            'Authorization': token,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({ name })
@@ -795,7 +796,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
         {
           method: "POST",
           headers: {
-            "Authorization": AUTH_TOKEN,
+            "Authorization": token,
             "Content-Type": "application/json"
           },
           body: JSON.stringify({
@@ -1116,7 +1117,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
       const response = await fetch(`${API_BASE_URL}/method/frappe.client.get_list`, {
         method: 'POST',
         headers: {
-          'Authorization': AUTH_TOKEN,
+          'Authorization': token,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -1154,7 +1155,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
       const listResponse = await fetch(`${API_BASE_URL}/method/frappe.client.get_list`, {
         method: 'POST',
         headers: {
-          'Authorization': AUTH_TOKEN,
+          'Authorization': token,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -1184,7 +1185,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
         fetch(`${API_BASE_URL}/method/crm.fcrm.doctype.crm_call_log.crm_call_log.get_call_log`, {
           method: 'POST',
           headers: {
-            'Authorization': AUTH_TOKEN,
+            'Authorization': token,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({ name: summary.name }) // Pass the unique name for each call
@@ -1234,7 +1235,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
         const response = await fetch(`${API_BASE_URL}/method/upload_file`, {
           method: "POST",
           headers: {
-            Authorization: AUTH_TOKEN,
+            Authorization: token,
           },
           body: formData,
         });
@@ -1263,7 +1264,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
         const response = await fetch(`${API_BASE_URL}/method/upload_file`, {
           method: "POST",
           headers: {
-            Authorization: AUTH_TOKEN,
+            Authorization: token,
           },
           body: formData,
         });
@@ -1290,7 +1291,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
       const response = await fetch(`${API_BASE_URL}/method/crm.api.activities.get_activities`, {
         method: 'POST',
         headers: {
-          'Authorization': AUTH_TOKEN,
+          'Authorization': token,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -1385,7 +1386,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
         {
           method: 'POST',
           headers: {
-            'Authorization': AUTH_TOKEN,
+            'Authorization': token,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
@@ -1413,7 +1414,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
       const response = await fetch(`${API_BASE_URL}/method/frappe.client.get_list`, {
         method: 'POST',
         headers: {
-          'Authorization': AUTH_TOKEN,
+          'Authorization': token,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -1445,7 +1446,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
       const response = await fetch(`${API_BASE_URL}/method/frappe.client.get_list`, {
         method: 'POST',
         headers: {
-          'Authorization': AUTH_TOKEN,
+          'Authorization': token,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -1477,7 +1478,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
       const response = await fetch(`${API_BASE_URL}/method/frappe.desk.search.search_link`, {
         method: 'POST',
         headers: {
-          'Authorization': AUTH_TOKEN,
+          'Authorization': token,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -1504,7 +1505,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
       const response = await fetch(`${API_BASE_URL}/method/frappe.desk.search.search_link`, {
         method: 'POST',
         headers: {
-          'Authorization': AUTH_TOKEN,
+          'Authorization': token,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -1546,7 +1547,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
       const response = await fetch(`${API_BASE_URL}/method/frappe.desk.search.search_link`, {
         method: 'POST',
         headers: {
-          'Authorization': AUTH_TOKEN,
+          'Authorization': token,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -1606,7 +1607,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
         {
           method: 'POST',
           headers: {
-            'Authorization': AUTH_TOKEN,
+            'Authorization': token,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
@@ -1637,7 +1638,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
         {
           method: 'POST',
           headers: {
-            'Authorization': AUTH_TOKEN,
+            'Authorization': token,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
@@ -1692,7 +1693,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
         await fetch('https://api.erpnext.ai/api/method/customcrm.api.add_action_log', {
           method: 'POST',
           headers: {
-            'Authorization': AUTH_TOKEN,
+            'Authorization': token,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
@@ -1732,7 +1733,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
       const response = await fetch(`${API_BASE_URL}/method/frappe.client.set_value`, {
         method: 'POST',
         headers: {
-          'Authorization': AUTH_TOKEN,
+          'Authorization': token,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -1790,7 +1791,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
       const response = await fetch(`${API_BASE_URL}/method/frappe.desk.search.search_link`, {
         method: 'POST',
         headers: {
-          'Authorization': AUTH_TOKEN,
+          'Authorization': token,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -1829,7 +1830,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
       const response = await fetch('https://api.erpnext.ai/api/method/customcrm.email.get_company_info.get_company_info', {
         method: 'POST',
         headers: {
-          'Authorization': AUTH_TOKEN,
+          'Authorization': token,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -1871,7 +1872,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
       const response = await fetch(`${API_BASE_URL}/method/frappe.client.set_value`, {
         method: 'POST',
         headers: {
-          'Authorization': AUTH_TOKEN,
+          'Authorization': token,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -1990,7 +1991,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
       const leadResponse = await fetch(`${API_BASE_URL}/method/crm.fcrm.doctype.crm_lead.crm_lead.convert_to_deal`, {
         method: 'POST',
         headers: {
-          'Authorization': AUTH_TOKEN,
+          'Authorization': token,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -2017,7 +2018,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
         const orgDetailsResponse = await fetch(`${API_BASE_URL}/method/frappe.client.get`, {
           method: 'POST',
           headers: {
-            'Authorization': AUTH_TOKEN,
+            'Authorization': token,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
@@ -2044,7 +2045,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
       const updateLeadResponse = await fetch(`${API_BASE_URL}/method/frappe.client.set_value`, {
         method: 'POST',
         headers: {
-          'Authorization': AUTH_TOKEN,
+          'Authorization': token,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -2109,7 +2110,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
       const response = await fetch(`${API_BASE_URL}/method/frappe.client.insert`, {
         method: 'POST',
         headers: {
-          'Authorization': AUTH_TOKEN,
+          'Authorization': token,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -2145,7 +2146,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
       const response = await fetch(`${API_BASE_URL}/method/frappe.desk.search.search_link`, {
         method: 'POST',
         headers: {
-          'Authorization': AUTH_TOKEN,
+          'Authorization': token,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -2201,7 +2202,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
       const response = await fetch(`${API_BASE_URL}/method/frappe.client.set_value`, {
         method: 'POST',
         headers: {
-          'Authorization': AUTH_TOKEN,
+          'Authorization': token,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -2236,7 +2237,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
       const response = await fetch(`${API_BASE_URL}/method/frappe.client.delete`, {
         method: 'POST',
         headers: {
-          'Authorization': AUTH_TOKEN,
+          'Authorization': token,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -2408,7 +2409,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
       const response = await fetch('https://api.erpnext.ai/api/method/frappe.client.insert', {
         method: 'POST',
         headers: {
-          'Authorization': AUTH_TOKEN,
+          'Authorization': token,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -2488,7 +2489,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
       const response = await fetch('https://api.erpnext.ai/api/method/frappe.client.set_value', {
         method: 'POST',
         headers: {
-          'Authorization': AUTH_TOKEN,
+          'Authorization': token,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -2562,7 +2563,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
       const response = await fetch(`${API_BASE_URL}/method/frappe.client.insert`, {
         method: 'POST',
         headers: {
-          'Authorization': AUTH_TOKEN,
+          'Authorization': token,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -2643,7 +2644,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
       const response = await fetch(`${API_BASE_URL}/method/frappe.client.set_value`, {
         method: 'POST',
         headers: {
-          'Authorization': AUTH_TOKEN,
+          'Authorization': token,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -2693,7 +2694,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
         const response = await fetch("https://api.erpnext.ai/api/method/frappe.desk.search.search_link", {
           method: "POST",
           headers: {
-            'Authorization': AUTH_TOKEN,
+            'Authorization': token,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
@@ -2786,7 +2787,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
       const setValueResponse = await fetch(`${API_BASE_URL}/method/frappe.client.set_value`, {
         method: 'POST',
         headers: {
-          'Authorization': AUTH_TOKEN,
+          'Authorization': token,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -2819,7 +2820,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
       const getResponse = await fetch(`${API_BASE_URL}/method/frappe.client.get`, {
         method: 'POST',
         headers: {
-          'Authorization': AUTH_TOKEN,
+          'Authorization': token,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -2892,7 +2893,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
       const response = await fetch(`${API_BASE_URL}/method/frappe.desk.search.search_link`, {
         method: 'POST',
         headers: {
-          'Authorization': AUTH_TOKEN,
+          'Authorization': token,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -2929,7 +2930,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
       const response = await fetch(`${API_BASE_URL}/method/frappe.desk.search.search_link`, {
         method: 'POST',
         headers: {
-          'Authorization': AUTH_TOKEN,
+          'Authorization': token,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -3042,7 +3043,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
       const response = await fetch(`${API_BASE_URL}/method/frappe.client.delete`, {
         method: 'POST',
         headers: {
-          'Authorization': AUTH_TOKEN,
+          'Authorization': token,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -3117,7 +3118,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
           },
           {
             headers: {
-              'Authorization': AUTH_TOKEN,
+              'Authorization': token,
               'Content-Type': 'application/json'
             }
           }
@@ -3445,7 +3446,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
                     method: 'POST',
                     headers: {
                       'Content-Type': 'application/json',
-                      'Authorization': AUTH_TOKEN,
+                      'Authorization': token,
                     },
                     body: JSON.stringify({
                       doctype: 'CRM Lead',
@@ -3594,7 +3595,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
                               await fetch(`${API_BASE_URL}/method/frappe.client.set_value`, {
                                 method: 'POST',
                                 headers: {
-                                  'Authorization': AUTH_TOKEN,
+                                  'Authorization': token,
                                   'Content-Type': 'application/json'
                                 },
                                 body: JSON.stringify({
@@ -7004,7 +7005,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
                       const response = await fetch(`${API_BASE_URL}/method/frappe.client.insert`, {
                         method: 'POST',
                         headers: {
-                          'Authorization': AUTH_TOKEN,
+                          'Authorization': token,
                           'Content-Type': 'application/json'
                         },
                         body: JSON.stringify({
@@ -7097,7 +7098,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
                     const response = await fetch(`${API_BASE_URL}/method/frappe.client.insert`, {
                       method: 'POST',
                       headers: {
-                        'Authorization': AUTH_TOKEN,
+                        'Authorization': token,
                         'Content-Type': 'application/json'
                       },
                       body: JSON.stringify({
@@ -7196,7 +7197,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
                       const response = await fetch(`${API_BASE_URL}/method/frappe.client.insert`, {
                         method: 'POST',
                         headers: {
-                          'Authorization': AUTH_TOKEN,
+                          'Authorization': token,
                           'Content-Type': 'application/json'
                         },
                         body: JSON.stringify({

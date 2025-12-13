@@ -2,15 +2,17 @@
 
 import { authenticatedFetch, handleApiResponse } from '../utils/apiErrorHandler';
 import { AUTH_TOKEN } from './apiUrl'; // Assuming you have this constant
+import { getAuthToken } from './apiUrl';
 
 const BASE_URL = 'https://api.erpnext.ai';
 
 // General purpose function for making API calls
 async function apiCall(url: string, options: RequestInit = {}) {
-  console.log("Using Auth Token:", AUTH_TOKEN); 
+  const token = getAuthToken();
+  console.log("Using Auth Token:", AUTH_TOKEN);
   const defaultHeaders = {
     'Content-Type': 'application/json',
-    'Authorization': AUTH_TOKEN,
+    'Authorization': token,
   };
 
   const config = {
@@ -41,7 +43,7 @@ export const api = {
       body: JSON.stringify(body),
     });
   },
-  
+
   // You can add put, delete, etc. as needed
   put: (endpoint: string, body: any) => {
     return apiCall(`${BASE_URL}/${endpoint}`, {

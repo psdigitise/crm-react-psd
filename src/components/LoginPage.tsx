@@ -36,6 +36,7 @@ interface LoginResponse {
     warning?: string;
     full_name?: string;
     role_profile?: string;
+    plan_id?: string;
   };
 }
 
@@ -77,11 +78,10 @@ const Toast: React.FC<ToastProps> = ({ message, type, isVisible, onClose }) => {
   return (
     <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top-2">
       <div
-        className={`flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg border ${
-          type === 'success'
-            ? 'bg-green-50 border-green-200 text-green-800'
-            : 'bg-red-50 border-red-200 text-red-800'
-        }`}
+        className={`flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg border ${type === 'success'
+          ? 'bg-green-50 border-green-200 text-green-800'
+          : 'bg-red-50 border-red-200 text-red-800'
+          }`}
       >
         {type === 'success' ? (
           <CheckCircle className="w-5 h-5 text-green-600" />
@@ -91,11 +91,10 @@ const Toast: React.FC<ToastProps> = ({ message, type, isVisible, onClose }) => {
         <p className="text-sm font-medium max-w-sm">{message}</p>
         <button
           onClick={onClose}
-          className={`ml-2 ${
-            type === 'success'
-              ? 'text-green-600 hover:text-green-800'
-              : 'text-red-600 hover:text-red-800'
-          }`}
+          className={`ml-2 ${type === 'success'
+            ? 'text-green-600 hover:text-green-800'
+            : 'text-red-600 hover:text-red-800'
+            }`}
         >
           <X className="w-4 h-4" />
         </button>
@@ -143,28 +142,28 @@ const GoogleSignupModal: React.FC<GoogleSignupModalProps> = ({
         return !value
           ? 'First name is required'
           : value.length < 2
-          ? 'First name must be at least 2 characters'
-          : '';
+            ? 'First name must be at least 2 characters'
+            : '';
       case 'last_name':
         return !value
           ? 'Last name is required'
           : value.length < 2
-          ? 'Last name must be at least 2 characters'
-          : '';
+            ? 'Last name must be at least 2 characters'
+            : '';
       case 'phone':
         return !value ? 'Phone number is required' : '';
       case 'company':
         return !value
           ? 'Company name is required'
           : value.length < 2
-          ? 'Company name must be at least 2 characters'
-          : '';
+            ? 'Company name must be at least 2 characters'
+            : '';
       case 'no_employees':
         return !value
           ? 'Number of employees is required'
           : !/^\d+$/.test(value)
-          ? 'Please enter a valid number'
-          : '';
+            ? 'Please enter a valid number'
+            : '';
       default:
         return '';
     }
@@ -573,7 +572,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
     // Create white background overlay with logo
     const overlay = document.createElement('div');
     overlay.id = 'white-logo-overlay';
-    
+
     // CSS for full-screen white background with centered logo
     overlay.style.cssText = `
       position: fixed;
@@ -589,7 +588,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
       opacity: 0;
       transition: opacity 0.3s ease;
     `;
-    
+
     // Create logo container
     const logoContainer = document.createElement('div');
     logoContainer.style.cssText = `
@@ -599,7 +598,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
       justify-content: center;
       gap: 20px;
     `;
-    
+
 
     const logoImg = new Image();
     logoImg.src = '/app/assets/images/Erpnextlogo.png';
@@ -609,8 +608,8 @@ export function LoginPage({ onLogin }: LoginPageProps) {
       height: auto;
       animation: pulse 1.5s ease-in-out infinite;
     `;
-    
-   
+
+
     const style = document.createElement('style');
     style.textContent = `
       @keyframes pulse {
@@ -625,28 +624,28 @@ export function LoginPage({ onLogin }: LoginPageProps) {
       }
     `;
     document.head.appendChild(style);
-    
- 
+
+
     logoContainer.appendChild(logoImg);
     overlay.appendChild(logoContainer);
     document.body.appendChild(overlay);
-    
+
 
     overlay.offsetHeight;
-    
+
     // Fade in the white overlay
     setTimeout(() => {
       overlay.style.opacity = '1';
     }, 10);
-    
+
     // Store reload flag
     localStorage.setItem('smoothReload', 'true');
-    
+
     // Wait for overlay to be fully visible, then reload
     setTimeout(() => {
       window.location.reload();
     }, 100);
-    
+
     // Clean up function for unmounting
     return () => {
       if (document.getElementById('white-logo-overlay')) {
@@ -810,19 +809,21 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           sid: result.message.sid || '',
           api_key: result.message.api_key || '',
           api_secret: result.message.api_secret || '',
-          role_profile: result.message.role_profile || ''
+          role_profile: result.message.role_profile || '',
+          plan_id: result.message.plan_id || ''
         };
 
         setUserSession(sessionData);
         showToast('Successfully logged in!', 'success');
-        
+
         // Update parent state
         onLogin();
-        
+
         // Use white background logo reload
-        setTimeout(() => {
-          whiteLogoReload();
-        }, 800);
+        // setTimeout(() => {
+        //   whiteLogoReload();
+        // }, 800);
+
       } else {
         const errorMessage =
           result.message?.message ||
@@ -1135,16 +1136,16 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           // Clean up stored credentials after successful login
           localStorage.removeItem('google_token');
           localStorage.removeItem('google_credential');
-          
+
           showToast('Successfully logged in with Google!', 'success');
-          
+
           // Update parent state
           onLogin();
-          
+
           // Use white background logo reload
-          setTimeout(() => {
-            whiteLogoReload();
-          }, 800);
+          // setTimeout(() => {
+          //   whiteLogoReload();
+          // }, 800);
         } else {
           throw new Error(
             loginData.message?.message ||
@@ -1229,15 +1230,15 @@ export function LoginPage({ onLogin }: LoginPageProps) {
         localStorage.removeItem('google_credential');
 
         showToast('Account created successfully!', 'success');
-        
+
         // Update parent state
         onLogin();
-        
+
         // Use white background logo reload
-        setTimeout(() => {
-          whiteLogoReload();
-        }, 800);
-        
+        // setTimeout(() => {
+        //   whiteLogoReload();
+        // }, 800);
+
       } else {
         throw new Error(
           loginData.message?.message || 'Failed to create account'
@@ -1299,15 +1300,15 @@ export function LoginPage({ onLogin }: LoginPageProps) {
         localStorage.removeItem('facebook_token');
 
         showToast('Successfully logged in with Facebook!', 'success');
-        
+
         // Update parent state
         onLogin();
-        
+
         // Use white background logo reload
-        setTimeout(() => {
-          whiteLogoReload();
-        }, 800);
-        
+        // setTimeout(() => {
+        //   whiteLogoReload();
+        // }, 800);
+
       } else {
         throw new Error(data.message?.message || 'Facebook login failed.');
       }
@@ -1625,7 +1626,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                   </div>
                 </div>
 
-                
+
                 <div className="flex justify-center gap-6">
                   {/* Google Login - Icon Only */}
                   <CustomGoogleLoginButton
@@ -1635,7 +1636,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                     }}
                   />
 
-                  
+
                   <CustomFacebookLoginButton
                     onSuccess={handleFacebookLogin}
                     onError={handleFacebookError}
@@ -1649,7 +1650,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                   onClick={() => {
                     setIsRegisterMode(true);
                     setError('');
-                  }}  
+                  }}
                   className="w-full bg-white border border-white text-[#2D243C] py-3 rounded-lg font-medium hover:bg-gray-100 transition-colors"
                   disabled={loading}
                 >

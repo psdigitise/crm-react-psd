@@ -5,7 +5,7 @@ import { showToast } from '../utils/toast';
 import { getUserSession } from '../utils/session';
 import { DealDetailView } from './DealDetailView';
 import { ContactDetailView } from './ContactDetailView';
-import { AUTH_TOKEN } from '../api/apiUrl';
+import { AUTH_TOKEN, getAuthToken } from '../api/apiUrl';
 
 // Helper function to convert relative image paths to full URLs
 const getFullImageUrl = (imagePath: string | null) => {
@@ -146,6 +146,7 @@ export default function OrganizationDetails({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [expandedDeals, setExpandedDeals] = useState<Set<string>>(new Set());
   const [expandedContacts, setExpandedContacts] = useState<Set<string>>(new Set());
+  const token =  getAuthToken();
 
   const API_BASE = 'https://api.erpnext.ai/api/method';
 
@@ -193,7 +194,7 @@ export default function OrganizationDetails({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
+          'Authorization': token
         },
         body: JSON.stringify({
           txt: "",
@@ -240,7 +241,7 @@ export default function OrganizationDetails({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
+          'Authorization': token
         },
         body: JSON.stringify({
           txt: "",
@@ -281,7 +282,7 @@ export default function OrganizationDetails({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
+          'Authorization': token
         },
         body: JSON.stringify({
           txt: "",
@@ -325,7 +326,7 @@ export default function OrganizationDetails({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
+          'Authorization': token
         },
         body: JSON.stringify({
           txt: "",
@@ -401,7 +402,7 @@ export default function OrganizationDetails({
       const uploadResponse = await fetch('https://api.erpnext.ai/api/method/upload_file', {
         method: 'POST',
         headers: {
-          'Authorization': AUTH_TOKEN
+          'Authorization': token
         },
         body: formData
       });
@@ -421,7 +422,7 @@ export default function OrganizationDetails({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
+          'Authorization': token
         },
         body: JSON.stringify({
           doctype: "CRM Organization",
@@ -487,7 +488,7 @@ export default function OrganizationDetails({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
+          'Authorization': token
         },
         body: JSON.stringify({
           doctype: "CRM Organization",
@@ -611,7 +612,7 @@ export default function OrganizationDetails({
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': AUTH_TOKEN
+            'Authorization': token
           },
           body: JSON.stringify({
             doctype: "CRM Organization",
@@ -648,7 +649,7 @@ export default function OrganizationDetails({
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': AUTH_TOKEN
+            'Authorization': token
           },
           body: JSON.stringify({
             doctype: "CRM Deal",
@@ -710,7 +711,7 @@ export default function OrganizationDetails({
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': AUTH_TOKEN
+            'Authorization': token
           },
           body: JSON.stringify({
             doctype: "Contact",
@@ -801,7 +802,7 @@ export default function OrganizationDetails({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
+          'Authorization': token
         },
         body: JSON.stringify(requestBody)
       });
@@ -866,7 +867,7 @@ export default function OrganizationDetails({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
+          'Authorization': token
         },
         body: JSON.stringify({
           doctype: "CRM Organization",

@@ -4,6 +4,7 @@ import { useTheme } from './ThemeProvider';
 import { showToast } from '../utils/toast';
 import { getUserSession } from '../utils/session';
 import { AUTH_TOKEN } from '../api/apiUrl';
+import { getAuthToken } from '../api/apiUrl';
 
 interface User {
   name: string;
@@ -47,7 +48,7 @@ export function UsersTable({ searchTerm, onUserClick, refreshTrigger }: UsersTab
   const [error, setError] = useState<string | null>(null);
   const [sortField, setSortField] = useState<keyof User | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
-  
+
   // New state for enhanced features
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -58,6 +59,7 @@ export function UsersTable({ searchTerm, onUserClick, refreshTrigger }: UsersTab
   const [columns, setColumns] = useState<ColumnConfig[]>(defaultColumns);
   const [showColumnSettings, setShowColumnSettings] = useState(false);
   const [expandedUsers, setExpandedUsers] = useState<Set<string>>(new Set());
+  const token = getAuthToken();
 
   const fetchUsers = async () => {
     try {
@@ -84,7 +86,7 @@ export function UsersTable({ searchTerm, onUserClick, refreshTrigger }: UsersTab
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
+          'Authorization': token
         }
       });
 
@@ -322,7 +324,7 @@ export function UsersTable({ searchTerm, onUserClick, refreshTrigger }: UsersTab
             <RefreshCcw className="w-4 h-4" />
           </button>
 
-          
+
 
           <div className="relative">
             <button
@@ -376,7 +378,7 @@ export function UsersTable({ searchTerm, onUserClick, refreshTrigger }: UsersTab
           <div className="flex items-center space-x-2">
             {filteredDataLength > 0 && (
               <div title="Export Excel">
-               
+
               </div>
             )}
           </div>
@@ -406,8 +408,8 @@ export function UsersTable({ searchTerm, onUserClick, refreshTrigger }: UsersTab
       {/* Table */}
       <div
         className={`rounded-lg shadow-sm border overflow-hidden ${theme === 'dark'
-            ? 'bg-custom-gradient border-transparent !rounded-none'
-            : 'bg-white border-gray-200'
+          ? 'bg-custom-gradient border-transparent !rounded-none'
+          : 'bg-white border-gray-200'
           }`}
       >
         <div className="w-full">
@@ -416,8 +418,8 @@ export function UsersTable({ searchTerm, onUserClick, refreshTrigger }: UsersTab
             <table className="w-full">
               <thead
                 className={`border-b ${theme === 'dark'
-                    ? 'bg-purplebg border-transparent'
-                    : 'bg-gray-50 border-gray-200'
+                  ? 'bg-purplebg border-transparent'
+                  : 'bg-gray-50 border-gray-200'
                   }`}
               >
                 <tr className="divide-x-[1px]">
@@ -445,8 +447,8 @@ export function UsersTable({ searchTerm, onUserClick, refreshTrigger }: UsersTab
                   <tr
                     key={user.name}
                     className={`transition-colors cursor-pointer ${theme === 'dark'
-                        ? 'hover:bg-purple-800/20'
-                        : 'hover:bg-gray-50'
+                      ? 'hover:bg-purple-800/20'
+                      : 'hover:bg-gray-50'
                       }`}
                     onClick={() => onUserClick && onUserClick(user)}
                   >
@@ -498,12 +500,12 @@ export function UsersTable({ searchTerm, onUserClick, refreshTrigger }: UsersTab
               <div
                 key={user.name}
                 className={`p-4 rounded-lg border ${theme === 'dark'
-                    ? 'bg-purplebg border-transparent'
-                    : 'bg-white border-gray-200'
+                  ? 'bg-purplebg border-transparent'
+                  : 'bg-white border-gray-200'
                   } shadow-sm`}
               >
                 <div className="flex justify-between items-center">
-                  <div 
+                  <div
                     className="flex items-center flex-1 cursor-pointer"
                     onClick={() => onUserClick && onUserClick(user)}
                   >
@@ -525,23 +527,21 @@ export function UsersTable({ searchTerm, onUserClick, refreshTrigger }: UsersTab
                       </p>
                     </div>
                   </div>
-                  
+
                   {/* Dropdown arrow */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       toggleUserDetails(user.name);
                     }}
-                    className={`p-1 rounded transition-transform ${
-                      theme === 'dark' ? 'hover:bg-purple-700' : 'hover:bg-gray-100'
-                    }`}
+                    className={`p-1 rounded transition-transform ${theme === 'dark' ? 'hover:bg-purple-700' : 'hover:bg-gray-100'
+                      }`}
                   >
-                    <svg 
-                      className={`w-4 h-4 transform transition-transform ${
-                        isUserExpanded(user.name) ? 'rotate-180' : ''
-                      } ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}
-                      fill="none" 
-                      stroke="currentColor" 
+                    <svg
+                      className={`w-4 h-4 transform transition-transform ${isUserExpanded(user.name) ? 'rotate-180' : ''
+                        } ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}
+                      fill="none"
+                      stroke="currentColor"
                       viewBox="0 0 24 24"
                     >
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -569,7 +569,7 @@ export function UsersTable({ searchTerm, onUserClick, refreshTrigger }: UsersTab
                             className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'
                               }`}
                           >
-                            {column.key === 'creation' 
+                            {column.key === 'creation'
                               ? formatDate(user.creation || '')
                               : user[column.key] || 'N/A'
                             }

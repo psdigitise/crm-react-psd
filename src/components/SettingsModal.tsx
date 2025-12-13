@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import { getUserSession } from '../utils/session';
-import { AUTH_TOKEN } from '../api/apiUrl';
+import { AUTH_TOKEN, getAuthToken } from '../api/apiUrl';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -202,6 +202,8 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
   const sessionUsername = userSession?.username;
   const sessionFullName = userSession?.full_name;
   const sessionCompany = userSession?.company;
+  const sessionPlanId = userSession?.plan_id; // Default to '0' (Free)
+  const token = getAuthToken();
 
   // Load Razorpay script
   useEffect(() => {
@@ -336,7 +338,7 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
         `https://api.erpnext.ai/api/method/customcrm.api.credits_usage?company=${encodeURIComponent(sessionCompany)}`,
         {
           headers: {
-            'Authorization': AUTH_TOKEN,
+            'Authorization': token,
             'Content-Type': 'application/json'
           }
         }
@@ -383,7 +385,7 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
         `https://api.erpnext.ai/api/v2/document/User/${encodeURIComponent(sessionEmail)}`,
         {
           headers: {
-            'Authorization': AUTH_TOKEN,
+            'Authorization': token,
             'Content-Type': 'application/json'
           }
         }
@@ -459,7 +461,7 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
       const response = await fetch('https://api.erpnext.ai/api/method/frappe.client.set_value', {
         method: 'POST',
         headers: {
-          'Authorization': AUTH_TOKEN,
+          'Authorization': token,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(updateData)
@@ -530,7 +532,7 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
       const response = await fetch('https://api.erpnext.ai/api/method/frappe.client.set_value', {
         method: 'POST',
         headers: {
-          'Authorization': AUTH_TOKEN,
+          'Authorization': token,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(updateData)
@@ -587,7 +589,7 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
       const uploadResponse = await fetch('https://api.erpnext.ai/api/method/upload_file', {
         method: 'POST',
         headers: {
-          'Authorization': AUTH_TOKEN,
+          'Authorization': token,
         },
         body: formData
       });
@@ -616,7 +618,7 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
           const updateResponse = await fetch('https://api.erpnext.ai/api/method/frappe.client.set_value', {
             method: 'POST',
             headers: {
-              'Authorization': AUTH_TOKEN,
+              'Authorization': token,
               'Content-Type': 'application/json'
             },
             body: JSON.stringify(updateData)
@@ -712,7 +714,7 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
       const response = await fetch('https://api.erpnext.ai/api/method/customcrm.email.website_integration.create_user_api', {
         method: 'POST',
         headers: {
-          'Authorization': AUTH_TOKEN,
+          'Authorization': token,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(payload)
@@ -801,7 +803,7 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
           const apiResponse = await fetch('https://api.erpnext.ai/api/method/customcrm.payment.update_company', {
             method: 'POST',
             headers: {
-              'Authorization': AUTH_TOKEN,
+              'Authorization': token,
               'Content-Type': 'application/json'
             },
             body: JSON.stringify(payload)
@@ -810,6 +812,13 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
           if (apiResponse.ok) {
             await apiResponse.json();
             showSuccessToast(`Successfully upgraded to ${planName}!`);
+
+            // **Update Local Session with new plan_id**
+            if (userSession) {
+              userSession.plan_id = planId;
+              localStorage.setItem('userSession', JSON.stringify(userSession));
+            }
+
           } else {
             const error = await apiResponse.json();
             console.error('Failed to update company plan:', error);
@@ -862,7 +871,7 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
           const apiResponse = await fetch('https://api.erpnext.ai/api/method/customcrm.payment.update_company', {
             method: 'POST',
             headers: {
-              'Authorization': AUTH_TOKEN,
+              'Authorization': token,
               'Content-Type': 'application/json'
             },
             body: JSON.stringify(payload)
@@ -906,7 +915,7 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
       const response = await fetch('https://api.erpnext.ai/api/v2/document/On Request Form', {
         method: 'POST',
         headers: {
-          'Authorization': AUTH_TOKEN,
+          'Authorization': token,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(payload),
@@ -1043,12 +1052,144 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
     </div>
   );
 
+  // Function to determine which card to highlight as the *suggested* next upgrade
+  const getUpgradeSuggestionId = (currentPlanId: string) => {
+    switch (currentPlanId) {
+      case '0': // Free/Initial -> Suggest Standard (Plan 1)
+        return '1';
+      case '1': // Standard -> Suggest Professional (Plan 2)
+        return '2';
+      case '2': // Professional -> No automated suggestion
+        return null;
+      default:
+        return null;
+    }
+  };
+
+  const getPlanDetails = (planId: string) => {
+    switch (planId) {
+      case '0':
+        return { name: 'Free Plan', color: 'bg-green-500' };
+      case '1':
+        return { name: 'STANDARD PLAN CRM', color: 'bg-blue-500' };
+      case '2':
+        return { name: 'PROFESSIONAL PLAN – CRM Pro', color: 'bg-purple-500' };
+      case '3':
+        return { name: 'ENTERPRISE PLAN – CRM Max', color: 'bg-yellow-500' };
+      default:
+        return { name: 'Unknown Plan', color: 'bg-gray-500' };
+    }
+  };
+
+  const renderPlanCard = (planName: string, amount: number | 'On Request', planId: string, description: string, highlightAsCurrent: boolean, highlightAsSuggested: boolean) => {
+    const isCurrentPlan = sessionPlanId === planId;
+    const isEnterprise = planId === '3';
+
+    // Determine card styles
+    let cardClassName = `border rounded-xl p-6 text-center relative shadow-lg transition-all duration-300 ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}`;
+    let highlightClassName = '';
+
+    if (isCurrentPlan) {
+      // Current plan highlight (strong border)
+      highlightClassName = theme === 'dark'
+        ? 'border-green-500 ring-2 ring-green-500'
+        : 'border-green-600 ring-2 ring-600';
+    } else if (highlightAsSuggested && !isEnterprise) {
+      // Suggested plan highlight (medium border)
+      highlightClassName = theme === 'dark'
+        ? 'border-purple-500 ring-2 ring-purple-500'
+        : 'border-blue-500 ring-2 ring-blue-500';
+    } else {
+      // Default styles
+      highlightClassName = theme === 'dark' ? 'border-gray-700' : 'border-gray-200';
+    }
+
+    // Determine button styles
+    const isButtonDisabled = isProcessingPayment !== null || isCurrentPlan || isEnterprise;
+    let buttonClassName = `mt-6 w-full px-4 py-2 rounded-lg font-medium transition-colors flex items-center justify-center `;
+
+    if (isCurrentPlan) {
+      buttonClassName += theme === 'dark'
+        ? 'bg-green-700 text-white cursor-not-allowed'
+        : 'bg-green-600 text-white cursor-not-allowed';
+    } else if (isProcessingPayment === planId) {
+      buttonClassName += 'bg-gray-500 text-gray-300 cursor-not-allowed';
+    } else if (isEnterprise) {
+      buttonClassName += theme === 'dark'
+        ? 'bg-purple-600 text-white hover:bg-purple-700'
+        : 'bg-purple-600 text-white hover:bg-purple-700';
+    } else {
+      buttonClassName += theme === 'dark'
+        ? 'bg-blue-600 text-white hover:bg-blue-700'
+        : 'bg-blue-600 text-white hover:bg-blue-700';
+    }
+
+
+    const handlePlanAction = () => {
+      if (isCurrentPlan) return;
+      if (isEnterprise) {
+        handleContactSales();
+      } else {
+        handlePayment(planName, amount as number, planId);
+      }
+    };
+
+    return (
+      <div className={`${cardClassName} ${highlightClassName}`}>
+        {isCurrentPlan && (
+          <div className="absolute top-0 right-0 -mt-3 -mr-3 px-3 py-1 rounded-full text-xs font-bold text-white bg-green-500 shadow-md">
+            Current Plan
+          </div>
+        )}
+        {highlightAsSuggested && !isCurrentPlan && !isEnterprise && (
+          <div className={`absolute top-0 right-0 -mt-3 -mr-3 px-3 py-1 rounded-full text-xs font-bold text-white ${theme === 'dark' ? 'bg-purple-500' : 'bg-blue-500'} shadow-md`}>
+            Recommended
+          </div>
+        )}
+
+        <h3 className={`text-xl font-semibold ${isCurrentPlan ? (theme === 'dark' ? 'text-green-400' : 'text-green-700') : (theme === 'dark' ? 'text-gray-200' : 'text-gray-800')}`}>
+          {planName}
+        </h3>
+        <ul className={`text-center mt-4 space-y-2 text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+          <li>{description}</li>
+        </ul>
+        <p className={`text-2xl font-bold mt-4 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+          {typeof amount === 'number' ? `₹${amount.toLocaleString()}/mo` : amount}
+        </p>
+        <button
+          onClick={handlePlanAction}
+          disabled={isButtonDisabled}
+          className={buttonClassName}
+        >
+          {isCurrentPlan ? (
+            <>
+              <CheckCircle className="w-4 h-4 mr-2" />
+              Active Plan
+            </>
+          ) : isProcessingPayment === planId ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Processing...
+            </>
+          ) : isEnterprise ? (
+            'Contact Sales'
+          ) : (
+            'Buy Now'
+          )}
+        </button>
+      </div>
+    );
+  };
+
   // Main content component
   const renderContent = () => {
+    //const upgradeSuggestionId = getUpgradeSuggestionId(sessionPlanId);
+
     switch (activeSettingsTab) {
       case 'profile':
         return (
           <div className="p-4 md:p-8">
+            {/* ... (Existing Profile Tab Content) ... */}
             {/* Profile Header */}
             <div className="flex flex-col md:flex-row md:items-start justify-between mb-8">
               <div className="flex items-center gap-4 mb-4 md:mb-0">
@@ -1205,6 +1346,7 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
       case 'aiUsage':
         return (
           <div className="p-4 md:p-6">
+            {/* ... (Existing AI Usage Tab Content) ... */}
             {/* Header with Refresh Button */}
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
               <div>
@@ -1215,30 +1357,6 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
                   Track your AI feature usage and manage your plan
                 </p>
               </div>
-              
-              
-              {/* <button
-                onClick={fetchAIUsageData}
-                disabled={isLoadingAIUsage}
-                className={`px-4 py-2 flex items-center justify-center rounded-lg text-sm font-medium transition-colors ${theme === 'dark'
-                  ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
-                  : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
-                  } ${isLoadingAIUsage ? 'opacity-50 cursor-not-allowed' : ''}`}
-              >
-                {isLoadingAIUsage ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Refreshing...
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                    Refresh
-                  </>
-                )}
-              </button> */}
             </div>
 
             {/* Loading State */}
@@ -1262,7 +1380,6 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
                         Period: {aiUsageData.start_date} to {aiUsageData.end_date}
                       </p>
                     </div>
-                   
                   </div>
 
                   {/* Progress Bar */}
@@ -1350,12 +1467,6 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
                           </div>
                         )}
                       </div>
-
-                      {/* <div className="flex items-center justify-end">
-                        <span className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
-                          Email composition & analysis
-                        </span>
-                      </div> */}
                     </div>
 
                     {/* AI Lead Score */}
@@ -1382,12 +1493,6 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
                           </div>
                         )}
                       </div>
-
-                      {/* <div className="flex items-center justify-end">
-                        <span className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                          Lead scoring & prioritization
-                        </span>
-                      </div> */}
                     </div>
 
                     {/* Company Intelligence Report */}
@@ -1414,12 +1519,6 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
                           </div>
                         )}
                       </div>
-
-                      {/* <div className="flex items-center justify-end">
-                        <span className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                          Company research & insights
-                        </span>
-                      </div> */}
                     </div>
                   </div>
 
@@ -1445,7 +1544,7 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
                     }`}
                 >
                   <ShoppingCart className="w-5 h-5" />
-                  Buy More 
+                  Buy More
                 </button>
               </>
             )}
@@ -1455,6 +1554,7 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
       case 'websiteIntegration':
         return (
           <div className="p-4 md:p-8">
+            {/* ... (Existing Website Integration Tab Content) ... */}
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
               <div>
@@ -1667,94 +1767,51 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
         );
 
       case 'upgradePlan':
+        const currentPlan = sessionPlanId || '0';
+        const suggestedPlan = getUpgradeSuggestionId(currentPlan);
+
         return (
           <div className="p-6">
             <h2 className={`text-2xl font-bold mb-6 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
               Upgrade Your Plan
             </h2>
-            <p className={`text-sm mt-2 mb-9 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-              Choose the plan that's right for you and unlock more features
+            <p className={`text-sm mt-2 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+              Your current plan is: <span className={`font-semibold`}>{getPlanDetails(currentPlan).name}</span>.
+            </p>
+            <p className={`text-sm mb-9 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+              Choose the plan that's right for you and unlock more features.
             </p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
-              {/* Silver - STANDARD PLAN CRM */}
-              <div className={`border rounded-xl p-6 text-center ${theme === 'dark' ? 'border-gray-700 bg-gray-800 shadow-lg' : 'border-gray-200 bg-white shadow-md'}`}>
-                <h3 className={`text-xl font-semibold ${theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}>
-                  STANDARD PLAN CRM
-                </h3>
-                <ul className={`text-center mt-9 space-y-2 text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                  <li>Best for Growing Teams</li>
-                </ul>
-                <p className={`text-xl font-bold mt-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>₹1,500/mo</p>
-                <button
-                  onClick={() => handlePayment('STANDARD PLAN CRM', 1500, '1')}
-                  disabled={isProcessingPayment !== null}
-                  className={`mt-6 w-full px-4 py-2 rounded-lg font-medium transition-colors flex items-center justify-center ${isProcessingPayment !== null
-                    ? 'bg-gray-500 text-gray-300 cursor-not-allowed'
-                    : theme === 'dark'
-                      ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                      : 'bg-gray-300 text-gray-800 hover:bg-gray-400'
-                    }`}
-                >
-                  {isProcessingPayment === '1' ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Processing...
-                    </>
-                  ) : (
-                    'Buy Now'
-                  )}
-                </button>
-              </div>
+              {/* STANDARD PLAN CRM (Plan ID 1) */}
+              {renderPlanCard(
+                'STANDARD PLAN CRM',
+                1500,
+                '1',
+                'Best for Growing Teams',
+                currentPlan === '1', // isCurrent
+                suggestedPlan === '1' // isSuggested
+              )}
 
-              {/* Gold - PROFESSIONAL PLAN – CRM Pro (Highlighted) */}
-              <div className={`border rounded-xl p-6 text-center shadow-lg ${theme === 'dark'
-                ? 'border-purple-500 bg-gray-800 ring-2 ring-purple-500'
-                : 'border-blue-500 bg-white ring-2 ring-blue-500'
-                }`}>
-                <h3 className={`text-xl font-semibold ${theme === 'dark' ? 'text-purple-400' : 'text-blue-600'}`}>
-                  PROFESSIONAL PLAN – CRM Pro
-                </h3>
-                <ul className={`text-center mt-4 space-y-2 text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                  <li>For Large Teams & Enterprises</li>
-                </ul>
-                <p className={`text-xl font-bold mt-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>₹2,500 /mo</p>
-                <button
-                  onClick={() => handlePayment('PROFESSIONAL PLAN – CRM Pro', 2500, '2')}
-                  disabled={isProcessingPayment !== null}
-                  className={`mt-6 mb w-full px-4 py-2 rounded-lg font-medium transition-colors flex items-center justify-center ${isProcessingPayment !== null
-                    ? 'bg-gray-500 text-white cursor-not-allowed'
-                    : 'bg-blue-600 text-white hover:bg-blue-700'
-                    }`}
-                >
-                  {isProcessingPayment === '2' ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Processing...
-                    </>
-                  ) : (
-                    'Buy Now'
-                  )}
-                </button>
-              </div>
+              {/* PROFESSIONAL PLAN – CRM Pro (Plan ID 2) */}
+              {renderPlanCard(
+                'PROFESSIONAL PLAN – CRM Pro',
+                2500,
+                '2',
+                'For Large Teams & Enterprises',
+                currentPlan === '2', // isCurrent
+                suggestedPlan === '2' // isSuggested
+              )}
 
-              {/* Platinum - ENTERPRISE PLAN – CRM Max */}
-              <div className={`border rounded-xl p-6 text-center shadow-lg ${theme === 'dark' ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
-                <h3 className={`text-xl font-semibold ${theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}>
-                  ENTERPRISE PLAN – CRM Max
-                </h3>
-                <ul className={`text-center mt-4 space-y-2 text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                  <li>For Multi-Location Companies</li>
-                </ul>
-                <p className={`text-xl font-bold mt-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>On Request</p>
-                <button
-                  onClick={handleContactSales}
-                  disabled={isProcessingPayment !== null}
-                  className={`mt-6 w-full px-4 py-2 rounded-lg font-medium transition-colors ${isProcessingPayment !== null ? 'bg-purple-800 text-gray-400 cursor-not-allowed' : 'bg-purple-600 text-white hover:bg-purple-700'}`}
-                >
-                  Contact Sales
-                </button>
-              </div>
+              {/* ENTERPRISE PLAN – CRM Max (Plan ID 3) */}
+              {renderPlanCard(
+                'ENTERPRISE PLAN – CRM Max',
+                'On Request',
+                '3',
+                'For Multi-Location Companies',
+                currentPlan === '3', // isCurrent
+                false // Never suggest Enterprise, only "On Request"
+              )}
             </div>
             <CRMFeatureTable theme={theme} />
           </div>

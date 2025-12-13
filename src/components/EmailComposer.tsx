@@ -116,6 +116,7 @@ export default function EmailOrCommentComposer({
   const userSession = getUserSession();
   const sessionfullname = userSession?.full_name;
   const senderUsername = userSession?.username || sessionfullname;
+   const token = getAuthToken();
 
   // File upload configuration
   const MAX_FILE_SIZE = 1 * 1024 * 1024; // 1MB in bytes
@@ -197,7 +198,7 @@ const checkEmailCredits = async (): Promise<number> => {
       },
       {
         headers: {
-          'Authorization': AUTH_TOKEN,
+          'Authorization': token,
           'Content-Type': 'application/json'
         }
       }
@@ -260,7 +261,7 @@ const checkEmailCredits = async (): Promise<number> => {
         },
         {
           headers: {
-            'Authorization': AUTH_TOKEN,
+            'Authorization': token,
             'Content-Type': 'application/json'
           }
         }
@@ -305,7 +306,7 @@ Instruction: ${emailForm.aiPrompt.trim()}
       { purpose: combinedPurpose },
       {
         headers: {
-          Authorization: AUTH_TOKEN,
+          Authorization: token,
           "Content-Type": "application/json",
         },
       }
@@ -377,7 +378,7 @@ const generateEmailFromSubject = async (subject: string) => {
       { subject },
       {
         headers: {
-          Authorization: AUTH_TOKEN,
+          Authorization: token,
           "Content-Type": "application/json",
         },
       }
@@ -432,7 +433,7 @@ const generateEmailFromSubject = async (subject: string) => {
 
       const response = await axios.post(SEARCH_API_URL, payload, {
         headers: {
-          Authorization: AUTH_TOKEN,
+          Authorization: token,
           "Content-Type": "application/json",
         },
       });
@@ -640,7 +641,7 @@ const generateEmailFromSubject = async (subject: string) => {
       try {
         const response = await axios.post(UPLOAD_API_URL, formData, {
           headers: {
-            Authorization: AUTH_TOKEN,
+            Authorization: token,
             "Content-Type": "multipart/form-data",
           },
         });
@@ -758,7 +759,7 @@ const generateEmailFromSubject = async (subject: string) => {
       const response = await fetch(API_BASE_URL, {
         method: "POST",
         headers: {
-          Authorization: AUTH_TOKEN,
+          Authorization: token,
           "Content-Type": "application/json",
         },
         body: JSON.stringify(payload),

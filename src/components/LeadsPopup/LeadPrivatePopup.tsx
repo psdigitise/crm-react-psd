@@ -1,6 +1,6 @@
 import React from 'react';
 import { IoCloseOutline } from 'react-icons/io5';
-import { apiAxios, AUTH_TOKEN } from '../../api/apiUrl';
+import { apiAxios, AUTH_TOKEN, getAuthToken } from '../../api/apiUrl';
 
 interface AttachmentPrivatePopupProps {
     closePopup: () => void;
@@ -19,6 +19,7 @@ export const LeadPrivatePopup: React.FC<AttachmentPrivatePopupProps> = ({
     fetchAttachments,
 }) => {
     const [isUpdating, setIsUpdating] = React.useState(false);
+    const token =  getAuthToken();
 
     const handleTogglePrivacy = async () => {
         setIsUpdating(true);
@@ -37,7 +38,7 @@ export const LeadPrivatePopup: React.FC<AttachmentPrivatePopupProps> = ({
                 {
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': AUTH_TOKEN
+                        'Authorization': token
                     }
                 }
             );

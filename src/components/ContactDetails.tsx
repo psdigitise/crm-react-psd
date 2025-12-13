@@ -4,7 +4,7 @@ import { useTheme } from './ThemeProvider';
 import { showToast } from '../utils/toast';
 import { getUserSession } from '../utils/session';
 import { DealDetailView } from './DealDetailView';
-import { apiAxios, apiUrl, AUTH_TOKEN } from '../api/apiUrl';
+import { apiAxios, apiUrl, AUTH_TOKEN, getAuthToken } from '../api/apiUrl';
 import axios from 'axios';
 import { TiCss3 } from 'react-icons/ti';
 
@@ -168,6 +168,7 @@ export default function ContactDetails({
 
   // Mobile dropdown state
   const [expandedDeals, setExpandedDeals] = useState<Set<string>>(new Set());
+  const token =  getAuthToken();
 
   useEffect(() => {
     if (editingField === 'address') {
@@ -176,7 +177,7 @@ export default function ContactDetails({
           setLoadingAddresses(true);
           const res = await axios.get("https://api.erpnext.ai/api/v2/document/Address", {
             headers: {
-              Authorization: AUTH_TOKEN,
+              Authorization: token,
             },
             params: {
               filters: JSON.stringify({
@@ -263,7 +264,7 @@ export default function ContactDetails({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
+          'Authorization': token
         },
         body: JSON.stringify({
           doctype: "Contact",
@@ -331,6 +332,7 @@ export default function ContactDetails({
       setLoading(true);
 
       const session = getUserSession();
+      const token = getAuthToken();
       if (!session) {
         showToast('Session not found', { type: 'error' });
         return;
@@ -340,7 +342,7 @@ export default function ContactDetails({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
+          'Authorization': token
         },
         body: JSON.stringify({
           doctype: "Contact Email",
@@ -387,7 +389,7 @@ export default function ContactDetails({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
+          'Authorization': token
         },
         body: JSON.stringify({
           doctype: "Contact Email",
@@ -426,6 +428,8 @@ export default function ContactDetails({
       setLoading(true);
 
       const session = getUserSession();
+      const token = getAuthToken();
+
       if (!session) {
         showToast('Session not found', { type: 'error' });
         return;
@@ -435,7 +439,7 @@ export default function ContactDetails({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
+          'Authorization': token
         },
         body: JSON.stringify({
           doctype: "Contact Phone",
@@ -482,7 +486,7 @@ export default function ContactDetails({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
+          'Authorization': token
         },
         body: JSON.stringify({
           doctype: "Contact Phone",
@@ -525,7 +529,7 @@ export default function ContactDetails({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
+          'Authorization': token
         },
         body: JSON.stringify({
           contact: contact.id,
@@ -568,7 +572,7 @@ export default function ContactDetails({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
+          'Authorization': token
         },
         body: JSON.stringify({
           contact: contact.id,
@@ -613,6 +617,8 @@ export default function ContactDetails({
     }
 
     const maxSize = 5 * 1024 * 1024;
+    const token = getAuthToken();
+
     if (file.size > maxSize) {
       showToast('Image size should be less than 5MB', { type: 'error' });
       return;
@@ -637,7 +643,7 @@ export default function ContactDetails({
       const uploadResponse = await fetch('https://api.erpnext.ai/api/method/upload_file', {
         method: 'POST',
         headers: {
-          'Authorization': AUTH_TOKEN
+          'Authorization': token
         },
         body: formData
       });
@@ -657,7 +663,7 @@ export default function ContactDetails({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
+          'Authorization': token
         },
         body: JSON.stringify({
           doctype: "Contact",
@@ -708,13 +714,14 @@ export default function ContactDetails({
   const fetchLinkedDeals = async (contactName: string) => {
     try {
       const session = getUserSession();
+      const token = getAuthToken();
       if (!session) return;
 
       const response = await fetch('https://api.erpnext.ai/api/method/crm.api.contact.get_linked_deals', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
+          'Authorization': token
         },
         body: JSON.stringify({
           contact: contactName
@@ -782,6 +789,7 @@ export default function ContactDetails({
     try {
       setLoading(true);
       const session = getUserSession();
+      const token = getAuthToken();
       if (!session) {
         showToast('Session not found', { type: 'error' });
         return;
@@ -791,7 +799,7 @@ export default function ContactDetails({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
+          'Authorization': token
         },
         body: JSON.stringify({
           doctype: "Contact",
@@ -854,6 +862,7 @@ export default function ContactDetails({
       setDeleteLoading(true);
 
       const session = getUserSession();
+      const token = getAuthToken();
       if (!session) {
         showToast("Session not found", { type: "error" });
         setShowDeleteConfirm(false);
@@ -869,7 +878,7 @@ export default function ContactDetails({
         {
           headers: {
             "Content-Type": "application/json",
-            Authorization: AUTH_TOKEN,
+            Authorization: token,
           },
         }
       );
@@ -923,6 +932,7 @@ export default function ContactDetails({
       setLoading(true);
 
       const session = getUserSession();
+      const token = getAuthToken();
       if (!session) {
         showToast('Session not found', { type: 'error' });
         return;
@@ -932,7 +942,7 @@ export default function ContactDetails({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
+          'Authorization': token
         },
         body: JSON.stringify({
           contact: contact.id,
@@ -970,6 +980,7 @@ export default function ContactDetails({
       setLoading(true);
 
       const session = getUserSession();
+      const token = getAuthToken();
       if (!session) {
         showToast('Session not found', { type: 'error' });
         return;
@@ -979,7 +990,7 @@ export default function ContactDetails({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
+          'Authorization': token
         },
         body: JSON.stringify({
           contact: contact.id,
@@ -1155,6 +1166,7 @@ export default function ContactDetails({
         setemailLoading(true);
 
         const session = getUserSession();
+        const token = getAuthToken();
         if (!session) {
           showToast('Session not found', { type: 'error' });
           return;
@@ -1164,7 +1176,7 @@ export default function ContactDetails({
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': AUTH_TOKEN
+            'Authorization': token
           },
           body: JSON.stringify({
             doctype: "Contact",
@@ -1466,6 +1478,7 @@ export default function ContactDetails({
         setLoading(true);
 
         const session = getUserSession();
+        const token = getAuthToken();
         if (!session) {
           showToast('Session not found', { type: 'error' });
           return;
@@ -1475,7 +1488,7 @@ export default function ContactDetails({
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': AUTH_TOKEN
+            'Authorization': token
           },
           body: JSON.stringify({
             doctype: "Contact",
@@ -1561,7 +1574,7 @@ export default function ContactDetails({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="font-medium truncate">{phoneItem.phone}</span>
-                       
+
                       </div>
                     </div>
                     <div className="flex items-center gap-1 ml-2 shrink-0">
@@ -1571,7 +1584,7 @@ export default function ContactDetails({
                       ) : (
                         <div className="flex items-center gap-1">
                           {/* Clean status indicator */}
-                         
+
                         </div>
                       )}
 
