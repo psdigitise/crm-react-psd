@@ -702,33 +702,33 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-  const file = event.target.files?.[0];
-  if (file) {
-    // Validate file before upload
-    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-      showErrorToast('Please upload a valid image file (JPEG, PNG, GIF, WebP)');
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
+    const file = event.target.files?.[0];
+    if (file) {
+      // Validate file before upload
+      if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+        showErrorToast('Please upload a valid image file (JPEG, PNG, GIF, WebP)');
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+        return;
       }
-      return;
+
+      if (file.size > MAX_FILE_SIZE) {
+        showErrorToast('Image size should be less than 1MB');
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+        return;
+      }
+
+      handleFileUpload(file);
     }
 
-    if (file.size > MAX_FILE_SIZE) {
-      showErrorToast('Image size should be less than 1MB');
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-      return;
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
-
-    handleFileUpload(file);
-  }
-  
-  // Reset file input
-  if (fileInputRef.current) {
-    fileInputRef.current.value = '';
-  }
-};
+  };
 
 
   const handleInputChange = (field: keyof UserProfile, value: string) => {
@@ -1177,7 +1177,7 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
     }
 
     // Determine button styles
-    const isButtonDisabled = isProcessingPayment !== null || isCurrentPlan || isEnterprise;
+    const isButtonDisabled = isCurrentPlan || (isProcessingPayment !== null && !isEnterprise);
     let buttonClassName = `mt-6 w-full px-4 py-2 rounded-lg font-medium transition-colors flex items-center justify-center `;
 
     if (isCurrentPlan) {
@@ -1328,13 +1328,13 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
                   </button>
 
                   <input
-  type="file"
-  ref={fileInputRef}
-  onChange={handleFileChange}
-  accept=".jpg,.jpeg,.png,.gif,.webp,image/jpeg,image/jpg,image/png,image/gif,image/webp"
-  className="hidden"
-  disabled={isUploadingPhoto}
-/>
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    accept=".jpg,.jpeg,.png,.gif,.webp,image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                    className="hidden"
+                    disabled={isUploadingPhoto}
+                  />
                 </div>
 
                 <div>

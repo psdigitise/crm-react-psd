@@ -125,6 +125,7 @@
 import React from 'react';
 import { IoCloseOutline } from 'react-icons/io5';
 import { apiAxios, AUTH_TOKEN } from '../../api/apiUrl';
+import { showToast } from '../../utils/toast';
 
 interface DeleteTaskPopupProps {
     closePopup: () => void;
@@ -170,8 +171,50 @@ export const DeleteTaskPopup: React.FC<DeleteTaskPopupProps> = ({
                 console.error('Failed to delete task:', response);
                 // Show error message to user
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error deleting task:', error);
+            let errorMessage = "Failed to delete task due to an unknown error.";
+
+            if (error.response && error.response.data) {
+                const responseData = error.response.data;
+
+                // 1. Check for the Frappe _server_messages structure
+                if (responseData._server_messages) {
+                    try {
+                        // The server message is a stringified JSON array containing a stringified JSON object
+                        const messagesArray = JSON.parse(responseData._server_messages);
+
+                        if (messagesArray.length > 0) {
+                            const messageObject = JSON.parse(messagesArray[0]);
+                            // Extract and clean the error message
+                            errorMessage = messageObject.message.replace(/<\/?a[^>]*>/g, '').replace(/<\/?strong>/g, '');
+
+                            // You can also check the indicator for toast type if needed
+                            const dynamicMessage = messageObject.message.replace(/<\/?a[^>]*>/g, '').replace(/<\/?strong>/g, '');
+                            errorMessage = `This task cannot be deleted because it is linked to a CRM Notification.`;
+                            const indicator = messageObject.indicator || 'red';
+                            //showToast(errorMessage, { type: indicator === 'red' ? 'error' : 'warning' });
+                            showToast(errorMessage || dynamicMessage, { type: indicator === 'red' ? 'error' : 'warning' });
+                            closePopup(); // Close the modal after showing the error
+                            return; // Stop further execution
+                        }
+                    } catch (parseError) {
+                        console.error("Failed to parse Frappe server messages:", parseError);
+                        // Fallback to generic error message
+                    }
+                }
+
+                // 2. Fallback to generic exception message
+                if (responseData.exception) {
+                    errorMessage = responseData.exception.split(':').pop()?.trim() || "Deletion failed.";
+                }
+
+                showToast(errorMessage, { type: 'error' });
+
+            } else {
+                // Network or other non-response errors
+                showToast("Network error or server is unreachable. Please try again.", { type: 'error' });
+            }
             // Show error message to user
         } finally {
             setIsDeleting(false);
@@ -238,8 +281,8 @@ export const DeleteTaskPopup: React.FC<DeleteTaskPopupProps> = ({
                         onClick={closePopup}
                         disabled={isDeleting}
                         className={`mt-3 w-full inline-flex justify-center rounded-md border shadow-sm px-4 py-2 text-base font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm ${theme === 'dark'
-                                ? 'border-purple-500/30 bg-dark-accent text-white hover:bg-purple-800/50'
-                                : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                            ? 'border-purple-500/30 bg-dark-accent text-white hover:bg-purple-800/50'
+                            : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
                             }`}
                     >
                         Cancel

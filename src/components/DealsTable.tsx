@@ -98,7 +98,7 @@ const defaultColumns: ColumnConfig[] = [
   { key: 'mobileNo', label: 'Mobile No', visible: true, sortable: true },
   { key: 'assignedTo', label: 'Assigned To', visible: true, sortable: true },
   { key: 'lastModified', label: 'Last Modified', visible: true, sortable: true },
-  
+
   { key: 'territory', label: 'Territory', visible: false, sortable: true },
   { key: 'industry', label: 'Industry', visible: false, sortable: true },
   { key: 'website', label: 'Website', visible: false, sortable: true }
@@ -261,7 +261,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
         status: apiDeal.status || 'Qualification',
         email: apiDeal.email || 'N/A',
         mobileNo: apiDeal.mobile_no || 'N/A',
-        assignedTo: apiDeal._assign  || 'N/A',
+        assignedTo: apiDeal._assign || 'N/A',
         lastModified: formatDate(apiDeal.modified),
         annualRevenue: formatCurrency(apiDeal.annual_revenue),
         closeDate: apiDeal.close_date ? formatDate(apiDeal.close_date) : 'N/A',
@@ -431,6 +431,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
   const handleAttachFile = () => {
     setShowImportPopup(false);
     if (fileInputRef.current) {
+      fileInputRef.current.value = '';
       fileInputRef.current.click();
     }
   };
@@ -445,7 +446,14 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
       return;
     }
 
-    // Store the file in state
+    const text = await file.text();
+    const lines = text.trim().split('\n');
+
+    // CSV with only header or empty
+    if (lines.length <= 1) {
+      showToast('CSV file is empty. Please add at least one record.');
+      return;
+    }
     setSelectedFile(file);
 
     await handleBulkImport(file);
@@ -638,8 +646,8 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
             <button
               onClick={() => setShowImportPopup(false)}
               className={`p-1 rounded ${theme === 'dark'
-                  ? 'text-gray-400 hover:text-white'
-                  : 'text-gray-500 hover:text-gray-700'
+                ? 'text-gray-400 hover:text-white'
+                : 'text-gray-500 hover:text-gray-700'
                 }`}
             >
               <X className="w-5 h-5" />
@@ -658,8 +666,8 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
                 onClick={handleDownloadTemplate}
                 disabled={importStatus === 'Downloading template...'}
                 className={`flex items-center justify-center space-x-2 px-4 py-3 border-2  rounded-lg transition-colors ${theme === 'dark'
-                    ? 'border-purple-500 text-purple-400 hover:bg-purple-900/30'
-                    : 'border-blue-500 text-blue-600 hover:bg-blue-50'
+                  ? 'border-purple-500 text-purple-400 hover:bg-purple-900/30'
+                  : 'border-blue-500 text-blue-600 hover:bg-blue-50'
                   } ${importStatus === 'Downloading template...' ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 <Download className="w-5 h-5" />
@@ -673,8 +681,8 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
               <button
                 onClick={handleAttachFile}
                 className={`flex items-center justify-center space-x-2 px-4 py-3 border-2  rounded-lg transition-colors ${theme === 'dark'
-                    ? 'border-green-500 text-green-400 hover:bg-green-900/30'
-                    : 'border-green-500 text-green-600 hover:bg-green-50'
+                  ? 'border-green-500 text-green-400 hover:bg-green-900/30'
+                  : 'border-green-500 text-green-600 hover:bg-green-50'
                   }`}
               >
                 <Upload className="w-5 h-5" />
@@ -766,8 +774,8 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
                   value={manualMappings[column.column_name] || ''}
                   onChange={(e) => handleMappingChange(column.column_name, e.target.value)}
                   className={`ml-4 px-3 py-2 border rounded ${theme === 'dark'
-                      ? 'bg-gray-700 border-gray-600 text-white'
-                      : 'bg-white border-gray-300 text-gray-900'
+                    ? 'bg-gray-700 border-gray-600 text-white'
+                    : 'bg-white border-gray-300 text-gray-900'
                     }`}
                 >
                   <option value="">Select Field</option>
@@ -785,8 +793,8 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
             <button
               onClick={handleCancel}
               className={`px-4 py-2 border rounded-lg transition-colors ${theme === 'dark'
-                  ? 'border-gray-600 text-white hover:bg-gray-700'
-                  : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                ? 'border-gray-600 text-white hover:bg-gray-700'
+                : 'border-gray-300 text-gray-700 hover:bg-gray-50'
                 }`}
             >
               Cancel Import
@@ -795,10 +803,10 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
               onClick={handleMappingSubmit}
               disabled={Object.keys(manualMappings).length !== unmappedColumns.length}
               className={`px-4 py-2 rounded-lg transition-colors ${Object.keys(manualMappings).length !== unmappedColumns.length
-                  ? 'bg-gray-400 cursor-not-allowed'
-                  : theme === 'dark'
-                    ? 'bg-purple-600 text-white hover:bg-purple-700'
-                    : 'bg-purple-600 text-white hover:bg-purple-700'
+                ? 'bg-gray-400 cursor-not-allowed'
+                : theme === 'dark'
+                  ? 'bg-purple-600 text-white hover:bg-purple-700'
+                  : 'bg-purple-600 text-white hover:bg-purple-700'
                 }`}
             >
               Continue Import
@@ -1205,11 +1213,11 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
           if (remainingItems.length === 0) {
             // STEP 3: All items unlinked successfully - close the popup and show toast
             showToast('Items unlinked successfully!', 'success');
-            
+
             // Close the LinkedItemsPopup automatically
             setIsLinkedItemsPopupOpen(false);
             setLinkedItems([]);
-            
+
             return; // Resolve the promise
           } else {
             throw new Error("Some items could not be unlinked");
@@ -1821,10 +1829,10 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
                     </button>
                     <button
                       onClick={() => setShowFilters(false)}
-                     className={`p-1 rounded ${theme === 'dark'
-                  ? 'text-gray-400 hover:text-white'
-                  : 'text-gray-500 hover:text-gray-700'
-                }`}
+                      className={`p-1 rounded ${theme === 'dark'
+                        ? 'text-gray-400 hover:text-white'
+                        : 'text-gray-500 hover:text-gray-700'
+                        }`}
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -1905,9 +1913,9 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
                   <button
                     onClick={() => setShowColumnSettings(false)}
                     className={`p-1 rounded ${theme === 'dark'
-                  ? 'text-gray-400 hover:text-white'
-                  : 'text-gray-500 hover:text-gray-700'
-                }`}
+                      ? 'text-gray-400 hover:text-white'
+                      : 'text-gray-500 hover:text-gray-700'
+                      }`}
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -1967,28 +1975,32 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
               <Upload className="w-4 h-4" />
             </button>
           )}
-          <span className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-600'} ${view === 'kanban' ? 'hidden' : ''}`}>
-            Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredDataLength)} of {filteredDataLength} results
-          </span>
-          <select
-            value={itemsPerPage}
-            onChange={e => {
-              setItemsPerPage(Number(e.target.value));
-              setCurrentPage(1);
-            }}
-            className={`text-sm border rounded px-2 py-1 ${theme === 'dark'
-              ? 'bg-white-31 border-white text-white'
-              : 'border-gray-300'
-              }`}
-          >
-            <option value={5}>5 per page</option>
-            <option value={10}>10 per page</option>
-            <option value={25}>25 per page</option>
-            <option value={50}>50 per page</option>
-            <option value={100}>100 per page</option>
-          </select>
+          {view === 'table' && (
+            <>
+              <span className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-600'} ${view === 'kanban' ? 'hidden' : ''}`}>
+                Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredDataLength)} of {filteredDataLength} results
+              </span>
+              <select
+                value={itemsPerPage}
+                onChange={e => {
+                  setItemsPerPage(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className={`text-sm border rounded px-2 py-1 ${theme === 'dark'
+                  ? 'bg-white-31 border-white text-white'
+                  : 'border-gray-300'
+                  }`}
+              >
+                <option value={5}>5 per page</option>
+                <option value={10}>10 per page</option>
+                <option value={25}>25 per page</option>
+                <option value={50}>50 per page</option>
+                <option value={100}>100 per page</option>
+              </select>
+            </>
+          )}
         </div>
-      </div>
+      </div >
 
       {/* Rest of the component remains the same... */}
       {/* Table */}
@@ -2002,159 +2014,159 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
           <div className="w-full">
             {/* ================= Desktop Table View ================= */}
 
-          <div className="hidden md:block overflow-x-auto">
-            <table className="w-full">
-              <thead className={`border-b ${theme === 'dark' ? 'bg-purplebg border-transparent ' : 'bg-gray-50 border-gray-200'
-                }`}>
-                <tr className="divide-x-[1px]">
-                  <th className="px-6 py-3 text-left">
-                    <input
-                      type="checkbox"
-                      onChange={handleSelectAll}
-                      checked={paginatedData.length > 0 && selectedDeals.length === paginatedData.length}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                  </th>
-                  {visibleColumns.map(column => (
-                    <th key={column.key} className={`px-6 py-3 text-left text-sm font-semibold uppercase tracking-wider ${theme === 'dark' ? 'text-white' : 'text-gray-500'
-                      }`}>
-                      {column.sortable ? (
-                        <SortButton field={column.key}>{column.label}</SortButton>
-                      ) : (
-                        column.label
-                      )}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className={`divide-y ${theme === 'dark' ? 'divide-white' : 'divide-gray-200'}`}>
-                {paginatedData.map((deal) => (
-                  <tr
-                    key={deal.id}
-                    className={`transition-colors cursor-pointer ${theme === 'dark' ? 'hover:bg-purple-800/20' : 'hover:bg-gray-50'
-                      }`}
-                    onClick={() => onDealClick?.(deal)}
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full">
+                <thead className={`border-b ${theme === 'dark' ? 'bg-purplebg border-transparent ' : 'bg-gray-50 border-gray-200'
+                  }`}>
+                  <tr className="divide-x-[1px]">
+                    <th className="px-6 py-3 text-left">
                       <input
                         type="checkbox"
-                        checked={selectedDeals.includes(deal.id)}
-                        onChange={(e) => {
-                          e.stopPropagation();
-                          handleRowSelection(deal.id);
-                        }}
+                        onChange={handleSelectAll}
+                        checked={paginatedData.length > 0 && selectedDeals.length === paginatedData.length}
                         className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                       />
-                    </td>
+                    </th>
                     {visibleColumns.map(column => (
-                      <td key={column.key} className="px-6 py-4 whitespace-nowrap">
-                        {renderCell(deal, column.key, theme)}
-                      </td>
+                      <th key={column.key} className={`px-6 py-3 text-left text-sm font-semibold uppercase tracking-wider ${theme === 'dark' ? 'text-white' : 'text-gray-500'
+                        }`}>
+                        {column.sortable ? (
+                          <SortButton field={column.key}>{column.label}</SortButton>
+                        ) : (
+                          column.label
+                        )}
+                      </th>
                     ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* ================= Mobile Card View ================= */}
-          <div className="block md:hidden space-y-4">
-            {paginatedData.map((deal) => (
-              <div
-                key={deal.id}
-                className={`p-4 rounded-lg border ${theme === 'dark'
-                  ? 'bg-purplebg border-transparent'
-                  : 'bg-white border-gray-200'
-                  } shadow-sm`}
-              >
-                <div className="flex justify-between items-center">
-                  <input
-                    type="checkbox"
-                    checked={selectedDeals.includes(deal.id)}
-                    onChange={(e) => {
-                      e.stopPropagation();
-                      handleRowSelection(deal.id);
-                    }}
-                    className="rounded mr-4 border-gray-300 text-blue-600 focus:ring-blue-500"
-                  />
-                  <div
-                    className="flex items-center flex-1 cursor-pointer"
-                    onClick={() => onDealClick?.(deal)}
-                  >
-                    <div
-                      className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 ${theme === 'dark' ? 'bg-purple-700' : 'bg-gray-200'
+                </thead>
+                <tbody className={`divide-y ${theme === 'dark' ? 'divide-white' : 'divide-gray-200'}`}>
+                  {paginatedData.map((deal) => (
+                    <tr
+                      key={deal.id}
+                      className={`transition-colors cursor-pointer ${theme === 'dark' ? 'hover:bg-purple-800/20' : 'hover:bg-gray-50'
                         }`}
+                      onClick={() => onDealClick?.(deal)}
                     >
-                      <span
-                        className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-800'
+                      <td className="px-6 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={selectedDeals.includes(deal.id)}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            handleRowSelection(deal.id);
+                          }}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                      </td>
+                      {visibleColumns.map(column => (
+                        <td key={column.key} className="px-6 py-4 whitespace-nowrap">
+                          {renderCell(deal, column.key, theme)}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* ================= Mobile Card View ================= */}
+            <div className="block md:hidden space-y-4">
+              {paginatedData.map((deal) => (
+                <div
+                  key={deal.id}
+                  className={`p-4 rounded-lg border ${theme === 'dark'
+                    ? 'bg-purplebg border-transparent'
+                    : 'bg-white border-gray-200'
+                    } shadow-sm`}
+                >
+                  <div className="flex justify-between items-center">
+                    <input
+                      type="checkbox"
+                      checked={selectedDeals.includes(deal.id)}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        handleRowSelection(deal.id);
+                      }}
+                      className="rounded mr-4 border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <div
+                      className="flex items-center flex-1 cursor-pointer"
+                      onClick={() => onDealClick?.(deal)}
+                    >
+                      <div
+                        className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 ${theme === 'dark' ? 'bg-purple-700' : 'bg-gray-200'
                           }`}
                       >
-                        {deal.name.charAt(0).toUpperCase()}
-                      </span>
-                    </div>
-                    <h3
-                      className={`text-base font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'
-                        }`}
-                    >
-                      {deal.name}
-                    </h3>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-
-
-                    {/* Dropdown arrow */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleDealDetails(deal.id);
-                      }}
-                      className={`p-1 rounded transition-transform ${theme === 'dark' ? 'hover:bg-purple-700' : 'hover:bg-gray-100'
-                        }`}
-                    >
-                      <svg
-                        className={`w-4 h-4 transform transition-transform ${isDealExpanded(deal.id) ? 'rotate-180' : ''
-                          } ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Collapsible details section */}
-                {isDealExpanded(deal.id) && (
-                  <div className="mt-3 pt-3 border-t border-gray-200">
-                    {/* Render all other columns as label:value */}
-                    {visibleColumns.map((column) =>
-                      column.key !== 'name' ? (
-                        <div
-                          key={column.key}
-                          className="flex justify-between text-sm py-1"
+                        <span
+                          className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-800'
+                            }`}
                         >
-                          <span
-                            className={`font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-500'
-                              }`}
-                          >
-                            {column.label}:
-                          </span>
-                          <span
-                            className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'
-                              }`}
-                          >
-                            {deal[column.key] || 'N/A'}
-                          </span>
-                        </div>
-                      ) : null
-                    )}
+                          {deal.name.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                      <h3
+                        className={`text-base font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                          }`}
+                      >
+                        {deal.name}
+                      </h3>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+
+
+                      {/* Dropdown arrow */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleDealDetails(deal.id);
+                        }}
+                        className={`p-1 rounded transition-transform ${theme === 'dark' ? 'hover:bg-purple-700' : 'hover:bg-gray-100'
+                          }`}
+                      >
+                        <svg
+                          className={`w-4 h-4 transform transition-transform ${isDealExpanded(deal.id) ? 'rotate-180' : ''
+                            } ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
-                )}
-              </div>
-            ))}
-          </div>
+
+                  {/* Collapsible details section */}
+                  {isDealExpanded(deal.id) && (
+                    <div className="mt-3 pt-3 border-t border-gray-200">
+                      {/* Render all other columns as label:value */}
+                      {visibleColumns.map((column) =>
+                        column.key !== 'name' ? (
+                          <div
+                            key={column.key}
+                            className="flex justify-between text-sm py-1"
+                          >
+                            <span
+                              className={`font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-500'
+                                }`}
+                            >
+                              {column.label}:
+                            </span>
+                            <span
+                              className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                                }`}
+                            >
+                              {deal[column.key] || 'N/A'}
+                            </span>
+                          </div>
+                        ) : null
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         )}
         {paginatedData.length === 0 && !loading && (
@@ -2168,142 +2180,146 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
       </div>
 
       {/* Pagination */}
-      {totalPages > 1 && view === 'table' && (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>
-            Page {currentPage} of {totalPages}
-          </div>
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-              disabled={currentPage === 1}
-              className={`p-2 border rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${theme === 'dark'
-                ? 'border-purple-500/30 text-white hover:bg-purple-800/50'
-                : 'border-gray-300 hover:bg-gray-50'
-                }`}
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            {/* Page numbers */}
-            <div className="flex items-center space-x-1">
-              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                let pageNum;
-                if (totalPages <= 5) {
-                  pageNum = i + 1;
-                } else if (currentPage <= 3) {
-                  pageNum = i + 1;
-                } else if (currentPage >= totalPages - 2) {
-                  pageNum = totalPages - 4 + i;
-                } else {
-                  pageNum = currentPage - 2 + i;
-                }
-                return (
-                  <button
-                    key={pageNum}
-                    onClick={() => setCurrentPage(pageNum)}
-                    className={`px-3 py-1 text-sm border rounded transition-colors ${currentPage === pageNum
-                      ? theme === 'dark'
-                        ? 'border-purple-500 bg-purplebg/30 text-purple-300'
-                        : 'border-blue-500 bg-blue-50 text-blue-700'
-                      : theme === 'dark'
-                        ? 'border-purple-500/30 text-white hover:bg-purple-800/50'
-                        : 'border-gray-300 hover:bg-gray-50'
-                      }`}
-                  >
-                    {pageNum}
-                  </button>
-                );
-              })}
+      {
+        totalPages > 1 && view === 'table' && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>
+              Page {currentPage} of {totalPages}
             </div>
-            <button
-              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-              disabled={currentPage === totalPages}
-              className={`p-2 border rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${theme === 'dark'
-                ? 'border-purple-500/30 text-white hover:bg-purple-800/50'
-                : 'border-gray-300 hover:bg-gray-50'
-                }`}
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                disabled={currentPage === 1}
+                className={`p-2 border rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${theme === 'dark'
+                  ? 'border-purple-500/30 text-white hover:bg-purple-800/50'
+                  : 'border-gray-300 hover:bg-gray-50'
+                  }`}
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              {/* Page numbers */}
+              <div className="flex items-center space-x-1">
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => setCurrentPage(pageNum)}
+                      className={`px-3 py-1 text-sm border rounded transition-colors ${currentPage === pageNum
+                        ? theme === 'dark'
+                          ? 'border-purple-500 bg-purplebg/30 text-purple-300'
+                          : 'border-blue-500 bg-blue-50 text-blue-700'
+                        : theme === 'dark'
+                          ? 'border-purple-500/30 text-white hover:bg-purple-800/50'
+                          : 'border-gray-300 hover:bg-gray-50'
+                        }`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+              </div>
+              <button
+                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                disabled={currentPage === totalPages}
+                className={`p-2 border rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${theme === 'dark'
+                  ? 'border-purple-500/30 text-white hover:bg-purple-800/50'
+                  : 'border-gray-300 hover:bg-gray-50'
+                  }`}
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
-      {selectedDeals.length > 0 && (
-        <div
-          className="fixed bottom-20 left-1/2 -translate-x-1/2
+      {
+        selectedDeals.length > 0 && (
+          <div
+            className="fixed bottom-20 left-1/2 -translate-x-1/2
                bg-white dark:bg-gray-800 shadow-2xl rounded-lg
                border dark:border-gray-700 p-2
                flex items-center justify-between
                w-[90%] max-w-md
                z-50 transition-all duration-300 ease-out"
-        >
-          {/* Left Section - Count */}
-          <span className="ml-4 font-semibold text-sm text-gray-800 dark:text-white">
-            {selectedDeals.length} Row{selectedDeals.length > 1 ? "s" : ""} selected
-          </span>
+          >
+            {/* Left Section - Count */}
+            <span className="ml-4 font-semibold text-sm text-gray-800 dark:text-white">
+              {selectedDeals.length} Row{selectedDeals.length > 1 ? "s" : ""} selected
+            </span>
 
-          {/* Right Section - Actions */}
-          <div className="flex items-center space-x-3 relative">
-            {/* Three dots button */}
-            <button
-              className="text-gray-500 hover:text-gray-800 dark:hover:text-white"
-              onClick={() => setShowDropdown(prev => !prev)}
-            >
-              <BsThreeDots className="w-5 h-5" />
-            </button>
+            {/* Right Section - Actions */}
+            <div className="flex items-center space-x-3 relative">
+              {/* Three dots button */}
+              <button
+                className="text-gray-500 hover:text-gray-800 dark:hover:text-white"
+                onClick={() => setShowDropdown(prev => !prev)}
+              >
+                <BsThreeDots className="w-5 h-5" />
+              </button>
 
-            {/* Dropdown menu */}
-            {showDropdown && (
-              <div className="absolute right-0 bottom-10 bg-white dark:bg-gray-700 shadow-lg rounded-md border dark:border-gray-600 py-1 w-40 z-50">
-                <button
-                  onClick={() => {
-                    handleDeleteSelected(); // UPDATED: Now checks linked items first
-                    setShowDropdown(false);
-                  }}
-                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">
-                  Delete
-                </button>
-                <button
-                  onClick={() => {
-                    setIsAssignPopupOpen(true);
-                    setShowDropdown(false);
-                  }}
-                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">
-                  Assign To
-                </button>
-                <button
-                  onClick={() => {
-                    setIsClearAssignmentPopupOpen(true);
-                    setShowDropdown(false);
-                  }}
-                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">
-                  Clear Assignment
-                </button>
-              </div>
-            )}
+              {/* Dropdown menu */}
+              {showDropdown && (
+                <div className="absolute right-0 bottom-10 bg-white dark:bg-gray-700 shadow-lg rounded-md border dark:border-gray-600 py-1 w-40 z-50">
+                  <button
+                    onClick={() => {
+                      handleDeleteSelected(); // UPDATED: Now checks linked items first
+                      setShowDropdown(false);
+                    }}
+                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">
+                    Delete
+                  </button>
+                  <button
+                    onClick={() => {
+                      setIsAssignPopupOpen(true);
+                      setShowDropdown(false);
+                    }}
+                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">
+                    Assign To
+                  </button>
+                  <button
+                    onClick={() => {
+                      setIsClearAssignmentPopupOpen(true);
+                      setShowDropdown(false);
+                    }}
+                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">
+                    Clear Assignment
+                  </button>
+                </div>
+              )}
 
-            {/* Select all button */}
-            <button
-              onClick={handleSelectAllFiltered}
-              className="text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 font-medium hover:underline"
-            >
-              Select all
-            </button>
+              {/* Select all button */}
+              <button
+                onClick={handleSelectAllFiltered}
+                className="text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 font-medium hover:underline"
+              >
+                Select all
+              </button>
 
-            {/* Clear selection */}
-            <button
-              onClick={() => {
-                setSelectedDeals([]);
-                setShowDropdown(false);
-              }}
-              className="text-gray-500 hover:text-gray-800 dark:hover:text-white"
-            >
-              <X className="w-5 h-5" />
-            </button>
+              {/* Clear selection */}
+              <button
+                onClick={() => {
+                  setSelectedDeals([]);
+                  setShowDropdown(false);
+                }}
+                className="text-gray-500 hover:text-gray-800 dark:hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        )
+      }
       <EditDealPopup
         isOpen={isEditPopupOpen}
         onClose={handleCloseEditPopup}
@@ -2350,7 +2366,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
         onFormatChange={handleFormatChange}
         onRefresh={fetchDeals}
       />
-      
+
       {/* NEW: Linked Items Popup for Deals */}
       <LinkedItemsPopup
         isOpen={isLinkedItemsPopupOpen}
@@ -2369,6 +2385,6 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
           setShowDeleteLinkedConfirm(true);
         }}
       />
-    </div>
+    </div >
   );
 }

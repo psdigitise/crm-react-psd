@@ -116,7 +116,7 @@ export default function EmailOrCommentComposer({
   const userSession = getUserSession();
   const sessionfullname = userSession?.full_name;
   const senderUsername = userSession?.username || sessionfullname;
-   const token = getAuthToken();
+  const token = getAuthToken();
 
   // File upload configuration
   const MAX_FILE_SIZE = 1 * 1024 * 1024; // 1MB in bytes
@@ -184,48 +184,48 @@ export default function EmailOrCommentComposer({
   };
 
   // Function to check email credits
-const checkEmailCredits = async (): Promise<number> => {
-  setCheckingCredits(true);
-  try {
-    const session = getUserSession();
-    const sessionCompany = session?.company || '';
+  const checkEmailCredits = async (): Promise<number> => {
+    setCheckingCredits(true);
+    try {
+      const session = getUserSession();
+      const sessionCompany = session?.company || '';
 
-    const response = await apiAxios.post(
-      CHECK_CREDITS_API,
-      {
-        type: 'email',
-        company: sessionCompany
-      },
-      {
-        headers: {
-          'Authorization': token,
-          'Content-Type': 'application/json'
+      const response = await apiAxios.post(
+        CHECK_CREDITS_API,
+        {
+          type: 'email',
+          company: sessionCompany
+        },
+        {
+          headers: {
+            'Authorization': token,
+            'Content-Type': 'application/json'
+          }
         }
-      }
-    );
+      );
 
-    const creditsData = response.data.message;
-    if (creditsData.status) {
-      const credits = creditsData.available_credits || 0;
-      setAvailableCredits(credits);
-      // Reset warning when credits are sufficient
-      setShowCreditWarning(false);
-      return credits;
-    } else {
-      const credits = creditsData.available_credits || 0;
-      // Set warning when credits are insufficient
-      setShowCreditWarning(true);
-      setAvailableCredits(credits);
-      return credits; // Still return the credits value
+      const creditsData = response.data.message;
+      if (creditsData.status) {
+        const credits = creditsData.available_credits || 0;
+        setAvailableCredits(credits);
+        // Reset warning when credits are sufficient
+        setShowCreditWarning(false);
+        return credits;
+      } else {
+        const credits = creditsData.available_credits || 0;
+        // Set warning when credits are insufficient
+        setShowCreditWarning(true);
+        setAvailableCredits(credits);
+        return credits; // Still return the credits value
+      }
+    } catch (error) {
+      console.error('Error checking email credits:', error);
+      showToast('Failed to check credits availability for email generation', { type: 'error' });
+      return 0;
+    } finally {
+      setCheckingCredits(false);
     }
-  } catch (error) {
-    console.error('Error checking email credits:', error);
-    showToast('Failed to check credits availability for email generation', { type: 'error' });
-    return 0;
-  } finally {
-    setCheckingCredits(false);
-  }
-};
+  };
 
   // Helper function to extract token usage from different response formats
   const extractTokenUsage = (data: any) => {
@@ -273,23 +273,23 @@ const checkEmailCredits = async (): Promise<number> => {
   };
 
   // Updated function for prompt-based generation with proper token extraction
-const generateEmailFromPrompt = async () => {
-  if (!emailForm.aiPrompt.trim()) {
-    showToast("Please enter a prompt for AI generation", { type: "error" });
-    return;
-  }
+  const generateEmailFromPrompt = async () => {
+    if (!emailForm.aiPrompt.trim()) {
+      showToast("Please enter a prompt for AI generation", { type: "error" });
+      return;
+    }
 
-  // First check credits
-  const creditsAvailable = await checkEmailCredits();
+    // First check credits
+    const creditsAvailable = await checkEmailCredits();
 
-  // Check if credits are insufficient (less than or equal to 0)
-  if (creditsAvailable <= 0) {
-    showToast(`Insufficient credits. You have only ${availableCredits} credits available for email generation. Please add more to proceed.`, { type: 'error' });
-    // Don't set showCreditWarning to false here, let the checkEmailCredits function handle it
-    return;
-  }
+    // Check if credits are insufficient (less than or equal to 0)
+    if (creditsAvailable <= 0) {
+      showToast(`Insufficient credits. You have only ${availableCredits} credits available for email generation. Please add more to proceed.`, { type: 'error' });
+      // Don't set showCreditWarning to false here, let the checkEmailCredits function handle it
+      return;
+    }
 
-  const combinedPurpose = `
+    const combinedPurpose = `
 Modify this email:
 Subject: ${emailForm.subject || "(no subject)"}
 
@@ -297,122 +297,130 @@ ${emailForm.message || "(no message)"}
 
 Instruction: ${emailForm.aiPrompt.trim()}
   `;
+    const currentUserFirstName = userSession?.dealFullName || "";
+    const senderName = userSession?.full_name || userSession?.username || "User";
 
-  try {
-    setGenerating(true);
+    const payload = {
+      purpose: combinedPurpose,
+      recipient_name: currentUserFirstName, // <-- NEW PARAMETER
+      sender_name: senderName,       // <-- NEW PARAMETER
+    };
 
-    const response = await apiAxios.post(
-      AI_GENERATE_API,
-      { purpose: combinedPurpose },
-      {
-        headers: {
-          Authorization: token,
-          "Content-Type": "application/json",
-        },
+    try {
+      setGenerating(true);
+
+      const response = await apiAxios.post(
+        AI_GENERATE_API,
+        payload,
+        {
+          headers: {
+            Authorization: token,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      const data = response.data;
+
+      // Extract token usage and cost from response
+      const { inputTokens, outputTokens, usdCost, inrCost } = extractTokenUsage(data);
+
+      console.log("Token Usage:", { inputTokens, outputTokens, usdCost, inrCost });
+
+      let generatedSubject = "";
+      let generatedBody = "";
+
+      if (data.message?.message) {
+        generatedSubject = data.message.message.subject || emailForm.subject;
+        generatedBody = data.message.message.body || "";
+      } else if (data.message?.subject && data.message?.body) {
+        generatedSubject = data.message.subject;
+        generatedBody = data.message.body;
+      } else if (data.message?.generated_content) {
+        generatedBody = data.message.generated_content;
+        generatedSubject = emailForm.subject;
       }
-    );
 
-    const data = response.data;
+      if (generatedBody) {
+        setEmailForm(prev => ({
+          ...prev,
+          subject: generatedSubject,
+          message: generatedBody,
+        }));
 
-    // Extract token usage and cost from response
-    const { inputTokens, outputTokens, usdCost, inrCost } = extractTokenUsage(data);
+        // Add action log with correct token mapping
+        await addEmailActionLog(inputTokens, outputTokens, usdCost, inrCost);
 
-    console.log("Token Usage:", { inputTokens, outputTokens, usdCost, inrCost });
+        showToast("Email improved successfully!", { type: "success" });
 
-    let generatedSubject = "";
-    let generatedBody = "";
-
-    if (data.message?.message) {
-      generatedSubject = data.message.message.subject || emailForm.subject;
-      generatedBody = data.message.message.body || "";
-    } else if (data.message?.subject && data.message?.body) {
-      generatedSubject = data.message.subject;
-      generatedBody = data.message.body;
-    } else if (data.message?.generated_content) {
-      generatedBody = data.message.generated_content;
-      generatedSubject = emailForm.subject;
-    }
-
-    if (generatedBody) {
-      setEmailForm(prev => ({
-        ...prev,
-        subject: generatedSubject,
-        message: generatedBody,
-      }));
-
-      // Add action log with correct token mapping
-      await addEmailActionLog(inputTokens, outputTokens, usdCost, inrCost);
-
-      showToast("Email improved successfully!", { type: "success" });
-
-      // Clear prompt box
-      setEmailForm(prev => ({ ...prev, aiPrompt: "" }));
-    } else {
-      showToast("Failed to generate improved email.", { type: "error" });
-    }
-
-  } catch (error: any) {
-    console.error("AI Generate Error:", error);
-    showToast(`AI Error: ${error.message}`, { type: "error" });
-  } finally {
-    setGenerating(false);
-  }
-};
-
-// Updated function for subject-based generation with proper token extraction
-const generateEmailFromSubject = async (subject: string) => {
-  // First check credits
-  const creditsAvailable = await checkEmailCredits();
-
-  // Check if credits are insufficient (less than or equal to 0)
-  if (creditsAvailable <= 0) {
-    showToast(`Insufficient credits. You have only ${availableCredits} credits available for email generation. Please add more to proceed.`, { type: 'error' });
-    // Don't set showCreditWarning to false here, let the checkEmailCredits function handle it
-    return;
-  }
-
-  try {
-    setGenerating(true);
-    const response = await apiAxios.post(
-      AI_GENERATE_API,
-      { subject },
-      {
-        headers: {
-          Authorization: token,
-          "Content-Type": "application/json",
-        },
+        // Clear prompt box
+        setEmailForm(prev => ({ ...prev, aiPrompt: "" }));
+      } else {
+        showToast("Failed to generate improved email.", { type: "error" });
       }
-    );
 
-    const data = response.data;
-
-    // Extract token usage and cost from response
-    const { inputTokens, outputTokens, usdCost, inrCost } = extractTokenUsage(data);
-
-    console.log("Token Usage (subject):", { inputTokens, outputTokens, usdCost, inrCost });
-
-    const generatedMessage = data.message?.generated_content || data.message?.message?.body || data.message?.body;
-
-    if (generatedMessage) {
-      setEmailForm((prev) => ({
-        ...prev,
-        message: generatedMessage
-      }));
-
-      // Add action log with correct token mapping
-      await addEmailActionLog(inputTokens, outputTokens, usdCost, inrCost);
-
-      showToast("Email content generated successfully!", { type: "success" });
-    } else {
-      showToast("Failed to generate email content", { type: "error" });
+    } catch (error: any) {
+      console.error("AI Generate Error:", error);
+      showToast(`AI Error: ${error.message}`, { type: "error" });
+    } finally {
+      setGenerating(false);
     }
-  } catch (error: any) {
-    console.error("Error generating email:", error);
-    showToast(`Failed to generate email content: ${error.message}`, { type: "error" });
-  } finally {
-    setGenerating(false);
-  }
-};
+  };
+
+  // Updated function for subject-based generation with proper token extraction
+  const generateEmailFromSubject = async (subject: string) => {
+    // First check credits
+    const creditsAvailable = await checkEmailCredits();
+
+    // Check if credits are insufficient (less than or equal to 0)
+    if (creditsAvailable <= 0) {
+      showToast(`Insufficient credits. You have only ${availableCredits} credits available for email generation. Please add more to proceed.`, { type: 'error' });
+      // Don't set showCreditWarning to false here, let the checkEmailCredits function handle it
+      return;
+    }
+
+    try {
+      setGenerating(true);
+      const response = await apiAxios.post(
+        AI_GENERATE_API,
+        { subject },
+        {
+          headers: {
+            Authorization: token,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      const data = response.data;
+
+      // Extract token usage and cost from response
+      const { inputTokens, outputTokens, usdCost, inrCost } = extractTokenUsage(data);
+
+      console.log("Token Usage (subject):", { inputTokens, outputTokens, usdCost, inrCost });
+
+      const generatedMessage = data.message?.generated_content || data.message?.message?.body || data.message?.body;
+
+      if (generatedMessage) {
+        setEmailForm((prev) => ({
+          ...prev,
+          message: generatedMessage
+        }));
+
+        // Add action log with correct token mapping
+        await addEmailActionLog(inputTokens, outputTokens, usdCost, inrCost);
+
+        showToast("Email content generated successfully!", { type: "success" });
+      } else {
+        showToast("Failed to generate email content", { type: "error" });
+      }
+    } catch (error: any) {
+      console.error("Error generating email:", error);
+      showToast(`Failed to generate email content: ${error.message}`, { type: "error" });
+    } finally {
+      setGenerating(false);
+    }
+  };
 
   const fetchUserSuggestions = async (searchText: string) => {
     if (!searchText.trim()) {

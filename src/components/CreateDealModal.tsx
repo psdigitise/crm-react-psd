@@ -450,7 +450,7 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
       // Prepare the payload according to the API requirements
       const apiPayload = {
         args: {
-          organization_name: formData.organization_name,
+          organization_name: formData.organization_name || useExistingOrganization ? formData.organization_id : '',
           website: formData.website,
           no_of_employees: formData.no_of_employees,
           territory: formData.territory,

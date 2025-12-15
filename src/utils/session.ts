@@ -31,10 +31,14 @@ export function getUserSession(): UserSession | null {
 }
 
 export interface UserSession {
+  first_name: any;
   company?: string;
   username?: string;
+  leadfullName?: string;
+  dealFullName?: string;
   email?: string;
   full_name?: string;
+  DealFullName?: string;
   sid?: string;
   api_key?: string;
   api_secret?: string;

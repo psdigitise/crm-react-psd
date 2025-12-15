@@ -14,7 +14,7 @@ import { TiDocumentText } from 'react-icons/ti';
 import { apiAxios, AUTH_TOKEN } from '../api/apiUrl';
 import Select from 'react-select';
 import { darkSelectStyles } from '../components/Dropdownstyles/darkSelectStyles'
-import { getUserSession } from '../utils/session';
+import { getUserSession, setUserSession, UserSession } from '../utils/session';
 import UploadAttachmentPopup from './DealsAttachmentPopups/AddAttachmentPopups';
 import React from 'react';
 import { DeleteAttachmentPopup } from './DealsAttachmentPopups/DeleteAttachmentPopup';
@@ -1020,7 +1020,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
     try {
       const session = getUserSession();
       const sessionCompany = session?.company || '';
-     
+
 
       const response = await apiAxios.post(
         '/api/method/frappe.client.insert',
@@ -1262,107 +1262,107 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
 
 
   const editCall = async () => {
-  // Validation
-  const newErrors: { [key: string]: string } = {};
+    // Validation
+    const newErrors: { [key: string]: string } = {};
 
-  if (!callForm.from.trim()) {
-    newErrors.from = 'From is required';
-  }
-
-  if (!callForm.to.trim()) {
-    newErrors.to = 'To is required';
-  }
-  
-  if (!callForm.type.trim()) {
-    newErrors.type = 'Type is required';
-  }
-
-  if (Object.keys(newErrors).length > 0) {
-    setErrors(newErrors);
-    showToast('Please fill all required fields', { type: 'error' });
-    return;
-  }
-
-  // Clear any previous errors
-  setErrors({});
-
-  setCallsLoading(true);
-  try {
-    const session = getUserSession();
-    const sessionCompany = session?.company || '';
-
-    // Parse duration to remove any 's' suffix and non-numeric characters
-    let durationValue = "0";
-    if (callForm.duration) {
-      // Remove any 's' suffix and non-numeric characters, keep decimal point if needed
-      durationValue = callForm.duration.replace(/[^0-9.]/g, '');
-      // If after cleaning it's empty, set to "0"
-      if (!durationValue) durationValue = "0";
+    if (!callForm.from.trim()) {
+      newErrors.from = 'From is required';
     }
 
-    const fieldname: { [key: string]: any } = {
-      telephony_medium: "Manual",
-      reference_doctype: "CRM Deal",
-      reference_docname: deal.name,
-      type: callForm.type,
-      to: callForm.to,
-      company: sessionCompany,
-      from: callForm.from,
-      status: callForm.status,
-      duration: durationValue, // Send cleaned numeric value
-    };
-
-    // Conditionally add 'caller' or 'receiver' based on the type
-    if (callForm.type === 'Outgoing') {
-      fieldname.caller = callForm.caller;
-      fieldname.receiver = null; // Clear receiver for outgoing calls
-    } else if (callForm.type === 'Incoming') {
-      fieldname.receiver = callForm.receiver;
-      fieldname.caller = null; // Clear caller for incoming calls
+    if (!callForm.to.trim()) {
+      newErrors.to = 'To is required';
     }
 
-    const response = await fetch(`${API_BASE_URL}/method/frappe.client.set_value`, {
-      method: 'POST',
-      headers: {
-        'Authorization': token,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        doctype: "CRM Call Log",
-        name: callForm.name, // Existing document name
-        fieldname: fieldname
-      })
-    });
+    if (!callForm.type.trim()) {
+      newErrors.type = 'Type is required';
+    }
 
-    if (response.ok) {
-      showToast('Call log updated successfully', { type: 'success' });
-      setCallForm({ 
-        from: '', 
-        to: '', 
-        status: 'Ringing', 
-        type: 'Outgoing', 
-        duration: '', 
-        caller: '', 
-        receiver: '', 
-        name: '' 
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      showToast('Please fill all required fields', { type: 'error' });
+      return;
+    }
+
+    // Clear any previous errors
+    setErrors({});
+
+    setCallsLoading(true);
+    try {
+      const session = getUserSession();
+      const sessionCompany = session?.company || '';
+
+      // Parse duration to remove any 's' suffix and non-numeric characters
+      let durationValue = "0";
+      if (callForm.duration) {
+        // Remove any 's' suffix and non-numeric characters, keep decimal point if needed
+        durationValue = callForm.duration.replace(/[^0-9.]/g, '');
+        // If after cleaning it's empty, set to "0"
+        if (!durationValue) durationValue = "0";
+      }
+
+      const fieldname: { [key: string]: any } = {
+        telephony_medium: "Manual",
+        reference_doctype: "CRM Deal",
+        reference_docname: deal.name,
+        type: callForm.type,
+        to: callForm.to,
+        company: sessionCompany,
+        from: callForm.from,
+        status: callForm.status,
+        duration: durationValue, // Send cleaned numeric value
+      };
+
+      // Conditionally add 'caller' or 'receiver' based on the type
+      if (callForm.type === 'Outgoing') {
+        fieldname.caller = callForm.caller;
+        fieldname.receiver = null; // Clear receiver for outgoing calls
+      } else if (callForm.type === 'Incoming') {
+        fieldname.receiver = callForm.receiver;
+        fieldname.caller = null; // Clear caller for incoming calls
+      }
+
+      const response = await fetch(`${API_BASE_URL}/method/frappe.client.set_value`, {
+        method: 'POST',
+        headers: {
+          'Authorization': token,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          doctype: "CRM Call Log",
+          name: callForm.name, // Existing document name
+          fieldname: fieldname
+        })
       });
-      await fetchCallLogs();
-      setShowCallModal(false);
-      await refreshAllActivities();
-      return true;
-    } else {
-      const errorData = await response.json();
-      showToast(errorData.message || 'Failed to update call log', { type: 'error' });
+
+      if (response.ok) {
+        showToast('Call log updated successfully', { type: 'success' });
+        setCallForm({
+          from: '',
+          to: '',
+          status: 'Ringing',
+          type: 'Outgoing',
+          duration: '',
+          caller: '',
+          receiver: '',
+          name: ''
+        });
+        await fetchCallLogs();
+        setShowCallModal(false);
+        await refreshAllActivities();
+        return true;
+      } else {
+        const errorData = await response.json();
+        showToast(errorData.message || 'Failed to update call log', { type: 'error' });
+        return false;
+      }
+    } catch (error) {
+      console.error('Error updating call log:', error);
+      showToast('Failed to update call log', { type: 'error' });
       return false;
+    } finally {
+      setCallsLoading(false);
     }
-  } catch (error) {
-    console.error('Error updating call log:', error);
-    showToast('Failed to update call log', { type: 'error' });
-    return false;
-  } finally {
-    setCallsLoading(false);
-  }
-};
+  };
   const deleteCall = async (name) => {
     if (!window.confirm('Are you sure you want to delete this call log?')) return;
     setCallsLoading(true);
@@ -2235,7 +2235,32 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
       );
 
       const dealData = response.data.message;
+      // const DealFullName = dealData.first_name || ''; // Extract the first_name
+      // Extract the contact's full name from the deal
+      const fetchedContactFullName = dealData.contacts?.[0]?.full_name || '';
 
+      // --- NEW VARIABLE ASSIGNMENT START ---
+
+      // 1. Assign the extracted value to a distinct, local variable (already done above)
+      // This is the "new variable" that holds the deal's contact name.
+      const newDealContactName = fetchedContactFullName;
+
+      // 2. Get the current session
+      const currentSession = getUserSession();
+
+      // 3. Check if the session exists and if the new contact name is different
+      //    from the currently stored deal contact name (assuming a new field 'dealContactFullName').
+      if (currentSession && currentSession.dealFullName !== newDealContactName) {
+
+        // 4. Update the session object using the new variable
+        const newSession: UserSession = {
+          ...currentSession,
+          // Assign the new variable to the new session field
+          dealFullName: newDealContactName
+        };
+
+        setUserSession(newSession); // Save the updated session to storage
+      }
       // Update the editedDeal state with the fetched data
       setEditedDeal(prev => ({
         ...prev,
@@ -2516,6 +2541,21 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
     if (!fileName) return false;
     return /\.(jpg|jpeg|png|gif|bmp|webp)$/i.test(fileName);
   };
+
+  const getFullFileUrl = (fileUrl: string | undefined): string => {
+    if (!fileUrl) return '';
+
+    const BASE_URL = 'https://api.erpnext.ai';
+
+    if (fileUrl.startsWith('http://') || fileUrl.startsWith('https://')) {
+      return fileUrl;
+    }
+    if (fileUrl.startsWith('/')) {
+      return `${BASE_URL}${fileUrl}`;
+    }
+    return `${BASE_URL}/${fileUrl}`;
+  };
+
   const [attachmentToDelete, setAttachmentToDelete] = React.useState<{ name: string } | null>(null);
   const [attachmentToTogglePrivacy, setAttachmentToTogglePrivacy] = React.useState<{
     name: string;
@@ -5053,11 +5093,11 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                                   </div>
 
                                   <div className="flex items-center space-x-2">
-                                    {attachmentData.is_private === 1 ? (
+                                    {/* {attachmentData.is_private === 1 ? (
                                       <IoLockClosedOutline className={`w-4 h-4 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`} title="Private" />
                                     ) : (
                                       <IoLockOpenOutline className={`w-4 h-4 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`} title="Public" />
-                                    )}
+                                    )} */}
 
                                     <a
                                       href={`https://api.erpnext.ai${attachmentData.file_url}`}
@@ -5392,7 +5432,8 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                     <div
                       key={attachment.name}
                       className={`flex items-center justify-between p-4 rounded-lg ${theme === 'dark' ? 'bg-gray-800 hover:bg-gray-700' : 'bg-gray-50 hover:bg-gray-100'} transition-colors cursor-pointer`}
-                      onClick={() => window.open(`https://api.erpnext.ai${attachment.file_url}`, '_blank')}
+                      // onClick={() => window.open(`https://api.erpnext.ai${attachment.file_url}`, '_blank')}
+                      onClick={() => window.open(getFullFileUrl(attachment.file_url), '_blank')}
                     >
                       <div className="flex items-center">
                         {isImageFile(attachment.file_name) ? (

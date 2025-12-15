@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTheme } from './ThemeProvider';
-import { getUserSession } from '../utils/session';
+import { getUserSession, setUserSession, UserSession } from '../utils/session';
 import { showToast } from '../utils/toast';
 import { Listbox } from '@headlessui/react';
 import EmailComposerleads from '../components/Leads/EmailComposerleads';
@@ -619,6 +619,15 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
         setEditedLead(normalizedLead);
         setOrganizationInfo(companyDetails);
 
+        const currentSession = getUserSession() || {};
+
+        const updatedSession: UserSession = {
+          ...currentSession,
+          leadfullName: apiData.lead_name || currentSession.leadfullName || "",
+        };
+
+        setUserSession(updatedSession);
+
         // If we have cached company info, set it in state
         if (companyInfo) {
           setCompanyIntelligence(companyInfo);
@@ -1102,6 +1111,20 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
   };
   const isImageFile = (url: string) => /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
 
+  const getFullFileUrl = (fileUrl: string | undefined): string => {
+    if (!fileUrl) return '';
+
+    const BASE_URL = 'https://api.erpnext.ai';
+
+    if (fileUrl.startsWith('http://') || fileUrl.startsWith('https://')) {
+      return fileUrl;
+    }
+
+    if (fileUrl.startsWith('/')) {
+      return `${BASE_URL}${fileUrl}`;
+    }
+    return `${BASE_URL}/${fileUrl}`;
+  };
 
   const [fileToDelete, setFileToDelete] = React.useState<{ name: string } | null>(null);
 
@@ -2004,9 +2027,41 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
         })
       });
 
+      // if (!leadResponse.ok) {
+      //   throw new Error('Failed to fetch lead details');
+      // }
+
+
       if (!leadResponse.ok) {
-        throw new Error('Failed to fetch lead details');
+        const errorData = await leadResponse.json();
+
+        // Check for _server_messages in the response data
+        if (errorData._server_messages) {
+          try {
+            // Parse the outer JSON string (stringified array)
+            const serverMessagesArray = JSON.parse(errorData._server_messages);
+
+            // The first element is the actual message object (still a stringified JSON object)
+            if (serverMessagesArray && serverMessagesArray.length > 0) {
+              const messageObject = JSON.parse(serverMessagesArray[0]);
+
+              // Use showToast with the extracted information
+              const message = messageObject.message.replace(/<\/?strong>/g, ''); // Strip HTML tags
+              showToast(message, { type: messageObject.indicator === 'red' ? 'error' : 'warning' });
+
+              // Skip the rest of the conversion logic on failure
+              return;
+            }
+          } catch (parseError) {
+            // Fallback if parsing fails
+            console.error('Failed to parse _server_messages:', parseError);
+          }
+        }
+
+        // Fallback to generic error message if no specific server message was handled
+        throw new Error(errorData.exception || 'Failed to convert lead (Unknown API Error).');
       }
+      showToast('Deal converted successfully!', { type: 'success' });
 
       // --- 2. Second API Call: Fetch Organization Details ---
 
@@ -5566,7 +5621,8 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
                         setTaskForm({
                           name: task.name,
                           title: task.title || '',
-                          description: task.description || '',
+                          // description: task.description || '',
+                          description: stripHtml(task.description || '') || '',
                           status: task.status || 'Open',
                           priority: task.priority || 'Medium',
                           due_date: dueDate,
@@ -5839,9 +5895,9 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
                               }`} value="">Select Assignee</option>
                             {userOptions.map((user) => (
                               <option className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
-                              ? 'bg-gray-800 border-gray-600 text-white'
-                              : 'bg-white border-gray-300 text-gray-900'
-                              }`} key={user.value} value={user.value}>
+                                ? 'bg-gray-800 border-gray-600 text-white'
+                                : 'bg-white border-gray-300 text-gray-900'
+                                }`} key={user.value} value={user.value}>
                                 {user.label}
                               </option>
                             ))}
@@ -5944,7 +6000,8 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
                         key={file.name}
                         className={`flex items-center justify-between p-4 rounded-lg border ${borderColor} transition-colors cursor-pointer ${theme === 'dark' ? 'bg-gray-800 hover:bg-gray-750' : 'bg-white hover:bg-gray-50'} shadow-sm`}
 
-                        onClick={() => window.open(`https://api.erpnext.ai${file.file_url}`, '_blank')}
+                        // onClick={() => window.open(`https://api.erpnext.ai${file.file_url}`, '_blank')}
+                        onClick={() => window.open(getFullFileUrl(file.file_url), '_blank')}
                       >
                         <div className="flex items-center flex-1 min-w-0">
                           {isImageFile(file.file_name) ? (
