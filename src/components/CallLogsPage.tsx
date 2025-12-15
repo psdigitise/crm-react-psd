@@ -43,6 +43,7 @@ interface CallLog {
   status: 'Ringing' | 'Answered' | 'Busy' | 'No Answer' | 'Failed' | 'Queued' | 'Completed' | 'Initiated' | 'In Progress' | 'Canceled';
   type: 'Incoming' | 'Outgoing' | 'Missed' | 'Inbound';
   duration?: string;
+  _duration?: string; // Add _duration field
   reference_doctype?: string;
   id?: string;
   creation?: string;
@@ -53,6 +54,11 @@ interface CallLog {
   _receiver?: { label: string };
   _notes?: Note[];
   _tasks?: Task[];
+  recording_url?: string;
+  activity_type?: string;
+  owner?: string;
+  show_recording?: boolean;
+  note?: string;
 }
 
 interface CallLogsPageProps {
@@ -157,7 +163,6 @@ const EditCallModal: React.FC<EditCallModalProps> = ({
         if (!value.trim()) return 'From field is required';
         return '';
 
-
       case 'duration':
         if (value && (parseInt(value) < 0 || isNaN(parseInt(value)))) {
           return 'Duration must be a positive number';
@@ -251,8 +256,10 @@ const EditCallModal: React.FC<EditCallModalProps> = ({
               className={`w-full px-3 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${inputBgColor} ${errors.type ? 'border-red-500' : ''
                 }`}
             >
-              <option value="Incoming">Incoming</option>
-              <option value="Outgoing">Outgoing</option>
+              <option className={`w-full px-3 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${inputBgColor} ${errors.type ? 'border-red-500' : ''
+                }`} value="Incoming">Incoming</option>
+              <option className={`w-full px-3 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${inputBgColor} ${errors.type ? 'border-red-500' : ''
+                }`} value="Outgoing">Outgoing</option>
             </select>
             {errors.type && (
               <p className="text-red-500 text-xs mt-1">{errors.type}</p>
@@ -308,7 +315,8 @@ const EditCallModal: React.FC<EditCallModalProps> = ({
               className={`w-full px-3 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${inputBgColor}`}
             >
               {["Initiated", "Ringing", "In Progress", "Completed", "Failed", "Busy", "No Answer", "Queued", "Canceled"].map(status => (
-                <option key={status} value={status}>{status}</option>
+                <option className={`w-full px-3 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${inputBgColor} ${errors.type ? 'border-red-500' : ''
+                }`} key={status} value={status}>{status}</option>
               ))}
             </select>
           </div>
@@ -345,9 +353,11 @@ const EditCallModal: React.FC<EditCallModalProps> = ({
                   }`}
                 disabled={loadingUsers}
               >
-                <option value="">Select Caller</option>
+                <option className={`w-full px-3 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${inputBgColor} ${errors.type ? 'border-red-500' : ''
+                }`} value="">Select Caller</option>
                 {users.map((user) => (
-                  <option key={user.value} value={user.value}>
+                  <option className={`w-full px-3 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${inputBgColor} ${errors.type ? 'border-red-500' : ''
+                }`} key={user.value} value={user.value}>
                     {user.label}
                   </option>
                 ))}
@@ -374,9 +384,11 @@ const EditCallModal: React.FC<EditCallModalProps> = ({
                   }`}
                 disabled={loadingUsers}
               >
-                <option value="">Select Receiver</option>
+                <option className={`w-full px-3 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${inputBgColor} ${errors.type ? 'border-red-500' : ''
+                }`} value="">Select Receiver</option>
                 {users.map((user) => (
-                  <option key={user.value} value={user.value}>
+                  <option className={`w-full px-3 py-2.5 border ${borderColor} rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${inputBgColor} ${errors.type ? 'border-red-500' : ''
+                }`} key={user.value} value={user.value}>
                     {user.label}
                   </option>
                 ))}
@@ -471,7 +483,7 @@ const fetchUsers = async (): Promise<User[]> => {
       return [];
     }
 
-    const apiUrl = 'https://api.erpnext.ai/api/method/frappe.desk.search.search_link';
+    const apiUrl = 'http://147.79.67.128:8000/api/method/frappe.desk.search.search_link';
 
     const requestBody = {
       txt: "",
@@ -642,7 +654,7 @@ export function CallLogsPage({
       // Step 2: Fetch detailed information for each call log using the second API
       const detailedCallLogsPromises = callLogsData.map(async (item: any) => {
         try {
-          const detailApiUrl = 'https://api.erpnext.ai/api/method/crm.fcrm.doctype.crm_call_log.crm_call_log.get_call_log';
+          const detailApiUrl = 'http://147.79.67.128:8000/api/method/crm.fcrm.doctype.crm_call_log.crm_call_log.get_call_log';
 
           const detailResponse = await fetch(detailApiUrl, {
             method: 'POST',
@@ -688,21 +700,20 @@ export function CallLogsPage({
             status: item.status,
             type: item.type,
             duration: item.duration,
+            _duration: item._duration, // Add _duration from API
             reference_doctype: item.reference_doctype,
             id: item.reference_docname,
             creation: item.creation,
             modified: item.modified,
             note: item.note,
-            caller: item.caller, // Add caller field
-            receiver: item.receiver, // Add receiver field
+            caller: item.caller,
+            receiver: item.receiver,
             _caller: item._caller || { label: item.caller || item.from || 'Unknown' },
             _receiver: item._receiver || { label: item.receiver || item.to || 'Unknown' },
-            // Include additional fields from detailed API if needed
             recording_url: item.recording_url,
             activity_type: item.activity_type,
             owner: item.owner,
             show_recording: item.show_recording,
-            _duration: item._duration,
             _notes: item._notes || [],
             _tasks: item._tasks || [],
           };
@@ -737,8 +748,8 @@ export function CallLogsPage({
       status: callLog.status || 'Ringing',
       type: callLog.type || 'Outgoing',
       duration: callLog.duration || '',
-      caller: callLog.caller || callLog._caller?.label || '', // Use caller or _caller.label
-      receiver: callLog.receiver || callLog._receiver?.label || '', // Use receiver or _receiver.label
+      caller: callLog.caller || callLog._caller?.label || '',
+      receiver: callLog.receiver || callLog._receiver?.label || '',
       name: callLog.name || '',
     });
     setIsEditMode(true);
@@ -778,7 +789,7 @@ export function CallLogsPage({
         return false;
       }
 
-      const apiUrl = `https://api.erpnext.ai/api/method/frappe.client.set_value`;
+      const apiUrl = `http://147.79.67.128:8000/api/method/frappe.client.set_value`;
 
       // Prepare the payload based on call type
       const payload: any = {
@@ -838,7 +849,7 @@ export function CallLogsPage({
         return;
       }
 
-      const apiUrl = `https://api.erpnext.ai/api/v2/document/CRM Call Log/${callLogName}`;
+      const apiUrl = `http://147.79.67.128:8000/api/v2/document/CRM Call Log/${callLogName}`;
 
       const response = await fetch(apiUrl, {
         method: 'DELETE',
@@ -924,20 +935,6 @@ export function CallLogsPage({
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = filteredCallLogs.slice(indexOfFirstItem, indexOfLastItem);
-
-  const formatDuration = (seconds?: string) => {
-    if (!seconds) return "N/A";
-    const total = parseInt(seconds, 10);
-    if (isNaN(total)) return "N/A";
-
-    const mins = Math.floor(total / 60);
-    const secs = total % 60;
-
-    if (mins > 0) {
-      return `${mins}m ${secs}s`;
-    }
-    return `${secs}s`;
-  };
 
   // Function to handle opening reference records
   const handleOpenReference = async (callLog: CallLog) => {
@@ -1261,11 +1258,11 @@ export function CallLogsPage({
                               {callLog.status}
                             </span>
                           ) : column.key === 'duration' ? (
-                            callLog.duration ? (
+                            callLog._duration ? ( // Use _duration from API
                               <div className="flex items-center space-x-1">
                                 <Clock className="w-4 h-4 text-black dark:text-white" />
                                 <span className={`text-sm font-semibold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-                                  {formatDuration(callLog.duration)}
+                                  {callLog._duration}
                                 </span>
                               </div>
                             ) : (
@@ -1282,8 +1279,6 @@ export function CallLogsPage({
                                 ? new Date(callLog.creation).toLocaleString("en-GB", {
                                   day: "2-digit",
                                   month: "short",
-                                  // hour: "2-digit",
-                                  // minute: "2-digit",
                                   hour12: true,
                                 })
                                 : "N/A"}
@@ -1395,10 +1390,10 @@ export function CallLogsPage({
                                   {callLog.status}
                                 </span>
                               ) : column.key === 'duration' ? (
-                                callLog.duration ? (
+                                callLog._duration ? ( // Use _duration from API
                                   <div className="flex items-center space-x-1">
                                     <Clock className="w-3 h-3 text-black dark:text-white" />
-                                    <span>{formatDuration(callLog.duration)}</span>
+                                    <span>{callLog._duration}</span>
                                   </div>
                                 ) : (
                                   'N/A'
@@ -1529,7 +1524,7 @@ export function CallLogsPage({
             caller: selectedCall.from || "Unknown",
             receiver: selectedCall.to || "Unknown",
             date: formatDateRelative(selectedCall.creation || ''),
-            duration: selectedCall.duration || '0',
+            duration: selectedCall._duration || selectedCall.duration || '0', // Use _duration first, fallback to duration
             status: selectedCall.status,
             name: selectedCall.name,
             _notes: selectedCall._notes || [],

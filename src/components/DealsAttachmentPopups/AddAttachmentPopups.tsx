@@ -4,13 +4,13 @@ import { BiLink } from 'react-icons/bi';
 import { LuMonitor, LuUpload } from 'react-icons/lu';
 import { Trash2 } from 'lucide-react';
 import { FaArrowLeft } from 'react-icons/fa6';
-import { AUTH_TOKEN } from '../../api/apiUrl';
-import { showToast } from '../../utils/toast'; // Import your toast utility
+import { getAuthToken } from '../../api/apiUrl';
+import { showToast } from '../../utils/toast'; 
 
 type FileWithPrivacy = {
   file: File;
   isPrivate: boolean;
-  fromLink?: string; // for linked files
+  fromLink?: string; 
 };
 
 type Props = {
@@ -22,7 +22,7 @@ type Props = {
 };
 
 // File upload configuration
-const MAX_FILE_SIZE = 1 * 1024 * 1024; // 1MB in bytes
+const MAX_FILE_SIZE = 1 * 1024 * 1024;
 const ALLOWED_FILE_TYPES = [
   'image/jpeg',
   'image/png',
@@ -191,7 +191,7 @@ const UploadAttachmentPopup: React.FC<Props> = ({
 
     setIsUploading(true);
     try {
-      const token = AUTH_TOKEN;
+     const token = getAuthToken();
 
       // If link input is shown and valid, upload using from_link
       if (showLinkInput && isValidLink(linkUrl)) {
@@ -205,7 +205,7 @@ const UploadAttachmentPopup: React.FC<Props> = ({
         const response = await fetch("https://api.erpnext.ai/api/method/upload_file", {
           method: "POST",
           headers: {
-            Authorization: AUTH_TOKEN,
+            Authorization:token,
           },
           body: formData,
         });
@@ -243,7 +243,7 @@ const UploadAttachmentPopup: React.FC<Props> = ({
           const response = await fetch("https://api.erpnext.ai/api/method/upload_file", {
             method: "POST",
             headers: {
-              Authorization: AUTH_TOKEN,
+              Authorization:token,
             },
             body: formData,
           });

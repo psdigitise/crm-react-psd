@@ -1622,7 +1622,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                     <div className="w-full border-t border-gray-300" />
                   </div>
                   <div className="relative flex justify-center text-sm">
-                    <span className="px-2 bg-transparent text-white">or</span>
+                    <span className="px-2 backdrop-filter backdrop-brightness-[0.3]   text-white">or</span>
                   </div>
                 </div>
 

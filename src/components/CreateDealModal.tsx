@@ -802,8 +802,7 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
                       <option value="11-50">11-50</option>
                       <option value="51-200">51-200</option>
                       <option value="201-500">201-500</option>
-                      <option value="500-1000">500-1000</option>
-                      <option value="1000+">1000+</option>
+                     
                     </select>
                   </div>
                   <div>
