@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Edit, Trash2, Mail, User, Building2, Calendar, Shield, FileText, MessageSquare, CheckSquare, Send, Activity, X } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import { showToast } from '../utils/toast';
-import { AUTH_TOKEN } from '../api/apiUrl';
+import { AUTH_TOKEN, getAuthToken } from '../api/apiUrl';
 import { getUserSession } from '../utils/session';
 
 interface Role {
@@ -55,6 +55,7 @@ export function UserDetailView({ user, onBack, onSave }: UserDetailViewProps) {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [userDetails, setUserDetails] = useState<User | null>(null);
   const session = getUserSession();
+   const token = getAuthToken();
   const sessionRoleProfile = session?.role_profile;
 
   const tabs = [
@@ -75,7 +76,7 @@ export function UserDetailView({ user, onBack, onSave }: UserDetailViewProps) {
         
         const response = await fetch(apiUrl, {
           headers: {
-            'Authorization': AUTH_TOKEN,
+             'Authorization': token ,
             'Content-Type': 'application/json'
           }
         });
@@ -110,7 +111,7 @@ export function UserDetailView({ user, onBack, onSave }: UserDetailViewProps) {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
+           'Authorization': token
         },
         body: JSON.stringify({
           first_name: editedUser.first_name,
@@ -151,7 +152,7 @@ export function UserDetailView({ user, onBack, onSave }: UserDetailViewProps) {
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
-          'Authorization': AUTH_TOKEN,
+           'Authorization': token ,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({

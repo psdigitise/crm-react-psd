@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { X } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import { getUserSession } from '../utils/session';
-import { AUTH_TOKEN } from '../api/apiUrl';
+import { AUTH_TOKEN, getAuthToken } from '../api/apiUrl';
 
 // Toast function
 const showToast = (message: string, { type = 'error' }: { type?: 'error' | 'success' } = {}) => {
@@ -98,6 +98,7 @@ function CreateAddressModal({ isOpen, onClose, onSubmit }: CreateAddressModalPro
 
     try {
       const session = getUserSession();
+      const token = getAuthToken();
       if (!session) {
         showToast('Session not found', { type: 'error' });
         return;
@@ -115,7 +116,7 @@ function CreateAddressModal({ isOpen, onClose, onSubmit }: CreateAddressModalPro
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
+          'Authorization': token
         },
         body: JSON.stringify(payload)
       });
@@ -441,6 +442,7 @@ export function CreateContactModal({ isOpen, onClose, onSubmit, onSuccess }: Cre
     setLoadingAddresses(true);
     try {
       const session = getUserSession();
+      const token = getAuthToken();
       if (!session) {
         showToast('Session not found', { type: 'error' });
         return;
@@ -460,7 +462,7 @@ export function CreateContactModal({ isOpen, onClose, onSubmit, onSuccess }: Cre
       const response = await fetch(apiUrl, {
         method: 'GET',
         headers: {
-          'Authorization': AUTH_TOKEN
+           'Authorization': token
         }
       });
 
@@ -512,6 +514,7 @@ export function CreateContactModal({ isOpen, onClose, onSubmit, onSuccess }: Cre
     try {
       const session = getUserSession();
       const sessionCompany = session?.company || '';
+      const token = getAuthToken();
       if (!session) {
         showToast('Session not found', { type: 'error' });
         return;
@@ -547,7 +550,7 @@ export function CreateContactModal({ isOpen, onClose, onSubmit, onSuccess }: Cre
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
+           'Authorization': token
         },
         body: JSON.stringify(payload)
       });

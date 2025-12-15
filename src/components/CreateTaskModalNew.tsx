@@ -3,7 +3,7 @@ import { X } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import { showToast } from '../utils/toast';
 import { getUserSession } from '../utils/session';
-import { AUTH_TOKEN } from '../api/apiUrl';
+import { AUTH_TOKEN, getAuthToken } from '../api/apiUrl';
 
 interface CreateTaskModalNewProps {
   isOpen: boolean;
@@ -137,6 +137,7 @@ export function CreateTaskModalNew({
 
   const fetchUsers = async () => {
     try {
+      const Token = getAuthToken()
       const apiUrl = 'https://api.erpnext.ai/api/method/frappe.desk.search.search_link';
 
       const requestBody = {
@@ -151,7 +152,7 @@ export function CreateTaskModalNew({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
+          'Authorization': Token
         },
         body: JSON.stringify(requestBody)
       });
@@ -180,6 +181,7 @@ export function CreateTaskModalNew({
     try {
       const session = getUserSession();
       const sessionCompany = session?.company || '';
+      const token = getAuthToken();
 
       const docData = {
         doctype: "CRM Task",
@@ -204,7 +206,7 @@ export function CreateTaskModalNew({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
+           'Authorization': token
         },
         body: JSON.stringify(requestBody)
       });

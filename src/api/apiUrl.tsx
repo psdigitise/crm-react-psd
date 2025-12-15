@@ -92,14 +92,14 @@ export const apiAxios = axios.create({
     baseURL: apiUrl.apiUrlConfig,
 });
 
-// api/apiUrl.ts
+
 export const getAuthToken = () => {
     const session = getUserSession();
     if (session?.api_key && session?.api_secret) {
         return `token ${session.api_key}:${session.api_secret}`;
     }
     
-    // For development/debugging, you might want to log this
+   
     console.warn("Session API credentials not found. User might not be logged in.");
     return null;
 };

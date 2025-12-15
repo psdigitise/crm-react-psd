@@ -715,7 +715,7 @@ export function Dashboard({ onMenuToggle }: DashboardProps) {
             <h1 className={`text-2xl sm:text-3xl font-bold flex items-center ${theme === 'dark' ? 'text-white' : 'text-gray-900'
               }`}>
               <span className="mr-3 text-2xl">👋</span>
-              Hello, {sessionUsername}!
+              Hello, {sessionfullname}!
             </h1>
           </div>
         </div>

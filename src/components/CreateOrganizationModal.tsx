@@ -3,7 +3,7 @@ import { X, ExternalLink } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import { showToast } from '../utils/toast';
 import { getUserSession } from '../utils/session';
-import { AUTH_TOKEN } from '../api/apiUrl';
+import { AUTH_TOKEN, getAuthToken } from '../api/apiUrl';
 
 // Address Modal Component
 interface CreateAddressModalProps {
@@ -94,6 +94,7 @@ function CreateAddressModal({ isOpen, onClose, onSubmit }: CreateAddressModalPro
     try {
       const session = getUserSession();
       const sessionCompany = session?.company || '';
+       const token = getAuthToken();
       if (!session) {
         showToast('Session not found', { type: 'error' });
         return;
@@ -127,7 +128,7 @@ function CreateAddressModal({ isOpen, onClose, onSubmit }: CreateAddressModalPro
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
+          'Authorization': token 
         },
         body: JSON.stringify(payload)
       });
@@ -442,6 +443,7 @@ export function CreateOrganizationModal({ isOpen, onClose, onSubmit }: CreateOrg
     setLoadingIndustries(true);
     try {
       const session = getUserSession();
+       const token = getAuthToken();
       if (!session) {
         showToast('Session not found', { type: 'error' });
         return;
@@ -453,7 +455,7 @@ export function CreateOrganizationModal({ isOpen, onClose, onSubmit }: CreateOrg
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
+          'Authorization': token 
         },
         body: JSON.stringify({
           txt: "",
@@ -479,6 +481,7 @@ export function CreateOrganizationModal({ isOpen, onClose, onSubmit }: CreateOrg
     setLoadingTerritories(true);
     try {
       const session = getUserSession();
+       const token = getAuthToken();
       if (!session) {
         showToast('Session not found', { type: 'error' });
         return;
@@ -490,7 +493,7 @@ export function CreateOrganizationModal({ isOpen, onClose, onSubmit }: CreateOrg
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
+          'Authorization': token 
         },
         body: JSON.stringify({
           txt: "",
@@ -516,6 +519,7 @@ export function CreateOrganizationModal({ isOpen, onClose, onSubmit }: CreateOrg
     setLoadingAddresses(true);
     try {
       const session = getUserSession();
+       const token = getAuthToken();
       if (!session) {
         showToast('Session not found', { type: 'error' });
         return;
@@ -537,7 +541,7 @@ export function CreateOrganizationModal({ isOpen, onClose, onSubmit }: CreateOrg
       const response = await fetch(apiUrl, {
         method: 'GET',
         headers: {
-          'Authorization': AUTH_TOKEN,
+          'Authorization': token ,
         }
       });
 
@@ -591,6 +595,7 @@ export function CreateOrganizationModal({ isOpen, onClose, onSubmit }: CreateOrg
     try {
       const session = getUserSession();
       const sessionCompany = session?.company || '';
+      const token = getAuthToken();
       if (!session) {
         showToast('Session not found', { type: 'error' });
         return;
@@ -624,7 +629,7 @@ export function CreateOrganizationModal({ isOpen, onClose, onSubmit }: CreateOrg
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
+          'Authorization': token 
         },
         body: JSON.stringify(payload)
       });

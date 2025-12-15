@@ -3,7 +3,7 @@ import { Plus, RefreshCw, Filter, ArrowUpDown, Columns, MoreHorizontal, Search, 
 import { showToast } from '../utils/toast';
 import { Header } from './Header';
 import { useTheme } from './ThemeProvider';
-import { AUTH_TOKEN } from '../api/apiUrl';
+import { AUTH_TOKEN, getAuthToken } from '../api/apiUrl';
 
 interface Email {
   name: string;
@@ -34,6 +34,7 @@ export function EmailPage({ onCreateEmail }: EmailPageProps) {
 
   const fetchEmails = async () => {
     try {
+       const token = getAuthToken();
       setLoading(true);
       const apiUrl = `${import.meta.env.VITE_API_BASE_URL}/api/v2/document/Email Queue`;
       
@@ -41,7 +42,7 @@ export function EmailPage({ onCreateEmail }: EmailPageProps) {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization':AUTH_TOKEN
+           'Authorization': token
         }
       });
 

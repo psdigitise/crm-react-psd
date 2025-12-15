@@ -5,7 +5,8 @@ import { useTheme } from './ThemeProvider';
 import { showToast } from '../utils/toast';
 
 import { getUserSession } from '../utils/session';
-import { AUTH_TOKEN } from '../api/apiUrl';
+import { AUTH_TOKEN, getAuthToken } from '../api/apiUrl';
+ const token = getAuthToken();
 
 interface CreateTodoModalNewProps {
   isOpen: boolean;
@@ -36,7 +37,7 @@ export function CreateTodoModalNew({ isOpen, onClose, onSubmit }: CreateTodoModa
   //       method: 'POST',
   //       headers: {
   //         'Content-Type': 'application/json',
-  //         'Authorization': AUTH_TOKEN
+  //          'Authorization': token
   //       },
   //       body: JSON.stringify(formData)
   //     });
@@ -96,7 +97,7 @@ export function CreateTodoModalNew({ isOpen, onClose, onSubmit }: CreateTodoModa
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
+           'Authorization': token
         },
         body: JSON.stringify(payload)
       });

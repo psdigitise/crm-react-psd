@@ -1020,6 +1020,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
     try {
       const session = getUserSession();
       const sessionCompany = session?.company || '';
+     
 
       const response = await apiAxios.post(
         '/api/method/frappe.client.insert',
@@ -1261,94 +1262,107 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
 
 
   const editCall = async () => {
-    // if (!callForm.from.trim() || !callForm.to.trim()) {
-    //   showToast('All required fields must be filled before proceeding.', { type: 'warning' });
-    //   return false;
-    // }
+  // Validation
+  const newErrors: { [key: string]: string } = {};
 
-    const newErrors: { [key: string]: string } = {};
+  if (!callForm.from.trim()) {
+    newErrors.from = 'From is required';
+  }
 
-    if (!callForm.from.trim()) {
-      newErrors.from = 'From is required';
+  if (!callForm.to.trim()) {
+    newErrors.to = 'To is required';
+  }
+  
+  if (!callForm.type.trim()) {
+    newErrors.type = 'Type is required';
+  }
+
+  if (Object.keys(newErrors).length > 0) {
+    setErrors(newErrors);
+    showToast('Please fill all required fields', { type: 'error' });
+    return;
+  }
+
+  // Clear any previous errors
+  setErrors({});
+
+  setCallsLoading(true);
+  try {
+    const session = getUserSession();
+    const sessionCompany = session?.company || '';
+
+    // Parse duration to remove any 's' suffix and non-numeric characters
+    let durationValue = "0";
+    if (callForm.duration) {
+      // Remove any 's' suffix and non-numeric characters, keep decimal point if needed
+      durationValue = callForm.duration.replace(/[^0-9.]/g, '');
+      // If after cleaning it's empty, set to "0"
+      if (!durationValue) durationValue = "0";
     }
 
-    if (!callForm.to.trim()) {
-      newErrors.to = 'To is required';
+    const fieldname: { [key: string]: any } = {
+      telephony_medium: "Manual",
+      reference_doctype: "CRM Deal",
+      reference_docname: deal.name,
+      type: callForm.type,
+      to: callForm.to,
+      company: sessionCompany,
+      from: callForm.from,
+      status: callForm.status,
+      duration: durationValue, // Send cleaned numeric value
+    };
+
+    // Conditionally add 'caller' or 'receiver' based on the type
+    if (callForm.type === 'Outgoing') {
+      fieldname.caller = callForm.caller;
+      fieldname.receiver = null; // Clear receiver for outgoing calls
+    } else if (callForm.type === 'Incoming') {
+      fieldname.receiver = callForm.receiver;
+      fieldname.caller = null; // Clear caller for incoming calls
     }
-    if (!callForm.type.trim()) {
-      newErrors.type = 'Type is required';
-    }
 
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      showToast('Please fill all required fields', { type: 'error' });
-      return;
-    }
+    const response = await fetch(`${API_BASE_URL}/method/frappe.client.set_value`, {
+      method: 'POST',
+      headers: {
+        'Authorization': token,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        doctype: "CRM Call Log",
+        name: callForm.name, // Existing document name
+        fieldname: fieldname
+      })
+    });
 
-    // Clear any previous errors
-    setErrors({});
-
-    setCallsLoading(true);
-
-    setCallsLoading(true);
-    try {
-      const session = getUserSession();
-      const sessionCompany = session?.company || '';
-
-      const fieldname: { [key: string]: any } = {
-        telephony_medium: "Manual",
-        reference_doctype: "CRM Deal",
-        reference_docname: deal.name,
-        type: callForm.type,
-        to: callForm.to,
-        company: sessionCompany,
-        from: callForm.from,
-        status: callForm.status,
-        duration: callForm.duration || "0",
-      };
-
-      // 2. Conditionally add 'caller' or 'receiver' based on the type
-      if (callForm.type === 'Outgoing') {
-        fieldname.caller = callForm.caller;
-        fieldname.receiver = null; // Clear receiver for outgoing calls
-      } else if (callForm.type === 'Incoming') {
-        fieldname.receiver = callForm.receiver;
-        fieldname.caller = null; // Clear caller for incoming calls
-      }
-
-      const response = await fetch(`${API_BASE_URL}/method/frappe.client.set_value`, {
-        method: 'POST',
-        headers: {
-          'Authorization': token,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          doctype: "CRM Call Log",
-          name: callForm.name, // Existing document name
-          fieldname: fieldname
-        })
+    if (response.ok) {
+      showToast('Call log updated successfully', { type: 'success' });
+      setCallForm({ 
+        from: '', 
+        to: '', 
+        status: 'Ringing', 
+        type: 'Outgoing', 
+        duration: '', 
+        caller: '', 
+        receiver: '', 
+        name: '' 
       });
-
-      if (response.ok) {
-        showToast('Call log updated successfully', { type: 'success' });
-        setCallForm({ from: '', to: '', status: 'Ringing', type: 'Outgoing', duration: '', caller: '', receiver: '', name: '' });
-        await fetchCallLogs();
-        setShowCallModal(false);
-        await refreshAllActivities();
-        return true;
-      } else {
-        const errorData = await response.json();
-        showToast(errorData.message || 'Failed to update call log', { type: 'error' });
-        return false;
-      }
-    } catch (error) {
-      showToast('Failed to update call log', { type: 'error' });
+      await fetchCallLogs();
+      setShowCallModal(false);
+      await refreshAllActivities();
+      return true;
+    } else {
+      const errorData = await response.json();
+      showToast(errorData.message || 'Failed to update call log', { type: 'error' });
       return false;
-    } finally {
-      setCallsLoading(false);
     }
-  };
-
+  } catch (error) {
+    console.error('Error updating call log:', error);
+    showToast('Failed to update call log', { type: 'error' });
+    return false;
+  } finally {
+    setCallsLoading(false);
+  }
+};
   const deleteCall = async (name) => {
     if (!window.confirm('Are you sure you want to delete this call log?')) return;
     setCallsLoading(true);

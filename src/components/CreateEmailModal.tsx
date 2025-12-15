@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, ExternalLink, Plus, Trash2 } from 'lucide-react';
 import { showToast } from '../utils/toast';
-import { AUTH_TOKEN } from '../api/apiUrl';
+import { AUTH_TOKEN, getAuthToken } from '../api/apiUrl';
 
 interface CreateEmailModalProps {
   isOpen: boolean;
@@ -24,13 +24,14 @@ export function CreateEmailModal({ isOpen, onClose, onSubmit }: CreateEmailModal
     setLoading(true);
 
     try {
+       const token = getAuthToken();
       const apiUrl = 'https://api.erpnext.ai/api/v2/document/Email Queue/';
       
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
+           'Authorization': token
         },
         body: JSON.stringify(formData)
       });

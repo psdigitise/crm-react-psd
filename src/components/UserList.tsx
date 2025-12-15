@@ -3,6 +3,7 @@ import { Plus, RefreshCw, Filter, ArrowUpDown, Columns, MoreHorizontal, Search, 
 import { showToast } from '../utils/toast';
 import { Header } from './Header';
 import { useTheme } from './ThemeProvider';
+import { getAuthToken } from '../api/apiUrl';
 
 interface Todo {
   name: string;
@@ -31,6 +32,7 @@ export function UserList({ onCreateTodo }: TodosPageNewProps) {
   const [loading, setLoading] = useState(true);
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
+   const token = getAuthToken();
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
   useEffect(() => {
@@ -46,7 +48,7 @@ export function UserList({ onCreateTodo }: TodosPageNewProps) {
   //       method: 'GET',
   //       headers: {
   //         'Content-Type': 'application/json',
-  //         'Authorization': AUTH_TOKEN
+  //          'Authorization': token
   //       }
   //     });
 
@@ -84,7 +86,7 @@ export function UserList({ onCreateTodo }: TodosPageNewProps) {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
+           'Authorization': token
         }
       });
 
@@ -116,7 +118,7 @@ export function UserList({ onCreateTodo }: TodosPageNewProps) {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
+           'Authorization': token
         },
         body: JSON.stringify({
           status: updatedTodo.status,
@@ -149,7 +151,7 @@ export function UserList({ onCreateTodo }: TodosPageNewProps) {
       const response = await fetch(apiUrl, {
         method: 'DELETE',
         headers: {
-          'Authorization': AUTH_TOKEN
+           'Authorization': token
         }
       });
 

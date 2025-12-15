@@ -4,7 +4,7 @@ import { useTheme } from './ThemeProvider';
 import { showToast } from '../utils/toast';
 import { getUserSession } from '../utils/session';
 import { BsThreeDots } from 'react-icons/bs';
-import { AUTH_TOKEN } from '../api/apiUrl';
+import { AUTH_TOKEN, getAuthToken } from '../api/apiUrl';
 import { api } from '../api/apiService';
 import { ExportPopup } from './LeadsPopup/ExportPopup';
 import * as XLSX from 'xlsx';
@@ -174,6 +174,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
   const fetchIndustryOptions = async () => {
     try {
       const session = getUserSession();
+       const token = getAuthToken();
       if (!session) return;
 
       const apiUrl = 'https://api.erpnext.ai/api/method/frappe.desk.search.search_link';
@@ -187,7 +188,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
+          'Authorization': token ,
         },
         body: JSON.stringify(requestBody)
       });
@@ -215,6 +216,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
   const fetchTerritoryOptions = async () => {
     try {
       const session = getUserSession();
+       const token = getAuthToken();
       if (!session) return;
 
       const apiUrl = 'https://api.erpnext.ai/api/method/frappe.desk.search.search_link';
@@ -228,7 +230,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
+          'Authorization': token 
         },
         body: JSON.stringify(requestBody)
       });
@@ -256,6 +258,8 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
   const fetchAddressOptions = async () => {
     try {
       const session = getUserSession();
+      const token = getAuthToken();
+      
       if (!session) return;
 
       const apiUrl = 'https://api.erpnext.ai/api/v2/document/Address';
@@ -263,7 +267,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
       const response = await fetch(apiUrl, {
         method: 'GET',
         headers: {
-          'Authorization': AUTH_TOKEN
+          'Authorization': token 
         }
       });
 
@@ -380,6 +384,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
     try {
       const session = getUserSession();
       const sessionCompany = session?.company;
+       const token = getAuthToken();
 
       if (!session) {
         return;
@@ -423,7 +428,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
+          'Authorization': token ,
         },
         body: JSON.stringify(requestBody)
       });

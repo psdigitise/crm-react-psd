@@ -115,6 +115,15 @@ const TableCellContent = ({ value, theme }: { value: string | boolean, theme: 'l
   return null;
 };
 
+const MAX_FILE_SIZE = 1 * 1024 * 1024; // 5MB in bytes (same as your existing limit)
+const ALLOWED_IMAGE_TYPES = [
+  'image/jpeg',
+  'image/jpg',
+  'image/png',
+  'image/gif',
+  'image/webp'
+];
+
 // Component to render the full feature table
 const CRMFeatureTable = ({ theme }: { theme: 'light' | 'dark' }) => {
   const tableHeaderClass = `py-3 px-4 text-left text-xs font-semibold uppercase tracking-wider ${theme === 'dark' ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'}`;
@@ -562,25 +571,68 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
     }
   };
 
+  // Update the handleFileUpload function with validation
   const handleFileUpload = async (file: File) => {
     if (!file) return;
 
-    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-    const maxSize = 5 * 1024 * 1024;
-
-    if (!validTypes.includes(file.type)) {
-      showErrorToast('Please upload a valid image file (JPEG, PNG, GIF, WebP)');
-      return;
-    }
-
-    if (file.size > maxSize) {
+    // Validate file size
+    if (file.size > MAX_FILE_SIZE) {
       showErrorToast('Image size should be less than 5MB');
       return;
     }
 
+    // Validate file type
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      showErrorToast('Please upload a valid image file (JPEG, PNG, GIF, WebP)');
+      return;
+    }
+
+    // Additional validation: Check if file is actually an image
+    if (!file.type.startsWith('image/')) {
+      showErrorToast('Please upload a valid image file');
+      return;
+    }
+
+    // Optional: Validate image dimensions if needed
+    const validateImageDimensions = (file: File): Promise<boolean> => {
+      return new Promise((resolve) => {
+        const img = new Image();
+        const objectUrl = URL.createObjectURL(file);
+
+        img.onload = () => {
+          URL.revokeObjectURL(objectUrl);
+          const width = img.width;
+          const height = img.height;
+
+          // Example: Check if image is too small or too large
+          if (width < 50 || height < 50) {
+            resolve(false); // Image too small
+          } else if (width > 5000 || height > 5000) {
+            resolve(false); // Image too large
+          } else {
+            resolve(true);
+          }
+        };
+
+        img.onerror = () => {
+          URL.revokeObjectURL(objectUrl);
+          resolve(false);
+        };
+
+        img.src = objectUrl;
+      });
+    };
+
     setIsUploadingPhoto(true);
 
     try {
+      // Optional: Validate image dimensions
+      const isValidDimensions = await validateImageDimensions(file);
+      if (!isValidDimensions) {
+        showErrorToast('Image dimensions are not suitable. Please use an image between 50x50 and 5000x5000 pixels.');
+        return;
+      }
+
       const formData = new FormData();
       formData.append('file', file);
       formData.append('is_private', '0');
@@ -650,14 +702,34 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      handleFileUpload(file);
+  const file = event.target.files?.[0];
+  if (file) {
+    // Validate file before upload
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      showErrorToast('Please upload a valid image file (JPEG, PNG, GIF, WebP)');
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      return;
     }
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+
+    if (file.size > MAX_FILE_SIZE) {
+      showErrorToast('Image size should be less than 1MB');
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      return;
     }
-  };
+
+    handleFileUpload(file);
+  }
+  
+  // Reset file input
+  if (fileInputRef.current) {
+    fileInputRef.current.value = '';
+  }
+};
+
 
   const handleInputChange = (field: keyof UserProfile, value: string) => {
     setProfileData(prev => ({
@@ -1256,13 +1328,13 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
                   </button>
 
                   <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleFileChange}
-                    accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
-                    className="hidden"
-                    disabled={isUploadingPhoto}
-                  />
+  type="file"
+  ref={fileInputRef}
+  onChange={handleFileChange}
+  accept=".jpg,.jpeg,.png,.gif,.webp,image/jpeg,image/jpg,image/png,image/gif,image/webp"
+  className="hidden"
+  disabled={isUploadingPhoto}
+/>
                 </div>
 
                 <div>

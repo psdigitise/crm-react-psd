@@ -4,7 +4,7 @@ import { showToast } from '../utils/toast';
 import { useTheme } from './ThemeProvider';
 import { getUserSession } from '../utils/session';
 import { formatDistanceToNow } from 'date-fns';
-import { AUTH_TOKEN } from '../api/apiUrl';
+import { AUTH_TOKEN, getAuthToken } from '../api/apiUrl';
 import { api } from '../api/apiService';
 import DOMPurify from 'dompurify';
 
@@ -316,6 +316,7 @@ function formatRelativeDate(dateStr?: string | null) {
   const handleUpdate = async () => {
     try {
       const session = getUserSession();
+       const token = getAuthToken();
 
       if (!session) {
         showToast('Session expired. Please login again.', { type: 'error' });
@@ -328,7 +329,7 @@ function formatRelativeDate(dateStr?: string | null) {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
+          'Authorization': token
         },
         body: JSON.stringify({
           title: editForm.title,
@@ -353,6 +354,7 @@ function formatRelativeDate(dateStr?: string | null) {
   const handleDelete = async (noteName: string) => {
     try {
       const session = getUserSession();
+       const token = getAuthToken();
 
       if (!session) {
         showToast('Session expired. Please login again.', { type: 'error' });
@@ -364,7 +366,7 @@ function formatRelativeDate(dateStr?: string | null) {
       const response = await fetch(apiUrl, {
         method: 'DELETE',
         headers: {
-          'Authorization': AUTH_TOKEN
+          'Authorization': token
         }
       });
 

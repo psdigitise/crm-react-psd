@@ -68,7 +68,6 @@ const defaultColumns: ColumnConfig[] = [
   { key: 'status', label: 'Status', visible: true, sortable: true },
   { key: 'due_date', label: 'Due Date', visible: true, sortable: true },
   { key: 'description', label: 'Description', visible: false, sortable: true },
-  { key: 'start_date', label: 'Start Date', visible: false, sortable: true },
 ];
 
 // Utility function to parse ERPNext error messages
@@ -206,7 +205,7 @@ export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0, onMenuTo
         page_length_count: 20,
         rows: JSON.stringify([
           "name", "title", "description", "assigned_to", "due_date", "status",
-          "priority", "reference_doctype", "reference_docname", "modified", "start_date"
+          "priority", "reference_doctype", "reference_docname", "modified"
         ]),
         title_field: "",
         view: {

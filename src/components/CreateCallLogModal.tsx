@@ -3,7 +3,7 @@ import { X } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import { showToast } from '../utils/toast';
 import { getUserSession } from '../utils/session';
-import { AUTH_TOKEN } from '../api/apiUrl';
+import { AUTH_TOKEN, getAuthToken } from '../api/apiUrl';
 
 interface CreateCallLogModalProps {
   isOpen: boolean;
@@ -60,13 +60,14 @@ export function CreateCallLogModal({
     try {
       const session = getUserSession();
       const sessionCompany = session?.company;
+      const token = getAuthToken();
 
       const response = await fetch(
         'https://api.erpnext.ai/api/method/frappe.desk.search.search_link',
         {
           method: 'POST',
           headers: {
-            'Authorization': AUTH_TOKEN,
+            'Authorization': token ,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
@@ -155,6 +156,7 @@ export function CreateCallLogModal({
     try {
       const session = getUserSession();
       const sessionCompany = session?.company || '';
+      const token = getAuthToken();
       const randomId = Math.random().toString(36).substring(2, 8).toUpperCase();
 
       // Prepare the document data according to the new API structure
@@ -184,7 +186,7 @@ export function CreateCallLogModal({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
+          'Authorization': token
         },
         body: JSON.stringify({
           doc: doc

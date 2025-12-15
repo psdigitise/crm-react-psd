@@ -4,7 +4,7 @@ import { useTheme } from './ThemeProvider';
 import { showToast } from '../utils/toast';
 import { getUserSession } from '../utils/session';
 import { BsThreeDots } from 'react-icons/bs';
-import { AUTH_TOKEN } from '../api/apiUrl';
+import { AUTH_TOKEN, getAuthToken } from '../api/apiUrl';
 import { api } from '../api/apiService';
 import { ExportPopup } from './LeadsPopup/ExportPopup';
 import * as XLSX from 'xlsx';
@@ -497,6 +497,7 @@ export function ContactsTable({ searchTerm, onContactClick, onRefresh }: Contact
   const fetchAddresses = async () => {
     try {
       const session = getUserSession();
+      const token = getAuthToken();
       if (!session) return;
 
       const Company = session?.company; // Get the company from session
@@ -510,7 +511,7 @@ export function ContactsTable({ searchTerm, onContactClick, onRefresh }: Contact
       const response = await fetch(`${apiUrl}?${params.toString()}`, {
         method: 'GET',
         headers: {
-          'Authorization': AUTH_TOKEN,
+          'Authorization': token,
           'Content-Type': 'application/json',
         },
       });
@@ -1523,14 +1524,7 @@ export function ContactsTable({ searchTerm, onContactClick, onRefresh }: Contact
                 </div>
 
                 <div className="space-y-4">
-                  {filterOptions.status.length > 0 && (
-                    <FilterDropdown
-                      title="Status"
-                      options={filterOptions.status}
-                      selected={filters.status}
-                      onChange={(value) => handleFilterChange('status', value)}
-                    />
-                  )}
+                  
 
                   {filterOptions.company_name.length > 0 && (
                     <FilterDropdown

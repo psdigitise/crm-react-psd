@@ -4,7 +4,7 @@ import { useTheme } from './ThemeProvider';
 import { showToast } from '../utils/toast';
 
 import { getUserSession } from '../utils/session';
-import { AUTH_TOKEN } from '../api/apiUrl';
+import { AUTH_TOKEN, getAuthToken } from '../api/apiUrl';
 
 interface CreateNoteModalNewProps {
   isOpen: boolean;
@@ -100,6 +100,7 @@ export function CreateNoteModalNew({
       // Get company from session
       const session = getUserSession();
       const sessionCompany = session?.company || '';
+      const token = getAuthToken();
 
       // Prepare the document data according to the API specification
       const docData = {
@@ -118,7 +119,7 @@ export function CreateNoteModalNew({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
+           'Authorization': token
         },
         body: JSON.stringify({
           doc: docData

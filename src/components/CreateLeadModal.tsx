@@ -347,6 +347,7 @@ export function CreateLeadModal({ isOpen, onClose, onSubmit }: CreateLeadModalPr
     try {
       const session = getUserSession();
       const sessionCompany = session?.company || '';
+      const token = getAuthToken();
       const isValidUrlOrEmail = (value: string): boolean => {
         // Email regex pattern
         const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -393,7 +394,7 @@ export function CreateLeadModal({ isOpen, onClose, onSubmit }: CreateLeadModalPr
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': getAuthToken(),
+          'Authorization': token
         },
         body: JSON.stringify({
           doc: docPayload

@@ -7,7 +7,8 @@ import { useTheme } from './ThemeProvider';
 
 
 import { getUserSession } from '../utils/session';
-import { AUTH_TOKEN } from '../api/apiUrl';
+import { AUTH_TOKEN, getAuthToken } from '../api/apiUrl';
+ const token = getAuthToken();
 
 interface Todo {
   name: string;
@@ -51,7 +52,7 @@ export function TodosPageNew({ onCreateTodo }: TodosPageNewProps) {
   //       method: 'GET',
   //       headers: {
   //         'Content-Type': 'application/json',
-  //         'Authorization': AUTH_TOKEN
+  //          'Authorization': token
   //       }
   //     });
 
@@ -89,7 +90,7 @@ export function TodosPageNew({ onCreateTodo }: TodosPageNewProps) {
   //       method: 'GET',
   //       headers: {
   //         'Content-Type': 'application/json',
-  //         'Authorization': AUTH_TOKEN
+  //          'Authorization': token
   //       }
   //     });
 
@@ -118,7 +119,7 @@ export function TodosPageNew({ onCreateTodo }: TodosPageNewProps) {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
+           'Authorization': token
         }
       });
       if (!response.ok) {
@@ -149,7 +150,7 @@ export function TodosPageNew({ onCreateTodo }: TodosPageNewProps) {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
+           'Authorization': token
         },
         body: JSON.stringify({
           status: updatedTodo.status,
@@ -182,7 +183,7 @@ export function TodosPageNew({ onCreateTodo }: TodosPageNewProps) {
       const response = await fetch(apiUrl, {
         method: 'DELETE',
         headers: {
-          'Authorization': AUTH_TOKEN
+           'Authorization': token
         }
       });
 
