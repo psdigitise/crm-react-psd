@@ -474,6 +474,27 @@ export function CreateLeadModal({ isOpen, onClose, onSubmit }: CreateLeadModalPr
     });
   };
 
+  const handleMobileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+
+    if (name === 'mobile') {
+      // allow only digits and limit to 10
+      if (!/^\d*$/.test(value)) return;
+
+      setFormData(prev => ({
+        ...prev,
+        mobile: value.slice(0, 10),
+      }));
+      return;
+    }
+
+    setFormData(prev => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+
   if (!isOpen) return null;
 
   return (
@@ -620,8 +641,11 @@ export function CreateLeadModal({ isOpen, onClose, onSubmit }: CreateLeadModalPr
                   type="tel"
                   name="mobile"
                   value={formData.mobile}
-                  onChange={handleChange}
+                  onChange={handleMobileChange}
                   placeholder="Mobile No"
+                  maxLength={10}
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   className={`w-full  text-sm px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
                     ? 'bg-white-31 border-white text-white !placeholder-gray-100'
                     : 'bg-white/80 border-gray-300 !placeholder-gray-500'

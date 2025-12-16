@@ -559,6 +559,26 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
     }));
   };
 
+ const handleMobileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const { name, value } = e.target;
+
+  if (name === 'mobile_no') {
+    // allow only digits and limit to 10
+    if (!/^\d*$/.test(value)) return;
+
+    setFormData(prev => ({
+      ...prev,
+      mobile_no: value.slice(0, 10),  // Changed from 'mobile' to 'mobile_no'
+    }));
+    return;
+  }
+
+  setFormData(prev => ({
+    ...prev,
+    [name]: value,
+  }));
+};
+
   const toggleOrganizationMode = () => {
     const newMode = !useExistingOrganization;
     setUseExistingOrganization(newMode);
@@ -971,11 +991,14 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
                       Mobile No
                     </label>
                     <input
-                      type="text"
+                      type="tel"
                       name="mobile_no"
                       value={formData.mobile_no}
-                      onChange={handleChange}
+                      onChange={handleMobileChange}
                       placeholder="Mobile No"
+                        maxLength={10}
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                       disabled={isLoading}
                       className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
                         ? 'bg-white-31 border-white text-white !placeholder-gray-100'

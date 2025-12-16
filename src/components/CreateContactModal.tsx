@@ -222,7 +222,7 @@ function CreateAddressModal({ isOpen, onClose, onSubmit }: CreateAddressModalPro
               <div>
                 <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'
                   }`}>
-                  Address Type 
+                  Address Type
                 </label>
                 <select
                   name="address_type"
@@ -462,7 +462,7 @@ export function CreateContactModal({ isOpen, onClose, onSubmit, onSuccess }: Cre
       const response = await fetch(apiUrl, {
         method: 'GET',
         headers: {
-           'Authorization': token
+          'Authorization': token
         }
       });
 
@@ -550,7 +550,7 @@ export function CreateContactModal({ isOpen, onClose, onSubmit, onSuccess }: Cre
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-           'Authorization': token
+          'Authorization': token
         },
         body: JSON.stringify(payload)
       });
@@ -763,14 +763,25 @@ export function CreateContactModal({ isOpen, onClose, onSubmit, onSuccess }: Cre
                       type="tel"
                       name="phone"
                       value={formData.phone}
-                      onChange={handleChange}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/\D/g, '');
+                        if (value.length <= 10) {
+                          setFormData(prev => ({ ...prev, phone: value }));
+                          const error = validateField('phone', value);
+                          setErrors(prev => ({ ...prev, phone: error }));
+                        }
+                      }}
                       placeholder="Mobile No"
+                      maxLength={10}
+                      inputMode="numeric"
+                      pattern="[0-9]*"
                       disabled={loading}
                       className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
-                        ? 'bg-gray-800 text-white !placeholder-gray-400 border-gray-700 focus:border-transparent'
-                        : 'bg-white text-gray-900 !placeholder-gray-500 border-gray-300'
+                          ? 'bg-gray-800 text-white !placeholder-gray-400 border-gray-700'
+                          : 'bg-white text-gray-900 !placeholder-gray-500 border-gray-300'
                         } ${errors.phone ? 'border-red-500' : ''}`}
                     />
+
                     {errors.phone && (
                       <p className="text-red-500 text-xs mt-1">{errors.phone}</p>
                     )}
