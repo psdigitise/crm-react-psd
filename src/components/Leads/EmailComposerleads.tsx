@@ -123,6 +123,103 @@ export default function EmailComposerleads({
     const [showConfirmationPopup, setShowConfirmationPopup] = useState(false);
     const [subjectToGenerate, setSubjectToGenerate] = useState("");
 
+    const [ccSuggestions, setCcSuggestions] = useState<User[]>([]);
+    const [showCcSuggestions, setShowCcSuggestions] = useState(false);
+    const [ccSearchLoading, setCcSearchLoading] = useState(false);
+    const ccInputRef = useRef<HTMLInputElement>(null);
+    const ccSuggestionsRef = useRef<HTMLDivElement>(null);
+
+    const [bccSuggestions, setBccSuggestions] = useState<User[]>([]);
+    const [showBccSuggestions, setShowBccSuggestions] = useState(false);
+    const [bccSearchLoading, setBccSearchLoading] = useState(false);
+    const bccInputRef = useRef<HTMLInputElement>(null);
+    const bccSuggestionsRef = useRef<HTMLDivElement>(null);
+
+    const fetchCcSuggestions = async (searchText: string) => {
+        if (!searchText.trim()) {
+            setCcSuggestions([]);
+            setShowCcSuggestions(false);
+            return;
+        }
+
+        setCcSearchLoading(true);
+        try {
+            const session = getUserSession();
+            const sessionCompany = session?.company;
+            const token = getAuthToken();
+            const payload = { txt: searchText, doctype: "User", filters: sessionCompany ? { company: sessionCompany } : null };
+            const response = await axios.post(SEARCH_API_URL, payload, {
+                headers: { Authorization: token, "Content-Type": "application/json" },
+            });
+
+            if (response.data && response.data.message) {
+                const suggestions = response.data.message.map((user: any) => ({
+                    value: user.value,
+                    description: user.description || user.value
+                }));
+                setCcSuggestions(suggestions);
+                setShowCcSuggestions(suggestions.length > 0);
+            }
+        } catch (error) {
+            console.error("Error fetching CC suggestions:", error);
+            setCcSuggestions([]);
+            setShowCcSuggestions(false);
+        } finally {
+            setCcSearchLoading(false);
+        }
+    };
+
+    const fetchBccSuggestions = async (searchText: string) => {
+        if (!searchText.trim()) {
+            setBccSuggestions([]);
+            setShowBccSuggestions(false);
+            return;
+        }
+
+        setBccSearchLoading(true);
+        try {
+            const session = getUserSession();
+            const sessionCompany = session?.company;
+            const token = getAuthToken();
+            const payload = { txt: searchText, doctype: "User", filters: sessionCompany ? { company: sessionCompany } : null };
+            const response = await axios.post(SEARCH_API_URL, payload, {
+                headers: { Authorization: token, "Content-Type": "application/json" },
+            });
+
+            if (response.data && response.data.message) {
+                const suggestions = response.data.message.map((user: any) => ({
+                    value: user.value,
+                    description: user.description || user.value
+                }));
+                setBccSuggestions(suggestions);
+                setShowBccSuggestions(suggestions.length > 0);
+            }
+        } catch (error) {
+            console.error("Error fetching BCC suggestions:", error);
+            setBccSuggestions([]);
+            setShowBccSuggestions(false);
+        } finally {
+            setBccSearchLoading(false);
+        }
+    };
+
+    // Add these useEffect hooks for debounced fetching:
+    useEffect(() => {
+        const timeoutId = setTimeout(() => {
+            fetchCcSuggestions(emailForm.ccInput);
+        }, 300);
+
+        return () => clearTimeout(timeoutId);
+    }, [emailForm.ccInput]);
+
+    useEffect(() => {
+        const timeoutId = setTimeout(() => {
+            fetchBccSuggestions(emailForm.bccInput);
+        }, 300);
+
+        return () => clearTimeout(timeoutId);
+    }, [emailForm.bccInput]);
+
     // Function to validate file before upload
     const validateFile = (file: File): boolean => {
         // Check file size
@@ -476,6 +573,24 @@ export default function EmailComposerleads({
             if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target as Node)) {
                 setShowEmojiPicker(false);
             }
+            if (
+                suggestionsRef.current && !suggestionsRef.current.contains(event.target as Node) &&
+                recipientInputRef.current && !recipientInputRef.current.contains(event.target as Node)
+            ) {
+                setShowSuggestions(false);
+            }
+            if (
+                ccSuggestionsRef.current && !ccSuggestionsRef.current.contains(event.target as Node) &&
+                ccInputRef.current && !ccInputRef.current.contains(event.target as Node)
+            ) {
+                setShowCcSuggestions(false);
+            }
+            if (
+                bccSuggestionsRef.current && !bccSuggestionsRef.current.contains(event.target as Node) &&
+                bccInputRef.current && !bccInputRef.current.contains(event.target as Node)
+            ) {
+                setShowBccSuggestions(false);
+            }
         };
 
         document.addEventListener('mousedown', handleClickOutside);
@@ -483,6 +598,7 @@ export default function EmailComposerleads({
             document.removeEventListener('mousedown', handleClickOutside);
         };
     }, []);
+
 
     const onEmojiClick = (emojiData: any) => {
         setEmailForm(f => ({ ...f, message: f.message + emojiData.emoji }));
@@ -1098,7 +1214,7 @@ Instruction: ${emailForm.aiPrompt.trim()}
                                     />
                                 </div>
 
-                                {showSuggestions && (
+                                {/* {showSuggestions && (
                                     <div
                                         ref={suggestionsRef}
                                         className={`absolute left-0 right-0 top-full mt-1 z-50 max-h-60 overflow-y-auto rounded-md shadow-lg ${theme === "dark"
@@ -1151,6 +1267,66 @@ Instruction: ${emailForm.aiPrompt.trim()}
                                             </div>
                                         )}
                                     </div>
+                                )} */}
+                                {showSuggestions && (
+                                    <div
+                                        ref={suggestionsRef}
+                                        className={`absolute left-0 right-0 top-full mt-1 z-50 max-h-60 overflow-y-auto rounded-md shadow-lg ${theme === "dark"
+                                            ? "bg-gray-800 border border-gray-700"
+                                            : "bg-white border border-gray-300"
+                                            }`}
+                                    >
+                                        {searchLoading ? (
+                                            <div className={`px-3 py-2 text-sm font-normal ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`}>
+                                                Loading...
+                                            </div>
+                                        ) : userSuggestions.length > 0 ? (
+                                            userSuggestions.map((user, index) => (
+                                                <div
+                                                    key={index}
+                                                    className={`px-3 py-2 cursor-pointer hover:bg-opacity-50 text-sm border-b font-normal ${theme === "dark"
+                                                        ? "hover:bg-gray-700 border-gray-700 text-white"
+                                                        : "hover:bg-gray-100 border-gray-200 text-gray-800"
+                                                        }`}
+                                                    onMouseDown={(e) => {  // ← Changed from onClick to onMouseDown
+                                                        e.preventDefault(); // ← Prevent input blur
+                                                        const currentEmails = emailForm.recipient
+                                                            .split(',')
+                                                            .map(email => email.trim())
+                                                            .filter(email => email.length > 0);
+
+                                                        if (!currentEmails.includes(user.value)) {
+                                                            const updatedEmails = [...currentEmails, user.value].join(', ');
+                                                            setEmailForm(f => ({
+                                                                ...f,
+                                                                recipient: updatedEmails,
+                                                                recipientInput: ''
+                                                            }));
+                                                        } else {
+                                                            showToast("Email already added", { type: "info" });
+                                                        }
+                                                        setShowSuggestions(false);
+
+                                                        // Focus back on input after selection
+                                                        setTimeout(() => {
+                                                            recipientInputRef.current?.focus();
+                                                        }, 0);
+                                                    }}
+                                                >
+                                                    <div className="font-medium">{user.value}</div>
+                                                    {user.description && (
+                                                        <div className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                                                            {user.description}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))
+                                        ) : emailForm.recipientInput.trim() && (
+                                            <div className={`px-3 py-2 text-sm font-normal ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`}>
+                                                No users found
+                                            </div>
+                                        )}
+                                    </div>
                                 )}
                             </div>
                         </div>
@@ -1161,16 +1337,201 @@ Instruction: ${emailForm.aiPrompt.trim()}
                                 className={`flex items-center gap-2 border-b pb-2 ${theme === "dark" ? "border-gray-600" : "border-gray-300"}`}
                             >
                                 <span className={`w-12 font-medium ${theme === "dark" ? "text-gray-200" : "text-gray-700"}`}>Cc:</span>
-                                <input
-                                    type="text"
-                                    value={emailForm.cc}
-                                    onChange={(e) => setEmailForm(f => ({ ...f, cc: e.target.value }))}
-                                    className={`px-2 py-1 rounded font-medium outline-none flex-1 placeholder:font-normal ${theme === "dark"
-                                        ? "bg-gray-700 text-white placeholder:text-gray-400 border border-gray-600 focus:border-gray-400"
-                                        : "bg-gray-50 !text-gray-800 placeholder:!text-gray-500 border border-gray-300 focus:border-gray-500"
-                                        }`}
-                                    placeholder="Enter CC email addresses"
-                                />
+                                <div className="relative flex-1">
+                                    <div
+                                        className={`flex flex-wrap gap-1 px-2 py-1 rounded min-h-[36px] ${theme === "dark"
+                                            ? "bg-gray-700 border border-gray-600 focus-within:border-gray-400"
+                                            : "bg-gray-50 border border-gray-300 focus-within:border-gray-500"
+                                            }`}
+                                        onClick={() => ccInputRef.current?.focus()}
+                                    >
+                                        {emailForm.cc
+                                            .split(',')
+                                            .map(email => email.trim())
+                                            .filter(email => email.length > 0)
+                                            .map((email, index) => (
+                                                <div
+                                                    key={index}
+                                                    className={`flex items-center gap-1 px-2 py-1 rounded-full text-sm ${theme === "dark"
+                                                        ? "bg-gray-600 text-white"
+                                                        : "bg-gray-200 text-gray-800"
+                                                        }`}
+                                                >
+                                                    <span>{email}</span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            const emails = emailForm.cc
+                                                                .split(',')
+                                                                .map(e => e.trim())
+                                                                .filter(e => e !== email);
+                                                            setEmailForm(f => ({ ...f, cc: emails.join(', ') }));
+                                                        }}
+                                                        className={`text-xs ml-1 ${theme === "dark" ? "hover:text-gray-300" : "hover:text-gray-600"}`}
+                                                    >
+                                                        ×
+                                                    </button>
+                                                </div>
+                                            ))}
+
+                                        <input
+                                            ref={ccInputRef}
+                                            type="text"
+                                            value={emailForm.ccInput || ''}
+                                            onChange={(e) => {
+                                                const value = e.target.value;
+                                                setEmailForm(f => ({ ...f, ccInput: value }));
+                                            }}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter' && emailForm.ccInput.trim()) {
+                                                    e.preventDefault();
+                                                    const newEmail = emailForm.ccInput.trim();
+                                                    if (isValidEmail(newEmail)) {
+                                                        const currentEmails = emailForm.cc
+                                                            .split(',')
+                                                            .map(email => email.trim())
+                                                            .filter(email => email.length > 0);
+
+                                                        if (!currentEmails.includes(newEmail)) {
+                                                            const updatedEmails = [...currentEmails, newEmail].join(', ');
+                                                            setEmailForm(f => ({
+                                                                ...f,
+                                                                cc: updatedEmails,
+                                                                ccInput: ''
+                                                            }));
+                                                        } else {
+                                                            showToast("Email already added", { type: "info" });
+                                                        }
+                                                    } else {
+                                                        showToast("Please enter a valid email address", { type: "error" });
+                                                    }
+                                                    setShowCcSuggestions(false);
+                                                } else if (e.key === 'Backspace' && !emailForm.ccInput && emailForm.cc) {
+                                                    const emails = emailForm.cc
+                                                        .split(',')
+                                                        .map(email => email.trim())
+                                                        .filter(email => email.length > 0);
+
+                                                    if (emails.length > 0) {
+                                                        emails.pop();
+                                                        setEmailForm(f => ({
+                                                            ...f,
+                                                            cc: emails.join(', ')
+                                                        }));
+                                                    }
+                                                } else if (e.key === 'Escape') {
+                                                    setShowCcSuggestions(false);
+                                                } else if (e.key === ',') {
+                                                    e.preventDefault();
+                                                    const newEmail = emailForm.ccInput.replace(',', '').trim();
+                                                    if (newEmail && isValidEmail(newEmail)) {
+                                                        const currentEmails = emailForm.cc
+                                                            .split(',')
+                                                            .map(email => email.trim())
+                                                            .filter(email => email.length > 0);
+
+                                                        if (!currentEmails.includes(newEmail)) {
+                                                            const updatedEmails = [...currentEmails, newEmail].join(', ');
+                                                            setEmailForm(f => ({
+                                                                ...f,
+                                                                cc: updatedEmails,
+                                                                ccInput: ''
+                                                            }));
+                                                        }
+                                                        setShowCcSuggestions(false);
+                                                    }
+                                                }
+                                            }}
+                                            onBlur={() => {
+                                                setTimeout(() => {
+                                                    if (emailForm.ccInput.trim() && isValidEmail(emailForm.ccInput.trim())) {
+                                                        const currentEmails = emailForm.cc
+                                                            .split(',')
+                                                            .map(email => email.trim())
+                                                            .filter(email => email.length > 0);
+
+                                                        const newEmail = emailForm.ccInput.trim();
+                                                        if (!currentEmails.includes(newEmail)) {
+                                                            const updatedEmails = [...currentEmails, newEmail].join(', ');
+                                                            setEmailForm(f => ({
+                                                                ...f,
+                                                                cc: updatedEmails,
+                                                                ccInput: ''
+                                                            }));
+                                                        }
+                                                    }
+                                                    setShowCcSuggestions(false);
+                                                }, 200);
+                                            }}
+                                            className={`px-2 py-1 rounded font-medium outline-none flex-1 placeholder:font-normal ${theme === "dark"
+                                                ? "bg-gray-700 text-white placeholder:text-gray-400"
+                                                : "bg-gray-50 !text-gray-800 placeholder:!text-gray-500"
+                                                }`}
+                                            placeholder={emailForm.cc.split(',').filter(e => e.trim()).length > 0 ? "" : "Enter CC email addresses"}
+                                        />
+                                    </div>
+
+                                    {showCcSuggestions && (
+                                        <div
+                                            ref={ccSuggestionsRef}
+                                            className={`absolute left-0 right-0 top-full mt-1 z-50 max-h-60 overflow-y-auto rounded-md shadow-lg ${theme === "dark"
+                                                ? "bg-gray-800 border border-gray-700"
+                                                : "bg-white border border-gray-300"
+                                                }`}
+                                        >
+                                            {ccSearchLoading ? (
+                                                <div className={`px-3 py-2 text-sm font-normal ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`}>
+                                                    Loading...
+                                                </div>
+                                            ) : ccSuggestions.length > 0 ? (
+                                                ccSuggestions.map((user, index) => (
+                                                    <div
+                                                        key={index}
+                                                        className={`px-3 py-2 cursor-pointer hover:bg-opacity-50 text-sm border-b font-normal ${theme === "dark"
+                                                            ? "hover:bg-gray-700 border-gray-700 text-white"
+                                                            : "hover:bg-gray-100 border-gray-200 text-gray-800"
+                                                            }`}
+                                                        onMouseDown={(e) => {  // ← Changed from onClick to onMouseDown
+                                                            e.preventDefault(); // ← Prevent input blur
+                                                            const currentEmails = emailForm.cc
+                                                                .split(',')
+                                                                .map(email => email.trim())
+                                                                .filter(email => email.length > 0);
+
+                                                            if (!currentEmails.includes(user.value)) {
+                                                                const updatedEmails = [...currentEmails, user.value].join(', ');
+                                                                setEmailForm(f => ({
+                                                                    ...f,
+                                                                    cc: updatedEmails,
+                                                                    ccInput: ''
+                                                                }));
+                                                            } else {
+                                                                showToast("Email already added", { type: "info" });
+                                                            }
+                                                            setShowCcSuggestions(false);
+
+                                                            setTimeout(() => {
+                                                                ccInputRef.current?.focus();
+                                                            }, 0);
+                                                        }}
+                                                    >
+                                                        <div className="font-medium">{user.value}</div>
+                                                        {user.description && (
+                                                            <div className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                                                                {user.description}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ))
+                                            ) : emailForm.ccInput.trim() && (
+                                                <div className={`px-3 py-2 text-sm font-normal ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`}>
+                                                    No users found
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         )}
 
@@ -1180,16 +1541,201 @@ Instruction: ${emailForm.aiPrompt.trim()}
                                 className={`flex items-center gap-2 border-b pb-2 ${theme === "dark" ? "border-gray-600" : "border-gray-300"}`}
                             >
                                 <span className={`w-12 font-medium ${theme === "dark" ? "text-gray-200" : "text-gray-700"}`}>Bcc:</span>
-                                <input
-                                    type="text"
-                                    value={emailForm.bcc}
-                                    onChange={(e) => setEmailForm(f => ({ ...f, bcc: e.target.value }))}
-                                    className={`px-2 py-1 rounded font-medium outline-none flex-1 placeholder:font-normal ${theme === "dark"
-                                        ? "bg-gray-700 text-white placeholder:text-gray-400 border border-gray-600 focus:border-gray-400"
-                                        : "bg-gray-50 !text-gray-800 placeholder:!text-gray-500 border border-gray-300 focus:border-gray-500"
-                                        }`}
-                                    placeholder="Enter BCC email addresses"
-                                />
+                                <div className="relative flex-1">
+                                    <div
+                                        className={`flex flex-wrap gap-1 px-2 py-1 rounded min-h-[36px] ${theme === "dark"
+                                            ? "bg-gray-700 border border-gray-600 focus-within:border-gray-400"
+                                            : "bg-gray-50 border border-gray-300 focus-within:border-gray-500"
+                                            }`}
+                                        onClick={() => bccInputRef.current?.focus()}
+                                    >
+                                        {emailForm.bcc
+                                            .split(',')
+                                            .map(email => email.trim())
+                                            .filter(email => email.length > 0)
+                                            .map((email, index) => (
+                                                <div
+                                                    key={index}
+                                                    className={`flex items-center gap-1 px-2 py-1 rounded-full text-sm ${theme === "dark"
+                                                        ? "bg-gray-600 text-white"
+                                                        : "bg-gray-200 text-gray-800"
+                                                        }`}
+                                                >
+                                                    <span>{email}</span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            const emails = emailForm.bcc
+                                                                .split(',')
+                                                                .map(e => e.trim())
+                                                                .filter(e => e !== email);
+                                                            setEmailForm(f => ({ ...f, bcc: emails.join(', ') }));
+                                                        }}
+                                                        className={`text-xs ml-1 ${theme === "dark" ? "hover:text-gray-300" : "hover:text-gray-600"}`}
+                                                    >
+                                                        ×
+                                                    </button>
+                                                </div>
+                                            ))}
+
+                                        <input
+                                            ref={bccInputRef}
+                                            type="text"
+                                            value={emailForm.bccInput || ''}
+                                            onChange={(e) => {
+                                                const value = e.target.value;
+                                                setEmailForm(f => ({ ...f, bccInput: value }));
+                                            }}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter' && emailForm.bccInput.trim()) {
+                                                    e.preventDefault();
+                                                    const newEmail = emailForm.bccInput.trim();
+                                                    if (isValidEmail(newEmail)) {
+                                                        const currentEmails = emailForm.bcc
+                                                            .split(',')
+                                                            .map(email => email.trim())
+                                                            .filter(email => email.length > 0);
+
+                                                        if (!currentEmails.includes(newEmail)) {
+                                                            const updatedEmails = [...currentEmails, newEmail].join(', ');
+                                                            setEmailForm(f => ({
+                                                                ...f,
+                                                                bcc: updatedEmails,
+                                                                bccInput: ''
+                                                            }));
+                                                        } else {
+                                                            showToast("Email already added", { type: "info" });
+                                                        }
+                                                    } else {
+                                                        showToast("Please enter a valid email address", { type: "error" });
+                                                    }
+                                                    setShowBccSuggestions(false);
+                                                } else if (e.key === 'Backspace' && !emailForm.bccInput && emailForm.bcc) {
+                                                    const emails = emailForm.bcc
+                                                        .split(',')
+                                                        .map(email => email.trim())
+                                                        .filter(email => email.length > 0);
+
+                                                    if (emails.length > 0) {
+                                                        emails.pop();
+                                                        setEmailForm(f => ({
+                                                            ...f,
+                                                            bcc: emails.join(', ')
+                                                        }));
+                                                    }
+                                                } else if (e.key === 'Escape') {
+                                                    setShowBccSuggestions(false);
+                                                } else if (e.key === ',') {
+                                                    e.preventDefault();
+                                                    const newEmail = emailForm.bccInput.replace(',', '').trim();
+                                                    if (newEmail && isValidEmail(newEmail)) {
+                                                        const currentEmails = emailForm.bcc
+                                                            .split(',')
+                                                            .map(email => email.trim())
+                                                            .filter(email => email.length > 0);
+
+                                                        if (!currentEmails.includes(newEmail)) {
+                                                            const updatedEmails = [...currentEmails, newEmail].join(', ');
+                                                            setEmailForm(f => ({
+                                                                ...f,
+                                                                bcc: updatedEmails,
+                                                                bccInput: ''
+                                                            }));
+                                                        }
+                                                        setShowBccSuggestions(false);
+                                                    }
+                                                }
+                                            }}
+                                            onBlur={() => {
+                                                setTimeout(() => {
+                                                    if (emailForm.bccInput.trim() && isValidEmail(emailForm.bccInput.trim())) {
+                                                        const currentEmails = emailForm.bcc
+                                                            .split(',')
+                                                            .map(email => email.trim())
+                                                            .filter(email => email.length > 0);
+
+                                                        const newEmail = emailForm.bccInput.trim();
+                                                        if (!currentEmails.includes(newEmail)) {
+                                                            const updatedEmails = [...currentEmails, newEmail].join(', ');
+                                                            setEmailForm(f => ({
+                                                                ...f,
+                                                                bcc: updatedEmails,
+                                                                bccInput: ''
+                                                            }));
+                                                        }
+                                                    }
+                                                    setShowBccSuggestions(false);
+                                                }, 200);
+                                            }}
+                                            className={`px-2 py-1 rounded font-medium outline-none flex-1 placeholder:font-normal ${theme === "dark"
+                                                ? "bg-gray-700 text-white placeholder:text-gray-400"
+                                                : "bg-gray-50 !text-gray-800 placeholder:!text-gray-500"
+                                                }`}
+                                            placeholder={emailForm.bcc.split(',').filter(e => e.trim()).length > 0 ? "" : "Enter BCC email addresses"}
+                                        />
+                                    </div>
+
+                                    {showBccSuggestions && (
+                                        <div
+                                            ref={bccSuggestionsRef}
+                                            className={`absolute left-0 right-0 top-full mt-1 z-50 max-h-60 overflow-y-auto rounded-md shadow-lg ${theme === "dark"
+                                                    ? "bg-gray-800 border border-gray-700"
+                                                    : "bg-white border border-gray-300"
+                                                }`}
+                                        >
+                                            {bccSearchLoading ? (
+                                                <div className={`px-3 py-2 text-sm font-normal ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`}>
+                                                    Loading...
+                                                </div>
+                                            ) : bccSuggestions.length > 0 ? (
+                                                bccSuggestions.map((user, index) => (
+                                                    <div
+                                                        key={index}
+                                                        className={`px-3 py-2 cursor-pointer hover:bg-opacity-50 text-sm border-b font-normal ${theme === "dark"
+                                                                ? "hover:bg-gray-700 border-gray-700 text-white"
+                                                                : "hover:bg-gray-100 border-gray-200 text-gray-800"
+                                                            }`}
+                                                        onMouseDown={(e) => {  // ← Changed from onClick to onMouseDown
+                                                            e.preventDefault(); // ← Prevent input blur
+                                                            const currentEmails = emailForm.bcc
+                                                                .split(',')
+                                                                .map(email => email.trim())
+                                                                .filter(email => email.length > 0);
+
+                                                            if (!currentEmails.includes(user.value)) {
+                                                                const updatedEmails = [...currentEmails, user.value].join(', ');
+                                                                setEmailForm(f => ({
+                                                                    ...f,
+                                                                    bcc: updatedEmails,
+                                                                    bccInput: ''
+                                                                }));
+                                                            } else {
+                                                                showToast("Email already added", { type: "info" });
+                                                            }
+                                                            setShowBccSuggestions(false);
+
+                                                            setTimeout(() => {
+                                                                bccInputRef.current?.focus();
+                                                            }, 0);
+                                                        }}
+                                                    >
+                                                        <div className="font-medium">{user.value}</div>
+                                                        {user.description && (
+                                                            <div className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                                                                {user.description}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ))
+                                            ) : emailForm.bccInput.trim() && (
+                                                <div className={`px-3 py-2 text-sm font-normal ${theme === "dark" ? "text-gray-300" : "text-gray-600"}`}>
+                                                    No users found
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         )}
 
