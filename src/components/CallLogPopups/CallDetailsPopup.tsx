@@ -84,7 +84,7 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
         content: ''
     });
     const [userOptions, setUserOptions] = useState<{ value: string; label: string; }[]>([]);
-    const token =  getAuthToken();
+    const token = getAuthToken();
 
     useEffect(() => {
         console.log("=== CallDetailsPopup Mount ===");
@@ -150,7 +150,7 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
             }
 
             console.log("Successfully linked note to call log.");
-            
+
             setNoteForm({ name: '', title: '', content: '' });
             setIsAddingNote(false);
             onClose();
@@ -732,8 +732,8 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
                                     onClick={handleTaskSubmit}
                                     disabled={!taskForm.title || isLoading}
                                     className={`w-full py-3 rounded-lg font-medium transition-colors duration-200 ${theme === 'dark'
-                                            ? 'bg-purple-600 hover:bg-purple-700 text-white '
-                                            : 'bg-blue-600 hover:bg-blue-700 text-white '
+                                        ? 'bg-purple-600 hover:bg-purple-700 text-white '
+                                        : 'bg-blue-600 hover:bg-blue-700 text-white '
                                         } disabled:cursor-not-allowed`}
                                 >
                                     {isLoading ? 'Processing...' : (isEditingTask ? 'Update' : 'Create')}
@@ -752,10 +752,10 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
                                     value={noteForm.title}
                                     onChange={(e) => setNoteForm({ ...noteForm, title: e.target.value })}
                                     placeholder="Call with John Doe"
-                                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
-                            ? 'bg-gray-800 border-gray-600 text-white !placeholder-gray-400'
-                            : 'bg-white border-gray-300 text-gray-900 !placeholder-gray-500'
-                            }`} 
+                                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
+                                        ? 'bg-gray-800 border-gray-600 text-white !placeholder-gray-400'
+                                        : 'bg-white border-gray-300 text-gray-900 !placeholder-gray-500'
+                                        }`}
                                 />
                             </div>
 
@@ -769,9 +769,9 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
                                     placeholder="Took a call with John Doe and discussed the new project"
                                     rows={6}
                                     className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
-                            ? 'bg-gray-800 border-gray-600 text-white !placeholder-gray-400'
-                            : 'bg-white border-gray-300 text-gray-900 !placeholder-gray-500'
-                            }`}
+                                        ? 'bg-gray-800 border-gray-600 text-white !placeholder-gray-400'
+                                        : 'bg-white border-gray-300 text-gray-900 !placeholder-gray-500'
+                                        }`}
                                 />
                             </div>
 
@@ -780,8 +780,8 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
                                     onClick={handleNoteSubmit}
                                     disabled={!noteForm.title || isLoading}
                                     className={`w-full py-3 rounded-lg font-medium transition-colors duration-200 ${theme === 'dark'
-                                            ? 'bg-purple-600 hover:bg-purple-700 text-white '
-                                            : 'bg-blue-600 hover:bg-blue-700 text-white '
+                                        ? 'bg-purple-600 hover:bg-purple-700 text-white '
+                                        : 'bg-blue-600 hover:bg-blue-700 text-white '
                                         } disabled:cursor-not-allowed`}
                                 >
                                     {isLoading ? 'Processing...' : (isEditingNote ? 'Update' : 'Create')}
@@ -816,13 +816,14 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
                                     <span className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>{call.receiver || "Unknown"}</span>
                                 </div>
 
-                                <div
-                                    onClick={() => onOpenReference && onOpenReference(call)}
-                                    className={`flex items-center gap-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                                    <FaUserFriends className={theme === 'dark' ? 'text-white' : 'text-gray-900'} />
-                                    {call.reference_doctype}
-                                    <GoArrowUpRight />
-                                </div>
+                                {call.reference_doctype && (
+                                    <div
+                                        onClick={() => onOpenReference && onOpenReference(call)}
+                                        className={`flex items-center gap-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                                        <FaUserFriends className={theme === 'dark' ? 'text-white' : 'text-gray-900'} />
+                                        {call.reference_doctype}
+                                        <GoArrowUpRight />
+                                    </div>)}
 
                                 <div className="flex items-center gap-2">
                                     <FaRegClock className={theme === 'dark' ? 'text-white' : 'text-gray-900'} />
