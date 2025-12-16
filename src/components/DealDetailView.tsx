@@ -2849,7 +2849,14 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                         type="tel"
                         readOnly
                         value={editedDeal.mobile_no || ''}
-                        onChange={(e) => handleInputChange('mobile_no', e.target.value)}
+                        // onChange={(e) => handleInputChange('mobile_no', e.target.value)}
+                        onChange={(e) => {
+                          const onlyDigits = e.target.value.replace(/\D/g, '').slice(0, 10);
+                          handleInputChange('mobile_no', onlyDigits);
+                        }}
+                        inputMode="numeric"
+                        pattern="[0-9]{10}"
+                        maxLength={10}
                         className={`mt-1 block w-full border rounded-md shadow-sm sm:text-sm px-3 py-2 ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-gray-400 cursor-not-allowed' : 'bg-gray-100 border-gray-300 text-gray-500 cursor-not-allowed'}`}
 
                       />

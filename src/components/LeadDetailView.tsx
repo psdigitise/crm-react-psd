@@ -4238,7 +4238,13 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
                       <input
                         type="tel"
                         value={editedLead.mobile || ''}
-                        onChange={(e) => handleInputChange('mobile', e.target.value)}
+                        onChange={(e) => {
+                          const onlyDigits = e.target.value.replace(/\D/g, '').slice(0, 10);
+                          handleInputChange('mobile', onlyDigits);
+                        }}
+                        inputMode="numeric"
+                        pattern="[0-9]{10}"
+                        maxLength={10}
                         className={`p-[2px] pl-2 mt-1 block w-full border  rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
                       />
                       {errors.mobile && (
