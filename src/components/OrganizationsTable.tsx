@@ -1361,7 +1361,12 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
                             <div className={`flex items-center text-sm hover:text-blue-800 ${theme === 'dark' ? 'text-purple-400 hover:text-purple-300' : 'text-blue-600'
                               }`}>
                               <Globe className="w-4 h-4 mr-2" />
-                              <a href={`${org.website}`} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
+                              <a
+                                href={org.website.startsWith('http') ? org.website : `https://${org.website}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                              >
                                 {org.website}
                               </a>
                             </div>
