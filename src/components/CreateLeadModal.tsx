@@ -49,7 +49,7 @@ export function CreateLeadModal({ isOpen, onClose, onSubmit }: CreateLeadModalPr
     annualRevenue: '0.00',
     industry: '',
     status: 'New',
-    leadOwner: 'Administrator'
+    leadOwner: ''
   });
 
   const [isLoading, setIsLoading] = useState(false);

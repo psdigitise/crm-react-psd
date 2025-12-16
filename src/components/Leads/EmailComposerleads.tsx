@@ -385,6 +385,7 @@ export default function EmailComposerleads({
             return;
         }
 
+        const token = getAuthToken();
         const recipientEmails = emailForm.recipient
             .split(',')
             .map(email => email.trim())
@@ -456,7 +457,7 @@ export default function EmailComposerleads({
             const response = await fetch(API_BASE_URL, {
                 method: "POST",
                 headers: {
-                    Authorization: AUTH_TOKEN,
+                    Authorization: token,
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify(payload),

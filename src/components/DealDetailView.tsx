@@ -1801,280 +1801,226 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
       return [];
     }
   };
-
-  // Enhanced fetchAllActivities function
+  
   const fetchAllActivities = useCallback(async () => {
-    setActivityLoading(true);
-    try {
-      const response = await fetch(
-        `${API_BASE_URL}/method/crm.api.activities.get_activities`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': token,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            name: deal.name
-          })
-        }
-      );
-
-      if (!response.ok) throw new Error('Failed to fetch activities');
-
-      const result = await response.json();
-
-      // --- FIX STARTS HERE ---
-
-      // 1. Get the fresh user info directly from the API result.
-      const userInfoMap = result.docinfo?.user_info || {};
-
-      // 2. Update the component's state for any other parts of your app that might need it.
-      if (result.docinfo) {
-        setDocinfo(result.docinfo);
+  setActivityLoading(true);
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/method/crm.api.activities.get_activities`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': token,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          name: deal.name
+        })
       }
+    );
 
-      // 3. Create a local helper function that uses the fresh user info from this specific API call.
-      const getFreshFullname = (username: string): string => {
-        if (!username) return 'Unknown';
-        const user = userInfoMap[username];
-        if (user && user.fullname) {
-          return user.fullname;
-        }
-        // Fallback if user is not in the map
-        return username.split('@')[0] || username;
+    if (!response.ok) throw new Error('Failed to fetch activities');
+
+    const result = await response.json();
+    const userInfoMap = result.docinfo?.user_info || {};
+
+    if (result.docinfo) {
+      setDocinfo(result.docinfo);
+    }
+
+    const getFreshFullname = (username: string): string => {
+      if (!username) return 'Unknown';
+      const user = userInfoMap[username];
+      return user?.fullname || username.split('@')[0] || username;
+    };
+
+    const message = result.message;
+    const timelineItems = message[0] || [];
+    const rawCallLogs = message[1] || [];
+    const rawNotes = message[2] || [];
+    const rawTasks = message[3] || [];
+
+    const callNames = rawCallLogs.map(call => call.name).filter(Boolean);
+    const detailedCallLogs = await fetchDetailedCallLogsForActivity(callNames);
+
+    const detailedCallMap = new Map();
+    detailedCallLogs.forEach(detailedCall => {
+      if (detailedCall.name) {
+        detailedCallMap.set(detailedCall.name, detailedCall);
+      }
+    });
+
+    const enhancedCallLogs = rawCallLogs.map(call => {
+      const detailedCall = detailedCallMap.get(call.name);
+      return {
+        ...call,
+        ...(detailedCall || {}),
+        _notes: detailedCall?._notes || call._notes || [],
+        _tasks: detailedCall?._tasks || call._tasks || []
+      };
+    });
+
+    setCallLogs(enhancedCallLogs);
+    setNotes(rawNotes);
+    setTasks(rawTasks);
+
+    const rawEmails = timelineItems
+      .filter((item: any) => item.activity_type === 'communication')
+      .map((item: any) => ({
+        id: item.name || `comm-${item.creation}`,
+        fromName: item.data.sender_full_name || item.data.sender,
+        from: item.data.sender,
+        to: item.data.recipients,
+        creation: item.creation,
+        subject: item.data.subject,
+        content: item.data.content || '',
+        attachments: item.data.attachments || [],
+      }));
+    setEmails(rawEmails);
+
+    const rawComments = timelineItems.filter((item: any) => item.activity_type === 'comment');
+    setComments(rawComments);
+
+    const callActivities = enhancedCallLogs.map((call: any) => ({
+      id: call.name,
+      type: 'call',
+      title: `${call.type} Call`,
+      description: ``,
+      timestamp: call.creation,
+      user: getFreshFullname(call.caller || call.receiver || 'Unknown'),
+      icon: <Phone className="w-4 h-4 text-green-500" />,
+      callData: { ...call, _notes: call._notes || [], _tasks: call._tasks || [] }
+    }));
+
+    const taskActivities = rawTasks.map((task: any) => ({
+      id: task.name,
+      type: 'task',
+      title: `Task Created: ${task.title}`,
+      description: ``,
+      timestamp: task.modified,
+      user: getFreshFullname(task.assigned_to || 'Unassigned'),
+      icon: <SiTicktick className="w-4 h-4 text-gray-600" />,
+    }));
+
+    const rawAttachments = message[message.length - 1] || [];
+    setAttachments(rawAttachments);
+
+    const attachmentActivities = rawAttachments.map((attachment: any) => ({
+      id: attachment.name,
+      type: 'attachments',
+      title: 'Attachment Added',
+      description: attachment.file_name,
+      timestamp: attachment.creation,
+      user: getFreshFullname(attachment.owner),
+      icon: <Paperclip className="w-4 h-4 text-gray-500" />,
+      attachmentData: attachment
+    }));
+
+    // --- UPDATED TIMELINE FILTERING LOGIC ---
+    const timelineActivities = timelineItems.map((item: any) => {
+      // Logic to identify intelligence/summary fields
+      const isSystemIntelligence = (data: any) => {
+        const label = (data?.field_label || '').toLowerCase();
+        const fname = (data?.fieldname || '').toLowerCase();
+        return (
+          label.includes('lead summary') || 
+          label.includes('company intelligence') || 
+          fname === 'lead_summary' || 
+          fname === 'lead_score' || 
+          fname === 'company_info'
+        );
       };
 
-      // --- FIX ENDS HERE ---
+      switch (item.activity_type) {
+        case 'creation':
+          return {
+            id: `creation-${item.creation}`,
+            type: 'edit',
+            title: `${getFreshFullname(item.owner)} ${item.data}`,
+            description: '',
+            timestamp: item.creation,
+            user: getFreshFullname(item.owner),
+            icon: <UserPlus className="w-4 h-4 text-gray-500" />
+          };
 
-      const message = result.message;
-      const timelineItems = message[0] || [];
-      const rawCallLogs = message[1] || [];
-      const rawNotes = message[2] || [];
-      const rawTasks = message[3] || [];
-
-      const callNames = rawCallLogs.map(call => call.name).filter(Boolean);
-      const detailedCallLogs = await fetchDetailedCallLogsForActivity(callNames);
-
-      const detailedCallMap = new Map();
-      detailedCallLogs.forEach(detailedCall => {
-        if (detailedCall.name) {
-          detailedCallMap.set(detailedCall.name, detailedCall);
-        }
-      });
-
-      const enhancedCallLogs = rawCallLogs.map(call => {
-        const detailedCall = detailedCallMap.get(call.name);
-        return {
-          ...call,
-          ...(detailedCall || {}),
-          _notes: detailedCall?._notes || call._notes || [],
-          _tasks: detailedCall?._tasks || call._tasks || []
-        };
-      });
-
-      setCallLogs(enhancedCallLogs);
-      setNotes(rawNotes);
-      setTasks(rawTasks);
-
-      const rawEmails = timelineItems
-        .filter((item: any) => item.activity_type === 'communication')
-        .map((item: any) => ({
-          id: item.name || `comm-${item.creation}`,
-          fromName: item.data.sender_full_name || item.data.sender,
-          from: item.data.sender,
-          to: item.data.recipients,
-          creation: item.creation,
-          subject: item.data.subject,
-          content: item.data.content || '',
-          attachments: item.data.attachments || [],
-        }));
-      setEmails(rawEmails);
-
-      const rawComments = timelineItems.filter((item: any) => item.activity_type === 'comment');
-      setComments(rawComments);
-
-      // Now we use `getFreshFullname` for all activity mappings below
-
-      const callActivities = enhancedCallLogs.map((call: any) => ({
-        id: call.name,
-        type: 'call',
-        title: `${call.type} Call`,
-        description: ``,
-        timestamp: call.creation,
-        user: getFreshFullname(call.caller || call.receiver || 'Unknown'), // USE FRESH HELPER
-        icon: <Phone className="w-4 h-4 text-green-500" />,
-        callData: { ...call, _notes: call._notes || [], _tasks: call._tasks || [] }
-      }));
-
-      const taskActivities = rawTasks.map((task: any) => ({
-        id: task.name,
-        type: 'task',
-        title: `Task Created: ${task.title}`,
-        description: ``,
-        timestamp: task.modified,
-        user: getFreshFullname(task.assigned_to || 'Unassigned'), // USE FRESH HELPER
-        icon: <SiTicktick className="w-4 h-4 text-gray-600" />,
-      }));
-
-      const rawAttachments = message[message.length - 1] || [];
-      setAttachments(rawAttachments);
-
-      const attachmentActivities = rawAttachments.map((attachment: any) => ({
-        id: attachment.name,
-        type: 'attachments',
-        title: 'Attachment Added',
-        description: attachment.file_name,
-        timestamp: attachment.creation,
-        user: getFreshFullname(attachment.owner), // USE FRESH HELPER
-        icon: <Paperclip className="w-4 h-4 text-gray-500" />,
-        attachmentData: attachment
-      }));
-
-      const timelineActivities = timelineItems.map((item: any) => {
-        switch (item.activity_type) {
-          case 'creation':
-            return {
-              id: `creation-${item.creation}`,
-              type: 'edit',
-              title: `${getFreshFullname(item.owner)} ${item.data}`, // USE FRESH HELPER
-              description: '',
-              timestamp: item.creation,
-              user: getFreshFullname(item.owner), // USE FRESH HELPER
-              icon: <UserPlus className="w-4 h-4 text-gray-500" />
-            };
-          case 'comment':
-            if (item.content?.toLowerCase().includes('converted')) {
-              return {
-                id: item.name,
-                type: 'edit',
-                title: `${getFreshFullname(item.owner)} converted the lead to this deal.`, // USE FRESH HELPER
-                description: '',
-                timestamp: item.creation,
-                user: getFreshFullname(item.owner), // USE FRESH HELPER
-                icon: <RxLightningBolt className="w-4 h-4 text-blue-500" />
-              };
-            }
-            return {
-              id: item.name,
-              type: 'comment',
-              title: 'New Comment',
-              description: item.content.replace(/<[^>]+>/g, ''),
-              timestamp: item.creation,
-              user: getFreshFullname(item.owner), // USE FRESH HELPER
-              icon: <MessageSquare className="w-4 h-4 text-purple-500" />
-            };
-          case 'communication':
-            return {
-              id: item.name || `comm-${item.creation}`,
-              type: 'email',
-              title: `Email: ${item.data.subject}`,
-              description: ``,
-              timestamp: item.creation,
-              user: getFreshFullname(item.data.sender_full_name || item.data.sender), // USE FRESH HELPER
-              icon: <Mail className="w-4 h-4 text-red-500" />
-            };
-          case 'added':
-          case 'changed':
-            if (item.other_versions?.length > 0) {
-              const allChanges = [item, ...item.other_versions];
-              return {
-                id: `group-${item.creation}`,
-                type: 'grouped_change',
-                timestamp: item.creation,
-                user: getFreshFullname(item.owner), // USE FRESH HELPER
-                icon: <Layers className="w-4 h-4 text-white" />,
-                changes: allChanges
-              };
-            }
-            const actionText = item.activity_type === 'added'
-              ? `added value for ${item.data.field_label}: '${item.data.value}'`
-              : `changed ${item.data.field_label} from '${item.data.old_value || "nothing"}' to '${item.data.value}'`;
-            return {
-              id: `change-${item.creation}`,
-              type: 'edit',
-              title: `${getFreshFullname(item.owner)} ${actionText}`, // USE FRESH HELPER
-              description: '',
-              timestamp: item.creation,
-              user: getFreshFullname(item.owner), // USE FRESH HELPER
-              icon: <RxLightningBolt className="w-4 h-4 text-yellow-500" />
-            };
-          default:
+        case 'comment':
+          // Hide comments that contain intelligence reports
+          if (item.content?.toLowerCase().includes('lead summary') || 
+              item.content?.toLowerCase().includes('company intelligence')) {
             return null;
-        }
-      }).filter(Boolean);
+          }
+          return {
+            id: item.name,
+            type: 'comment',
+            title: 'New Comment',
+            description: item.content.replace(/<[^>]+>/g, ''),
+            timestamp: item.creation,
+            user: getFreshFullname(item.owner),
+            icon: <MessageSquare className="w-4 h-4 text-purple-500" />
+          };
 
-      const allActivities = [...callActivities, ...taskActivities, ...timelineActivities, ...attachmentActivities];
-      allActivities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-      setActivities(allActivities);
+        case 'communication':
+          return {
+            id: item.name || `comm-${item.creation}`,
+            type: 'email',
+            title: `Email: ${item.data.subject}`,
+            description: ``,
+            timestamp: item.creation,
+            user: getFreshFullname(item.data.sender_full_name || item.data.sender),
+            icon: <Mail className="w-4 h-4 text-red-500" />
+          };
 
-      // In your fetchAllActivities function, replace the filtering logic with this:
-      const filteredActivities = allActivities.filter(activity => {
-        // Skip filtering for non-text based activities
-        if (!activity.description && !activity.title && !activity.callData) return true;
+        case 'added':
+        case 'changed':
+          // Filter out individual intelligence changes
+          if (isSystemIntelligence(item.data)) return null;
 
-        const description = (activity.description || '').toLowerCase();
-        const title = (activity.title || '').toLowerCase();
+          // Filter out intelligence changes inside grouped versions
+          if (item.other_versions?.length > 0) {
+            const filteredVersions = item.other_versions.filter((v: any) => !isSystemIntelligence(v.data));
+            
+            // If the group only contained intelligence, hide the whole group
+            if (filteredVersions.length === 0 && isSystemIntelligence(item.data)) return null;
 
-        // For call activities, check if they have any notes/tasks related to company intelligence
-        if (activity.callData) {
-          const callNotes = activity.callData._notes || [];
-          const hasIntelNote = callNotes.some(note =>
-            note.content?.toLowerCase().includes('company intelligence') ||
-            note.content?.toLowerCase().includes('company info') ||
-            note.content?.toLowerCase().includes('intelligence report')
-          );
-          return !hasIntelNote;
-        }
+            return {
+              id: `group-${item.creation}`,
+              type: 'grouped_change',
+              timestamp: item.creation,
+              user: getFreshFullname(item.owner),
+              icon: <Layers className="w-4 h-4 text-white" />,
+              changes: [item, ...filteredVersions]
+            };
+          }
 
-        // Comprehensive list of keywords to filter out
-        const companyIntelKeywords = [
-          'company intelligence',
-          'company info',
-          'company_info',
-          'intelligence report',
-          'intelligence generated',
-          'company information',
-          'company report',
-          'business intelligence',
-          'ai intelligence',
-          'scorecard',
-          'market intelligence',
-          'competitor intelligence',
-          'financial intelligence',
-          'leadership intelligence',
-          'technology landscape',
-          'digital transformation',
-          'ai capabilities',
-          'business strategy',
-          'key leadership',
-          'financial health',
-          'competitor analysis',
-          'strengths',
-          'weaknesses',
-          'opportunities',
-          'threats',
-          'swot',
-          'recommendations'
-        ];
+          const actionText = item.activity_type === 'added'
+            ? `added value for ${item.data.field_label}: '${item.data.value}'`
+            : `changed ${item.data.field_label} from '${item.data.old_value || "nothing"}' to '${item.data.value}'`;
+          return {
+            id: `change-${item.creation}`,
+            type: 'edit',
+            title: `${getFreshFullname(item.owner)} ${actionText}`,
+            description: '',
+            timestamp: item.creation,
+            user: getFreshFullname(item.owner),
+            icon: <RxLightningBolt className="w-4 h-4 text-yellow-500" />
+          };
+        default:
+          return null;
+      }
+    }).filter(Boolean);
 
-        const isCompanyIntelligence = companyIntelKeywords.some(keyword =>
-          description.includes(keyword) || title.includes(keyword)
-        );
+    const allActivities = [...callActivities, ...taskActivities, ...timelineActivities, ...attachmentActivities];
+    allActivities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    
+    setActivities(allActivities);
 
-        return !isCompanyIntelligence;
-      });
-
-      filteredActivities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-      setActivities(filteredActivities);
-
-    } catch (error) {
-      console.error("Error fetching activities:", error);
-      showToast("Failed to load activity timeline", { type: 'error' });
-    } finally {
-      setActivityLoading(false);
-    }
-  }, [deal.name]); // 5. REMOVE docinfo.user_info from the dependency array
+  } catch (error) {
+    console.error("Error fetching activities:", error);
+    showToast("Failed to load activity timeline", { type: 'error' });
+  } finally {
+    setActivityLoading(false);
+  }
+}, [deal.name, token]);
 
 
   const [organizationOptions, setOrganizationOptions] = useState([]);

@@ -52,7 +52,7 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
     mobile_no: '',
     gender: '',
     status: 'Qualification',
-    deal_owner: 'Administrator',
+    deal_owner: '',
     organization_id: '',
     contact_id: '',
     expected_deal_value: '',
@@ -378,9 +378,9 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
     }
 
     // Deal Owner validation
-    if (!formData.deal_owner) {
-      newErrors.deal_owner = 'Deal owner is required';
-    }
+    // if (!formData.deal_owner) {
+    //   newErrors.deal_owner = 'Deal owner is required';
+    // }
 
     // Expected Deal Value validation
     if (!formData.expected_deal_value) {
@@ -450,7 +450,8 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
       // Prepare the payload according to the API requirements
       const apiPayload = {
         args: {
-          organization_name: formData.organization_name || useExistingOrganization ? formData.organization_id : '',
+          //organization_name: formData.organization_name || useExistingOrganization ? formData.organization_id : '',
+          organization_name: useExistingOrganization? formData.organization_id: formData.organization_name,
           website: formData.website,
           no_of_employees: formData.no_of_employees,
           territory: formData.territory,
@@ -464,7 +465,7 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
           mobile_no: formData.mobile_no,
           gender: formData.gender,
           status: formData.status,
-          deal_owner: formData.deal_owner,
+          deal_owner: formData.deal_owner || null,
           company: sessionCompany,
           organization_id: useExistingOrganization ? formData.organization_id : null,
           expected_deal_value: formData.expected_deal_value,
@@ -516,7 +517,7 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
             mobile_no: '',
             gender: '',
             status: 'Qualification',
-            deal_owner: 'Administrator',
+            deal_owner: '',
             organization_id: '',
             contact_id: '',
             expected_deal_value: '',
