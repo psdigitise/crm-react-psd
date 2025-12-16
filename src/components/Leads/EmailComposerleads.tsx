@@ -753,9 +753,10 @@ Instruction: ${emailForm.aiPrompt.trim()}
         try {
             const session = getUserSession();
             const sessionCompany = session?.company;
+            const token = getAuthToken();
             const payload = { txt: searchText, doctype: "User", filters: sessionCompany ? { company: sessionCompany } : null };
             const response = await axios.post(SEARCH_API_URL, payload, {
-                headers: { Authorization: AUTH_TOKEN, "Content-Type": "application/json" },
+                headers: { Authorization: token, "Content-Type": "application/json" },
             });
 
             if (response.data && response.data.message) {
