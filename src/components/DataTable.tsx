@@ -2145,53 +2145,58 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
             )}
           </div>
 
-          <div className="relative">
-            <button
-              onClick={() => setShowColumnSettings(!showColumnSettings)}
-              className={`px-3 py-2 text-sm border rounded-lg transition-colors flex items-center space-x-1 ${theme === 'dark'
-                ? 'border-purple-500/30 text-white hover:bg-purple-800/50'
-                : 'border-gray-300 hover:bg-gray-50'
-                }`}
-            >
-              <Settings className="w-4 h-4" />
-              <span>Columns</span>
-            </button>
+          {view === 'table' && (
+            <>
+              <div className="relative">
+                <button
+                  onClick={() => setShowColumnSettings(!showColumnSettings)}
+                  className={`px-3 py-2 text-sm border rounded-lg transition-colors flex items-center space-x-1 ${theme === 'dark'
+                    ? 'border-purple-500/30 text-white hover:bg-purple-800/50'
+                    : 'border-gray-300 hover:bg-gray-50'
+                    }`}
+                >
+                  <Settings className="w-4 h-4" />
+                  <span>Columns</span>
+                </button>
 
-            {showColumnSettings && (
-              <div className={`absolute top-full left-0 mt-2 w-64 rounded-lg shadow-lg z-10 p-4 ${theme === 'dark'
-                ? 'bg-dark-accent border border-purple-500/30'
-                : 'bg-white border border-gray-200'
-                }`}>
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Manage Columns</h3>
-                  <button
-                    onClick={() => setShowColumnSettings(false)}
-                    // className={theme === 'dark' ? 'text-white hover:text-white' : 'text-white hover:text-gray-600'}
-                    className={`p-1 rounded ${theme === 'dark'
-                      ? 'text-gray-400 hover:text-white'
-                      : 'text-gray-500 hover:text-gray-700'
-                      }`}
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
 
-                <div className="space-y-2">
-                  {columns.map(column => (
-                    <label key={column.key} className="flex items-center space-x-2 text-sm">
-                      <input
-                        type="checkbox"
-                        checked={column.visible}
-                        onChange={() => toggleColumn(column.key)}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      />
-                      <span className={theme === 'dark' ? 'text-white' : 'text-gray-700'}>{column.label}</span>
-                    </label>
-                  ))}
-                </div>
+                {showColumnSettings && (
+                  <div className={`absolute top-full left-0 mt-2 w-64 rounded-lg shadow-lg z-10 p-4 ${theme === 'dark'
+                    ? 'bg-dark-accent border border-purple-500/30'
+                    : 'bg-white border border-gray-200'
+                    }`}>
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Manage Columns</h3>
+                      <button
+                        onClick={() => setShowColumnSettings(false)}
+                        // className={theme === 'dark' ? 'text-white hover:text-white' : 'text-white hover:text-gray-600'}
+                        className={`p-1 rounded ${theme === 'dark'
+                          ? 'text-gray-400 hover:text-white'
+                          : 'text-gray-500 hover:text-gray-700'
+                          }`}
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    <div className="space-y-2">
+                      {columns.map(column => (
+                        <label key={column.key} className="flex items-center space-x-2 text-sm">
+                          <input
+                            type="checkbox"
+                            checked={column.visible}
+                            onChange={() => toggleColumn(column.key)}
+                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          />
+                          <span className={theme === 'dark' ? 'text-white' : 'text-gray-700'}>{column.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            </>
+          )}
         </div>
 
         <div className="flex items-center space-x-2">
