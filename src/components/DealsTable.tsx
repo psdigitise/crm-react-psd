@@ -1876,17 +1876,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
                       }))}
                     />
                   )}
-                  <FilterDropdown
-                    title="Assigned To"
-                    options={filterOptions.assignedTo}
-                    selected={filters.assignedTo}
-                    onChange={value => setFilters(f => ({
-                      ...f,
-                      assignedTo: f.assignedTo.includes(value)
-                        ? f.assignedTo.filter(v => v !== value)
-                        : [...f.assignedTo, value]
-                    }))}
-                  />
+                  
                 </div>
               </div>
             )}
