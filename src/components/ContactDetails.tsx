@@ -428,8 +428,18 @@ export default function ContactDetails({
 
   // Phone functions
   const handleEditPhone = async () => {
-    if (!editingPhone || !newPhoneValue.trim()) {
-      showToast('Please enter a valid phone number', { type: 'error' });
+    // if (!editingPhone || !newPhoneValue.trim()) {
+    //   showToast('Please enter a valid phone number', { type: 'error' });
+    //   return;
+    // }
+
+    if (!newPhoneValue.trim()) {
+      showToast('Please enter a phone number', { type: 'error' });
+      return;
+    }
+
+    if (newPhoneValue.length < 10) {
+      showToast('Please enter at least 10 digits', { type: 'error' });
       return;
     }
 
@@ -1009,8 +1019,18 @@ export default function ContactDetails({
   };
 
   const handleAddPhone = async () => {
+    // if (!newPhoneValue.trim()) {
+    //   showToast('Please enter a valid phone number', { type: 'error' });
+    //   return;
+    // }
+
     if (!newPhoneValue.trim()) {
-      showToast('Please enter a valid phone number', { type: 'error' });
+      showToast('Please enter a phone number', { type: 'error' });
+      return;
+    }
+
+    if (newPhoneValue.length < 10) {
+      showToast('Please enter at least 10 digits', { type: 'error' });
       return;
     }
 
