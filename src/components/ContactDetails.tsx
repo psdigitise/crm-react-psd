@@ -168,7 +168,16 @@ export default function ContactDetails({
 
   // Mobile dropdown state
   const [expandedDeals, setExpandedDeals] = useState<Set<string>>(new Set());
-  const token =  getAuthToken();
+  const token = getAuthToken();
+
+
+  const ALLOWED_IMAGE_TYPES = [
+    'image/jpeg',
+    'image/jpg',
+    'image/png',
+    'image/gif'
+  ];
+  const MAX_IMAGE_SIZE = 1 * 1024 * 1024;
 
   useEffect(() => {
     if (editingField === 'address') {
@@ -606,23 +615,52 @@ export default function ContactDetails({
     fileInputRef.current?.click();
   };
 
+  const validateImageFile = (file: File): { isValid: boolean; error?: string } => {
+    // Check file size
+    if (file.size > MAX_IMAGE_SIZE) {
+      return {
+        isValid: false,
+        error: 'Image size should be less than 1MB'
+      };
+    }
+
+    // Check file type
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      const allowedTypes = ALLOWED_IMAGE_TYPES.map(type => {
+        if (type === 'image/jpg') return 'JPG';
+        if (type === 'image/jpeg') return 'JPEG';
+        if (type === 'image/png') return 'PNG';
+        if (type === 'image/gif') return 'GIF';
+        return type.split('/')[1].toUpperCase();
+      }).join(', ');
+
+      return {
+        isValid: false,
+        error: `Please select a valid image file (${allowedTypes})`
+      };
+    }
+
+    return { isValid: true };
+  };
+
+  // Update the handleFileChange function to include validation
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
-    if (!allowedTypes.includes(file.type)) {
-      showToast('Please select a valid image file (JPEG, PNG, or GIF)', { type: 'error' });
+    // Validate the file before proceeding
+    const validation = validateImageFile(file);
+    if (!validation.isValid) {
+      showToast(validation.error || 'Invalid image file', { type: 'error' });
+
+      // Reset the file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
       return;
     }
 
-    const maxSize = 5 * 1024 * 1024;
     const token = getAuthToken();
-
-    if (file.size > maxSize) {
-      showToast('Image size should be less than 5MB', { type: 'error' });
-      return;
-    }
 
     try {
       setUploadingImage(true);

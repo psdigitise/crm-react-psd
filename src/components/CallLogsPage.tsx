@@ -483,7 +483,7 @@ const fetchUsers = async (): Promise<User[]> => {
       return [];
     }
 
-    const apiUrl = 'http://147.79.67.128:8000/api/method/frappe.desk.search.search_link';
+    const apiUrl = 'https://api.erpnext.ai/api/method/frappe.desk.search.search_link';
 
     const requestBody = {
       txt: "",
@@ -654,7 +654,7 @@ export function CallLogsPage({
       // Step 2: Fetch detailed information for each call log using the second API
       const detailedCallLogsPromises = callLogsData.map(async (item: any) => {
         try {
-          const detailApiUrl = 'http://147.79.67.128:8000/api/method/crm.fcrm.doctype.crm_call_log.crm_call_log.get_call_log';
+          const detailApiUrl = 'https://api.erpnext.ai/api/method/crm.fcrm.doctype.crm_call_log.crm_call_log.get_call_log';
 
           const detailResponse = await fetch(detailApiUrl, {
             method: 'POST',
@@ -789,7 +789,7 @@ export function CallLogsPage({
         return false;
       }
 
-      const apiUrl = `http://147.79.67.128:8000/api/method/frappe.client.set_value`;
+      const apiUrl = `https://api.erpnext.ai/api/method/frappe.client.set_value`;
 
       // Prepare the payload based on call type
       const payload: any = {
@@ -849,7 +849,7 @@ export function CallLogsPage({
         return;
       }
 
-      const apiUrl = `http://147.79.67.128:8000/api/v2/document/CRM Call Log/${callLogName}`;
+      const apiUrl = `https://api.erpnext.ai/api/v2/document/CRM Call Log/${callLogName}`;
 
       const response = await fetch(apiUrl, {
         method: 'DELETE',

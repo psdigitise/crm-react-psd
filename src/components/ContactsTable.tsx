@@ -106,7 +106,7 @@ const defaultColumns: ColumnConfig[] = [
   { key: 'phone', label: 'Phone', visible: true, sortable: true },
   { key: 'company_name', label: 'Company Name', visible: true, sortable: true },
   { key: 'lastContact', label: 'Last Contact', visible: true, sortable: true },
-  { key: 'assignedTo', label: 'Assigned To', visible: false, sortable: true },
+
 ];
 
 // Import Popup Component
@@ -272,6 +272,7 @@ export function ContactsTable({ searchTerm, onContactClick, onRefresh }: Contact
 
   const userSession = getUserSession();
   const Company = userSession?.company;
+  const token = getAuthToken();
 
   // Available filter options
   const [filterOptions, setFilterOptions] = useState({
@@ -280,6 +281,7 @@ export function ContactsTable({ searchTerm, onContactClick, onRefresh }: Contact
     owner: [] as string[]
   });
 
+
   const showToastMessage = (message: string, type: 'error' | 'success' = 'error') => {
     setToast({ message, type });
   };
@@ -287,8 +289,8 @@ export function ContactsTable({ searchTerm, onContactClick, onRefresh }: Contact
   const hideToast = () => {
     setToast(null);
   };
-  
-  
+
+
 
   // Memoized fetchContacts function
   const fetchContacts = useCallback(async () => {
@@ -567,55 +569,71 @@ export function ContactsTable({ searchTerm, onContactClick, onRefresh }: Contact
     }
   };
 
-  // Extract the import continuation logic into a separate function
   const continueImportProcess = async (dataImportName: string) => {
-    try {
-      setImportProgress(60);
-      setImportStatus('Starting data import...');
+  try {
+    setImportProgress(60);
+    setImportStatus('Starting data import...');
 
-      // Start the actual import process
-      const startImportPayload: any = {
-        data_import: dataImportName
-      };
+    // Start the actual import process
+    const startImportPayload: any = {
+      data_import: dataImportName
+    };
 
-      const startImportResponse = await fetch(
-        `https://api.erpnext.ai/api/method/frappe.core.doctype.data_import.data_import.form_start_import`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': AUTH_TOKEN,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(startImportPayload)
-        }
-      );
-
-      if (!startImportResponse.ok) {
-        throw new Error(`Start import API failed: ${startImportResponse.statusText}`);
+    const startImportResponse = await fetch(
+      `https://api.erpnext.ai/api/method/frappe.core.doctype.data_import.data_import.form_start_import`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': AUTH_TOKEN,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(startImportPayload)
       }
+    );
 
-      const startImportResult = await startImportResponse.json();
-      console.log('Start Import API Response:', startImportResult);
-
-      setImportProgress(100);
-      setImportStatus('Import completed successfully!');
-
-      // Show success toast
-      showToastMessage('Contacts imported successfully!', 'success');
-
-      // Refresh the contacts data after successful import
-      setTimeout(() => {
-        fetchContacts();
-        setIsImporting(false);
-        setImportProgress(0);
-        setImportStatus('');
-        setSelectedFile(null); // Clear the file after successful import
-      }, 1000);
-
-    } catch (error) {
-      throw error;
+    const startImportResult = await startImportResponse.json();
+    
+    // Check for errors in response
+    if (startImportResult.message?.status === "Error") {
+      throw new Error(startImportResult.message.message || "Import process failed.");
     }
-  };
+
+    if (!startImportResponse.ok) {
+      throw new Error(`Start import API failed: ${startImportResponse.statusText}`);
+    }
+
+    console.log('Start Import API Response:', startImportResult);
+
+    setImportProgress(100);
+    setImportStatus('Import completed successfully!');
+
+    // Show success toast
+    showToastMessage('Contacts imported successfully!', 'success');
+
+    // Refresh the contacts data after successful import
+    setTimeout(() => {
+      fetchContacts();
+      setIsImporting(false);
+      setImportProgress(0);
+      setImportStatus('');
+      setSelectedFile(null);
+    }, 1000);
+
+  } catch (error) {
+    console.error('Continue import failed:', error);
+    
+    // Reset states
+    setIsImporting(false);
+    setImportProgress(0);
+    setImportStatus('');
+    setSelectedFile(null);
+    
+    // Show error
+    const errorMessage = error instanceof Error ? error.message : 'Failed to complete import';
+    showToastMessage(`Import failed: ${errorMessage}`, 'error');
+    throw error;
+  }
+};
 
   // Import functionality
   const handleImportClick = () => {
@@ -632,7 +650,7 @@ export function ContactsTable({ searchTerm, onContactClick, onRefresh }: Contact
         {
           method: 'POST',
           headers: {
-            'Authorization': AUTH_TOKEN,
+            'Authorization': token,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
@@ -691,194 +709,231 @@ export function ContactsTable({ searchTerm, onContactClick, onRefresh }: Contact
     }
   };
 
-  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
 
-    // Check if file is CSV
-    if (!file.name.toLowerCase().endsWith('.csv')) {
-      showToastMessage('Please select a CSV file');
-      return;
+
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const file = event.target.files?.[0];
+  if (!file) return;
+
+  // Check if file is CSV
+  if (!file.name.toLowerCase().endsWith('.csv')) {
+    showToastMessage('Please select a CSV file', 'error');
+    return;
+  }
+
+  // Check file size
+  if (file.size === 0) {
+    showToastMessage('The uploaded CSV file is empty.', 'error');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+    return;
+  }
+
+  // Store the file in state
+  setSelectedFile(file);
+
+  await handleBulkImport(file);
+
+  // Reset file input
+  if (fileInputRef.current) {
+    fileInputRef.current.value = '';
+  }
+};
+
+ const handleBulkImport = async (file: File) => {
+  try {
+    setIsImporting(true);
+    setImportProgress(0);
+    setImportStatus('Starting import process...');
+
+    // Check if file is empty
+    if (file.size === 0) {
+      throw new Error("The uploaded CSV file is empty.");
     }
 
-    // Store the file in state
-    setSelectedFile(file);
+    const session = getUserSession();
+    const sessionCompany = session?.company;
 
-    await handleBulkImport(file);
+    if (!session?.api_key || !session?.api_secret) {
+      throw new Error("User session or API credentials not found.");
+    }
 
+    setImportProgress(20);
+    setImportStatus('Uploading CSV file...');
+
+    // Step 1: Import contacts with company
+    const formData = new FormData();
+    formData.append('reference_doctype', 'Contact');
+    formData.append('import_type', 'Insert New Records');
+    formData.append('company', sessionCompany || '');
+    formData.append('filedata', file);
+
+    const importResponse = await fetch(
+      'https://api.erpnext.ai/api/method/customcrm.email.import.import_leads_with_company',
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': AUTH_TOKEN,
+        },
+        body: formData
+      }
+    );
+
+    const importResult = await importResponse.json();
+    
+    // Check for empty CSV error in response
+    if (importResult.message?.status === "Error") {
+      throw new Error(importResult.message.message || "The uploaded CSV file is empty or invalid.");
+    }
+
+    if (!importResponse.ok) {
+      throw new Error(`Import API failed: ${importResponse.statusText}`);
+    }
+
+    console.log('Initial Import API Response:', importResult);
+
+    // Check for unmapped columns in the response
+    if (importResult.message?.unmapped_columns && importResult.message.unmapped_columns.length > 0) {
+      const unmappedColumns = importResult.message.unmapped_columns;
+
+      setImportProgress(0);
+      setImportStatus('');
+      setIsImporting(false);
+
+      // Store unmapped columns and show mapping popup
+      setUnmappedColumns(unmappedColumns);
+      setManualMappings({});
+      setShowMappingPopup(true);
+      return; // Stop the import process until user maps columns
+    }
+
+    // If no unmapped columns, continue directly with the import process
+    const dataImportName = importResult.message?.name || importResult.message?.data_import_name;
+
+    if (!dataImportName) {
+      throw new Error('Could not get import reference from response');
+    }
+
+    // Continue with the import process
+    await continueImportProcess(dataImportName);
+
+  } catch (error) {
+    console.error('Import failed:', error);
+    
+    // Reset all import states
+    setIsImporting(false);
+    setImportProgress(0);
+    setImportStatus('');
+    setUnmappedColumns([]);
+    setManualMappings({});
+    setSelectedFile(null);
+    
+    // Show error in toast
+    const errorMessage = error instanceof Error ? error.message : 'Failed to import contacts';
+    showToastMessage(`Import failed: ${errorMessage}`, 'error');
+    
     // Reset file input
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
-  };
+  }
+};
 
-  const handleBulkImport = async (file: File) => {
-    try {
-      setIsImporting(true);
-      setImportProgress(0);
-      setImportStatus('Starting import process...');
 
-      const session = getUserSession();
-      const sessionCompany = session?.company;
 
-      if (!session?.api_key || !session?.api_secret) {
-        throw new Error("User session or API credentials not found.");
-      }
-
-      setImportProgress(20);
-      setImportStatus('Uploading CSV file...');
-
-      // Step 1: Import contacts with company - UPDATED FOR CONTACT
-      const formData = new FormData();
-      formData.append('reference_doctype', 'Contact'); // Changed from CRM Lead to Contact
-      formData.append('import_type', 'Insert New Records');
-      formData.append('company', sessionCompany || '');
-      formData.append('filedata', file);
-
-      const importResponse = await fetch(
-        'https://api.erpnext.ai/api/method/customcrm.email.import.import_leads_with_company',
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': AUTH_TOKEN,
-          },
-          body: formData
-        }
-      );
-
-      if (!importResponse.ok) {
-        throw new Error(`Import API failed: ${importResponse.statusText}`);
-      }
-
-      const importResult = await importResponse.json();
-      console.log('Initial Import API Response:', importResult);
-
-      // Check for unmapped columns in the response
-      if (importResult.message?.unmapped_columns && importResult.message.unmapped_columns.length > 0) {
-        const unmappedColumns = importResult.message.unmapped_columns;
-
-        setImportProgress(0);
-        setImportStatus('');
-        setIsImporting(false);
-
-        // Store unmapped columns and show mapping popup
-        setUnmappedColumns(unmappedColumns);
-        setManualMappings({});
-        setShowMappingPopup(true);
-        return; // Stop the import process until user maps columns
-      }
-
-      // If no unmapped columns, continue directly with the import process
-      const dataImportName = importResult.message?.name || importResult.message?.data_import_name;
-
-      if (!dataImportName) {
-        throw new Error('Could not get import reference from response');
-      }
-
-      // Continue with the import process
-      await continueImportProcess(dataImportName);
-
-    } catch (error) {
-      console.error('Import failed:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to import contacts';
-      setError(errorMessage);
-      setIsImporting(false);
-      setImportProgress(0);
-      setImportStatus('');
-      showToastMessage(`Import failed: ${errorMessage}`);
-      // Clear the file on error
-      setSelectedFile(null);
-    }
-  };
-
-  // Function to handle mapping submission
   const handleMappingSubmit = async () => {
-    if (Object.keys(manualMappings).length !== unmappedColumns.length) {
-      showToastMessage('Please map all unmapped columns before continuing');
-      return;
+  if (Object.keys(manualMappings).length !== unmappedColumns.length) {
+    showToastMessage('Please map all unmapped columns before continuing', 'error');
+    return;
+  }
+
+  if (!selectedFile) {
+    showToastMessage('File not found. Please select the file again.', 'error');
+    return;
+  }
+
+  setShowMappingPopup(false);
+  setIsImporting(true);
+  setImportProgress(40);
+  setImportStatus('Applying column mappings...');
+
+  try {
+    const session = getUserSession();
+    const sessionCompany = session?.company;
+
+    // Re-upload the file with manual mappings using the stored file
+    const formData = new FormData();
+    formData.append('reference_doctype', 'Contact');
+    formData.append('import_type', 'Insert New Records');
+    formData.append('company', sessionCompany || '');
+    formData.append('filedata', selectedFile);
+
+    // Convert manual mappings to JSON string
+    const manualMappingsJson = JSON.stringify(manualMappings);
+    formData.append('manual_mappings', manualMappingsJson);
+
+    const importResponse = await fetch(
+      'https://api.erpnext.ai/api/method/customcrm.email.import.import_leads_with_company',
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': AUTH_TOKEN,
+        },
+        body: formData
+      }
+    );
+
+    const importResult = await importResponse.json();
+    
+    // Check for errors in response
+    if (importResult.message?.status === "Error") {
+      throw new Error(importResult.message.message || "Import failed after mapping.");
     }
 
-    if (!selectedFile) {
-      showToastMessage('File not found. Please select the file again.');
-      return;
+    if (!importResponse.ok) {
+      throw new Error(`Import API failed: ${importResponse.statusText}`);
     }
 
-    setShowMappingPopup(false);
-    setIsImporting(true);
-    setImportProgress(40);
-    setImportStatus('Applying column mappings...');
+    console.log('Second Import API Response with mappings:', importResult);
 
-    try {
-      const session = getUserSession();
-      const sessionCompany = session?.company;
-
-      // Re-upload the file with manual mappings using the stored file
-      const formData = new FormData();
-      formData.append('reference_doctype', 'Contact'); // Changed from CRM Lead to Contact
-      formData.append('import_type', 'Insert New Records');
-      formData.append('company', sessionCompany || '');
-      formData.append('filedata', selectedFile);
-
-      // Convert manual mappings to JSON string
-      const manualMappingsJson = JSON.stringify(manualMappings);
-      formData.append('manual_mappings', manualMappingsJson);
-
-      console.log('Sending manual mappings:', manualMappings);
-      console.log('Manual mappings JSON:', manualMappingsJson);
-
-      const importResponse = await fetch(
-        'https://api.erpnext.ai/api/method/customcrm.email.import.import_leads_with_company',
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': AUTH_TOKEN,
-          },
-          body: formData
-        }
-      );
-
-      if (!importResponse.ok) {
-        throw new Error(`Import API failed: ${importResponse.statusText}`);
-      }
-
-      const importResult = await importResponse.json();
-      console.log('Second Import API Response with mappings:', importResult);
-
-      // Check if there are still unmapped columns
-      if (importResult.message?.unmapped_columns && importResult.message.unmapped_columns.length > 0) {
-        // Show mapping popup again with remaining unmapped columns
-        setUnmappedColumns(importResult.message.unmapped_columns);
-        setManualMappings({});
-        setShowMappingPopup(true);
-        setIsImporting(false);
-        setImportProgress(0);
-        setImportStatus('');
-        showToastMessage('Some columns still need mapping');
-        return;
-      }
-
-      // If no more unmapped columns, continue with the import process
-      const dataImportName = importResult.message?.name || importResult.message?.data_import_name;
-
-      if (!dataImportName) {
-        throw new Error('Could not get import reference from response');
-      }
-
-      // Continue with the import process using the same function
-      await continueImportProcess(dataImportName);
-
-    } catch (error) {
-      console.error('Mapping submission failed:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to apply mappings';
-      showToastMessage(`Import failed: ${errorMessage}`);
+    // Check if there are still unmapped columns
+    if (importResult.message?.unmapped_columns && importResult.message.unmapped_columns.length > 0) {
+      // Show mapping popup again with remaining unmapped columns
+      setUnmappedColumns(importResult.message.unmapped_columns);
+      setManualMappings({});
+      setShowMappingPopup(true);
       setIsImporting(false);
       setImportProgress(0);
       setImportStatus('');
-      setUnmappedColumns([]);
-      setManualMappings({});
-      setSelectedFile(null); // Clear file on error
+      showToastMessage('Some columns still need mapping', 'error');
+      return;
     }
-  };
+
+    // If no more unmapped columns, continue with the import process
+    const dataImportName = importResult.message?.name || importResult.message?.data_import_name;
+
+    if (!dataImportName) {
+      throw new Error('Could not get import reference from response');
+    }
+
+    // Continue with the import process using the same function
+    await continueImportProcess(dataImportName);
+
+  } catch (error) {
+    console.error('Mapping submission failed:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to apply mappings';
+    showToastMessage(`Import failed: ${errorMessage}`, 'error');
+    
+    // Reset all states
+    setIsImporting(false);
+    setImportProgress(0);
+    setImportStatus('');
+    setUnmappedColumns([]);
+    setManualMappings({});
+    setSelectedFile(null);
+  }
+};
 
   // Column Mapping Popup Component
   const ColumnMappingPopup = () => {
@@ -899,14 +954,19 @@ export function ContactsTable({ searchTerm, onContactClick, onRefresh }: Contact
     };
 
     const handleCancel = () => {
-      setShowMappingPopup(false);
-      setUnmappedColumns([]);
-      setManualMappings({});
-      setIsImporting(false);
-      setImportProgress(0);
-      setImportStatus('');
-      setSelectedFile(null); // Clear the file on cancel
-    };
+  setShowMappingPopup(false);
+  setUnmappedColumns([]);
+  setManualMappings({});
+  setIsImporting(false);
+  setImportProgress(0);
+  setImportStatus('');
+  setSelectedFile(null);
+  
+  // Reset file input
+  if (fileInputRef.current) {
+    fileInputRef.current.value = '';
+  }
+};
 
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -1106,7 +1166,6 @@ export function ContactsTable({ searchTerm, onContactClick, onRefresh }: Contact
 
   const handleDeleteSelected = async () => {
     setLoading(true);
-    // Don't set global error state here - only show toast
 
     try {
       const apiUrl = `https://api.erpnext.ai/api/method/frappe.desk.reportview.delete_items`;
@@ -1116,7 +1175,7 @@ export function ContactsTable({ searchTerm, onContactClick, onRefresh }: Contact
       };
 
       const response = await fetch(apiUrl, {
-        method: 'POST', // Changed from DELETE to POST
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': AUTH_TOKEN
@@ -1134,47 +1193,41 @@ export function ContactsTable({ searchTerm, onContactClick, onRefresh }: Contact
         return;
       }
 
-      // If not successful, extract error message
-      let errorMessage = 'Failed to delete contacts';
-
+      // Check if there's a server error message
       if (result._server_messages) {
-        try {
-          // Parse the server messages array
-          const serverMessages = JSON.parse(result._server_messages);
-          if (serverMessages.length > 0) {
-            // Parse the first message which contains the error details
-            const firstMessage = JSON.parse(serverMessages[0]);
-            if (firstMessage.message) {
-              // Strip HTML tags from the message
-              errorMessage = firstMessage.message.replace(/<[^>]*>/g, '');
-            }
-          }
-        } catch (parseError) {
-          console.error('Error parsing server messages:', parseError);
-          errorMessage = 'Delete failed due to server error';
-        }
-      } else if (result.message && result.message !== "success") {
-        // Strip HTML tags from direct message
-        errorMessage = result.message.replace(/<[^>]*>/g, '');
-      } else if (result.exc) {
-        errorMessage = result.exc;
+        // Show static message when server error occurs
+        showToastMessage('Cannot delete or cancel because Contact is linked with CRM Notifications', 'error');
+        return;
       }
 
-      throw new Error(errorMessage);
+      // Check if there's a direct error message in the result
+      if (result.message && result.message !== "success") {
+        // Check if it contains the specific error pattern
+        if (result.message.includes('Cannot delete') ||
+          result.message.includes('linked with') ||
+          result.message.includes('raise_exception')) {
+          // Show static message
+          showToastMessage('Cannot delete or cancel because Contact is linked with CRM Notifications', 'error');
+          return;
+        }
+      }
+
+      // If response is not OK, show generic error
+      if (!response.ok) {
+        showToastMessage(`Failed to delete items: ${response.status} ${response.statusText}`, 'error');
+        return;
+      }
+
+      // If we get here without handling the error, show generic message
+      showToastMessage('Failed to delete contacts', 'error');
 
     } catch (error) {
       console.error('Delete error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to delete contacts';
-      // Only show toast, don't set global error state
-      // showToastMessage(errorMessage, 'error');
-      console.log(errorMessage, 'error');
-      showToastMessage('Contacts deleted successfully', 'success');
-      await fetchContacts();
+      showToastMessage('Failed to delete contacts. Please try again.', 'error');
     } finally {
       setLoading(false);
     }
   };
-
 
 
   const getFilteredAndSortedData = () => {
@@ -1524,7 +1577,7 @@ export function ContactsTable({ searchTerm, onContactClick, onRefresh }: Contact
                 </div>
 
                 <div className="space-y-4">
-                  
+
 
                   {filterOptions.company_name.length > 0 && (
                     <FilterDropdown
@@ -1535,14 +1588,7 @@ export function ContactsTable({ searchTerm, onContactClick, onRefresh }: Contact
                     />
                   )}
 
-                  {filterOptions.owner.length > 0 && (
-                    <FilterDropdown
-                      title="Assigned To"
-                      options={filterOptions.owner}
-                      selected={filters.owner}
-                      onChange={(value) => handleFilterChange('owner', value)}
-                    />
-                  )}
+
                 </div>
               </div>
             )}
@@ -1660,7 +1706,7 @@ export function ContactsTable({ searchTerm, onContactClick, onRefresh }: Contact
               {/* Dropdown menu */}
               {showMenu && (
                 <div className="absolute right-0 bottom-10 bg-white dark:bg-gray-700 shadow-lg rounded-md border dark:border-gray-600 py-1 w-40 z-50">
-                  <button
+                  {/* <button
                     className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600"
                     onClick={async () => {
                       await fetchFieldOptions();
@@ -1669,7 +1715,7 @@ export function ContactsTable({ searchTerm, onContactClick, onRefresh }: Contact
                     }}
                   >
                     Edit
-                  </button>
+                  </button> */}
                   <button
                     className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600"
                     onClick={() => {
