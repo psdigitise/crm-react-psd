@@ -1293,9 +1293,9 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
 
       // Parse duration to remove any 's' suffix and non-numeric characters
       let durationValue = "0";
-      if (callForm.duration) {
+      if (callForm.duration !== undefined && callForm.duration !== null) {
         // Remove any 's' suffix and non-numeric characters, keep decimal point if needed
-        durationValue = callForm.duration.replace(/[^0-9.]/g, '');
+        durationValue = String(callForm.duration).replace(/[^0-9.]/g, '');
         // If after cleaning it's empty, set to "0"
         if (!durationValue) durationValue = "0";
       }
@@ -1801,226 +1801,226 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
       return [];
     }
   };
-  
+
   const fetchAllActivities = useCallback(async () => {
-  setActivityLoading(true);
-  try {
-    const response = await fetch(
-      `${API_BASE_URL}/method/crm.api.activities.get_activities`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': token,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          name: deal.name
-        })
+    setActivityLoading(true);
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/method/crm.api.activities.get_activities`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': token,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            name: deal.name
+          })
+        }
+      );
+
+      if (!response.ok) throw new Error('Failed to fetch activities');
+
+      const result = await response.json();
+      const userInfoMap = result.docinfo?.user_info || {};
+
+      if (result.docinfo) {
+        setDocinfo(result.docinfo);
       }
-    );
 
-    if (!response.ok) throw new Error('Failed to fetch activities');
-
-    const result = await response.json();
-    const userInfoMap = result.docinfo?.user_info || {};
-
-    if (result.docinfo) {
-      setDocinfo(result.docinfo);
-    }
-
-    const getFreshFullname = (username: string): string => {
-      if (!username) return 'Unknown';
-      const user = userInfoMap[username];
-      return user?.fullname || username.split('@')[0] || username;
-    };
-
-    const message = result.message;
-    const timelineItems = message[0] || [];
-    const rawCallLogs = message[1] || [];
-    const rawNotes = message[2] || [];
-    const rawTasks = message[3] || [];
-
-    const callNames = rawCallLogs.map(call => call.name).filter(Boolean);
-    const detailedCallLogs = await fetchDetailedCallLogsForActivity(callNames);
-
-    const detailedCallMap = new Map();
-    detailedCallLogs.forEach(detailedCall => {
-      if (detailedCall.name) {
-        detailedCallMap.set(detailedCall.name, detailedCall);
-      }
-    });
-
-    const enhancedCallLogs = rawCallLogs.map(call => {
-      const detailedCall = detailedCallMap.get(call.name);
-      return {
-        ...call,
-        ...(detailedCall || {}),
-        _notes: detailedCall?._notes || call._notes || [],
-        _tasks: detailedCall?._tasks || call._tasks || []
+      const getFreshFullname = (username: string): string => {
+        if (!username) return 'Unknown';
+        const user = userInfoMap[username];
+        return user?.fullname || username.split('@')[0] || username;
       };
-    });
 
-    setCallLogs(enhancedCallLogs);
-    setNotes(rawNotes);
-    setTasks(rawTasks);
+      const message = result.message;
+      const timelineItems = message[0] || [];
+      const rawCallLogs = message[1] || [];
+      const rawNotes = message[2] || [];
+      const rawTasks = message[3] || [];
 
-    const rawEmails = timelineItems
-      .filter((item: any) => item.activity_type === 'communication')
-      .map((item: any) => ({
-        id: item.name || `comm-${item.creation}`,
-        fromName: item.data.sender_full_name || item.data.sender,
-        from: item.data.sender,
-        to: item.data.recipients,
-        creation: item.creation,
-        subject: item.data.subject,
-        content: item.data.content || '',
-        attachments: item.data.attachments || [],
+      const callNames = rawCallLogs.map(call => call.name).filter(Boolean);
+      const detailedCallLogs = await fetchDetailedCallLogsForActivity(callNames);
+
+      const detailedCallMap = new Map();
+      detailedCallLogs.forEach(detailedCall => {
+        if (detailedCall.name) {
+          detailedCallMap.set(detailedCall.name, detailedCall);
+        }
+      });
+
+      const enhancedCallLogs = rawCallLogs.map(call => {
+        const detailedCall = detailedCallMap.get(call.name);
+        return {
+          ...call,
+          ...(detailedCall || {}),
+          _notes: detailedCall?._notes || call._notes || [],
+          _tasks: detailedCall?._tasks || call._tasks || []
+        };
+      });
+
+      setCallLogs(enhancedCallLogs);
+      setNotes(rawNotes);
+      setTasks(rawTasks);
+
+      const rawEmails = timelineItems
+        .filter((item: any) => item.activity_type === 'communication')
+        .map((item: any) => ({
+          id: item.name || `comm-${item.creation}`,
+          fromName: item.data.sender_full_name || item.data.sender,
+          from: item.data.sender,
+          to: item.data.recipients,
+          creation: item.creation,
+          subject: item.data.subject,
+          content: item.data.content || '',
+          attachments: item.data.attachments || [],
+        }));
+      setEmails(rawEmails);
+
+      const rawComments = timelineItems.filter((item: any) => item.activity_type === 'comment');
+      setComments(rawComments);
+
+      const callActivities = enhancedCallLogs.map((call: any) => ({
+        id: call.name,
+        type: 'call',
+        title: `${call.type} Call`,
+        description: ``,
+        timestamp: call.creation,
+        user: getFreshFullname(call.caller || call.receiver || 'Unknown'),
+        icon: <Phone className="w-4 h-4 text-green-500" />,
+        callData: { ...call, _notes: call._notes || [], _tasks: call._tasks || [] }
       }));
-    setEmails(rawEmails);
 
-    const rawComments = timelineItems.filter((item: any) => item.activity_type === 'comment');
-    setComments(rawComments);
+      const taskActivities = rawTasks.map((task: any) => ({
+        id: task.name,
+        type: 'task',
+        title: `Task Created: ${task.title}`,
+        description: ``,
+        timestamp: task.modified,
+        user: getFreshFullname(task.assigned_to || 'Unassigned'),
+        icon: <SiTicktick className="w-4 h-4 text-gray-600" />,
+      }));
 
-    const callActivities = enhancedCallLogs.map((call: any) => ({
-      id: call.name,
-      type: 'call',
-      title: `${call.type} Call`,
-      description: ``,
-      timestamp: call.creation,
-      user: getFreshFullname(call.caller || call.receiver || 'Unknown'),
-      icon: <Phone className="w-4 h-4 text-green-500" />,
-      callData: { ...call, _notes: call._notes || [], _tasks: call._tasks || [] }
-    }));
+      const rawAttachments = message[message.length - 1] || [];
+      setAttachments(rawAttachments);
 
-    const taskActivities = rawTasks.map((task: any) => ({
-      id: task.name,
-      type: 'task',
-      title: `Task Created: ${task.title}`,
-      description: ``,
-      timestamp: task.modified,
-      user: getFreshFullname(task.assigned_to || 'Unassigned'),
-      icon: <SiTicktick className="w-4 h-4 text-gray-600" />,
-    }));
+      const attachmentActivities = rawAttachments.map((attachment: any) => ({
+        id: attachment.name,
+        type: 'attachments',
+        title: 'Attachment Added',
+        description: attachment.file_name,
+        timestamp: attachment.creation,
+        user: getFreshFullname(attachment.owner),
+        icon: <Paperclip className="w-4 h-4 text-gray-500" />,
+        attachmentData: attachment
+      }));
 
-    const rawAttachments = message[message.length - 1] || [];
-    setAttachments(rawAttachments);
+      // --- UPDATED TIMELINE FILTERING LOGIC ---
+      const timelineActivities = timelineItems.map((item: any) => {
+        // Logic to identify intelligence/summary fields
+        const isSystemIntelligence = (data: any) => {
+          const label = (data?.field_label || '').toLowerCase();
+          const fname = (data?.fieldname || '').toLowerCase();
+          return (
+            label.includes('lead summary') ||
+            label.includes('company intelligence') ||
+            fname === 'lead_summary' ||
+            fname === 'lead_score' ||
+            fname === 'company_info'
+          );
+        };
 
-    const attachmentActivities = rawAttachments.map((attachment: any) => ({
-      id: attachment.name,
-      type: 'attachments',
-      title: 'Attachment Added',
-      description: attachment.file_name,
-      timestamp: attachment.creation,
-      user: getFreshFullname(attachment.owner),
-      icon: <Paperclip className="w-4 h-4 text-gray-500" />,
-      attachmentData: attachment
-    }));
-
-    // --- UPDATED TIMELINE FILTERING LOGIC ---
-    const timelineActivities = timelineItems.map((item: any) => {
-      // Logic to identify intelligence/summary fields
-      const isSystemIntelligence = (data: any) => {
-        const label = (data?.field_label || '').toLowerCase();
-        const fname = (data?.fieldname || '').toLowerCase();
-        return (
-          label.includes('lead summary') || 
-          label.includes('company intelligence') || 
-          fname === 'lead_summary' || 
-          fname === 'lead_score' || 
-          fname === 'company_info'
-        );
-      };
-
-      switch (item.activity_type) {
-        case 'creation':
-          return {
-            id: `creation-${item.creation}`,
-            type: 'edit',
-            title: `${getFreshFullname(item.owner)} ${item.data}`,
-            description: '',
-            timestamp: item.creation,
-            user: getFreshFullname(item.owner),
-            icon: <UserPlus className="w-4 h-4 text-gray-500" />
-          };
-
-        case 'comment':
-          // Hide comments that contain intelligence reports
-          if (item.content?.toLowerCase().includes('lead summary') || 
-              item.content?.toLowerCase().includes('company intelligence')) {
-            return null;
-          }
-          return {
-            id: item.name,
-            type: 'comment',
-            title: 'New Comment',
-            description: item.content.replace(/<[^>]+>/g, ''),
-            timestamp: item.creation,
-            user: getFreshFullname(item.owner),
-            icon: <MessageSquare className="w-4 h-4 text-purple-500" />
-          };
-
-        case 'communication':
-          return {
-            id: item.name || `comm-${item.creation}`,
-            type: 'email',
-            title: `Email: ${item.data.subject}`,
-            description: ``,
-            timestamp: item.creation,
-            user: getFreshFullname(item.data.sender_full_name || item.data.sender),
-            icon: <Mail className="w-4 h-4 text-red-500" />
-          };
-
-        case 'added':
-        case 'changed':
-          // Filter out individual intelligence changes
-          if (isSystemIntelligence(item.data)) return null;
-
-          // Filter out intelligence changes inside grouped versions
-          if (item.other_versions?.length > 0) {
-            const filteredVersions = item.other_versions.filter((v: any) => !isSystemIntelligence(v.data));
-            
-            // If the group only contained intelligence, hide the whole group
-            if (filteredVersions.length === 0 && isSystemIntelligence(item.data)) return null;
-
+        switch (item.activity_type) {
+          case 'creation':
             return {
-              id: `group-${item.creation}`,
-              type: 'grouped_change',
+              id: `creation-${item.creation}`,
+              type: 'edit',
+              title: `${getFreshFullname(item.owner)} ${item.data}`,
+              description: '',
               timestamp: item.creation,
               user: getFreshFullname(item.owner),
-              icon: <Layers className="w-4 h-4 text-white" />,
-              changes: [item, ...filteredVersions]
+              icon: <UserPlus className="w-4 h-4 text-gray-500" />
             };
-          }
 
-          const actionText = item.activity_type === 'added'
-            ? `added value for ${item.data.field_label}: '${item.data.value}'`
-            : `changed ${item.data.field_label} from '${item.data.old_value || "nothing"}' to '${item.data.value}'`;
-          return {
-            id: `change-${item.creation}`,
-            type: 'edit',
-            title: `${getFreshFullname(item.owner)} ${actionText}`,
-            description: '',
-            timestamp: item.creation,
-            user: getFreshFullname(item.owner),
-            icon: <RxLightningBolt className="w-4 h-4 text-yellow-500" />
-          };
-        default:
-          return null;
-      }
-    }).filter(Boolean);
+          case 'comment':
+            // Hide comments that contain intelligence reports
+            if (item.content?.toLowerCase().includes('lead summary') ||
+              item.content?.toLowerCase().includes('company intelligence')) {
+              return null;
+            }
+            return {
+              id: item.name,
+              type: 'comment',
+              title: 'New Comment',
+              description: item.content.replace(/<[^>]+>/g, ''),
+              timestamp: item.creation,
+              user: getFreshFullname(item.owner),
+              icon: <MessageSquare className="w-4 h-4 text-purple-500" />
+            };
 
-    const allActivities = [...callActivities, ...taskActivities, ...timelineActivities, ...attachmentActivities];
-    allActivities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-    
-    setActivities(allActivities);
+          case 'communication':
+            return {
+              id: item.name || `comm-${item.creation}`,
+              type: 'email',
+              title: `Email: ${item.data.subject}`,
+              description: ``,
+              timestamp: item.creation,
+              user: getFreshFullname(item.data.sender_full_name || item.data.sender),
+              icon: <Mail className="w-4 h-4 text-red-500" />
+            };
 
-  } catch (error) {
-    console.error("Error fetching activities:", error);
-    showToast("Failed to load activity timeline", { type: 'error' });
-  } finally {
-    setActivityLoading(false);
-  }
-}, [deal.name, token]);
+          case 'added':
+          case 'changed':
+            // Filter out individual intelligence changes
+            if (isSystemIntelligence(item.data)) return null;
+
+            // Filter out intelligence changes inside grouped versions
+            if (item.other_versions?.length > 0) {
+              const filteredVersions = item.other_versions.filter((v: any) => !isSystemIntelligence(v.data));
+
+              // If the group only contained intelligence, hide the whole group
+              if (filteredVersions.length === 0 && isSystemIntelligence(item.data)) return null;
+
+              return {
+                id: `group-${item.creation}`,
+                type: 'grouped_change',
+                timestamp: item.creation,
+                user: getFreshFullname(item.owner),
+                icon: <Layers className="w-4 h-4 text-white" />,
+                changes: [item, ...filteredVersions]
+              };
+            }
+
+            const actionText = item.activity_type === 'added'
+              ? `added value for ${item.data.field_label}: '${item.data.value}'`
+              : `changed ${item.data.field_label} from '${item.data.old_value || "nothing"}' to '${item.data.value}'`;
+            return {
+              id: `change-${item.creation}`,
+              type: 'edit',
+              title: `${getFreshFullname(item.owner)} ${actionText}`,
+              description: '',
+              timestamp: item.creation,
+              user: getFreshFullname(item.owner),
+              icon: <RxLightningBolt className="w-4 h-4 text-yellow-500" />
+            };
+          default:
+            return null;
+        }
+      }).filter(Boolean);
+
+      const allActivities = [...callActivities, ...taskActivities, ...timelineActivities, ...attachmentActivities];
+      allActivities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+      setActivities(allActivities);
+
+    } catch (error) {
+      console.error("Error fetching activities:", error);
+      showToast("Failed to load activity timeline", { type: 'error' });
+    } finally {
+      setActivityLoading(false);
+    }
+  }, [deal.name, token]);
 
 
   const [organizationOptions, setOrganizationOptions] = useState([]);
@@ -2289,6 +2289,10 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
 
     if (!editedDeal.expected_closure_date?.trim()) {
       newErrors.expected_closure_date = 'Expected Closure Date is required';
+    }
+
+    if (!editedDeal.organization?.trim() && !editedDeal.organization_name?.trim()) {
+      newErrors.organization = 'Organization is required';
     }
 
     // Website validation
@@ -2958,13 +2962,20 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                     {/* Organization Field */}
                     <div>
                       <label className={`block text-sm font-medium ${textSecondaryColor}`}>
-                        Organization
+                        Organization <span className="text-red-500">*</span>
                       </label>
                       <Listbox
                         value={editedDeal.organization_name || ""}
                         onChange={(value) => {
                           handleInputChange("organization_name", value);
                           handleInputChange("organization", value);
+                          if (errors.organization) {
+                            setErrors(prev => {
+                              const updatedErrors = { ...prev };
+                              delete updatedErrors.organization; // Remove the error message
+                              return updatedErrors;
+                            });
+                          }
                         }}
                       >
                         {({ open, close }) => (
@@ -3088,6 +3099,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                                     handleInputChange("organization_name", "");
                                     handleInputChange("organization", "");
                                     setOrganizationSearch("");
+                                    setErrors(prev => ({ ...prev, organization: 'Organization is required' }));
                                     close();
                                   }}
                                 >
@@ -3111,7 +3123,11 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                           </div>
                         )}
                       </Listbox>
-
+                      {errors.organization && (
+                        <p className="text-sm text-red-500 mt-1 font-medium">
+                          {errors.organization}
+                        </p>
+                      )}
                       <CreateOrganizationPopup
                         isOpen={showCreateOrganizationModal}
                         onClose={() => setShowCreateOrganizationModal(false)}

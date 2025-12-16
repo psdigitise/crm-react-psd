@@ -820,7 +820,7 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
                                     onClick={() => onOpenReference && onOpenReference(call)}
                                     className={`flex items-center gap-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
                                     <FaUserFriends className={theme === 'dark' ? 'text-white' : 'text-gray-900'} />
-                                    {call.reference_doctype || "No reference type"}
+                                    {call.reference_doctype}
                                     <GoArrowUpRight />
                                 </div>
 

@@ -174,7 +174,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
   const fetchIndustryOptions = async () => {
     try {
       const session = getUserSession();
-       const token = getAuthToken();
+      const token = getAuthToken();
       if (!session) return;
 
       const apiUrl = 'https://api.erpnext.ai/api/method/frappe.desk.search.search_link';
@@ -188,7 +188,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': token ,
+          'Authorization': token,
         },
         body: JSON.stringify(requestBody)
       });
@@ -216,7 +216,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
   const fetchTerritoryOptions = async () => {
     try {
       const session = getUserSession();
-       const token = getAuthToken();
+      const token = getAuthToken();
       if (!session) return;
 
       const apiUrl = 'https://api.erpnext.ai/api/method/frappe.desk.search.search_link';
@@ -230,7 +230,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': token 
+          'Authorization': token
         },
         body: JSON.stringify(requestBody)
       });
@@ -259,7 +259,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
     try {
       const session = getUserSession();
       const token = getAuthToken();
-      
+
       if (!session) return;
 
       const apiUrl = 'https://api.erpnext.ai/api/v2/document/Address';
@@ -267,7 +267,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
       const response = await fetch(apiUrl, {
         method: 'GET',
         headers: {
-          'Authorization': token 
+          'Authorization': token
         }
       });
 
@@ -384,7 +384,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
     try {
       const session = getUserSession();
       const sessionCompany = session?.company;
-       const token = getAuthToken();
+      const token = getAuthToken();
 
       if (!session) {
         return;
@@ -428,7 +428,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': token ,
+          'Authorization': token,
         },
         body: JSON.stringify(requestBody)
       });
@@ -564,217 +564,217 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
     ));
   };
 
-const handleDeleteItems = async () => {
-  if (selectedIds.length === 0) return;
+  const handleDeleteItems = async () => {
+    if (selectedIds.length === 0) return;
 
-  setLoading(true);
+    setLoading(true);
 
-  try {
-    const session = getUserSession();
-    if (!session) {
-      throw new Error('No active session');
-    }
+    try {
+      const session = getUserSession();
+      if (!session) {
+        throw new Error('No active session');
+      }
 
-    const apiUrl = `https://api.erpnext.ai/api/method/frappe.desk.reportview.delete_items`;
+      const apiUrl = `https://api.erpnext.ai/api/method/frappe.desk.reportview.delete_items`;
 
-    const requestBody = {
-      items: JSON.stringify(selectedIds),
-      doctype: "CRM Organization"
-    };
+      const requestBody = {
+        items: JSON.stringify(selectedIds),
+        doctype: "CRM Organization"
+      };
 
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': AUTH_TOKEN
-      },
-      body: JSON.stringify(requestBody)
-    });
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': AUTH_TOKEN
+        },
+        body: JSON.stringify(requestBody)
+      });
 
-    // Don't parse as JSON first, just check status
-    console.log('Delete response status:', response.status);
-    
-    
-    if (response.status === 200) {
-      
+      // Don't parse as JSON first, just check status
+      console.log('Delete response status:', response.status);
+
+
+      if (response.status === 200) {
+
+        const result = await response.json().catch(() => ({}));
+        console.log('Delete result:', result);
+
+
+        setSelectedIds([]);
+        setShowDeleteConfirm(false);
+        fetchOrganizations();
+        showToast(`${selectedIds.length} item(s) deleted successfully`, { type: 'success' });
+        return;
+      }
+
       const result = await response.json().catch(() => ({}));
-      console.log('Delete result:', result);
-      
-    
+      let errorMessage = 'Failed to delete items';
+
+      if (result.exc) {
+        errorMessage = result.exc;
+      } else if (result.message) {
+        errorMessage = result.message;
+      }
+
+      throw new Error(errorMessage);
+
+    } catch (error) {
+      console.error('Delete error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to delete items';
+      showToast(`Action completed. Check console for details. ${errorMessage}`, { type: 'info' });
+
       setSelectedIds([]);
       setShowDeleteConfirm(false);
-      fetchOrganizations(); 
-      showToast(`${selectedIds.length} item(s) deleted successfully`, { type: 'success' });
+      fetchOrganizations();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const parseServerMessages = (serverMessages: any): string => {
+    if (!serverMessages) return '';
+
+    try {
+      let messages: string[] = [];
+
+      // Handle string that needs parsing
+      if (typeof serverMessages === 'string') {
+        try {
+          messages = JSON.parse(serverMessages);
+        } catch {
+          // If it's not valid JSON, try splitting by newlines or return as-is
+          return serverMessages.replace(/<[^>]*>/g, '').trim();
+        }
+      }
+      // If it's already an array
+      else if (Array.isArray(serverMessages)) {
+        messages = serverMessages;
+      }
+
+      if (messages.length > 0) {
+        // Take the first message
+        const firstMessage = messages[0];
+
+        // It could be a string or JSON string
+        if (typeof firstMessage === 'string') {
+          try {
+            // Try to parse as JSON
+            const parsed = JSON.parse(firstMessage);
+            if (parsed.message) {
+              return parsed.message.replace(/<[^>]*>/g, '');
+            }
+            return firstMessage.replace(/<[^>]*>/g, '');
+          } catch {
+            // If not JSON, return as-is
+            return firstMessage.replace(/<[^>]*>/g, '');
+          }
+        } else if (firstMessage.message) {
+          // Already an object with message property
+          return firstMessage.message.replace(/<[^>]*>/g, '');
+        }
+      }
+    } catch (error) {
+      console.error('Error parsing server messages:', error);
+    }
+
+    return '';
+  };
+
+
+
+  const handleBulkUpdate = async () => {
+    if (!bulkEdit.selectedField || !bulkEdit.selectedValue || selectedIds.length === 0) {
+      showToast('Please select a field and value', { type: 'error' });
       return;
     }
 
-    const result = await response.json().catch(() => ({}));
-    let errorMessage = 'Failed to delete items';
-    
-    if (result.exc) {
-      errorMessage = result.exc;
-    } else if (result.message) {
-      errorMessage = result.message;
-    }
-    
-    throw new Error(errorMessage);
-    
-  } catch (error) {
-    console.error('Delete error:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Failed to delete items';
-    showToast(`Action completed. Check console for details. ${errorMessage}`, { type: 'info' });
-    
-    setSelectedIds([]);
-    setShowDeleteConfirm(false);
-    fetchOrganizations();
-  } finally {
-    setLoading(false);
-  }
-};
+    try {
+      setBulkEdit(prev => ({ ...prev, updating: true }));
+      const session = getUserSession();
 
-const parseServerMessages = (serverMessages: any): string => {
-  if (!serverMessages) return '';
-  
-  try {
-    let messages: string[] = [];
-    
-    // Handle string that needs parsing
-    if (typeof serverMessages === 'string') {
-      try {
-        messages = JSON.parse(serverMessages);
-      } catch {
-        // If it's not valid JSON, try splitting by newlines or return as-is
-        return serverMessages.replace(/<[^>]*>/g, '').trim();
+      if (!session) {
+        throw new Error('No active session');
       }
-    }
-    // If it's already an array
-    else if (Array.isArray(serverMessages)) {
-      messages = serverMessages;
-    }
-    
-    if (messages.length > 0) {
-      // Take the first message
-      const firstMessage = messages[0];
-      
-      // It could be a string or JSON string
-      if (typeof firstMessage === 'string') {
-        try {
-          // Try to parse as JSON
-          const parsed = JSON.parse(firstMessage);
-          if (parsed.message) {
-            return parsed.message.replace(/<[^>]*>/g, '');
+
+      // Map frontend field names to backend field names
+      const fieldMapping: Record<string, string> = {
+        'organization_name': 'organization_name',
+        'website': 'website',
+        'no_of_employees': 'no_of_employees',
+        'territory': 'territory',
+        'currency': 'currency',
+        'industry': 'industry',
+        'annual_revenue': 'annual_revenue',
+        'address': 'address'
+      };
+
+      const backendFieldName = fieldMapping[bulkEdit.selectedField] || bulkEdit.selectedField;
+
+      const apiUrl = `https://api.erpnext.ai/api/method/frappe.desk.doctype.bulk_update.bulk_update.submit_cancel_or_update_docs`;
+
+      const requestBody = {
+        doctype: "CRM Organization",
+        docnames: selectedIds,
+        action: "update",
+        data: {
+          [backendFieldName]: bulkEdit.selectedValue
+        }
+      };
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': AUTH_TOKEN
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        let errorMsg = `HTTP ${response.status}: ${response.statusText}`;
+
+        // Try to parse server messages for more detailed error
+        if (result._server_messages) {
+          const serverMessage = parseServerMessages(result._server_messages);
+          if (serverMessage) {
+            errorMsg = serverMessage;
+          } else if (result.message && result.message !== "success") {
+            errorMsg = result.message.replace(/<[^>]*>/g, '');
+          } else if (result.exc) {
+            errorMsg = result.exc;
           }
-          return firstMessage.replace(/<[^>]*>/g, '');
-        } catch {
-          // If not JSON, return as-is
-          return firstMessage.replace(/<[^>]*>/g, '');
         }
-      } else if (firstMessage.message) {
-        // Already an object with message property
-        return firstMessage.message.replace(/<[^>]*>/g, '');
+
+        throw new Error(errorMsg);
       }
-    }
-  } catch (error) {
-    console.error('Error parsing server messages:', error);
-  }
-  
-  return '';
-};
 
-
-
-const handleBulkUpdate = async () => {
-  if (!bulkEdit.selectedField || !bulkEdit.selectedValue || selectedIds.length === 0) {
-    showToast('Please select a field and value', { type: 'error' });
-    return;
-  }
-
-  try {
-    setBulkEdit(prev => ({ ...prev, updating: true }));
-    const session = getUserSession();
-
-    if (!session) {
-      throw new Error('No active session');
-    }
-
-    // Map frontend field names to backend field names
-    const fieldMapping: Record<string, string> = {
-      'organization_name': 'organization_name',
-      'website': 'website',
-      'no_of_employees': 'no_of_employees',
-      'territory': 'territory',
-      'currency': 'currency',
-      'industry': 'industry',
-      'annual_revenue': 'annual_revenue',
-      'address': 'address'
-    };
-
-    const backendFieldName = fieldMapping[bulkEdit.selectedField] || bulkEdit.selectedField;
-
-    const apiUrl = `https://api.erpnext.ai/api/method/frappe.desk.doctype.bulk_update.bulk_update.submit_cancel_or_update_docs`;
-
-    const requestBody = {
-      doctype: "CRM Organization",
-      docnames: selectedIds,
-      action: "update",
-      data: {
-        [backendFieldName]: bulkEdit.selectedValue
+      // Check for success
+      if (response.status === 200) {
+        showToast('Records updated successfully', { type: 'success' });
+        setBulkEdit(prev => ({
+          ...prev,
+          showModal: false,
+          selectedField: '',
+          selectedValue: '',
+          updating: false
+        }));
+        setSelectedIds([]);
+        fetchOrganizations(); // Refresh the data
+      } else {
+        throw new Error('Update failed with unknown response format');
       }
-    };
+    } catch (error) {
+      console.error('Error updating records:', error);
+      setBulkEdit(prev => ({ ...prev, updating: false }));
 
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': AUTH_TOKEN
-      },
-      body: JSON.stringify(requestBody)
-    });
-
-    const result = await response.json();
-
-    if (!response.ok) {
-      let errorMsg = `HTTP ${response.status}: ${response.statusText}`;
-      
-      // Try to parse server messages for more detailed error
-      if (result._server_messages) {
-        const serverMessage = parseServerMessages(result._server_messages);
-        if (serverMessage) {
-          errorMsg = serverMessage;
-        } else if (result.message && result.message !== "success") {
-          errorMsg = result.message.replace(/<[^>]*>/g, '');
-        } else if (result.exc) {
-          errorMsg = result.exc;
-        }
-      }
-      
-      throw new Error(errorMsg);
+      // Only show toast, don't set global error
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update records';
+      showToast(errorMessage, { type: 'error' });
     }
-
-    // Check for success
-    if (response.status === 200) {
-      showToast('Records updated successfully', { type: 'success' });
-      setBulkEdit(prev => ({
-        ...prev,
-        showModal: false,
-        selectedField: '',
-        selectedValue: '',
-        updating: false
-      }));
-      setSelectedIds([]);
-      fetchOrganizations(); // Refresh the data
-    } else {
-      throw new Error('Update failed with unknown response format');
-    }
-  } catch (error) {
-    console.error('Error updating records:', error);
-    setBulkEdit(prev => ({ ...prev, updating: false }));
-    
-    // Only show toast, don't set global error
-    const errorMessage = error instanceof Error ? error.message : 'Failed to update records';
-    showToast(errorMessage, { type: 'error' });
-  }
-};
+  };
 
   const openBulkEditModal = () => {
     setBulkEdit(prev => ({ ...prev, showModal: true }));
@@ -1056,9 +1056,9 @@ const handleBulkUpdate = async () => {
                     <button
                       onClick={() => setShowFilters(false)}
                       className={`p-1 rounded ${theme === 'dark'
-                      ? 'text-gray-400 hover:text-white'
-                      : 'text-gray-500 hover:text-gray-700'
-                      }`}
+                        ? 'text-gray-400 hover:text-white'
+                        : 'text-gray-500 hover:text-gray-700'
+                        }`}
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -1118,7 +1118,7 @@ const handleBulkUpdate = async () => {
                   <h3 className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Manage Columns</h3>
                   <button
                     onClick={() => setShowColumnSettings(false)}
-                   className={`p-1 rounded ${theme === 'dark'
+                    className={`p-1 rounded ${theme === 'dark'
                       ? 'text-gray-400 hover:text-white'
                       : 'text-gray-500 hover:text-gray-700'
                       }`}
@@ -1353,13 +1353,19 @@ const handleBulkUpdate = async () => {
                           </div>
                         )}
                         {column.key === 'website' && (
-                          <div className={`flex items-center text-sm hover:text-blue-800 ${theme === 'dark' ? 'text-purple-400 hover:text-purple-300' : 'text-blue-600'
-                            }`}>
-                            <Globe className="w-4 h-4 mr-2" />
-                            <a href={`https://${org.website}`} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
-                              {org.website}
-                            </a>
-                          </div>
+                          org.website === 'N/A' || !org.website ? (
+                            <div className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
+                              N/A
+                            </div>
+                          ) : (
+                            <div className={`flex items-center text-sm hover:text-blue-800 ${theme === 'dark' ? 'text-purple-400 hover:text-purple-300' : 'text-blue-600'
+                              }`}>
+                              <Globe className="w-4 h-4 mr-2" />
+                              <a href={`${org.website}`} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
+                                {org.website}
+                              </a>
+                            </div>
+                          )
                         )}
                         {column.key === 'industry' && (
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-800'
@@ -1405,15 +1411,15 @@ const handleBulkUpdate = async () => {
               >
                 <div className="flex justify-between items-center">
                   <input
-                      type="checkbox"
-                      checked={selectedIds.includes(org.id)}
-                      onChange={(e) => {
-                        e.stopPropagation();
-                        handleRowSelection(org.id);
-                      }}
-                      className="rounded mr-4 border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                  <div 
+                    type="checkbox"
+                    checked={selectedIds.includes(org.id)}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      handleRowSelection(org.id);
+                    }}
+                    className="rounded mr-4 border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <div
                     className="flex items-center flex-1 cursor-pointer"
                     onClick={() => onOrganizationClick && onOrganizationClick(org)}
                   >
@@ -1435,26 +1441,24 @@ const handleBulkUpdate = async () => {
                       {org.name}
                     </h3>
                   </div>
-                  
+
                   <div className="flex items-center gap-2">
-                    
-                    
+
+
                     {/* Dropdown arrow */}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         toggleOrganizationDetails(org.id);
                       }}
-                      className={`p-1 rounded transition-transform ${
-                        theme === 'dark' ? 'hover:bg-purple-700' : 'hover:bg-gray-100'
-                      }`}
+                      className={`p-1 rounded transition-transform ${theme === 'dark' ? 'hover:bg-purple-700' : 'hover:bg-gray-100'
+                        }`}
                     >
-                      <svg 
-                        className={`w-4 h-4 transform transition-transform ${
-                          isOrganizationExpanded(org.id) ? 'rotate-180' : ''
-                        } ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}
-                        fill="none" 
-                        stroke="currentColor" 
+                      <svg
+                        className={`w-4 h-4 transform transition-transform ${isOrganizationExpanded(org.id) ? 'rotate-180' : ''
+                          } ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}
+                        fill="none"
+                        stroke="currentColor"
                         viewBox="0 0 24 24"
                       >
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
