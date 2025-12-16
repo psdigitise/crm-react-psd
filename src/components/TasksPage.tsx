@@ -988,25 +988,29 @@ export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0, onMenuTo
                 <span>Kanban</span>
               </button>
             </div>
-            <span className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-600'} ${view === 'kanban' ? 'hidden' : ''}`}>
-              Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredDataLength)} of {filteredDataLength} results
-            </span>
-            <select
-              value={itemsPerPage}
-              onChange={(e) => {
-                setItemsPerPage(Number(e.target.value));
-                setCurrentPage(1);
-              }}
-              className={`text-sm border rounded px-2 py-1 ${theme === 'dark'
-                ? 'bg-white-31 border-white text-white'
-                : 'border-gray-300'
-                }`}
-            >
-              <option value={10}>10 per page</option>
-              <option value={25}>25 per page</option>
-              <option value={50}>50 per page</option>
-              <option value={100}>100 per page</option>
-            </select>
+            {view === 'table' && (
+              <>
+                <span className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>
+                  Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredDataLength)} of {filteredDataLength} results
+                </span>
+                <select
+                  value={itemsPerPage}
+                  onChange={(e) => {
+                    setItemsPerPage(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  className={`text-sm border rounded px-2 py-1 ${theme === 'dark'
+                    ? 'bg-white-31 border-white text-white'
+                    : 'border-gray-300'
+                    }`}
+                >
+                  <option value={10}>10 per page</option>
+                  <option value={25}>25 per page</option>
+                  <option value={50}>50 per page</option>
+                  <option value={100}>100 per page</option>
+                </select>
+              </>
+            )}
           </div>
         </div>
 
