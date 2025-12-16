@@ -1701,7 +1701,13 @@ export default function ContactDetails({
                   <input
                     type="tel"
                     value={newPhoneValue}
-                    onChange={(e) => setNewPhoneValue(e.target.value)}
+                    onChange={(e) => {
+                      const onlyDigits = e.target.value.replace(/\D/g, '').slice(0, 10);
+                      setNewPhoneValue(onlyDigits);
+                    }}
+                    inputMode="numeric"
+                    maxLength={10}
+                    pattern="[0-9]{10}"
                     placeholder="Enter phone number..."
                     className={`w-full px-3 py-2 pr-10 border rounded ${isDark
                       ? 'bg-gray-700 text-white border-white/20 focus:border-green-400'
@@ -1936,7 +1942,14 @@ export default function ContactDetails({
               <input
                 type="tel"
                 value={newPhoneValue}
-                onChange={(e) => setNewPhoneValue(e.target.value)}
+                //onChange={(e) => setNewPhoneValue(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  // Allow only digits (0-9) and ensure length is <= 10
+                  if (/^\d*$/.test(val) && val.length <= 10) {
+                    setNewPhoneValue(val);
+                  }
+                }}
                 placeholder="Enter phone number..."
                 className={`w-full px-3 py-2 pr-10 border rounded ${isDark
                   ? 'bg-gray-700 text-white border-white/20 focus:border-green-400'
