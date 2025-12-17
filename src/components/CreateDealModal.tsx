@@ -3,6 +3,7 @@ import { X, ExternalLink, Loader2 } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import { getUserSession } from '../utils/session';
 import { getAuthToken } from '../api/apiUrl';
+import { toast } from '../utils/toast';
 
 interface Deal {
   name: string;
@@ -493,11 +494,11 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
       const result = await response.json();
       console.log('Deal created successfully:', result);
 
-      setSuccess('Deal created successfully!');
+      toast.success('Deal created successfully!');
       onSubmit(result);
 
       if (result.message) {
-        setSuccess('Deal created successfully!');
+        toast.success('Deal created successfully!');
         const createdDeal = result.message.deal || result.message.data || result.message;
         onSubmit(createdDeal);
 

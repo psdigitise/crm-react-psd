@@ -3,12 +3,7 @@ import { X } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import { getUserSession } from '../utils/session';
 import { AUTH_TOKEN, getAuthToken } from '../api/apiUrl';
-
-// Toast function
-const showToast = (message: string, { type = 'error' }: { type?: 'error' | 'success' } = {}) => {
-  // You can use your existing toast implementation
-  console.log(`${type === 'success' ? '✅' : '❌'} ${message}`);
-};
+import { showToast } from '../utils/toast';
 
 // New Address Modal Component
 interface CreateAddressModalProps {
@@ -34,7 +29,9 @@ function CreateAddressModal({ isOpen, onClose, onSubmit }: CreateAddressModalPro
   });
   const [loading, setLoading] = useState(false);
 
+
   if (!isOpen) return null;
+
 
   const validateField = (name: string, value: string) => {
     let error = '';
@@ -501,6 +498,21 @@ export function CreateContactModal({ isOpen, onClose, onSubmit, onSuccess }: Cre
 
   if (!isOpen) return null;
 
+  const extractServerMessage = (data: any): string | null => {
+    try {
+      if (!data?._server_messages) return null;
+
+      const parsedArray = JSON.parse(data._server_messages); // step 1
+      if (!Array.isArray(parsedArray) || !parsedArray.length) return null;
+
+      const parsedMessage = JSON.parse(parsedArray[0]); // step 2
+      return parsedMessage.message || null;
+    } catch (e) {
+      console.error('Failed to parse _server_messages', e);
+      return null;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -556,8 +568,19 @@ export function CreateContactModal({ isOpen, onClose, onSubmit, onSuccess }: Cre
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
+        const errorData = await response.json();
+
+        const serverMessage = extractServerMessage(errorData);
+
+        if (serverMessage) {
+          // Remove HTML tags like <strong>
+          const cleanMessage = serverMessage.replace(/<[^>]*>/g, '');
+          showToast(cleanMessage, { type: 'error' });
+        } else {
+          showToast('Failed to create contact', { type: 'error' });
+        }
+
+        return; // stop execution
       }
 
       const result = await response.json();
@@ -777,8 +800,8 @@ export function CreateContactModal({ isOpen, onClose, onSubmit, onSuccess }: Cre
                       pattern="[0-9]*"
                       disabled={loading}
                       className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
-                          ? 'bg-gray-800 text-white !placeholder-gray-400 border-gray-700'
-                          : 'bg-white text-gray-900 !placeholder-gray-500 border-gray-300'
+                        ? 'bg-gray-800 text-white !placeholder-gray-400 border-gray-700'
+                        : 'bg-white text-gray-900 !placeholder-gray-500 border-gray-300'
                         } ${errors.phone ? 'border-red-500' : ''}`}
                     />
 

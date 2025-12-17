@@ -179,6 +179,24 @@ export default function ContactDetails({
   ];
   const MAX_IMAGE_SIZE = 1 * 1024 * 1024;
 
+  const extractFrappeError = (errorData: any): string | null => {
+    try {
+      if (!errorData?._server_messages) return null;
+
+      const messages = JSON.parse(errorData._server_messages);
+      if (!Array.isArray(messages) || !messages.length) return null;
+
+      const parsed = JSON.parse(messages[0]);
+      const rawMessage = parsed.message || '';
+
+      // Remove HTML tags (<a>, <strong>, etc.)
+      return rawMessage.replace(/<[^>]*>/g, '');
+    } catch (e) {
+      console.error('Failed to parse Frappe error', e);
+      return null;
+    }
+  };
+
   useEffect(() => {
     if (editingField === 'address') {
       const fetchAddresses = async () => {
@@ -945,12 +963,17 @@ export default function ContactDetails({
     } catch (error: any) {
       console.error("Error deleting contact:", error);
 
-      if (error.response) {
-        showToast(`Failed to delete contact: ${error.response.data.message || error.response.statusText}`, { type: "error" });
-      } else if (error.request) {
-        showToast("Failed to delete contact: No response from server", { type: "error" });
+      // Axios error with server response
+      if (error.response?.data) {
+        const serverMessage = extractFrappeError(error.response.data);
+
+        if (serverMessage) {
+          showToast(serverMessage, { type: 'error' });
+        } else {
+          showToast('Cannot delete contact due to linked records', { type: 'error' });
+        }
       } else {
-        showToast(`Failed to delete contact: ${error.message}`, { type: "error" });
+        showToast('Failed to delete contact', { type: 'error' });
       }
 
       setShowDeleteConfirm(false);

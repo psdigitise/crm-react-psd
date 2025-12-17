@@ -774,6 +774,7 @@ Instruction: ${emailForm.aiPrompt.trim()}
       });
 
       if (response.ok) {
+        showToast("Email sent successfully", { type: "success" });
         setToRecipients([]);
         setCcRecipients([]);
         setBccRecipients([]);

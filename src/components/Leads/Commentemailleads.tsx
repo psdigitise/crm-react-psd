@@ -13,7 +13,8 @@ import { getAuthToken } from "../../api/apiUrl";
 import { showToast } from "../../utils/toast";
 
 const API_BASE_URL = "https://api.erpnext.ai/api/method";
-const AUTH_TOKEN = getAuthToken();
+//const AUTH_TOKEN = getAuthToken();
+const token = getAuthToken();
 
 // File upload configuration
 const MAX_FILE_SIZE = 1 * 1024 * 1024; // 1MB in bytes
@@ -188,7 +189,7 @@ export default function Commentemailleads({
         const response = await fetch("https://api.erpnext.ai/api/method/upload_file/", {
           method: "POST",
           headers: {
-            Authorization: AUTH_TOKEN,
+            Authorization: token,
           },
           body: formData,
         });
@@ -239,7 +240,7 @@ export default function Commentemailleads({
       const response = await fetch(`${API_BASE_URL}/frappe.desk.form.utils.add_comment`, {
         method: "POST",
         headers: {
-          Authorization: AUTH_TOKEN,
+          Authorization: token,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -301,7 +302,7 @@ export default function Commentemailleads({
         {
           method: "POST",
           headers: {
-            "Authorization": AUTH_TOKEN,
+            "Authorization": token,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({

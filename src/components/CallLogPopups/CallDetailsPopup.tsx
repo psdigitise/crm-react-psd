@@ -150,7 +150,7 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
             }
 
             console.log("Successfully linked note to call log.");
-
+            showToast('Note created successfully', { type: 'success' });
             setNoteForm({ name: '', title: '', content: '' });
             setIsAddingNote(false);
             onClose();
@@ -194,6 +194,10 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
                 },
                 body: JSON.stringify(payload),
             });
+
+            if (response.ok) {
+                showToast('Note updated successfully', { type: 'success' }); // Add this line
+            }
 
             if (!response.ok) {
                 const errorData = await response.json();
@@ -249,6 +253,10 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
                 headers: { 'Content-Type': 'application/json', 'Authorization': token, },
                 body: JSON.stringify(payload)
             });
+
+            if (response.ok) {
+                showToast('Task updated successfully', { type: 'success' }); // Add this line
+            }
 
             if (!response.ok) {
                 throw new Error('Failed to update task');
@@ -404,6 +412,9 @@ export const CallDetailsPopup = ({ onClose, theme = 'light', call, onEdit, onTas
                 },
                 body: JSON.stringify(payload)
             });
+            if (response.ok) {
+                showToast('Task created successfully', { type: 'success' }); // Add this line
+            }
 
             if (!response.ok) {
                 const errorData = await response.json();

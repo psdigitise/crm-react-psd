@@ -265,7 +265,7 @@ const UploadAttachmentPopup: React.FC<Props> = ({
 
       // Show summary toast
       if (successCount > 0) {
-        showToast(`${successCount} file(s) uploaded successfully!`, { type: 'success' });
+        showToast(`Attachment uploaded successfully!`, { type: 'success' });
       }
       if (errorCount > 0) {
         showToast(`${errorCount} file(s) failed to upload.`, { type: 'error' });

@@ -1044,6 +1044,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
       );
 
       if (response.status === 200) {
+        showToast('Note created successfully!', { type: 'success' });
         // Instead of just fetching notes, update the state immediately
         const newNote = {
           name: response.data.message.name,
@@ -1110,6 +1111,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
       );
 
       if (response.data && response.data.message) {
+        showToast('Note updated successfully!', { type: 'success' });
         setNoteForm({ title: '', content: '', name: '' });
         await fetchNotes();
         return true;
@@ -1222,6 +1224,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
       });
 
       if (response.ok) {
+        showToast('Call log created successfully!', { type: 'success' });
         setCallForm({
           from: '',
           to: '',
@@ -1441,6 +1444,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
       );
 
       if (response.data) {
+        showToast('Task created successfully!', { type: 'success' });
         setShowTaskModal(false);
         setTaskForm({
           title: '',
@@ -1516,6 +1520,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
       );
 
       if (response.ok) {
+        showToast('Task updated successfully!', { type: 'success' });
         await fetchTasks(); // Refresh the task list
         return true;
       } else {

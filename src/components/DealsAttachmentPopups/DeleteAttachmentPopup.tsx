@@ -1,6 +1,7 @@
 import React from 'react';
 import { IoCloseOutline } from 'react-icons/io5';
 import { apiAxios, AUTH_TOKEN } from '../../api/apiUrl';
+import { toast } from '../../utils/toast';
 
 interface DeleteAttachmentPopupProps {
     closePopup: () => void;
@@ -38,6 +39,7 @@ export const DeleteAttachmentPopup: React.FC<DeleteAttachmentPopupProps> = ({
             );
 
             if (response.status === 200) {
+                toast.success('Attachment deleted successfully');
                 fetchAttachments();
                 closePopup();
             }

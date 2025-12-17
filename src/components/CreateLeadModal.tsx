@@ -4,6 +4,7 @@ import { useTheme } from './ThemeProvider';
 import { getUserSession } from '../utils/session';
 import { useNavigate } from 'react-router-dom';
 import { getAuthToken } from '../api/apiUrl';
+import { toast } from '../utils/toast';
 
 
 interface CreateLeadModalProps {
@@ -410,7 +411,7 @@ export function CreateLeadModal({ isOpen, onClose, onSubmit }: CreateLeadModalPr
       console.log(response);
 
       if (result.message) {
-        setSuccess('Lead created successfully!');
+        toast.success('Lead created successfully!');
         onSubmit({
           ...docPayload, // Your form data
           name: result.message.name // The generated ID from the server

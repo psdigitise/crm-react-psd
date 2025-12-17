@@ -732,8 +732,20 @@ export function LoginPage({ onLogin }: LoginPageProps) {
   };
 
   const handlePhoneChange = (value: string) => {
-    setPhoneNumber(value);
-    setPhoneError(validatePhone(value));
+    // Allow digits only
+    const numericValue = value.replace(/\D/g, '');
+    const trimmedValue = numericValue.slice(0, 10);
+
+    setPhoneNumber(trimmedValue);
+
+    // Validation
+    if (trimmedValue.length === 0) {
+      setPhoneError('Phone number is required');
+    } else if (trimmedValue.length < 10) {
+      setPhoneError('Phone number must be 10 digits');
+    } else {
+      setPhoneError('');
+    }
   };
 
   const handleFirstNameChange = (value: string) => {
@@ -1433,6 +1445,9 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                       type="tel"
                       value={phoneNumber}
                       onChange={e => handlePhoneChange(e.target.value)}
+                      maxLength={10}
+                      inputMode="numeric"
+                      pattern="[0-9]*"
                       className="w-full pl-10 pr-4 py-3 border border-transparent rounded-lg bg-transparent text-white !placeholder-gray-400 focus:outline-none"
                       placeholder="Enter phone number"
                       disabled={loading}

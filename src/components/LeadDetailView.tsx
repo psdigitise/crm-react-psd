@@ -821,6 +821,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
     const message = result.message || [];
     const docinfo = result.docinfo || {};
     const user_info = docinfo.user_info || {};
+    console.log("leads userInfo,", user_info)
 
     if (!Array.isArray(message) || message.length === 0) {
       setActivities([]);
