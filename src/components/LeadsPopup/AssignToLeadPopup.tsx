@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Search, User } from 'lucide-react';
 import { getUserSession } from '../../utils/session';
-import { AUTH_TOKEN } from '../../api/apiUrl';
+import { AUTH_TOKEN, getAuthToken } from '../../api/apiUrl';
 
 interface AssignToPopupProps {
     isOpen: boolean;
@@ -26,6 +26,7 @@ export function AssignToPopup({ isOpen, onClose, selectedIds, theme, onSuccess }
     const [showDropdown, setShowDropdown] = useState(false);
     const searchRef = useRef<HTMLInputElement>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const token = getAuthToken();
 
     useEffect(() => {
         if (isOpen) {
@@ -79,7 +80,7 @@ export function AssignToPopup({ isOpen, onClose, selectedIds, theme, onSuccess }
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': AUTH_TOKEN
+                    'Authorization': token
                 },
                 body: JSON.stringify(payload)
             });
@@ -135,7 +136,7 @@ export function AssignToPopup({ isOpen, onClose, selectedIds, theme, onSuccess }
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': AUTH_TOKEN
+                    'Authorization': token
                 },
                 body: JSON.stringify(payload)
             });

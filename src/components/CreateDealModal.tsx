@@ -81,6 +81,7 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
   const [isLoadingGenders, setIsLoadingGenders] = useState(false);
   const [isLoadingSalutations, setIsLoadingSalutations] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+    const token = getAuthToken();
 
   useEffect(() => {
     if (isOpen) {
@@ -111,7 +112,7 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN,
+          'Authorization': token,
         },
         body: JSON.stringify({
           txt: "",
@@ -150,7 +151,7 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
       const response = await fetch(`${API_BASE_URL}/method/frappe.desk.search.search_link`, {
         method: 'POST',
         headers: {
-          'Authorization': AUTH_TOKEN,
+          'Authorization': token,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -178,7 +179,7 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
       const response = await fetch(`${API_BASE_URL}/method/frappe.desk.search.search_link`, {
         method: 'POST',
         headers: {
-          'Authorization': AUTH_TOKEN,
+          'Authorization': token,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -206,7 +207,7 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
       const response = await fetch(`${API_BASE_URL}/method/frappe.desk.search.search_link`, {
         method: 'POST',
         headers: {
-          'Authorization': AUTH_TOKEN,
+          'Authorization': token,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -234,7 +235,7 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
       const response = await fetch(`${API_BASE_URL}/method/frappe.desk.search.search_link`, {
         method: 'POST',
         headers: {
-          'Authorization': AUTH_TOKEN,
+          'Authorization': token,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -272,7 +273,7 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
       const response = await fetch(`${API_BASE_URL}/method/frappe.desk.search.search_link`, {
         method: 'POST',
         headers: {
-          'Authorization': AUTH_TOKEN,
+          'Authorization': token,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -309,7 +310,7 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
       const response = await fetch(`${API_BASE_URL}/method/frappe.desk.search.search_link`, {
         method: 'POST',
         headers: {
-          'Authorization': AUTH_TOKEN,
+          'Authorization': token,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -479,7 +480,7 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN,
+          'Authorization': token,
         },
         body: JSON.stringify(apiPayload)
       });

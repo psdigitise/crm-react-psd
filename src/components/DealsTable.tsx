@@ -244,8 +244,10 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
         "title_field": "",
         "kanban_columns": "[]",
         "kanban_fields": "[]",
-        "columns": "[{\"label\": \"Organization\", \"type\": \"Link\", \"key\": \"organization\", \"options\": \"CRM Organization\", \"width\": \"11rem\"}, {\"label\": \"First Name\", \"type\": \"Data\", \"key\": \"first_name\", \"width\": \"10rem\", \"align\": \"left\"}, {\"label\": \"Annual Revenue\", \"type\": \"Currency\", \"key\": \"annual_revenue\", \"align\": \"right\", \"width\": \"9rem\"}, {\"label\": \"Status\", \"type\": \"Select\", \"key\": \"status\", \"width\": \"10rem\"}, {\"label\": \"Email\", \"type\": \"Data\", \"key\": \"email\", \"width\": \"12rem\"}, {\"label\": \"Mobile No\", \"type\": \"Data\", \"key\": \"mobile_no\", \"width\": \"11rem\"}, {\"label\": \"Assigned To\", \"type\": \"Text\", \"key\": \"_assign\", \"width\": \"10rem\"}, {\"label\": \"Last Modified\", \"type\": \"Datetime\", \"key\": \"modified\", \"width\": \"8rem\"}]",
-        "rows": "[\"name\", \"organization\", \"annual_revenue\", \"status\", \"email\", \"currency\", \"mobile_no\", \"deal_owner\", \"sla_status\", \"response_by\", \"first_response_time\", \"first_responded_on\", \"modified\", \"_assign\", \"owner\", \"creation\", \"modified_by\", \"_liked_by\", null, \"first_name\"]",
+        // Ensure columns are defined here for the system
+        "columns": "[{\"label\": \"Organization\", \"key\": \"organization\"}, {\"label\": \"Website\", \"key\": \"website\"}, {\"label\": \"Industry\", \"key\": \"industry\"}, {\"label\": \"Territory\", \"key\": \"territory\"}]",
+        // CRITICAL: Added "website", "industry", and "territory" to the rows array below
+        "rows": "[\"name\", \"organization\", \"annual_revenue\", \"status\", \"email\", \"currency\", \"mobile_no\", \"deal_owner\", \"modified\", \"_assign\", \"first_name\", \"website\", \"industry\", \"territory\"]",
         "page_length": 9000000000,
         "page_length_count": 900000000
       };
@@ -265,39 +267,21 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
         lastModified: formatDate(apiDeal.modified),
         annualRevenue: formatCurrency(apiDeal.annual_revenue),
         closeDate: apiDeal.close_date ? formatDate(apiDeal.close_date) : 'N/A',
-        territory: apiDeal.territory,
-        industry: apiDeal.industry,
-        website: apiDeal.website
+        // MAPPING FIX: Extracting values from the API response
+        territory: apiDeal.territory || 'N/A',
+        industry: apiDeal.industry || 'N/A',
+        website: apiDeal.website || 'N/A'
       }));
 
       setDeals(transformedDeals);
       setSelectedDeals([]);
 
-      // Update filter options
+      // Update filter options dynamically
       setFilterOptions({
-        status: Array.from(new Set(transformedDeals.map(d => d.status).filter(Boolean))),
-        territory: Array.from(new Set(transformedDeals.map(d => d.territory).filter(Boolean))),
-        industry: Array.from(new Set(transformedDeals.map(d => d.industry).filter(Boolean))),
-        assignedTo: Array.from(new Set(
-          transformedDeals.flatMap(d => {
-            let names: string[] = [];
-            if (Array.isArray(d.assignedTo)) {
-              names = d.assignedTo;
-            } else if (typeof d.assignedTo === "string") {
-              try {
-                const parsed = JSON.parse(d.assignedTo);
-                if (Array.isArray(parsed)) {
-                  names = parsed.map(name => name.trim()).filter(name => name);
-                } else {
-                  names = d.assignedTo.split(',').map(name => name.trim()).filter(name => name);
-                }
-              } catch {
-                names = d.assignedTo.split(',').map(name => name.trim()).filter(name => name);
-              }
-            }
-            return names.map(name => name.trim()).filter(name => name !== "");
-          })
-        ))
+        status: Array.from(new Set(transformedDeals.map(d => d.status).filter(val => val && val !== 'N/A'))),
+        territory: Array.from(new Set(transformedDeals.map(d => d.territory).filter(val => val && val !== 'N/A'))),
+        industry: Array.from(new Set(transformedDeals.map(d => d.industry).filter(val => val && val !== 'N/A'))),
+        assignedTo: Array.from(new Set(transformedDeals.map(d => d.assignedTo).filter(val => val && val !== 'N/A')))
       });
 
     } catch (error) {
@@ -1876,7 +1860,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
                       }))}
                     />
                   )}
-                  
+
                 </div>
               </div>
             )}

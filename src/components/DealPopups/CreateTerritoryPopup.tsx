@@ -51,7 +51,7 @@ export const CreateTerritoryPopup: React.FC<CreateTerritoryPopupProps> = ({
     const [oldParentSearch, setOldParentSearch] = useState("");
     const [isOldParentLoading, setIsOldParentLoading] = useState(false);
     const [error, setError] = useState("");
-
+    const token = getAuthToken();
 
     // Fetch territories from API
     const fetchTerritories = async (searchTerm: string) => {
@@ -66,7 +66,7 @@ export const CreateTerritoryPopup: React.FC<CreateTerritoryPopupProps> = ({
                 {
                     headers: {
                         "Content-Type": "application/json",
-                        Authorization: AUTH_TOKEN,
+                        Authorization: token,
                     },
                 }
             );
@@ -104,7 +104,7 @@ export const CreateTerritoryPopup: React.FC<CreateTerritoryPopupProps> = ({
                 {
                     headers: {
                         "Content-Type": "application/json",
-                        Authorization: AUTH_TOKEN,
+                        Authorization: token,
                     },
                 }
             );
@@ -137,7 +137,7 @@ export const CreateTerritoryPopup: React.FC<CreateTerritoryPopupProps> = ({
                 {
                     headers: {
                         "Content-Type": "application/json",
-                        Authorization: AUTH_TOKEN,
+                        Authorization: token,
                     },
                 }
             );
@@ -175,7 +175,7 @@ export const CreateTerritoryPopup: React.FC<CreateTerritoryPopupProps> = ({
         setError("");
 
         try {
-             const token = getAuthToken();
+            const token = getAuthToken();
             const payload = {
                 doc: {
                     doctype: "CRM Territory",
@@ -194,7 +194,7 @@ export const CreateTerritoryPopup: React.FC<CreateTerritoryPopupProps> = ({
                 {
                     headers: {
                         "Content-Type": "application/json",
-                         'Authorization': token
+                        'Authorization': token
                     },
                 }
             );

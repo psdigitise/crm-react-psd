@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { IoCloseOutline } from 'react-icons/io5';
-import { AUTH_TOKEN } from '../../api/apiUrl';
+import { AUTH_TOKEN, getAuthToken } from '../../api/apiUrl';
 import { getUserSession } from '../../utils/session';
 
 interface AssignDealPopupProps {
@@ -32,6 +32,7 @@ export const AssignDealPopup: React.FC<AssignDealPopupProps> = ({
     const [isApiLoading, setIsApiLoading] = useState(false);
     const [userOptions, setUserOptions] = useState<UserOption[]>([]);
     const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+    const token = getAuthToken();
 
     // Fetch users when modal opens
     useEffect(() => {
@@ -52,7 +53,7 @@ export const AssignDealPopup: React.FC<AssignDealPopupProps> = ({
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': AUTH_TOKEN
+                    'Authorization': token
                 },
                 body: JSON.stringify({
                     txt: "",
@@ -92,7 +93,7 @@ export const AssignDealPopup: React.FC<AssignDealPopupProps> = ({
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': AUTH_TOKEN // You'll need to add your auth token
+                    'Authorization': token // You'll need to add your auth token
                 },
                 body: JSON.stringify({
                     doctype: "CRM Deal",
