@@ -458,7 +458,7 @@ export function Dashboard({ onMenuToggle }: DashboardProps) {
         '/api/resource/CRM Deal',
         {
           params: {
-            fields: JSON.stringify(["name"]),
+            fields: JSON.stringify(["name", "status"]),
             filters: JSON.stringify([["company", "=", company]]),
             limit_page_length: 0,
           },
@@ -469,10 +469,26 @@ export function Dashboard({ onMenuToggle }: DashboardProps) {
       );
 
       const deals = response?.data?.data || [];
-      setStatusCounts((prev) => ({
-        ...prev,
+      let counts = {
+        Qualification: 0,
+        Lost: 0,
+        Won: 0,
+        'Demo/Making': 0,
+        'Ready to Close': 0,
+        'Negotiation': 0,
+        'Proposal/Quotation': 0
+      };
+
+      deals.forEach((deal: Deal) => {
+        if (counts.hasOwnProperty(deal.status)) {
+          counts[deal.status as keyof typeof counts]++;
+        }
+      });
+
+      setStatusCounts({
         total: deals.length,
-      }));
+        ...counts,
+      });
 
     } catch (error) {
       console.error('❌ Error fetching deal count:', error);
@@ -1082,7 +1098,7 @@ export function Dashboard({ onMenuToggle }: DashboardProps) {
         <div className='h-[100%]'>
           <ChartCard title="Deal Conversion Funnel">
             {!hasFunnelData ? (
-              <div className="flex items-center justify-center h-64">
+              <div className="flex items-center justify-center h-64 ">
                 <div className="text-center">
                   <AlertCircle className={`w-8 h-8 mx-auto mb-2 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`} />
                   <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>No conversion data available</p>
@@ -1091,8 +1107,9 @@ export function Dashboard({ onMenuToggle }: DashboardProps) {
             ) : (
               <div className="flex flex-col lg:flex-row items-center lg:items-start">
                 {/* Pie Chart - Left aligned */}
-                <div className="w-full lg:w-1/2 flex justify-center lg:justify-start mb-4 lg:mb-0">
-                  <ResponsiveContainer width="110%" height={250} className="ml-10  mt-10 ">
+                {/* <div className="w-full lg:w-1/2 flex justify-center lg:justify-start mb-4 lg:mb-0"> */}
+                <div className="transform scale-90 sm:scale-75 lg:scale-100 origin-center">
+                  <ResponsiveContainer width="110%" height={250} className="ml-10  mt-10 sm:ml-0 sm:mt-10 ">
                     <PieChart>
                       <Pie
                         data={conversionData}

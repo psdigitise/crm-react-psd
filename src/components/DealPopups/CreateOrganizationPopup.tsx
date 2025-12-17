@@ -31,9 +31,11 @@ export const CreateOrganizationPopup: React.FC<CreateOrganizationPopupProps> = (
     theme = "dark",
     cardBgColor = "bg-white dark:bg-dark-secondary",
     borderColor = "border-gray-300 dark:border-gray-700",
-    textColor = "text-white",
+    // textColor = "text-white",
+    textColor = "text-gray-900 dark:text-white",
     textSecondaryColor = "text-gray-700 dark:text-white",
-    inputBgColor = "bg-white-31 text-white",
+    // inputBgColor = "bg-white-31 text-white",
+    inputBgColor = "bg-white dark:bg-white-31",
     onOrganizationCreated,
     dealName, // New prop
     currentDealData, // New prop
@@ -57,7 +59,7 @@ export const CreateOrganizationPopup: React.FC<CreateOrganizationPopupProps> = (
     const [industrySearch, setIndustrySearch] = useState("");
     const [isIndustryLoading, setIsIndustryLoading] = useState(false);
     const [isCreating, setIsCreating] = useState(false);
-    const token =  getAuthToken();
+    const token = getAuthToken();
 
     const handleChange = (field: string, value: string) => {
         setFormData((prev) => ({ ...prev, [field]: value }));
@@ -242,9 +244,9 @@ export const CreateOrganizationPopup: React.FC<CreateOrganizationPopupProps> = (
 
     const handleSubmit = async () => {
         if (!formData.name.trim()) {
-            showToast('Organization name is required', { 
-                type: "error", 
-                duration: 3000 
+            showToast('Organization name is required', {
+                type: "error",
+                duration: 3000
             });
             return;
         }
@@ -290,19 +292,19 @@ export const CreateOrganizationPopup: React.FC<CreateOrganizationPopupProps> = (
 
             // Show appropriate success message
             if (dealName && dealUpdateSuccess) {
-                showToast('Organization created and deal updated successfully!', { 
-                    type: "success", 
-                    duration: 3000 
+                showToast('Organization created and deal updated successfully!', {
+                    type: "success",
+                    duration: 3000
                 });
             } else if (dealName && !dealUpdateSuccess) {
-                showToast('Organization created but failed to update deal', { 
-                    type: "warning", 
-                    duration: 3000 
+                showToast('Organization created but failed to update deal', {
+                    type: "warning",
+                    duration: 3000
                 });
             } else {
-                showToast('Organization created successfully!', { 
-                    type: "success", 
-                    duration: 3000 
+                showToast('Organization created successfully!', {
+                    type: "success",
+                    duration: 3000
                 });
             }
 
@@ -348,9 +350,9 @@ export const CreateOrganizationPopup: React.FC<CreateOrganizationPopupProps> = (
                             ? firstMessage.message.replace(/<[^>]*>/g, '')
                             : errorMessage;
 
-                        showToast(errorMessage, { 
-                            type: "error", 
-                            duration: 5000 
+                        showToast(errorMessage, {
+                            type: "error",
+                            duration: 5000
                         });
                         return;
                     }
@@ -370,9 +372,9 @@ export const CreateOrganizationPopup: React.FC<CreateOrganizationPopupProps> = (
             }
 
             // Show error toast message
-            showToast(errorMessage, { 
-                type: "error", 
-                duration: 5000 
+            showToast(errorMessage, {
+                type: "error",
+                duration: 5000
             });
         } finally {
             setIsCreating(false);
@@ -382,7 +384,9 @@ export const CreateOrganizationPopup: React.FC<CreateOrganizationPopupProps> = (
     if (!isOpen) return null;
 
     const labelClass = `block text-sm font-medium ${textSecondaryColor} mb-1`;
-    const inputClass = `w-full px-3 py-2 border text-white ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}}`;
+    // const inputClass = `w-full px-3 py-2 border text-white ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor}}`;
+    const inputClass = `w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor} text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500`;
+
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
@@ -406,7 +410,7 @@ export const CreateOrganizationPopup: React.FC<CreateOrganizationPopupProps> = (
                 <div className="space-y-4">
                     <div>
                         <label htmlFor="orgName" className={labelClass}>
-                            Organization Name *
+                            Organization Name <span className="text-red-500">*</span>
                         </label>
                         <input
                             id="orgName"
@@ -462,7 +466,7 @@ export const CreateOrganizationPopup: React.FC<CreateOrganizationPopupProps> = (
                                     <Listbox.Button
                                         className={`relative w-full cursor-default rounded-md border ${borderColor} py-2 pl-3 pr-10 text-left shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
                                     >
-                                        <span className="block truncate">
+                                        <span className={`block truncate ${labelClass}`}>
                                             {formData.territory || "Select or search territory"}
                                         </span>
                                         <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
@@ -498,7 +502,7 @@ export const CreateOrganizationPopup: React.FC<CreateOrganizationPopupProps> = (
                                     >
                                         {/* Search Input */}
                                         <div className="sticky top-0 z-10 bg-white p-2 border-b">
-                                            <div className="relative">
+                                            <div className="relative" >
                                                 <input
                                                     type="text"
                                                     placeholder="Search territory..."
@@ -617,7 +621,7 @@ export const CreateOrganizationPopup: React.FC<CreateOrganizationPopupProps> = (
                                         <Listbox.Button
                                             className={`relative w-full cursor-default rounded-md border ${borderColor} py-2 pl-3 pr-10 text-left shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
                                         >
-                                            <span className="block truncate">
+                                            <span className={`block truncate ${labelClass}`}>
                                                 {formData.industry || "Select or search industry"}
                                             </span>
                                             <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
@@ -727,7 +731,7 @@ export const CreateOrganizationPopup: React.FC<CreateOrganizationPopupProps> = (
                                     <Listbox.Button
                                         className={`relative w-full cursor-default rounded-md border ${borderColor} py-2 pl-3 pr-10 text-left shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
                                     >
-                                        <span className="block truncate">
+                                        <span className={`block truncate ${labelClass}`}>
                                             {formData.address || "Select or search address"}
                                         </span>
                                         <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">

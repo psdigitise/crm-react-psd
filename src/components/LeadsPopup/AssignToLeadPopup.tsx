@@ -186,7 +186,10 @@ export function AssignToPopup({ isOpen, onClose, selectedIds, theme, onSuccess }
                                 value={searchTerm}
                                 onChange={handleSearchChange}
                                 onFocus={handleSearchFocus}
-                                className={`w-full bg-transparent focus:outline-none ${theme === 'dark' ? 'text-white placeholder-gray-500' : 'text-gray-900 placeholder-gray-400'}`}
+                                ///className={`w-full bg-transparent focus:outline-none ${theme === 'dark' ? 'text-white placeholder-gray-500' : 'text-gray-900 placeholder-gray-400'}`}
+                                className={`w-full bg-transparent focus:outline-none ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                                    }`}
+                                style={theme === 'dark' ? {} : { color: '#111827' }}
                             />
                         </div>
 

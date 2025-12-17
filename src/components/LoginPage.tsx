@@ -17,6 +17,7 @@ import { useNavigate } from 'react-router-dom';
 import { GoogleLogin } from '@react-oauth/google';
 import { FaFacebook } from 'react-icons/fa';
 import { apiAxios } from '../api/apiUrl';
+import { IoIosArrowDown } from 'react-icons/io';
 
 interface LoginPageProps {
   onLogin: () => void;
@@ -1484,25 +1485,34 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                   <label className="block text-sm font-medium text-white mb-1">
                     No. of Employees <span className="text-red-500">*</span>
                   </label>
+
                   <div className="relative border border-white rounded-lg">
-                    <input
-                      type="text"
+                    <select
                       value={companyData.no_employees || ''}
-                      onChange={e => {
-                        const value = e.target.value;
-                        if (/^\d*$/.test(value)) {
-                          handleEmployeesChange(value);
-                        }
-                      }}
-                      className="w-full pl-4 pr-4 py-3 border border-transparent rounded-lg bg-transparent text-white !placeholder-gray-400 focus:outline-none"
-                      placeholder="50"
+                      onChange={(e) => handleEmployeesChange(e.target.value)}
+                      className="w-full pl-4 pr-4 py-3 border border-transparent rounded-lg bg-transparent text-white focus:outline-none appearance-none"
                       disabled={loading}
-                    />
+                    >
+                      <option value="" className="text-gray-400">
+                        No. of Employees
+                      </option>
+                      <option value="1-10">1–10</option>
+                      <option value="11-50">11–50</option>
+                      <option value="51-200">51–200</option>
+                      <option value="201-500">201–500</option>
+                    </select>
+
+                    {/* Dropdown arrow */}
+                    <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-white">
+                      <IoIosArrowDown />
+                    </div>
                   </div>
+
                   {employeesError && (
                     <p className="text-red-400 text-sm mt-1">{employeesError}</p>
                   )}
                 </div>
+
 
                 <button
                   type="submit"
