@@ -24,7 +24,7 @@ import {
 import { dashboardStats, todayTasks, openDeals, todayLeads, dealsClosingThisMonth, todaytasks } from '../data/sampleData';
 import { useTheme } from './ThemeProvider';
 import axios from 'axios';
-import { apiAxios, AUTH_TOKEN } from '../api/apiUrl';
+import { apiAxios, AUTH_TOKEN, getAuthToken } from '../api/apiUrl';
 import { Lead, LeadTable } from '../Dashboardtables/Leadstable';
 import { DealsTable } from './DealsTable';
 import { Deals, Dealstable } from '../Dashboardtables/DealsTable';
@@ -309,6 +309,7 @@ export function Dashboard({ onMenuToggle }: DashboardProps) {
   const userSession = getUserSession();
   const sessionfullname = userSession?.full_name;
   const sessionUsername = userSession?.username || sessionfullname;
+  const token = getAuthToken();
 
   const fetchSalesTrendData = async () => {
     try {
@@ -448,94 +449,133 @@ export function Dashboard({ onMenuToggle }: DashboardProps) {
     }
   };
 
-
-  // Function to fetch deals data
-  const fetchDealsData = async () => {
+  const fetchDealCount = async () => {
     try {
       const userSession = getUserSession();
-      const Company = userSession?.company;
-      const response = await api.get('api/v2/document/CRM Deal', {
-        fields: JSON.stringify(["name", "status"]),
-        filters: JSON.stringify({ company: Company }),
-      });
+      const company = userSession?.company; // "PS creationss"
 
-      const data = response.data;
-      let counts = {
-        Qualification: 0,
-        Lost: 0,
-        Won: 0,
-        'Demo/Making': 0,
-        'Ready to Close': 0,
-        'Negotiation': 0,
-        'Proposal/Quotation': 0
-      };
-
-      data.forEach((deal: Deal) => {
-        if (counts.hasOwnProperty(deal.status)) {
-          counts[deal.status as keyof typeof counts]++;
+      const response = await apiAxios.get(
+        '/api/resource/CRM Deal',
+        {
+          params: {
+            fields: JSON.stringify(["name"]),
+            filters: JSON.stringify([["company", "=", company]]),
+            limit_page_length: 0,
+          },
+          headers: {
+            Authorization: token,
+          },
         }
-      });
+      );
 
-      setStatusCounts({
-        total: data.length,
-        ...counts,
-      });
+      const deals = response?.data?.data || [];
+      setStatusCounts((prev) => ({
+        ...prev,
+        total: deals.length,
+      }));
+
     } catch (error) {
-      console.error('Error fetching deals data:', error);
+      console.error('❌ Error fetching deal count:', error);
+      setStatusCounts((prev) => ({
+        ...prev,
+        total: 0,
+      }));
     }
   };
 
-  // Function to fetch contact count
-  const fetchContactCount = async () => {
+
+  const fetchTotalContactCount = async () => {
     try {
       const userSession = getUserSession();
-      const Company = userSession?.company;
-      const response = await api.get('api/v2/document/Contact', {
-        fields: JSON.stringify(["name"]),
-        filters: JSON.stringify({ company: Company }),
-      });
+      const company = userSession?.company; // "PS Creationss"
 
-      if (response.data) {
-        setContactCount(response.data.length || 0);
-      }
+      const response = await apiAxios.get(
+        '/api/resource/Contact',
+        {
+          params: {
+            fields: JSON.stringify(["name"]),
+            filters: JSON.stringify([["company", "=", company]]),
+            limit_page_length: 0,
+          },
+          headers: {
+            Authorization: token,
+          },
+        }
+      );
+
+      const contacts = response?.data?.data || [];
+
+      setContactCount(contacts.length); // ✅ TOTAL CONTACT COUNT
+
     } catch (error) {
-      console.error('Error fetching contact count:', error);
+      console.error('❌ Error fetching contact count:', error);
       setContactCount(0);
     }
   };
+
+
 
   // Function to fetch organization count
   const fetchOrganizationCount = async () => {
     try {
       const userSession = getUserSession();
-      const Company = userSession?.company;
-      const response = await api.get('api/v2/document/CRM Organization', {
-        fields: JSON.stringify(["name"]),
-        filters: JSON.stringify({ company: Company }),
-      });
+      const company = userSession?.company; // "PS Creationss"
 
-      if (response.data) {
-        setOrganizationCount(response.data.length || 0);
-      }
+      const response = await apiAxios.get(
+        '/api/resource/CRM Organization',
+        {
+          params: {
+            fields: JSON.stringify(["name"]),
+            filters: JSON.stringify([["company", "=", company]]),
+            limit_page_length: 0,
+          },
+          headers: {
+            Authorization: token,
+          },
+        }
+      );
+
+      const organizations = response?.data?.data || [];
+
+      setOrganizationCount(organizations.length); // ✅ TOTAL ORGANIZATION COUNT
+
     } catch (error) {
-      console.error('Error fetching organization count:', error);
+      console.error('❌ Error fetching organization count:', error);
       setOrganizationCount(0);
     }
   };
+
 
   // Function to fetch lead count
   const fetchLeadCount = async () => {
     try {
       const userSession = getUserSession();
-      const Company = userSession?.company;
-      const response = await api.get('api/v2/document/CRM Lead', {
-        filters: JSON.stringify({ company: Company, converted: 0 }),
-      });
+      const company = userSession?.company; // "PS Creationss"
 
-      const data = response.data;
-      setLeadCount(data.length);
+      const response = await apiAxios.get(
+        '/api/resource/CRM Lead',
+        {
+          params: {
+            fields: JSON.stringify(["name"]),
+            filters: JSON.stringify([
+              ["company", "=", company],
+              ["converted", "=", 0],
+            ]),
+            limit_page_length: 0,
+          },
+          headers: {
+            Authorization: token,
+          },
+        }
+      );
+
+      const leads = response?.data?.data || [];
+
+      setLeadCount(leads.length); // ✅ ACTIVE LEAD COUNT
+
     } catch (error) {
-      console.error('Error fetching lead data:', error);
+      console.error('❌ Error fetching lead count:', error);
+      setLeadCount(0);
     }
   };
 
@@ -659,8 +699,8 @@ export function Dashboard({ onMenuToggle }: DashboardProps) {
     setRefreshing(true);
     try {
       await Promise.all([
-        fetchDealsData(),
-        fetchContactCount(),
+        fetchDealCount(),
+        fetchTotalContactCount(),
         fetchOrganizationCount(),
         fetchLeadCount(),
         fetchTasksData(),
