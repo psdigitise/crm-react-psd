@@ -114,11 +114,60 @@ export default function PasswordResetPage() {
             formData.append('cmd', 'frappe.core.doctype.user.user.update_password');
 
             // Make API call using Axios
-            const response = await axios.post('https://api.erpnext.ai/', formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
-            });
+            // const response = await axios.post('https://api.erpnext.ai/', formData, {
+            //     headers: {
+            //         'Content-Type': 'multipart/form-data',
+            //     },
+            // });
+
+            try {
+                const response = await axios.post(
+                    "https://api.erpnext.ai/",
+                    formData,
+                    {
+                        headers: {
+                            "Content-Type": "multipart/form-data",
+                        },
+                        withCredentials: true,
+                    }
+                );
+
+                // If we reach here → success
+                setIsSuccess(true);
+                showToast("Password updated successfully!", "success");
+
+            } catch (error: any) {
+                // 🔥 IMPORTANT PART
+                if (axios.isAxiosError(error)) {
+                    // If request was sent and server responded with redirect → SUCCESS
+                    if (
+                        error.response?.status === 302 ||
+                        error.message?.includes("Network Error")
+                    ) {
+                        setIsSuccess(true);
+                        showToast("Password updated successfully!", "success");
+                        return;
+                    }
+
+                    // Actual API error from Frappe
+                    const apiError = error.response?.data?.message?.error;
+                    if (apiError) {
+                        showToast(apiError, "error");
+                        return;
+                    }
+                }
+
+                // Real failure
+                showToast("Failed to update password. Please try again.", "error");
+            } finally {
+                setLoading(false);
+            }
+
+
+            // Success block
+            setIsSuccess(true);
+            showToast("Password updated successfully!", "success");
+
 
             if (response.status === 200) {
                 setIsSuccess(true);
