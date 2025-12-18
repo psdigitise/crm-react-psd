@@ -325,19 +325,6 @@ export function Dashboard({ onMenuToggle }: DashboardProps) {
       const formattedFromDate = fromDate.toISOString().split('T')[0];
       const formattedToDate = toDate.toISOString().split('T')[0];
 
-      // ✅ Correct API call with params
-      // const response = await api.get(
-      //   '/api/method/customcrm.overrides.custom_crm_dashboard.get_sales_trend',
-      //   {
-      //     params: {
-      //       from_date: formattedFromDate,
-      //       to_date: formattedToDate,
-      //       // company: "shathipsdigitis",
-      //       company: Company,
-      //     },
-      //   }
-      // );
-
       const response = await api.post(
         '/api/method/customcrm.overrides.custom_crm_dashboard.get_sales_trend',
         {
@@ -391,18 +378,6 @@ export function Dashboard({ onMenuToggle }: DashboardProps) {
 
       const formattedFromDate = fromDate.toISOString().split('T')[0];
       const formattedToDate = toDate.toISOString().split('T')[0];
-
-      // ✅ Use params for GET call
-      // const response = await api.get(
-      //   '/api/method/customcrm.overrides.custom_crm_dashboard.get_forecasted_revenue',
-      //   {
-      //     params: {
-      //       from_date: formattedFromDate,
-      //       to_date: formattedToDate,
-      //       company: Company,
-      //     },
-      //   }
-      // );
 
       const response = await api.post(
         '/api/method/customcrm.overrides.custom_crm_dashboard.get_forecasted_revenue',
@@ -1108,8 +1083,8 @@ export function Dashboard({ onMenuToggle }: DashboardProps) {
               <div className="flex flex-col lg:flex-row items-center lg:items-start">
                 {/* Pie Chart - Left aligned */}
                 {/* <div className="w-full lg:w-1/2 flex justify-center lg:justify-start mb-4 lg:mb-0"> */}
-                <div className="transform scale-90 sm:scale-75 lg:scale-100 origin-center">
-                  <ResponsiveContainer width="110%" height={250} className="ml-10  mt-10 sm:ml-0 sm:mt-10 ">
+                <div className="transform scale-90 sm:scale-75 lg:scale-100 origin-center w-full lg:w-1/2">
+                  <ResponsiveContainer width="100%" height={250} className="mt-10 sm:mt-10">
                     <PieChart>
                       <Pie
                         data={conversionData}
