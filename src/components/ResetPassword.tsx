@@ -90,135 +90,6 @@ export default function PasswordResetPage() {
         }
     }, []);
 
-    // const handleSubmit = async () => {
-    //     if (!canSubmit) return;
-
-    //     setLoading(true);
-    //     setError("");
-    //     setShowRedirectOption(false);
-
-    //     try {
-    //         // Get the 'key' parameter from the URL
-    //         const urlParams = new URLSearchParams(window.location.search);
-    //         const key = urlParams.get('key');
-
-    //         if (!key) {
-    //             throw new Error('Reset key not found in URL');
-    //         }
-
-    //         // Prepare form data
-    //         const formData = new FormData();
-    //         formData.append('key', key);
-    //         formData.append('new_password', password);
-    //         formData.append('confirm_password', confirmPassword);
-    //         formData.append('cmd', 'frappe.core.doctype.user.user.update_password');
-
-    //         // Make API call using Axios
-    //         // const response = await axios.post('https://api.erpnext.ai/', formData, {
-    //         //     headers: {
-    //         //         'Content-Type': 'multipart/form-data',
-    //         //     },
-    //         // });
-
-    //         try {
-    //             const response = await axios.post(
-    //                 "https://api.erpnext.ai/",
-    //                 formData,
-    //                 {
-    //                     headers: {
-    //                         "Content-Type": "multipart/form-data",
-    //                     },
-    //                     withCredentials: true,
-    //                 }
-    //             );
-
-    //             // If we reach here → success
-    //             setIsSuccess(true);
-    //             showToast("Password updated successfully!", "success");
-
-    //         } catch (error: any) {
-    //             // 🔥 IMPORTANT PART
-    //             if (axios.isAxiosError(error)) {
-    //                 // If request was sent and server responded with redirect → SUCCESS
-    //                 if (
-    //                     error.response?.status === 302 ||
-    //                     error.message?.includes("Network Error")
-    //                 ) {
-    //                     setIsSuccess(true);
-    //                     showToast("Password updated successfully!", "success");
-    //                     return;
-    //                 }
-
-    //                 // Actual API error from Frappe
-    //                 const apiError = error.response?.data?.message?.error;
-    //                 if (apiError) {
-    //                     showToast(apiError, "error");
-    //                     return;
-    //                 }
-    //             }
-
-    //             // Real failure
-    //             showToast("Failed to update password. Please try again.", "error");
-    //         } finally {
-    //             setLoading(false);
-    //         }
-
-
-    //         // Success block
-    //         setIsSuccess(true);
-    //         showToast("Password updated successfully!", "success");
-
-
-    //         if (response.status === 200) {
-    //             setIsSuccess(true);
-    //             showToast("Password updated successfully!", 'success');
-    //         } else {
-    //             // Handle other 2xx status codes if needed
-    //             setIsSuccess(true);
-    //             showToast("Password updated successfully!", 'success');
-    //         }
-
-    //     } catch (error: any) {
-    //         let errorMessage = "Failed to update password. Please try again.";
-    //         let showRedirect = false;
-
-    //         if (axios.isAxiosError(error)) {
-    //             if (error.response) {
-    //                 // Extract the specific error message from the nested structure
-    //                 const apiError = error.response.data?.message?.error;
-
-    //                 if (apiError === "The reset password link has been expired" ||
-    //                     apiError === "The reset password link has either been used before or is invalid") {
-    //                     errorMessage = "Your password reset link has expired or has already been used. Please request a new reset link.";
-    //                     showRedirect = true;
-    //                 } else if (apiError) {
-    //                     // Use the specific API error message if available
-    //                     errorMessage = apiError;
-    //                     // Check if it's an expired/invalid link error
-    //                     if (apiError.toLowerCase().includes('expired') ||
-    //                         apiError.toLowerCase().includes('invalid') ||
-    //                         apiError.toLowerCase().includes('used')) {
-    //                         showRedirect = true;
-    //                     }
-    //                 } else {
-    //                     // Fallback to status-based messages
-    //                     errorMessage = `Server error: ${error.response.status}`;
-    //                 }
-    //             } else if (error.request) {
-    //                 // errorMessage = "No response from server. Please check your connection.";
-    //                 showToast("Password updated successfully!", 'success');
-    //             }
-    //         } else {
-    //             errorMessage = error instanceof Error ? error.message : errorMessage;
-    //         }
-
-    //         setError(errorMessage);
-    //         setShowRedirectOption(showRedirect);
-    //         showToast(errorMessage, 'error');
-    //     } finally {
-    //         setLoading(false);
-    //     }
-    // };
 
     const handleSubmit = async () => {
         if (!canSubmit) return;
@@ -242,6 +113,41 @@ export default function PasswordResetPage() {
             formData.append("confirm_password", confirmPassword);
             formData.append("cmd", "frappe.core.doctype.user.user.update_password");
 
+            //     const response = await axios.post(
+            //         "https://api.erpnext.ai/",
+            //         formData,
+            //         {
+            //             headers: {
+            //                 "Content-Type": "multipart/form-data",
+            //             },
+            //             withCredentials: true,
+            //             validateStatus: (status) => status >= 200 && status < 400, // 👈 allow 302
+            //         }
+            //     );
+
+            //     // ✅ SUCCESS (200 or 302)
+            //     navigate("https://crm.erpnext.ai/app/");
+            // } catch (error: any) {
+            //     // ❌ ONLY REAL ERRORS COME HERE
+            //     if (axios.isAxiosError(error)) {
+            //         const apiError =
+            //             error.response?.data?.message?.error ||
+            //             error.response?.data?.message ||
+            //             "Failed to update password. Please try again.";
+
+            //         showToast(apiError, "error");
+
+            //         // Show redirect option for expired/invalid links
+            //         if (
+            //             apiError.toLowerCase().includes("expired") ||
+            //             apiError.toLowerCase().includes("invalid") ||
+            //             apiError.toLowerCase().includes("used")
+            //         ) {
+            //             setShowRedirectOption(true);
+            //         }
+            //     } else {
+            //         showToast("Something went wrong. Please try again.", "error");
+            //     }
             const response = await axios.post(
                 "https://api.erpnext.ai/",
                 formData,
@@ -255,9 +161,32 @@ export default function PasswordResetPage() {
             );
 
             // ✅ SUCCESS (200 or 302)
-            navigate("https://crm.erpnext.ai/app/");
+            // Check if there's an error in the response data
+            if (response.data?.message?.error || response.data?.exc) {
+                const apiError = response.data.message?.error || response.data.message || "Failed to update password. Please try again.";
+                showToast(apiError, "error");
+
+                // Show redirect option for expired/invalid links
+                if (
+                    apiError.toLowerCase().includes("expired") ||
+                    apiError.toLowerCase().includes("invalid") ||
+                    apiError.toLowerCase().includes("used")
+                ) {
+                    setShowRedirectOption(true);
+                }
+                return;
+            }
+
+            // Password updated successfully
+            showToast("Password updated successfully!", "success");
+            setIsSuccess(true);
+
+            // Redirect after a short delay
+            setTimeout(() => {
+                window.location.href = "https://crm.erpnext.ai/app/";
+            }, 1500);
         } catch (error: any) {
-            // ❌ ONLY REAL ERRORS COME HERE
+            // ❌ ONLY REAL ERRORS COME HERE (network errors, etc.)
             if (axios.isAxiosError(error)) {
                 const apiError =
                     error.response?.data?.message?.error ||
@@ -351,22 +280,6 @@ export default function PasswordResetPage() {
                                 : "Enter your new password below."}
                         </p>
                     </div>
-
-                    {/* Error Message with Redirect Option */}
-                    {/* {error && (
-                        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-                            <p className="text-red-800 text-sm mb-3">{error}</p>
-                            {showRedirectOption && (
-                                <button
-                                    onClick={handleRedirectToForgotPassword}
-                                    className="flex items-center gap-2 text-red-700 hover:text-red-900 font-medium text-sm transition-colors group"
-                                >
-                                    Request a new reset link
-                                    <ArrowRight className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" />
-                                </button>
-                            )}
-                        </div>
-                    )} */}
 
                     <div className="space-y-6">
                         {/* New Password Field */}
