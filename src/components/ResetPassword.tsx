@@ -148,6 +148,65 @@ export default function PasswordResetPage() {
             //     } else {
             //         showToast("Something went wrong. Please try again.", "error");
             //     }
+            //     const response = await axios.post(
+            //         "https://api.erpnext.ai/",
+            //         formData,
+            //         {
+            //             headers: {
+            //                 "Content-Type": "multipart/form-data",
+            //             },
+            //             withCredentials: true,
+            //             validateStatus: (status) => status >= 200 && status < 400, // 👈 allow 302
+            //         }
+            //     );
+
+            //     // ✅ SUCCESS (200 or 302)
+            //     // Check if there's an error in the response data
+            //     if (response.data?.message?.error || response.data?.exc) {
+            //         const apiError = response.data.message?.error || response.data.message || "Failed to update password. Please try again.";
+            //         showToast(apiError, "error");
+
+            //         // Show redirect option for expired/invalid links
+            //         if (
+            //             apiError.toLowerCase().includes("expired") ||
+            //             apiError.toLowerCase().includes("invalid") ||
+            //             apiError.toLowerCase().includes("used")
+            //         ) {
+            //             setShowRedirectOption(true);
+            //         }
+            //         return;
+            //     }
+
+            //     // Password updated successfully
+            //     showToast("Password updated successfully!", "success");
+            //     setIsSuccess(true);
+
+            //     // Redirect after a short delay
+            //     setTimeout(() => {
+            //         window.location.href = "https://crm.erpnext.ai/app/";
+            //     }, 1500);
+            // } catch (error: any) {
+            //     // ❌ ONLY REAL ERRORS COME HERE (network errors, etc.)
+            //     if (axios.isAxiosError(error)) {
+            //         const apiError =
+            //             error.response?.data?.message?.error ||
+            //             error.response?.data?.message ||
+            //             "Failed to update password. Please try again.";
+
+            //         showToast(apiError, "error");
+
+            //         // Show redirect option for expired/invalid links
+            //         if (
+            //             apiError.toLowerCase().includes("expired") ||
+            //             apiError.toLowerCase().includes("invalid") ||
+            //             apiError.toLowerCase().includes("used")
+            //         ) {
+            //             setShowRedirectOption(true);
+            //         }
+            //     } else {
+            //         showToast("Something went wrong. Please try again.", "error");
+            //     }
+
             const response = await axios.post(
                 "https://api.erpnext.ai/",
                 formData,
