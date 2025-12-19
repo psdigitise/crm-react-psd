@@ -91,6 +91,38 @@ export default function PasswordResetPage() {
     }, []);
 
 
+    // const handleSubmit = async () => {
+    //     if (!canSubmit) return;
+
+    //     setLoading(true);
+    //     setError("");
+    //     setShowRedirectOption(false);
+
+    //     try {
+    //         const urlParams = new URLSearchParams(window.location.search);
+    //         const key = urlParams.get("key");
+
+    //         if (!key) {
+    //             showToast("Reset link is invalid.", "error");
+    //             return;
+    //         }
+
+    //         const formData = new FormData();
+    //         formData.append("key", key);
+    //         formData.append("new_password", password);
+    //         formData.append("confirm_password", confirmPassword);
+    //         formData.append("cmd", "frappe.core.doctype.user.user.update_password");
+    //         const response = await axios.post(
+    //             "https://api.erpnext.ai/",
+    //             formData,
+    //             {
+    //                 headers: {
+    //                     "Content-Type": "multipart/form-data",
+    //                 },
+    //                 withCredentials: true,
+    //                 validateStatus: (status) => status >= 200 && status < 400, // 👈 allow 302
+    //             }
+    //         );
     const handleSubmit = async () => {
         if (!canSubmit) return;
 
@@ -104,23 +136,37 @@ export default function PasswordResetPage() {
 
             if (!key) {
                 showToast("Reset link is invalid.", "error");
+                setLoading(false);
                 return;
             }
 
+            // Step 1: Fetch CSRF token
+            const tokenResponse = await axios.get(
+                "https://api.erpnext.ai/api/method/frappe.auth.get_logged_user",
+                {
+                    withCredentials: true,
+                }
+            );
+
+            const csrfToken = tokenResponse.data.csrf_token;
+
+            // Step 2: Make the password reset request with CSRF token
             const formData = new FormData();
             formData.append("key", key);
             formData.append("new_password", password);
             formData.append("confirm_password", confirmPassword);
             formData.append("cmd", "frappe.core.doctype.user.user.update_password");
+
             const response = await axios.post(
                 "https://api.erpnext.ai/",
                 formData,
                 {
                     headers: {
                         "Content-Type": "multipart/form-data",
+                        "X-Frappe-CSRF-Token": csrfToken,
                     },
                     withCredentials: true,
-                    validateStatus: (status) => status >= 200 && status < 400, // 👈 allow 302
+                    validateStatus: (status) => status >= 200 && status < 400,
                 }
             );
 
@@ -249,7 +295,7 @@ export default function PasswordResetPage() {
                         {/* New Password Field */}
                         <div>
                             <label className="block text-sm font-medium text-white mb-2">
-                                New Password
+                                New Password123
                             </label>
                             <div className="relative border border-white rounded-lg">
                                 <input
