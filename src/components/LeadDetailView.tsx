@@ -796,284 +796,284 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
   };
 
   const fetchActivities = useCallback(async () => {
-  setActivityLoading(true);
-  setActivities([]);
-  try {
-    const response = await fetch(
-      "https://api.erpnext.ai/api/method/crm.api.activities.get_activities",
-      {
-        method: "POST",
-        headers: {
-          "Authorization": token,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          name: lead.name
-        })
+    setActivityLoading(true);
+    setActivities([]);
+    try {
+      const response = await fetch(
+        "https://api.erpnext.ai/api/method/crm.api.activities.get_activities",
+        {
+          method: "POST",
+          headers: {
+            "Authorization": token,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            name: lead.name
+          })
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-    );
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
+      const result = await response.json();
+      const message = result.message || [];
+      const docinfo = result.docinfo || {};
+      const user_info = docinfo.user_info || {};
+      console.log("leads userInfo,", user_info)
 
-    const result = await response.json();
-    const message = result.message || [];
-    const docinfo = result.docinfo || {};
-    const user_info = docinfo.user_info || {};
-    console.log("leads userInfo,", user_info)
-
-    if (!Array.isArray(message) || message.length === 0) {
-      setActivities([]);
-      setActivityLoading(false);
-      return;
-    }
-
-    const rawTimeline = Array.isArray(message[0]) ? message[0] : [];
-    const rawCalls = Array.isArray(message[1]) ? message[1] : [];
-    const rawNotes = Array.isArray(message[2]) ? message[2] : [];
-    const rawTasks = Array.isArray(message[3]) ? message[3] : [];
-
-    // Detailed call logs logic (preserved)
-    const callNames = rawCalls.map(call => call.name).filter(Boolean);
-    const detailedCallLogs = await fetchDetailedCallLogsForActivity(callNames);
-    const detailedCallMap = new Map();
-    detailedCallLogs.forEach(detailedCall => {
-      if (detailedCall.name) {
-        detailedCallMap.set(detailedCall.name, detailedCall);
+      if (!Array.isArray(message) || message.length === 0) {
+        setActivities([]);
+        setActivityLoading(false);
+        return;
       }
-    });
 
-    setCallLogs(detailedCallLogs);
-    setNotes(rawNotes);
-    setTasks(rawTasks);
+      const rawTimeline = Array.isArray(message[0]) ? message[0] : [];
+      const rawCalls = Array.isArray(message[1]) ? message[1] : [];
+      const rawNotes = Array.isArray(message[2]) ? message[2] : [];
+      const rawTasks = Array.isArray(message[3]) ? message[3] : [];
 
-    const rawEmails = rawTimeline
-      .filter((item: any) => item.activity_type === 'communication')
-      .map((item: any) => ({
-        ...item.data,
-        id: item.name || `comm-${item.creation}`,
-        creation: item.creation,
-        recipients: item.data.recipients || item.data.to || '',
-      }));
-    setEmails(rawEmails);
+      // Detailed call logs logic (preserved)
+      const callNames = rawCalls.map(call => call.name).filter(Boolean);
+      const detailedCallLogs = await fetchDetailedCallLogsForActivity(callNames);
+      const detailedCallMap = new Map();
+      detailedCallLogs.forEach(detailedCall => {
+        if (detailedCall.name) {
+          detailedCallMap.set(detailedCall.name, detailedCall);
+        }
+      });
 
-    const rawComments = rawTimeline.filter((item: any) =>
-      item.activity_type === 'comment' &&
-      !item.content?.toLowerCase().includes('company_info') &&
-      !item.content?.toLowerCase().includes('company intelligence') &&
-      !item.content?.toLowerCase().includes('lead_summary') &&
-      !item.content?.toLowerCase().includes('lead summary') &&
-      !item.content?.toLowerCase().includes('lead score')
-    );
-    setComments(rawComments);
+      setCallLogs(detailedCallLogs);
+      setNotes(rawNotes);
+      setTasks(rawTasks);
 
-    const rawFiles = docinfo.files || [];
-    setFiles(rawFiles);
+      const rawEmails = rawTimeline
+        .filter((item: any) => item.activity_type === 'communication')
+        .map((item: any) => ({
+          ...item.data,
+          id: item.name || `comm-${item.creation}`,
+          creation: item.creation,
+          recipients: item.data.recipients || item.data.to || '',
+        }));
+      setEmails(rawEmails);
 
-    const fileActivities = rawTimeline
-      .filter((item: any) => item.activity_type === "attachment_log")
-      .map((item: any) => {
-        const fileData = item.data || {};
-        const creatorName = user_info[item.owner]?.fullname || item.owner;
+      const rawComments = rawTimeline.filter((item: any) =>
+        item.activity_type === 'comment' &&
+        !item.content?.toLowerCase().includes('company_info') &&
+        !item.content?.toLowerCase().includes('company intelligence') &&
+        !item.content?.toLowerCase().includes('lead_summary') &&
+        !item.content?.toLowerCase().includes('lead summary') &&
+        !item.content?.toLowerCase().includes('lead score')
+      );
+      setComments(rawComments);
+
+      const rawFiles = docinfo.files || [];
+      setFiles(rawFiles);
+
+      const fileActivities = rawTimeline
+        .filter((item: any) => item.activity_type === "attachment_log")
+        .map((item: any) => {
+          const fileData = item.data || {};
+          const creatorName = user_info[item.owner]?.fullname || item.owner;
+          return {
+            id: item.name || `file-${Date.now()}`,
+            type: "file",
+            title: `File ${fileData.type === "added" ? "Uploaded" : "Removed"}: ${fileData.file_name || "Unnamed file"}`,
+            description: fileData.file_url || "",
+            timestamp: item.creation || new Date().toISOString(),
+            user: creatorName || "Unknown",
+            icon: <IoDocument className="w-4 h-4" />,
+            data: fileData,
+            action: fileData.type || "unknown",
+            files: false
+          };
+        });
+
+      const callActivities = rawCalls.map((call: any) => {
+        const caller = call._caller?.label || call.caller || call.from || "Unknown";
+        const receiver = call._receiver?.label || call.receiver || call.to || "Unknown";
+        const detailedCall = detailedCallMap.get(call.name) || call;
         return {
-          id: item.name || `file-${Date.now()}`,
-          type: "file",
-          title: `File ${fileData.type === "added" ? "Uploaded" : "Removed"}: ${fileData.file_name || "Unnamed file"}`,
-          description: fileData.file_url || "",
-          timestamp: item.creation || new Date().toISOString(),
-          user: creatorName || "Unknown",
-          icon: <IoDocument className="w-4 h-4" />,
-          data: fileData,
-          action: fileData.type || "unknown",
-          files: false
+          id: call.name,
+          type: "call",
+          title: `${call.type || "Call"} Call`,
+          description: `${caller} → ${receiver}`,
+          timestamp: call.creation,
+          user: caller,
+          icon: call.type === "Incoming" || call.type === "Inbound" ? <SlCallIn className="w-4 h-4" /> : <SlCallOut className="w-4 h-4" />,
+          data: {
+            ...call,
+            ...detailedCall,
+            caller,
+            receiver,
+            _notes: detailedCall._notes || [],
+            _tasks: detailedCall._tasks || []
+          },
         };
       });
 
-    const callActivities = rawCalls.map((call: any) => {
-      const caller = call._caller?.label || call.caller || call.from || "Unknown";
-      const receiver = call._receiver?.label || call.receiver || call.to || "Unknown";
-      const detailedCall = detailedCallMap.get(call.name) || call;
-      return {
-        id: call.name,
-        type: "call",
-        title: `${call.type || "Call"} Call`,
-        description: `${caller} → ${receiver}`,
-        timestamp: call.creation,
-        user: caller,
-        icon: call.type === "Incoming" || call.type === "Inbound" ? <SlCallIn className="w-4 h-4" /> : <SlCallOut className="w-4 h-4" />,
-        data: {
-          ...call,
-          ...detailedCall,
-          caller,
-          receiver,
-          _notes: detailedCall._notes || [],
-          _tasks: detailedCall._tasks || []
-        },
-      };
-    });
+      const noteActivities = rawNotes.map((note: any) => ({
+        id: note.name,
+        type: "note",
+        title: `Note Added: ${note.title}`,
+        description: note.content,
+        timestamp: note.creation,
+        user: note.owner,
+        icon: <FileText className="w-4 h-4" />,
+        data: note,
+      }));
 
-    const noteActivities = rawNotes.map((note: any) => ({
-      id: note.name,
-      type: "note",
-      title: `Note Added: ${note.title}`,
-      description: note.content,
-      timestamp: note.creation,
-      user: note.owner,
-      icon: <FileText className="w-4 h-4" />,
-      data: note,
-    }));
+      const taskActivities = rawTasks.map((task: any) => ({
+        id: task.name,
+        type: 'task',
+        title: `Task Created: ${task.title}`,
+        description: task.description || '',
+        timestamp: task.creation,
+        user: task.assigned_to || 'Unassigned',
+        icon: <SiTicktick className="w-4 h-4 text-gray-600" />,
+      }));
 
-    const taskActivities = rawTasks.map((task: any) => ({
-      id: task.name,
-      type: 'task',
-      title: `Task Created: ${task.title}`,
-      description: task.description || '',
-      timestamp: task.creation,
-      user: task.assigned_to || 'Unassigned',
-      icon: <SiTicktick className="w-4 h-4 text-gray-600" />,
-    }));
+      const emailActivities = rawEmails.map((email: any) => ({
+        id: email.name || email.id,
+        type: 'email',
+        title: `Email: ${email.subject || 'No Subject'}`,
+        description: email.content,
+        timestamp: email.creation,
+        user: email.sender_full_name || email.sender || 'Unknown',
+        recipients: email.recipients,
+        icon: <Mail className="w-4 h-4" />,
+      }));
 
-    const emailActivities = rawEmails.map((email: any) => ({
-      id: email.name || email.id,
-      type: 'email',
-      title: `Email: ${email.subject || 'No Subject'}`,
-      description: email.content,
-      timestamp: email.creation,
-      user: email.sender_full_name || email.sender || 'Unknown',
-      recipients: email.recipients,
-      icon: <Mail className="w-4 h-4" />,
-    }));
+      const commentActivities = rawComments.map((comment: any) => {
+        const creatorName = user_info[comment.owner]?.fullname || comment.owner;
+        return {
+          id: comment.name,
+          type: 'comment',
+          title: 'New Comment',
+          description: comment.content,
+          timestamp: comment.creation,
+          user: creatorName,
+          attachments: comment.attachments || [],
+          icon: <FaRegComment className="w-4 h-4" />,
+        };
+      });
 
-    const commentActivities = rawComments.map((comment: any) => {
-      const creatorName = user_info[comment.owner]?.fullname || comment.owner;
-      return {
-        id: comment.name,
-        type: 'comment',
-        title: 'New Comment',
-        description: comment.content,
-        timestamp: comment.creation,
-        user: creatorName,
-        attachments: comment.attachments || [],
-        icon: <FaRegComment className="w-4 h-4" />,
-      };
-    });
+      // Timeline activities - ENHANCED FILTERING FOR GROUPED DATA
+      const timelineActivities = rawTimeline
+        .filter((item: any) => {
+          if (item.activity_type === 'changed' || item.activity_type === 'added') {
+            const fieldLabel = item.data?.field_label?.toLowerCase() || '';
+            const value = String(item.data?.value || '').toLowerCase();
+            const oldValue = String(item.data?.old_value || '').toLowerCase();
+            const fieldName = item.data?.fieldname || '';
 
-    // Timeline activities - ENHANCED FILTERING FOR GROUPED DATA
-    const timelineActivities = rawTimeline
-      .filter((item: any) => {
-        if (item.activity_type === 'changed' || item.activity_type === 'added') {
-          const fieldLabel = item.data?.field_label?.toLowerCase() || '';
-          const value = String(item.data?.value || '').toLowerCase();
-          const oldValue = String(item.data?.old_value || '').toLowerCase();
-          const fieldName = item.data?.fieldname || '';
+            // Block individual Lead Summary/Score/Company Info updates
+            const isBlocked =
+              fieldLabel.includes('lead_summary') || fieldLabel.includes('lead summary') ||
+              fieldName === 'lead_summary' || fieldName === 'lead_score' ||
+              fieldLabel.includes('company_info') || fieldLabel.includes('company intelligence') ||
+              value.includes('company_info') || oldValue.includes('company_info');
 
-          // Block individual Lead Summary/Score/Company Info updates
-          const isBlocked = 
-            fieldLabel.includes('lead_summary') || fieldLabel.includes('lead summary') ||
-            fieldName === 'lead_summary' || fieldName === 'lead_score' ||
-            fieldLabel.includes('company_info') || fieldLabel.includes('company intelligence') ||
-            value.includes('company_info') || oldValue.includes('company_info');
-
-          return !isBlocked;
-        }
-        return item.activity_type === 'creation' || item.activity_type === 'added' || item.activity_type === 'changed';
-      })
-      .map((item: any) => {
-        const creatorName = user_info[item.owner]?.fullname || item.owner;
-        switch (item.activity_type) {
-          case 'creation':
-            return {
-              id: `creation-${item.creation}`,
-              type: 'edit',
-              title: ` created this Lead`,
-              description: '',
-              timestamp: item.creation,
-              user: creatorName,
-              icon: <UserPlus className="w-4 h-4 text-gray-500" />
-            };
-
-          case 'added':
-          case 'changed':
-            // ✨ CORRECTION: Filter nested versions inside grouped changes
-            if (item.other_versions?.length > 0) {
-              const filteredVersions = item.other_versions.filter((v: any) => {
-                const vLabel = v.data?.field_label?.toLowerCase() || '';
-                const vName = v.data?.fieldname || '';
-                return !(vLabel.includes('lead summary') || vName === 'lead_summary' || vName === 'lead_score');
-              });
-
-              // If filtering nested versions leaves nothing, and the main item was also summary, skip
-              if (filteredVersions.length === 0) {
-                const mainLabel = item.data?.field_label?.toLowerCase() || '';
-                if (mainLabel.includes('lead summary')) return null;
-              }
-
+            return !isBlocked;
+          }
+          return item.activity_type === 'creation' || item.activity_type === 'added' || item.activity_type === 'changed';
+        })
+        .map((item: any) => {
+          const creatorName = user_info[item.owner]?.fullname || item.owner;
+          switch (item.activity_type) {
+            case 'creation':
               return {
-                id: `group-${item.creation}`,
-                type: 'grouped_change',
+                id: `creation-${item.creation}`,
+                type: 'edit',
+                title: ` created this Lead`,
+                description: '',
                 timestamp: item.creation,
                 user: creatorName,
-                icon: <Layers className="w-4 h-4 text-white" />,
-                data: {
-                  changes: [item, ...filteredVersions],
-                  field_label: item.data?.field_label,
-                  value: item.data?.value,
-                  old_value: item.data?.old_value,
-                  other_versions: filteredVersions // Use the cleaned list
-                }
+                icon: <UserPlus className="w-4 h-4 text-gray-500" />
               };
-            }
 
-            const actionText = item.activity_type === 'added'
-              ? `added value for ${item.data?.field_label}: '${item.data?.value}'`
-              : `changed ${item.data?.field_label} from '${item.data?.old_value || "nothing"}' to '${item.data?.value}'`;
+            case 'added':
+            case 'changed':
+              // ✨ CORRECTION: Filter nested versions inside grouped changes
+              if (item.other_versions?.length > 0) {
+                const filteredVersions = item.other_versions.filter((v: any) => {
+                  const vLabel = v.data?.field_label?.toLowerCase() || '';
+                  const vName = v.data?.fieldname || '';
+                  return !(vLabel.includes('lead summary') || vName === 'lead_summary' || vName === 'lead_score');
+                });
 
-            return {
-              id: `change-${item.creation}`,
-              type: 'edit',
-              title: ` ${actionText}`,
-              description: '',
-              timestamp: item.creation,
-              user: creatorName,
-              icon: <RxLightningBolt className="w-4 h-4 text-yellow-500" />
-            };
+                // If filtering nested versions leaves nothing, and the main item was also summary, skip
+                if (filteredVersions.length === 0) {
+                  const mainLabel = item.data?.field_label?.toLowerCase() || '';
+                  if (mainLabel.includes('lead summary')) return null;
+                }
 
-          default:
-            return null;
-        }
-      })
-      .filter(Boolean);
+                return {
+                  id: `group-${item.creation}`,
+                  type: 'grouped_change',
+                  timestamp: item.creation,
+                  user: creatorName,
+                  icon: <Layers className="w-4 h-4 text-white" />,
+                  data: {
+                    changes: [item, ...filteredVersions],
+                    field_label: item.data?.field_label,
+                    value: item.data?.value,
+                    old_value: item.data?.old_value,
+                    other_versions: filteredVersions // Use the cleaned list
+                  }
+                };
+              }
 
-    const allActivities = [
-      ...callActivities,
-      ...emailActivities,
-      ...commentActivities,
-      ...timelineActivities,
-      ...fileActivities,
-      ...noteActivities,
-      ...taskActivities,
-    ];
+              const actionText = item.activity_type === 'added'
+                ? `added value for ${item.data?.field_label}: '${item.data?.value}'`
+                : `changed ${item.data?.field_label} from '${item.data?.old_value || "nothing"}' to '${item.data?.value}'`;
 
-    allActivities.sort((a, b) => {
-      const getValidDate = (activity: any) => {
-        if (activity.timestamp) return new Date(activity.timestamp);
-        if (activity.creation) return new Date(activity.creation);
-        if (activity.data?.creation) return new Date(activity.data.creation);
-        return new Date(0);
-      };
-      return getValidDate(a).getTime() - getValidDate(b).getTime();
-    });
+              return {
+                id: `change-${item.creation}`,
+                type: 'edit',
+                title: ` ${actionText}`,
+                description: '',
+                timestamp: item.creation,
+                user: creatorName,
+                icon: <RxLightningBolt className="w-4 h-4 text-yellow-500" />
+              };
 
-    setActivities(allActivities);
+            default:
+              return null;
+          }
+        })
+        .filter(Boolean);
 
-  } catch (err) {
-    console.error("Error fetching activities:", err);
-    showToast("Failed to fetch activities", { type: 'error' });
-  } finally {
-    setActivityLoading(false);
-  }
-}, [lead.name, token]);
+      const allActivities = [
+        ...callActivities,
+        ...emailActivities,
+        ...commentActivities,
+        ...timelineActivities,
+        ...fileActivities,
+        ...noteActivities,
+        ...taskActivities,
+      ];
+
+      allActivities.sort((a, b) => {
+        const getValidDate = (activity: any) => {
+          if (activity.timestamp) return new Date(activity.timestamp);
+          if (activity.creation) return new Date(activity.creation);
+          if (activity.data?.creation) return new Date(activity.data.creation);
+          return new Date(0);
+        };
+        return getValidDate(a).getTime() - getValidDate(b).getTime();
+      });
+
+      setActivities(allActivities);
+
+    } catch (err) {
+      console.error("Error fetching activities:", err);
+      showToast("Failed to fetch activities", { type: 'error' });
+    } finally {
+      setActivityLoading(false);
+    }
+  }, [lead.name, token]);
 
 
   const formatFileSize = (bytes: number) => {
@@ -3384,7 +3384,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
                     </div>
 
                     {/* New Deal Value Field */}
-                    <div className="mb-4">
+                    {/* <div className="mb-4">
                       <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
                         Expected Deal Value <span className="text-red-500">*</span>
                       </label>
@@ -3399,7 +3399,41 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
                         placeholder="Enter expected deal value"
                         required
                       />
+                    </div> */}
+
+                    <div className="mb-4">
+                      <label
+                        className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                          }`}
+                      >
+                        Expected Deal Value <span className="text-red-500">*</span>
+                      </label>
+
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        value={expectedDealValue}
+                        placeholder="Enter expected deal value"
+                        required
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/\D/g, ''); // digits only
+                          if (value.length <= 8) {
+                            setExpectedDealValue(value);
+                          }
+                        }}
+                        onKeyDown={(e) => {
+                          // block non-numeric number-input chars
+                          if (['e', 'E', '+', '-', '.'].includes(e.key)) {
+                            e.preventDefault();
+                          }
+                        }}
+                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${theme === 'dark'
+                            ? 'bg-gray-800 border-gray-700 text-white !placeholder-gray-400'
+                            : 'bg-white border-gray-300 text-gray-900 !placeholder-gray-500'
+                          }`}
+                      />
                     </div>
+
 
                     <div className="mb-6">
                       <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
