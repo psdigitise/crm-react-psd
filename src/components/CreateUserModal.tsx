@@ -61,10 +61,70 @@ export function CreateUserModal({ isOpen, onClose, onSubmit }: CreateUserModalPr
       const session = getUserSession();
       if (!session?.api_key || !session?.api_secret) {
         showToast('Authentication required', { type: 'error' });
+        setLoading(false);
         return;
       }
 
       const sessionCompany = session?.company || 'PSDigitise';
+      const planId = Number(session?.plan_id ?? 0);
+
+      // Enforce plan-based user creation limits
+      // plan 0 -> no creation
+      // plan 1 -> up to 3 users
+      // plan 2 -> up to 6 users
+      // plan 4 -> unlimited
+      switch (planId) {
+        case 0:
+          showToast('Your current plan does not allow creating users. Please upgrade to add users.', { type: 'error' });
+          setLoading(false);
+          return;
+        case 1:
+        case 2: {
+          // Fetch current number of enabled users for the company
+          try {
+            const userFilters = encodeURIComponent(JSON.stringify([
+              ['company', '=', sessionCompany],
+              ['enabled', '=', 1]
+            ]));
+            const usersResp = await fetch(`https://api.erpnext.ai/api/v2/document/User?fields=["name"]&filters=${userFilters}`, {
+              method: 'GET',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `token ${session.api_key}:${session.api_secret}`
+              }
+            });
+
+            if (!usersResp.ok) {
+              throw new Error(`Failed to check existing users: ${usersResp.status}`);
+            }
+
+            const usersResult = await usersResp.json();
+            const existingCount = Array.isArray(usersResult.data) ? usersResult.data.length : 0;
+            const limit = planId === 1 ? 3 : 6;
+
+            if (existingCount >= limit) {
+              showToast(`Your plan allows up to ${limit} users. You already have ${existingCount}. Please upgrade to add more users.`, { type: 'error' });
+              setLoading(false);
+              return;
+            }
+
+          } catch (err) {
+            console.error('Error checking user limits:', err);
+            showToast('Unable to verify user limits right now. Please try again later.', { type: 'error' });
+            setLoading(false);
+            return;
+          }
+          break;
+        }
+        case 4:
+          // Unlimited - continue
+          break;
+        default:
+          // Unknown plan - block by default
+          showToast('Your plan does not permit creating users. Please contact support or upgrade.', { type: 'error' });
+          setLoading(false);
+          return;
+      }
 
       const apiUrl = 'https://api.erpnext.ai/api/v2/document/User/';
 
