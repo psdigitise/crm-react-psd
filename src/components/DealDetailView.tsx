@@ -2858,7 +2858,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                     </div>
 
                     {/* Expected Closure Date */}
-                    <div>
+                    {/* <div>
                       <label className={`block text-sm font-medium ${textSecondaryColor}`}>
                         Expected Closure Date <span className="text-red-500">*</span>
                       </label>
@@ -2879,7 +2879,47 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                       {errors.expected_closure_date && (
                         <p className="text-sm text-red-500 mt-1">{errors.expected_closure_date}</p>
                       )}
+                    </div> */}
+
+                    <div>
+                      <label className={`block text-sm font-medium ${textSecondaryColor}`}>
+                        Expected Closure Date <span className="text-red-500">*</span>
+                      </label>
+
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        value={editedDeal.expected_closure_date || ''}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/\D/g, '');
+
+                          if (value.length <= 8) {
+                            handleInputChange('expected_closure_date', value);
+
+                            if (errors.expected_closure_date) {
+                              setErrors(prev => ({ ...prev, expected_closure_date: '' }));
+                            }
+                          }
+                        }}
+                        onKeyDown={(e) => {
+                          // Prevent invalid number characters
+                          if (['e', 'E', '+', '-', '.'].includes(e.key)) {
+                            e.preventDefault();
+                          }
+                        }}
+                        className={`mt-1 block w-full rounded-md border shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 ${theme === 'dark'
+                            ? 'bg-gray-800 border-gray-600 text-white'
+                            : 'bg-white border-gray-300 text-gray-900'
+                          }`}
+                      />
+
+                      {errors.expected_closure_date && (
+                        <p className="text-sm text-red-500 mt-1">
+                          {errors.expected_closure_date}
+                        </p>
+                      )}
                     </div>
+
 
                     {/* Probability Field - Takes full width below the two inputs */}
                     <div className="md:col-span-2">
