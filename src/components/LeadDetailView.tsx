@@ -3428,8 +3428,8 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
                           }
                         }}
                         className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${theme === 'dark'
-                            ? 'bg-gray-800 border-gray-700 text-white !placeholder-gray-400'
-                            : 'bg-white border-gray-300 text-gray-900 !placeholder-gray-500'
+                          ? 'bg-gray-800 border-gray-700 text-white !placeholder-gray-400'
+                          : 'bg-white border-gray-300 text-gray-900 !placeholder-gray-500'
                           }`}
                       />
                     </div>
@@ -5274,18 +5274,29 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
                 </div>
 
                 <div>
-                  <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>Duration</label>
+                  <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>
+                    Duration
+                  </label>
+
                   <input
                     type="number"
                     value={callForm.duration}
-                    onChange={(e) => setCallForm({ ...callForm, duration: e.target.value })}
+                    onChange={(e) => {
+                      const value = e.target.value;
+
+                      // allow only up to 6 digits
+                      if (value.length <= 6) {
+                        setCallForm({ ...callForm, duration: value });
+                      }
+                    }}
                     className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
-                      ? 'bg-gray-800 border-gray-600 text-white !placeholder-gray-400'
-                      : 'bg-white border-gray-300 text-gray-900 !placeholder-gray-500'
+                        ? 'bg-gray-800 border-gray-600 text-white !placeholder-gray-400'
+                        : 'bg-white border-gray-300 text-gray-900 !placeholder-gray-500'
                       }`}
                     placeholder="Call duration"
                   />
                 </div>
+
 
                 {/* Caller Field (Only show for Outgoing calls) */}
                 {callForm.type === 'Outgoing' && (

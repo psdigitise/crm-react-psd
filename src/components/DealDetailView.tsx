@@ -2835,9 +2835,9 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                     {/* Expected Deal Value (€) */}
                     <div>
                       <label className={`block text-sm font-medium ${textSecondaryColor}`}>
-                        Expected Deal Value (€) <span className="text-red-500">*</span>
+                        Expected Deal Value  <span className="text-red-500">*</span>
                       </label>
-                      <input
+                      {/* <input
                         type="number"
                         value={editedDeal.expected_deal_value || ''}
                         onChange={(e) => {
@@ -2851,7 +2851,56 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                           : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
                           } ${errors.expected_deal_value ? 'border-red-500' : ''}`}
                         placeholder="2000"
+                      /> */}
+
+                      {/* <input
+                        type="number"
+                        value={editedDeal.expected_deal_value || ''}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/\D/g, '');
+
+                          // allow max 8 digits
+                          if (value.length > 8) return;
+
+                          handleInputChange('expected_deal_value', value);
+
+                          if (errors.expected_deal_value) {
+                            setErrors(prev => ({ ...prev, expected_deal_value: '' }));
+                          }
+                        }}
+                        className={`mt-1 block w-full rounded-md border shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 ${theme === 'dark'
+                            ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400'
+                            : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                          } ${errors.expected_deal_value ? 'border-red-500' : ''}`}
+                        placeholder="2000"
+                      /> */}
+
+                      <input
+                        type="text"   // 👈 IMPORTANT: switch to text for full control
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        value={editedDeal.expected_deal_value || ''}
+                        onChange={(e) => {
+                          // remove anything that is not a digit
+                          const value = e.target.value.replace(/[^0-9]/g, '');
+
+                          // max 8 digits
+                          if (value.length > 8) return;
+
+                          handleInputChange('expected_deal_value', value);
+
+                          if (errors.expected_deal_value) {
+                            setErrors(prev => ({ ...prev, expected_deal_value: '' }));
+                          }
+                        }}
+                        className={`mt-1 block w-full rounded-md border shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 ${theme === 'dark'
+                            ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400'
+                            : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                          } ${errors.expected_deal_value ? 'border-red-500' : ''}`}
+                        placeholder="2000"
                       />
+
+
                       {errors.expected_deal_value && (
                         <p className="text-sm text-red-500 mt-1">{errors.expected_deal_value}</p>
                       )}
@@ -3953,7 +4002,7 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                   </select>
                 </div>
 
-                <div>
+                {/* <div>
                   <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>Duration</label>
                   <input
                     type="number"
@@ -3965,7 +4014,32 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
                       }`}
                     placeholder="Call duration in seconds"
                   />
+                </div> */}
+
+                <div>
+                  <label className={`block text-sm font-medium ${textSecondaryColor} mb-2`}>
+                    Duration
+                  </label>
+
+                  <input
+                    type="number"
+                    value={callForm.duration}
+                    onChange={(e) => {
+                      const value = e.target.value;
+
+                      // allow only up to 6 digits
+                      if (value.length <= 6) {
+                        setCallForm({ ...callForm, duration: value });
+                      }
+                    }}
+                    className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
+                      ? 'bg-gray-800 border-gray-600 text-white !placeholder-gray-400'
+                      : 'bg-white border-gray-300 text-gray-900 !placeholder-gray-500'
+                      }`}
+                    placeholder="Call duration in seconds"
+                  />
                 </div>
+
 
                 {/* Caller Field (Conditionally rendered for 'Outgoing' calls) */}
                 {callForm.type === 'Outgoing' && (
