@@ -4210,24 +4210,54 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
                     </div>
                     <div>
                       <label className={`block text-sm font-medium ${textSecondaryColor}`}>First Name <span className="text-red-500">*</span></label>
-                      <input
+                      {/* <input
                         type="text"
                         value={editedLead.firstName || ''}
                         onChange={(e) => handleInputChange('firstName', e.target.value)}
                         className={`p-[2px] pl-2 mt-1 block w-full border rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
+                      /> */}
+                      <input
+                        type="text"
+                        value={editedLead.firstName || ''}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/[^a-zA-Z\s]/g, "");
+                          handleInputChange('firstName', value);
+                        }}
+                        onKeyDown={(e) => {
+                          if (!/^[a-zA-Z\s]$/.test(e.key) && e.key.length === 1) {
+                            e.preventDefault();
+                          }
+                        }}
+                        className={`p-[2px] pl-2 mt-1 block w-full border rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
                       />
+
                       {errors.firstName && (
                         <p className="text-red-500 text-xs mt-1">{errors.firstName}</p>
                       )}
                     </div>
                     <div>
                       <label className={`block text-sm font-medium ${textSecondaryColor}`}>Last Name</label>
-                      <input
+                      {/* <input
                         type="text"
                         value={editedLead.lastName || ''}
                         onChange={(e) => handleInputChange('lastName', e.target.value)}
                         className={`p-[2px] pl-2 mt-1 block w-full border rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
+                      /> */}
+                      <input
+                        type="text"
+                        value={editedLead.lastName || ''}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/[^a-zA-Z\s]/g, "");
+                          handleInputChange('lastName', value);
+                        }}
+                        onKeyDown={(e) => {
+                          if (!/^[a-zA-Z\s]$/.test(e.key) && e.key.length === 1) {
+                            e.preventDefault();
+                          }
+                        }}
+                        className={`p-[2px] pl-2 mt-1 block w-full border rounded-md ${borderColor} shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${inputBgColor}`}
                       />
+
                     </div>
                     <div>
                       <label className={`block text-sm font-medium ${textSecondaryColor}`}>Email</label>
@@ -5290,8 +5320,8 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
                       }
                     }}
                     className={`w-full px-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${theme === 'dark'
-                        ? 'bg-gray-800 border-gray-600 text-white !placeholder-gray-400'
-                        : 'bg-white border-gray-300 text-gray-900 !placeholder-gray-500'
+                      ? 'bg-gray-800 border-gray-600 text-white !placeholder-gray-400'
+                      : 'bg-white border-gray-300 text-gray-900 !placeholder-gray-500'
                       }`}
                     placeholder="Call duration"
                   />
