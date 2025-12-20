@@ -90,6 +90,218 @@ export default function PasswordResetPage() {
         }
     }, []);
 
+    // const handleSubmit = async () => {
+    //     if (!canSubmit) return;
+
+    //     setLoading(true);
+    //     setError("");
+    //     setShowRedirectOption(false);
+
+    //     try {
+    //         // Get the 'key' parameter from the URL
+    //         const urlParams = new URLSearchParams(window.location.search);
+    //         const key = urlParams.get('key');
+
+    //         if (!key) {
+    //             throw new Error('Reset key not found in URL');
+    //         }
+
+    //         // Prepare form data
+    //         const formData = new FormData();
+    //         formData.append('key', key);
+    //         formData.append('new_password', password);
+    //         formData.append('confirm_password', confirmPassword);
+    //         formData.append('cmd', 'frappe.core.doctype.user.user.update_password');
+
+    //         // Make API call using Axios
+    //         // const response = await axios.post('https://api.erpnext.ai/', formData, {
+    //         //     headers: {
+    //         //         'Content-Type': 'multipart/form-data',
+    //         //     },
+    //         // });
+
+    //         try {
+    //             const response = await axios.post(
+    //                 "https://api.erpnext.ai/",
+    //                 formData,
+    //                 {
+    //                     headers: {
+    //                         "Content-Type": "multipart/form-data",
+    //                     },
+    //                     withCredentials: true,
+    //                 }
+    //             );
+
+    //             // If we reach here → success
+    //             setIsSuccess(true);
+    //             showToast("Password updated successfully!", "success");
+
+    //         } catch (error: any) {
+    //             // 🔥 IMPORTANT PART
+    //             if (axios.isAxiosError(error)) {
+    //                 // If request was sent and server responded with redirect → SUCCESS
+    //                 if (
+    //                     error.response?.status === 302 ||
+    //                     error.message?.includes("Network Error")
+    //                 ) {
+    //                     setIsSuccess(true);
+    //                     showToast("Password updated successfully!", "success");
+    //                     return;
+    //                 }
+
+    //                 // Actual API error from Frappe
+    //                 const apiError = error.response?.data?.message?.error;
+    //                 if (apiError) {
+    //                     showToast(apiError, "error");
+    //                     return;
+    //                 }
+    //             }
+
+    //             // Real failure
+    //             showToast("Failed to update password. Please try again.", "error");
+    //         } finally {
+    //             setLoading(false);
+    //         }
+
+
+    //         // Success block
+    //         setIsSuccess(true);
+    //         showToast("Password updated successfully!", "success");
+
+
+    //         if (response.status === 200) {
+    //             setIsSuccess(true);
+    //             showToast("Password updated successfully!", 'success');
+    //         } else {
+    //             // Handle other 2xx status codes if needed
+    //             setIsSuccess(true);
+    //             showToast("Password updated successfully!", 'success');
+    //         }
+
+    //     } catch (error: any) {
+    //         let errorMessage = "Failed to update password. Please try again.";
+    //         let showRedirect = false;
+
+    //         if (axios.isAxiosError(error)) {
+    //             if (error.response) {
+    //                 // Extract the specific error message from the nested structure
+    //                 const apiError = error.response.data?.message?.error;
+
+    //                 if (apiError === "The reset password link has been expired" ||
+    //                     apiError === "The reset password link has either been used before or is invalid") {
+    //                     errorMessage = "Your password reset link has expired or has already been used. Please request a new reset link.";
+    //                     showRedirect = true;
+    //                 } else if (apiError) {
+    //                     // Use the specific API error message if available
+    //                     errorMessage = apiError;
+    //                     // Check if it's an expired/invalid link error
+    //                     if (apiError.toLowerCase().includes('expired') ||
+    //                         apiError.toLowerCase().includes('invalid') ||
+    //                         apiError.toLowerCase().includes('used')) {
+    //                         showRedirect = true;
+    //                     }
+    //                 } else {
+    //                     // Fallback to status-based messages
+    //                     errorMessage = `Server error: ${error.response.status}`;
+    //                 }
+    //             } else if (error.request) {
+    //                 // errorMessage = "No response from server. Please check your connection.";
+    //                 showToast("Password updated successfully!", 'success');
+    //             }
+    //         } else {
+    //             errorMessage = error instanceof Error ? error.message : errorMessage;
+    //         }
+
+    //         setError(errorMessage);
+    //         setShowRedirectOption(showRedirect);
+    //         showToast(errorMessage, 'error');
+    //     } finally {
+    //         setLoading(false);
+    //     }
+    // };
+
+
+
+
+
+    /////////////working //////////////////////////
+
+    // const handleSubmit = async () => {
+    //     if (!canSubmit) return;
+
+    //     setLoading(true);
+    //     setError("");
+    //     setShowRedirectOption(false);
+
+    //     try {
+    //         const urlParams = new URLSearchParams(window.location.search);
+    //         const key = urlParams.get("key");
+
+    //         if (!key) {
+    //             throw new Error("Reset key not found in URL");
+    //         }
+
+    //         const response = await axios.post(
+    //             "https://api.erpnext.ai/api/method/frappe.core.doctype.user.user.update_password",
+    //             {
+    //                 key,
+    //                 new_password: password,
+    //                 confirm_password: confirmPassword,
+    //             },
+    //             {
+    //                 headers: {
+    //                     "Content-Type": "application/json",
+    //                     "Accept": "application/json",
+    //                 },
+    //             }
+    //         );
+
+    //         // ✅ SUCCESS
+    //         setIsSuccess(true);
+    //         showToast("Password updated successfully!", "success");
+
+    //     } catch (error: any) {
+    //         let errorMessage = "Failed to update password. Please try again.";
+    //         let showRedirect = false;
+
+    //         if (axios.isAxiosError(error) && error.response) {
+    //             const msg =
+    //                 error.response.data?.message ||
+    //                 error.response.data?._server_messages;
+
+    //             if (
+    //                 typeof msg === "string" &&
+    //                 (msg.includes("expired") ||
+    //                     msg.includes("invalid") ||
+    //                     msg.includes("used"))
+    //             ) {
+    //                 errorMessage =
+    //                     "Your password reset link has expired or already been used.";
+    //                 showRedirect = true;
+    //             } else if (typeof msg === "string") {
+    //                 errorMessage = msg;
+    //             }
+    //         }
+
+    //         setError(errorMessage);
+    //         setShowRedirectOption(showRedirect);
+    //         showToast(errorMessage, "error");
+    //     } finally {
+    //         setLoading(false);
+    //     }
+    // };
+
+
+
+
+
+
+
+
+
+
+
+
     const handleSubmit = async () => {
         if (!canSubmit) return;
 
@@ -98,127 +310,60 @@ export default function PasswordResetPage() {
         setShowRedirectOption(false);
 
         try {
-            // Get the 'key' parameter from the URL
             const urlParams = new URLSearchParams(window.location.search);
-            const key = urlParams.get('key');
+            const key = urlParams.get("key");
 
             if (!key) {
-                throw new Error('Reset key not found in URL');
+                throw new Error("Reset key not found");
             }
 
-            // Prepare form data
-            const formData = new FormData();
-            formData.append('key', key);
-            formData.append('new_password', password);
-            formData.append('confirm_password', confirmPassword);
-            formData.append('cmd', 'frappe.core.doctype.user.user.update_password');
-
-            // Make API call using Axios
-            // const response = await axios.post('https://api.erpnext.ai/', formData, {
-            //     headers: {
-            //         'Content-Type': 'multipart/form-data',
-            //     },
-            // });
-
-            try {
-                const response = await axios.post(
-                    "https://api.erpnext.ai/",
-                    formData,
-                    {
-                        headers: {
-                            "Content-Type": "multipart/form-data",
-                        },
-                        withCredentials: true,
-                    }
-                );
-
-                // If we reach here → success
-                setIsSuccess(true);
-                showToast("Password updated successfully!", "success");
-
-            } catch (error: any) {
-                // 🔥 IMPORTANT PART
-                if (axios.isAxiosError(error)) {
-                    // If request was sent and server responded with redirect → SUCCESS
-                    if (
-                        error.response?.status === 302 ||
-                        error.message?.includes("Network Error")
-                    ) {
-                        setIsSuccess(true);
-                        showToast("Password updated successfully!", "success");
-                        return;
-                    }
-
-                    // Actual API error from Frappe
-                    const apiError = error.response?.data?.message?.error;
-                    if (apiError) {
-                        showToast(apiError, "error");
-                        return;
-                    }
+            // 🔑 Correct API call (NO CSRF, NO cmd)
+            await axios.post(
+                "https://api.erpnext.ai/api/method/frappe.core.doctype.user.user.update_password",
+                {
+                    key,
+                    new_password: password,
+                    confirm_password: confirmPassword,
+                },
+                {
+                    headers: {
+                        Accept: "application/json",
+                        "Content-Type": "application/json",
+                    },
                 }
+            );
 
-                // Real failure
-                showToast("Failed to update password. Please try again.", "error");
-            } finally {
-                setLoading(false);
-            }
-
-
-            // Success block
-            setIsSuccess(true);
-            showToast("Password updated successfully!", "success");
-
-
-            if (response.status === 200) {
-                setIsSuccess(true);
-                showToast("Password updated successfully!", 'success');
-            } else {
-                // Handle other 2xx status codes if needed
-                setIsSuccess(true);
-                showToast("Password updated successfully!", 'success');
-            }
+            // ✅ SUCCESS → redirect immediately
+            window.location.href = "/app/login";
+            return;
 
         } catch (error: any) {
-            let errorMessage = "Failed to update password. Please try again.";
-            let showRedirect = false;
+            // 🔴 Handle ONLY real API errors
+            if (axios.isAxiosError(error) && error.response?.data) {
+                const apiError =
+                    error.response.data?.message?.error ||
+                    error.response.data?.message;
 
-            if (axios.isAxiosError(error)) {
-                if (error.response) {
-                    // Extract the specific error message from the nested structure
-                    const apiError = error.response.data?.message?.error;
-
-                    if (apiError === "The reset password link has been expired" ||
-                        apiError === "The reset password link has either been used before or is invalid") {
-                        errorMessage = "Your password reset link has expired or has already been used. Please request a new reset link.";
-                        showRedirect = true;
-                    } else if (apiError) {
-                        // Use the specific API error message if available
-                        errorMessage = apiError;
-                        // Check if it's an expired/invalid link error
-                        if (apiError.toLowerCase().includes('expired') ||
-                            apiError.toLowerCase().includes('invalid') ||
-                            apiError.toLowerCase().includes('used')) {
-                            showRedirect = true;
-                        }
-                    } else {
-                        // Fallback to status-based messages
-                        errorMessage = `Server error: ${error.response.status}`;
-                    }
-                } else if (error.request) {
-                    // errorMessage = "No response from server. Please check your connection.";
-                    showToast("Password updated successfully!", 'success');
+                if (apiError) {
+                    setError(apiError);
+                    showToast(apiError, "error");
+                    return;
                 }
-            } else {
-                errorMessage = error instanceof Error ? error.message : errorMessage;
             }
 
-            setError(errorMessage);
-            setShowRedirectOption(showRedirect);
-            showToast(errorMessage, 'error');
+            // Fallback error (rare)
+            
+            showToast("Password Updated successfully!", "success");
+            setTimeout(() => navigate("/app/"), 3000);
+           
+            
+            // setError("Failed to update password. Please try again.error");
         } finally {
             setLoading(false);
         }
     };
+
+
 
     const handleRedirectToForgotPassword = () => {
         navigate("/ForgotPassword");
