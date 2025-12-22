@@ -218,7 +218,7 @@ export default function ForgotPasswordPage() {
                         <img
                             src="../../app/public/assets/images/Erpnextlogo.png"
                             alt="ERPNext.ai"
-                            className="w-[300px] filter invert brightness-0 saturate-100 sepia hue-rotate-[90deg] contrast-125"
+                            className="w-[300px] mb-2 "
                         />
                     </div>
                 </div>

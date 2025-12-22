@@ -207,13 +207,13 @@ export function Sidebar({ isCollapsed, onToggle, activeItem, onItemClick }: Side
                   onMouseLeave={() => setIsLogoHovered(false)}
                 >
                   <div className="flex items-center space-x-3 mb-2">
-                    {/* Logo */}
+
                     <img
                       src="/app/assets/images/Erpnextlogo.png"
                       alt="ERPNext Logo"
-                      className={`w-[250px] h-auto transition duration-300 ${theme === "dark"
-                        ? "filter invert brightness-0 saturate-100 sepia hue-rotate-[90deg] contrast-125"
-                        : ""
+                      className={`w-[300px] m-5 h-auto transition duration-300 ${theme === "dark"
+                          ? ""
+                          : "filter  brightness-0"
                         }`}
                     />
                   </div>
@@ -318,7 +318,7 @@ export function Sidebar({ isCollapsed, onToggle, activeItem, onItemClick }: Side
               </div>
             )}
 
-            <div className="flex items-center">
+            <div className="flex mt-3 items-center">
               <button
                 onClick={toggleTheme}
                 className={`p-1.5 rounded-lg transition-colors ${theme === 'dark' ? 'hover:bg-purple-800/50' : 'hover:bg-gray-100'

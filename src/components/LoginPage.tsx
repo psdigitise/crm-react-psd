@@ -1372,7 +1372,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                 <img
                   src="/app/assets/images/Erpnextlogo.png"
                   alt="Erpnext Logo"
-                  className="w-[300px] h-100 filter invert brightness-0 saturate-100 sepia hue-rotate-[90deg] contrast-125"
+                  className="w-[300px] mb-5 h-100 "
                 />
               </div>
             </div>
