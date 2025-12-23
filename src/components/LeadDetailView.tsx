@@ -973,7 +973,9 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
               fieldLabel.includes('lead_summary') || fieldLabel.includes('lead summary') ||
               fieldName === 'lead_summary' || fieldName === 'lead_score' ||
               fieldLabel.includes('company_info') || fieldLabel.includes('company intelligence') ||
-              value.includes('company_info') || oldValue.includes('company_info');
+              fieldLabel.includes('company info') || // Add this
+              value.includes('company_info') || oldValue.includes('company_info') ||
+              value.includes('company info') || oldValue.includes('company info'); // Add this
 
             return !isBlocked;
           }
@@ -995,18 +997,27 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
 
             case 'added':
             case 'changed':
-              // ✨ CORRECTION: Filter nested versions inside grouped changes
+              // ✨ CORRECTION: Filter nested versions inside grouped changes for company_info
               if (item.other_versions?.length > 0) {
                 const filteredVersions = item.other_versions.filter((v: any) => {
                   const vLabel = v.data?.field_label?.toLowerCase() || '';
                   const vName = v.data?.fieldname || '';
-                  return !(vLabel.includes('lead summary') || vName === 'lead_summary' || vName === 'lead_score');
+                  return !(
+                    vLabel.includes('lead summary') ||
+                    vName === 'lead_summary' ||
+                    vName === 'lead_score' ||
+                    vLabel.includes('company_info') ||
+                    vLabel.includes('company intelligence') ||
+                    vLabel.includes('company info')
+                  );
                 });
 
-                // If filtering nested versions leaves nothing, and the main item was also summary, skip
+                // If filtering nested versions leaves nothing, and the main item was also company_info, skip
                 if (filteredVersions.length === 0) {
                   const mainLabel = item.data?.field_label?.toLowerCase() || '';
-                  if (mainLabel.includes('lead summary')) return null;
+                  if (mainLabel.includes('company_info') || mainLabel.includes('company intelligence') || mainLabel.includes('company info')) {
+                    return null;
+                  }
                 }
 
                 return {
@@ -1023,6 +1034,12 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
                     other_versions: filteredVersions // Use the cleaned list
                   }
                 };
+              }
+
+              // Check if this is a company_info change that should be hidden
+              const fieldLabel = item.data?.field_label?.toLowerCase() || '';
+              if (fieldLabel.includes('company_info') || fieldLabel.includes('company intelligence') || fieldLabel.includes('company info')) {
+                return null; // Skip company info changes entirely
               }
 
               const actionText = item.activity_type === 'added'

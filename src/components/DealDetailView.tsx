@@ -1922,97 +1922,109 @@ export function DealDetailView({ deal, onBack, onSave }: DealDetailViewProps) {
       }));
 
       // --- UPDATED TIMELINE FILTERING LOGIC ---
-      const timelineActivities = timelineItems.map((item: any) => {
-        // Logic to identify intelligence/summary fields
-        const isSystemIntelligence = (data: any) => {
-          const label = (data?.field_label || '').toLowerCase();
-          const fname = (data?.fieldname || '').toLowerCase();
-          return (
-            label.includes('lead summary') ||
-            label.includes('company intelligence') ||
-            fname === 'lead_summary' ||
-            fname === 'lead_score' ||
-            fname === 'company_info'
-          );
+     // Update the timelineActivities mapping logic in fetchAllActivities function
+
+const timelineActivities = timelineItems.map((item: any) => {
+  // Enhanced logic to identify intelligence/summary fields
+  const isSystemIntelligence = (data: any) => {
+    const label = (data?.field_label || '').toLowerCase();
+    const fname = (data?.fieldname || '').toLowerCase();
+    const value = (data?.value || '').toLowerCase();
+    
+    // Check for company_info or lead_summary related data
+    return (
+      label.includes('lead summary') ||
+      label.includes('company intelligence') ||
+      label.includes('company info') ||
+      fname === 'lead_summary' ||
+      fname === 'lead_score' ||
+      fname === 'company_info' ||
+      fname === 'company_info_field' ||
+      value.includes('lead summary') ||
+      value.includes('company intelligence')
+    );
+  };
+
+  switch (item.activity_type) {
+    case 'creation':
+      return {
+        id: `creation-${item.creation}`,
+        type: 'edit',
+        title: `${getFreshFullname(item.owner)} ${item.data}`,
+        description: '',
+        timestamp: item.creation,
+        user: getFreshFullname(item.owner),
+        icon: <UserPlus className="w-4 h-4 text-gray-500" />
+      };
+
+    case 'comment':
+      // Hide comments that contain intelligence reports
+      if (item.content?.toLowerCase().includes('lead summary') ||
+          item.content?.toLowerCase().includes('company intelligence') ||
+          item.content?.toLowerCase().includes('company info')) {
+        return null;
+      }
+      return {
+        id: item.name,
+        type: 'comment',
+        title: 'New Comment',
+        description: item.content.replace(/<[^>]+>/g, ''),
+        timestamp: item.creation,
+        user: getFreshFullname(item.owner),
+        icon: <MessageSquare className="w-4 h-4 text-purple-500" />
+      };
+
+    case 'communication':
+      return {
+        id: item.name || `comm-${item.creation}`,
+        type: 'email',
+        title: `Email: ${item.data.subject}`,
+        description: ``,
+        timestamp: item.creation,
+        user: getFreshFullname(item.data.sender_full_name || item.data.sender),
+        icon: <Mail className="w-4 h-4 text-red-500" />
+      };
+
+    case 'added':
+    case 'changed':
+      // Filter out individual intelligence changes
+      if (isSystemIntelligence(item.data)) return null;
+
+      // Filter out intelligence changes inside grouped versions
+      if (item.other_versions?.length > 0) {
+        const filteredVersions = item.other_versions.filter((v: any) => !isSystemIntelligence(v.data));
+
+        // If the group only contained intelligence, hide the whole group
+        if (filteredVersions.length === 0 && isSystemIntelligence(item.data)) return null;
+
+        return {
+          id: `group-${item.creation}`,
+          type: 'grouped_change',
+          timestamp: item.creation,
+          user: getFreshFullname(item.owner),
+          icon: <Layers className="w-4 h-4 text-white" />,
+          changes: [item, ...filteredVersions]
         };
+      }
 
-        switch (item.activity_type) {
-          case 'creation':
-            return {
-              id: `creation-${item.creation}`,
-              type: 'edit',
-              title: `${getFreshFullname(item.owner)} ${item.data}`,
-              description: '',
-              timestamp: item.creation,
-              user: getFreshFullname(item.owner),
-              icon: <UserPlus className="w-4 h-4 text-gray-500" />
-            };
-
-          case 'comment':
-            // Hide comments that contain intelligence reports
-            if (item.content?.toLowerCase().includes('lead summary') ||
-              item.content?.toLowerCase().includes('company intelligence')) {
-              return null;
-            }
-            return {
-              id: item.name,
-              type: 'comment',
-              title: 'New Comment',
-              description: item.content.replace(/<[^>]+>/g, ''),
-              timestamp: item.creation,
-              user: getFreshFullname(item.owner),
-              icon: <MessageSquare className="w-4 h-4 text-purple-500" />
-            };
-
-          case 'communication':
-            return {
-              id: item.name || `comm-${item.creation}`,
-              type: 'email',
-              title: `Email: ${item.data.subject}`,
-              description: ``,
-              timestamp: item.creation,
-              user: getFreshFullname(item.data.sender_full_name || item.data.sender),
-              icon: <Mail className="w-4 h-4 text-red-500" />
-            };
-
-          case 'added':
-          case 'changed':
-            // Filter out individual intelligence changes
-            if (isSystemIntelligence(item.data)) return null;
-
-            // Filter out intelligence changes inside grouped versions
-            if (item.other_versions?.length > 0) {
-              const filteredVersions = item.other_versions.filter((v: any) => !isSystemIntelligence(v.data));
-
-              // If the group only contained intelligence, hide the whole group
-              if (filteredVersions.length === 0 && isSystemIntelligence(item.data)) return null;
-
-              return {
-                id: `group-${item.creation}`,
-                type: 'grouped_change',
-                timestamp: item.creation,
-                user: getFreshFullname(item.owner),
-                icon: <Layers className="w-4 h-4 text-white" />,
-                changes: [item, ...filteredVersions]
-              };
-            }
-
-            const actionText = item.activity_type === 'added'
-              ? `added value for ${item.data.field_label}: '${item.data.value}'`
-              : `changed ${item.data.field_label} from '${item.data.old_value || "nothing"}' to '${item.data.value}'`;
-            return {
-              id: `change-${item.creation}`,
-              type: 'edit',
-              title: `${getFreshFullname(item.owner)} ${actionText}`,
-              description: '',
-              timestamp: item.creation,
-              user: getFreshFullname(item.owner),
-              icon: <RxLightningBolt className="w-4 h-4 text-yellow-500" />
-            };
-          default:
-            return null;
-        }
-      }).filter(Boolean);
+      const actionText = item.activity_type === 'added'
+        ? `added value for ${item.data.field_label}: '${item.data.value}'`
+        : `changed ${item.data.field_label} from '${item.data.old_value || "nothing"}' to '${item.data.value}'`;
+      
+      return {
+        id: `change-${item.creation}`,
+        type: 'edit',
+        title: `${getFreshFullname(item.owner)} ${actionText}`,
+        description: '',
+        timestamp: item.creation,
+        user: getFreshFullname(item.owner),
+        icon: <RxLightningBolt className="w-4 h-4 text-yellow-500" />
+      };
+    
+    default:
+      return null;
+  }
+}).filter(Boolean);
 
       const allActivities = [...callActivities, ...taskActivities, ...timelineActivities, ...attachmentActivities];
       allActivities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
