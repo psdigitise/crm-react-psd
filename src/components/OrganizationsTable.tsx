@@ -154,7 +154,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
     // Start the soft refresh interval (every 1 second)
     intervalRef.current = setInterval(() => {
       softRefreshOrganizations();
-    }, 1000);
+    }, 50000);
 
     // Cleanup interval on unmount
     return () => {
@@ -339,11 +339,18 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
 
       const result = await api.post('/api/method/crm.api.doc.get_data', requestBody);
 
+      const formatOrganizationName = (name: string): string => {
+  if (!name) return 'Unknown';
+  // Split by "@" and take the first part
+  const parts = name.split('@');
+  return parts[0].trim();
+}
+
       // Transform API data to match our Organization interface
       const transformedOrganizations: Organization[] = result.message.data.map((apiOrg: any) => ({
         id: apiOrg.name || Math.random().toString(),
-        name: apiOrg.organization_name || 'Unknown',
-        organization_name: apiOrg.organization_name || '',
+        name: formatOrganizationName(apiOrg.organization_name || apiOrg.name || ''),
+        organization_name: formatOrganizationName(apiOrg.organization_name || apiOrg.name || ''),
         website: apiOrg.website || 'N/A',
         territory: apiOrg.territory || 'N/A',
         industry: apiOrg.industry || 'N/A',

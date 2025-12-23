@@ -2257,9 +2257,10 @@ const timelineActivities = timelineItems.map((item: any) => {
     }
   }, [deal.name]);
 
-  const getOrganizationName = () => {
-    return editedDeal.organization_name || editedDeal.organization || 'No Organization';
-  };
+ const getOrganizationName = () => {
+  const orgName = editedDeal.organization_name || editedDeal.organization || 'No Organization';
+  return orgName.split('@')[0].trim();
+};
 
 
   // Call this effect when the component mounts or when the deal changes

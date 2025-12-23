@@ -1549,38 +1549,47 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
   }, []);
 
   const fetchOrganizationOptions = async () => {
-    try {
-      const session = getUserSession();
-      const sessionCompany = session?.company;
+  try {
+    const session = getUserSession();
+    const sessionCompany = session?.company;
 
-      if (!sessionCompany) {
-        setOrganizationOptions([]);
-        return;
-      }
-
-      const response = await fetch(`${API_BASE_URL}/method/frappe.desk.search.search_link`, {
-        method: 'POST',
-        headers: {
-          'Authorization': token,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          txt: "",
-          doctype: "CRM Organization",
-          filters: JSON.stringify({
-            company: sessionCompany
-          })
-        })
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        setOrganizationOptions(result.message?.map((org: any) => org.value) || []);
-      }
-    } catch (error) {
-      console.error('Error fetching organizations:', error);
+    if (!sessionCompany) {
+      setOrganizationOptions([]);
+      return;
     }
-  };
+
+    const response = await fetch(`${API_BASE_URL}/method/frappe.desk.search.search_link`, {
+      method: 'POST',
+      headers: {
+        'Authorization': token,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        txt: "",
+        doctype: "CRM Organization",
+        filters: JSON.stringify({
+          company: sessionCompany
+        })
+      })
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+      
+      // Extract organization names and remove everything after @
+      const organizations = result.message?.map((org: any) => {
+        const fullName = org.value || '';
+        // Split by @ and take the first part
+        const nameParts = fullName.split('@');
+        return nameParts[0].trim();
+      }).filter((name: string) => name !== '') || [];
+      
+      setOrganizationOptions(organizations);
+    }
+  } catch (error) {
+    console.error('Error fetching organizations:', error);
+  }
+};
 
   const fetchCompanyIntelligence = async (companyName: string) => {
     if (!companyName.trim()) {

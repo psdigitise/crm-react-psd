@@ -803,7 +803,7 @@ export default function ContactDetails({
 
       const transformedDeals = deals.map((deal: any) => ({
         name: deal.name,
-        organization: deal.organization || deal.organization_name || 'No organization',
+        organization: (deal.organization || deal.organization_name || 'No organization').split('@')[0].trim(),
         annual_revenue: deal.annual_revenue || 0,
         status: deal.status || 'Qualification',
         email: deal.email || 'No email',

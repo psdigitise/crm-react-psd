@@ -256,7 +256,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
 
       const transformedDeals: Deal[] = result.message.data.map((apiDeal: any) => ({
         id: apiDeal.name || Math.random().toString(),
-        organization: apiDeal.organization || 'N/A',
+        organization: (apiDeal.organization || 'N/A').split('@')[0].trim(),
         first_name: apiDeal.first_name || 'Unknown',
         lastName: apiDeal.last_name || '',
         name: apiDeal.name || 'Unknown',
