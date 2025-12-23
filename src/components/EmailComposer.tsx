@@ -495,18 +495,27 @@ Instruction: ${emailForm.aiPrompt.trim()}
           setToRecipients(prev => [...prev, newRecipient]);
         }
         setCurrentToInput("");
+        setTimeout(() => {
+          toInputRef.current?.focus();
+        }, 0);
         break;
       case "cc":
         if (!ccRecipients.some(r => r.email === emailAddress)) {
           setCcRecipients(prev => [...prev, newRecipient]);
         }
         setCurrentCcInput("");
+        setTimeout(() => {
+          ccInputRef.current?.focus();
+        }, 0);
         break;
       case "bcc":
         if (!bccRecipients.some(r => r.email === emailAddress)) {
           setBccRecipients(prev => [...prev, newRecipient]);
         }
         setCurrentBccInput("");
+        setTimeout(() => {
+          bccInputRef.current?.focus();
+        }, 0);
         break;
     }
 
@@ -537,6 +546,11 @@ Instruction: ${emailForm.aiPrompt.trim()}
     if (e.key === 'Enter' && inputValue.trim()) {
       e.preventDefault();
       handleAddRecipient(type, inputValue);
+    } else if (e.key === ',') {
+      e.preventDefault();
+      if (inputValue.trim()) {
+        handleAddRecipient(type, inputValue);
+      }
     } else if (e.key === 'Backspace' && !inputValue) {
       switch (type) {
         case "to":
@@ -591,14 +605,24 @@ Instruction: ${emailForm.aiPrompt.trim()}
     switch (suggestionsFor) {
       case "to":
         handleAddRecipient("to", user.value);
+        setTimeout(() => {
+          toInputRef.current?.focus();
+        }, 0);
         break;
       case "cc":
         handleAddRecipient("cc", user.value);
+        setTimeout(() => {
+          ccInputRef.current?.focus();
+        }, 0);
         break;
       case "bcc":
         handleAddRecipient("bcc", user.value);
+        setTimeout(() => {
+          bccInputRef.current?.focus();
+        }, 0);
         break;
     }
+    setShowSuggestions(false);
   };
 
   const renderRecipientChips = (recipients: EmailRecipient[], type: "to" | "cc" | "bcc") => {
@@ -878,6 +902,18 @@ Instruction: ${emailForm.aiPrompt.trim()}
     }
   };
 
+  const handleInputBlur = (type: "to" | "cc" | "bcc") => {
+  setTimeout(() => {
+    const inputValue = type === "to" ? currentToInput : 
+                      type === "cc" ? currentCcInput : currentBccInput;
+    
+    if (inputValue.trim()) {
+      handleAddRecipient(type, inputValue);
+    }
+    setShowSuggestions(false);
+  }, 200);
+};
+
   const handleConfirmGenerate = async () => {
     await generateEmailFromSubject(subjectToGenerate);
     setShowConfirmationPopup(false);
@@ -1047,6 +1083,7 @@ Instruction: ${emailForm.aiPrompt.trim()}
                       onChange={(e) => handleInputChange(e, "to")}
                       onKeyDown={(e) => handleInputKeyDown(e, "to")}
                       onFocus={() => setSuggestionsFor("to")}
+                       onBlur={() => handleInputBlur("to")}
                       className={`w-full px-2 py-1 rounded font-medium outline-none placeholder:font-normal ${theme === "dark"
                         ? "bg-gray-700 text-white !placeholder-gray-400 border border-gray-600 focus:border-gray-400"
                         : "bg-gray-50 text-gray-800 !placeholder-gray-500 border border-gray-300 focus:border-gray-500"
@@ -1078,6 +1115,7 @@ Instruction: ${emailForm.aiPrompt.trim()}
                         onChange={(e) => handleInputChange(e, "cc")}
                         onKeyDown={(e) => handleInputKeyDown(e, "cc")}
                         onFocus={() => setSuggestionsFor("cc")}
+                         onBlur={() => handleInputBlur("cc")}
                         className={`w-full px-2 py-1 rounded font-medium outline-none placeholder:font-normal ${theme === "dark"
                           ? "bg-gray-700 text-white !placeholder-gray-400 border border-gray-600 focus:border-gray-400"
                           : "bg-gray-50 text-gray-800 !placeholder-gray-500 border border-gray-300 focus:border-gray-500"
@@ -1110,6 +1148,7 @@ Instruction: ${emailForm.aiPrompt.trim()}
                         onChange={(e) => handleInputChange(e, "bcc")}
                         onKeyDown={(e) => handleInputKeyDown(e, "bcc")}
                         onFocus={() => setSuggestionsFor("bcc")}
+                         onBlur={() => handleInputBlur("bcc")}
                         className={`w-full px-2 py-1 rounded font-medium outline-none placeholder:font-normal ${theme === "dark"
                           ? "bg-gray-700 text-white !placeholder-gray-400 border border-gray-600 focus:border-gray-400"
                           : "bg-gray-50 text-gray-800 !placeholder-gray-500 border border-gray-300 focus:border-gray-500"
@@ -1183,7 +1222,10 @@ Instruction: ${emailForm.aiPrompt.trim()}
                       ? "hover:bg-gray-700 border-gray-700 text-white"
                       : "hover:bg-gray-100 border-gray-200 text-gray-800"
                       }`}
-                    onClick={() => handleSuggestionClick(user)}
+                    onMouseDown={(e) => { // Change from onClick to onMouseDown
+                      e.preventDefault(); // Prevent default to avoid blur
+                      handleSuggestionClick(user);
+                    }}
                   >
                     <div className="font-medium truncate">{user.value}</div>
                     {user.description && (
