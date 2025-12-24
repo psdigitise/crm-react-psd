@@ -859,7 +859,17 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
                       type="text"
                       name="annual_revenue"
                       value={formData.annual_revenue}
-                      onChange={handleChange}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                          handleChange(e);
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (!/[0-9.]|Backspace|Delete|ArrowLeft|ArrowRight|Tab/.test(e.key)) {
+                          e.preventDefault();
+                        }
+                      }}
                       maxLength={10}
                       placeholder="₹ 0.00"
                       disabled={isLoading}
@@ -946,7 +956,18 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
                       type="text"
                       name="first_name"
                       value={formData.first_name}
-                      onChange={handleChange}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (value === '' || /^[A-Za-z\s]*$/.test(value)) {
+                          handleChange(e);
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (!/^[a-zA-Z\s]$/.test(e.key) &&
+                          !['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(e.key)) {
+                          e.preventDefault();
+                        }
+                      }}
                       placeholder="First Name"
                       disabled={isLoading}
                       className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
@@ -963,7 +984,18 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
                       type="text"
                       name="last_name"
                       value={formData.last_name}
-                      onChange={handleChange}
+                      onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === '' || /^[A-Za-z\s]*$/.test(value)) {
+                      handleChange(e);
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (!/^[a-zA-Z\s]$/.test(e.key) &&
+                      !['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(e.key)) {
+                      e.preventDefault();
+                    }
+                  }}
                       placeholder="Last Name"
                       disabled={isLoading}
                       className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
@@ -1103,8 +1135,8 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
                     }
                   }}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
-                      ? 'bg-white-31 border-white text-white !placeholder-gray-100'
-                      : 'bg-white/80 border-gray-300 !placeholder-gray-500'
+                    ? 'bg-white-31 border-white text-white !placeholder-gray-100'
+                    : 'bg-white/80 border-gray-300 !placeholder-gray-500'
                     }`}
                 />
 

@@ -1356,15 +1356,25 @@ export function CreateLeadModal({ isOpen, onClose, onSubmit }: CreateLeadModalPr
               </div>
 
               <div>
-                <label className={`block text-md font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
-                  }`}>
+                <label className={`block text-md font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>
                   First Name <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   name="firstName"
                   value={formData.firstName}
-                  onChange={handleChange}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === '' || /^[A-Za-z\s]*$/.test(value)) {
+                      handleChange(e);
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (!/^[a-zA-Z\s]$/.test(e.key) &&
+                      !['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(e.key)) {
+                      e.preventDefault();
+                    }
+                  }}
                   placeholder="First Name"
                   className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
                     ? 'bg-white-31 border-white text-white !placeholder-gray-100'
@@ -1378,15 +1388,25 @@ export function CreateLeadModal({ isOpen, onClose, onSubmit }: CreateLeadModalPr
               </div>
 
               <div>
-                <label className={`block text-md font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
-                  }`}>
+                <label className={`block text-md font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>
                   Last Name
                 </label>
                 <input
                   type="text"
                   name="lastName"
                   value={formData.lastName}
-                  onChange={handleChange}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === '' || /^[A-Za-z\s]*$/.test(value)) {
+                      handleChange(e);
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (!/^[a-zA-Z\s]$/.test(e.key) &&
+                      !['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(e.key)) {
+                      e.preventDefault();
+                    }
+                  }}
                   placeholder="Last Name"
                   className={`w-full text-sm px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
                     ? 'bg-white-31 border-white text-white !placeholder-gray-100'
@@ -1567,18 +1587,27 @@ export function CreateLeadModal({ isOpen, onClose, onSubmit }: CreateLeadModalPr
               </div>
 
               <div>
-                <label className={`block text-md font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
-                  }`}>
+                <label className={`block text-md font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>
                   Annual Revenue
                 </label>
                 <input
                   type="text"
                   name="annualRevenue"
                   value={formData.annualRevenue}
-                  onChange={handleChange}
-                  maxLength={10}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                      handleChange(e);
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (!/[0-9.]|Backspace|Delete|ArrowLeft|ArrowRight|Tab/.test(e.key)) {
+                      e.preventDefault();
+                    }
+                  }}
+                  maxLength={15}
                   placeholder="₹ 0.00"
-                  className={`w-full  text-sm px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
+                  className={`w-full text-sm px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
                     ? 'bg-white-31 border-white text-white placeholder-gray-400'
                     : 'bg-white/80 border-gray-300 placeholder-gray-500'
                     }`}

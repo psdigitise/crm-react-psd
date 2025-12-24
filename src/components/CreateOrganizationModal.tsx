@@ -792,7 +792,17 @@ export function CreateOrganizationModal({ isOpen, onClose, onSubmit }: CreateOrg
                     name="annual_revenue"
                     value={formData.annual_revenue}
                     maxLength={10}
-                    onChange={handleChange}
+                    onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                      handleChange(e);
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (!/[0-9.]|Backspace|Delete|ArrowLeft|ArrowRight|Tab/.test(e.key)) {
+                      e.preventDefault();
+                    }
+                  }}
                     placeholder="₹ 0.00"
                     disabled={loading}
                     className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'

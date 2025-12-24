@@ -1395,24 +1395,38 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 
                 {/* Full Name */}
                 <div>
-                  <label className="block text-sm font-medium text-white mb-1">
-                    Full Name <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative border border-white rounded-lg">
-                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                    <input
-                      type="text"
-                      value={registerData.first_name}
-                      onChange={e => handleFirstNameChange(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 border border-transparent rounded-lg bg-transparent text-white !placeholder-gray-400 focus:outline-none"
-                      placeholder="John"
-                      disabled={loading}
-                    />
-                  </div>
-                  {firstNameError && (
-                    <p className="text-red-400 text-sm mt-1">{firstNameError}</p>
-                  )}
-                </div>
+  <label className="block text-sm font-medium text-white mb-1">
+    Full Name <span className="text-red-500">*</span>
+  </label>
+  <div className="relative border border-white rounded-lg">
+    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+    <input
+      type="text"
+      value={registerData.first_name}
+      onChange={e => {
+        const value = e.target.value;
+        // Allow only letters and spaces
+        if (value === '' || /^[A-Za-z\s]*$/.test(value)) {
+          handleFirstNameChange(value);
+        }
+      }}
+      onKeyDown={(e) => {
+        // Allow only letters, space, and navigation keys
+        if (!/^[a-zA-Z\s]$/.test(e.key) && 
+            !['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 
+              'Tab', 'Home', 'End'].includes(e.key)) {
+          e.preventDefault();
+        }
+      }}
+      className="w-full pl-10 pr-4 py-3 border border-transparent rounded-lg bg-transparent text-white !placeholder-gray-400 focus:outline-none"
+      placeholder="John"
+      disabled={loading}
+    />
+  </div>
+  {firstNameError && (
+    <p className="text-red-400 text-sm mt-1">{firstNameError}</p>
+  )}
+</div>
 
                 {/* Email */}
                 <div>
@@ -1662,11 +1676,11 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                   />
 
 
-                  <CustomFacebookLoginButton
+                  {/* <CustomFacebookLoginButton
                     onSuccess={handleFacebookLogin}
                     onError={handleFacebookError}
                     loading={loading}
-                  />
+                  /> */}
                 </div>
 
                 {/* Create New Account */}

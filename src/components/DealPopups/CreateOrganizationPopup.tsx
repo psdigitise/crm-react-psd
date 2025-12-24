@@ -441,15 +441,47 @@ export const CreateOrganizationPopup: React.FC<CreateOrganizationPopupProps> = (
                             <label htmlFor="orgRevenue" className={labelClass}>
                                 Annual Revenue
                             </label>
-                            <input
-                                id="orgRevenue"
-                                type="text"
-                                value={formData.revenue}
-                                maxLength={10}
-                                onChange={(e) => handleChange("revenue", e.target.value)}
-                                className={inputClass}
-                                placeholder="Annual Revenue"
-                            />
+                            <div className="relative">
+                                <span className={`absolute left-3 top-2.5 text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>
+                                    ₹
+                                </span>
+                                <input
+                                    id="orgRevenue"
+                                    type="text"
+                                    value={formData.revenue}
+                                    onChange={(e) => {
+                                       
+                                        let value = e.target.value;
+
+                                       
+                                        value = value.replace(/[^0-9.]/g, '');
+
+                                       
+                                        const parts = value.split('.');
+                                        if (parts.length > 2) {
+                                            value = parts[0] + '.' + parts.slice(1).join('');
+                                        }
+
+                                      
+                                        if (parts.length > 1) {
+                                            parts[1] = parts[1].slice(0, 2);
+                                            value = parts[0] + '.' + parts[1];
+                                        }
+
+                                      
+                                        handleChange("revenue", value === '' ? '₹ 0.00' : `₹ ${value}`);
+                                    }}
+                                    onKeyDown={(e) => {
+                                      
+                                        if (!/[0-9.]|Backspace|Delete|ArrowLeft|ArrowRight|Tab|Enter/.test(e.key)) {
+                                            e.preventDefault();
+                                        }
+                                    }}
+                                    placeholder="0.00"
+                                    className={`w-full pl-8 pr-3 py-2 border ${borderColor} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputBgColor} text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500`}
+                                    disabled={isCreating}
+                                />
+                            </div>
                         </div>
                     </div>
 

@@ -321,7 +321,8 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
       const payload = {
         "doctype": "CRM Lead",
         "filters": {
-          "company": sessionCompany
+          "company": sessionCompany,
+          "is_delete": 0
         },
         "order_by": "modified desc",
         "default_filters": {
