@@ -263,41 +263,58 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
   };
 
   const fetchOrganizationOptions = async () => {
-    try {
-      setIsLoadingOrganizations(true);
-      const session = getUserSession();
-      const sessionCompany = session?.company;
+  try {
+    setIsLoadingOrganizations(true);
+    const session = getUserSession();
+    const sessionCompany = session?.company;
 
-      if (!sessionCompany) {
-        setOrganizationOptions([]);
-        setIsLoadingOrganizations(false);
-        return;
-      }
-
-      const response = await fetch(`${API_BASE_URL}/method/frappe.desk.search.search_link`, {
-        method: 'POST',
-        headers: {
-          'Authorization': token,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          txt: "",
-          doctype: "CRM Organization",
-          filters: [["company", "=", sessionCompany]]
-        })
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        setOrganizationOptions(result.message?.map((org: any) => org.value) || []);
-      }
-    } catch (error) {
-      console.error('Error fetching organizations:', error);
+    if (!sessionCompany) {
       setOrganizationOptions([]);
-    } finally {
       setIsLoadingOrganizations(false);
+      return;
     }
-  };
+
+    const response = await fetch(`${API_BASE_URL}/method/frappe.desk.search.search_link`, {
+      method: 'POST',
+      headers: {
+        'Authorization': token,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        txt: "",
+        doctype: "CRM Organization",
+        filters: [["company", "=", sessionCompany]]
+      })
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+      
+      // Filter and transform organization names
+      const transformedOrganizations = (result.message || []).map((org: any) => {
+        const orgName = org.value || '';
+        
+        // If organization name contains "@", extract text before "@"
+        if (orgName.includes('@')) {
+          return orgName.split('@')[0].trim();
+        }
+        
+        return orgName;
+      });
+      
+      // Remove duplicates and empty strings
+      const uniqueOrganizations = Array.from(new Set(transformedOrganizations))
+        .filter((name: string) => !!name && name.trim() !== "");
+      
+      setOrganizationOptions(uniqueOrganizations);
+    }
+  } catch (error) {
+    console.error('Error fetching organizations:', error);
+    setOrganizationOptions([]);
+  } finally {
+    setIsLoadingOrganizations(false);
+  }
+};
 
   const fetchContactOptions = async () => {
     try {
