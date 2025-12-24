@@ -53,6 +53,8 @@ function AppContent() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showAuthErrorModal, setShowAuthErrorModal] = useState(false);
   const [authErrorMessage, setAuthErrorMessage] = useState<string>();
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
 
 
   const [companyInfo, setCompanyInfo] = useState<any>(null);
@@ -862,6 +864,10 @@ function AppContent() {
     }
   };
 
+  const handleRefreshOrganizations = () => {
+    setRefreshTrigger(prev => prev + 1);
+  };
+
   const handleConversionSuccess = async (dealId: string) => {
     try {
       const response = await apiAxios.post("/api/method/frappe.client.get", {
@@ -1051,6 +1057,7 @@ function AppContent() {
           <div className="p-4 sm:p-6">
             <OrganizationsTable
               searchTerm={searchTerm}
+              onRefresh={() => setRefreshTrigger(prev => prev + 1)}
               onOrganizationClick={handleOrganizationClick}
             />
           </div>
@@ -1140,6 +1147,7 @@ function AppContent() {
             isOpen={showCreateModal}
             onClose={() => setShowCreateModal(false)}
             onSubmit={handleCreateSubmit}
+             onRefresh={handleRefreshOrganizations}
           />
         );
       case 'user':

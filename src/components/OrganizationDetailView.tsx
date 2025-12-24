@@ -154,7 +154,7 @@ export function OrganizationDetailView({ organization, onBack, onSave }: Organiz
         </div>
       )}
 
-      {/* Organization Details Component */}
+      
       <OrganizationDetails 
         organizationId={organization.id} 
         onBack={onBack}

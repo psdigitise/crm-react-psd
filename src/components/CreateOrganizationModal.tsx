@@ -33,7 +33,7 @@ function CreateAddressModal({ isOpen, onClose, onSubmit }: CreateAddressModalPro
 
   const validateField = (name: string, value: string) => {
     let error = '';
-    
+
     switch (name) {
       case 'address_title':
         if (!value.trim()) {
@@ -64,7 +64,7 @@ function CreateAddressModal({ isOpen, onClose, onSubmit }: CreateAddressModalPro
       default:
         break;
     }
-    
+
     return error;
   };
 
@@ -75,15 +75,16 @@ function CreateAddressModal({ isOpen, onClose, onSubmit }: CreateAddressModalPro
       city: validateField('city', formData.city),
       country: validateField('country', formData.country)
     };
-    
+
     setErrors(newErrors);
-    
+
     return !Object.values(newErrors).some(error => error !== '');
   };
 
+  // In CreateOrganizationModal component
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       showToast('Please fix the validation errors', { type: 'error' });
       return;
@@ -94,24 +95,24 @@ function CreateAddressModal({ isOpen, onClose, onSubmit }: CreateAddressModalPro
     try {
       const session = getUserSession();
       const sessionCompany = session?.company || '';
-       const token = getAuthToken();
+      const token = getAuthToken();
       if (!session) {
         showToast('Session not found', { type: 'error' });
         return;
       }
 
-      // Prepare payload for address creation
+      // Prepare payload according to new API structure
       const payload = {
         doc: {
-          doctype: "Address",
-          address_title: formData.address_title,
-          address_type: formData.address_type,
-          address_line1: formData.address_line1,
-          city: formData.city,
-          country: formData.country,
+          doctype: "CRM Organization",
+          organization_name: formData.organization_name,
+          website: formData.website,
+          address: formData.address,
           company: sessionCompany,
-          is_primary_address: 0,
-          is_shipping_address: 0
+          annual_revenue: formData.annual_revenue ? parseFloat(formData.annual_revenue) : undefined,
+          industry: formData.industry,
+          no_of_employees: formData.no_of_employees,
+          territory: formData.territory
         }
       };
 
@@ -122,52 +123,147 @@ function CreateAddressModal({ isOpen, onClose, onSubmit }: CreateAddressModalPro
         }
       });
 
-      const apiUrl = 'https://api.erpnext.ai/api/method/frappe.client.insert';
+      // Step 1: Create the organization
+      const createApiUrl = 'https://api.erpnext.ai/api/method/frappe.client.insert';
 
-      const response = await fetch(apiUrl, {
+      const createResponse = await fetch(createApiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': token 
+          'Authorization': token
         },
         body: JSON.stringify(payload)
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
+      if (!createResponse.ok) {
+        const errorText = await createResponse.text();
+
+        // Check if it's a duplicate entry error (409 Conflict)
+        if (createResponse.status === 409) {
+          showToast('An organization with this name already exists', { type: 'error' });
+          return;
+        }
+
+        throw new Error(`HTTP ${createResponse.status}: ${createResponse.statusText} - ${errorText}`);
       }
 
-      const result = await response.json();
-      showToast('Address created successfully', { type: 'success' });
-      onSubmit(result);
+      const createResult = await createResponse.json();
+
+      // Step 2: Immediately fetch the updated data
+      try {
+        await fetchUpdatedOrganizations();
+      } catch (refreshError) {
+        console.error('Failed to refresh table data:', refreshError);
+        // Don't fail the entire operation if refresh fails
+      }
+
+      showToast('Organization created successfully', { type: 'success' });
+
+      // Call onSubmit with the created result
+      onSubmit(createResult);
       onClose();
 
       // Reset form
       setFormData({
-        address_title: '',
-        address_type: 'Billing',
-        address_line1: '',
-        city: '',
-        country: 'India'
+        organization_name: '',
+        website: '',
+        address: '',
+        no_of_employees: '',
+        territory: '',
+        industry: '',
+        annual_revenue: ''
       });
       setErrors({
-        address_title: '',
-        address_line1: '',
-        city: '',
-        country: ''
+        organization_name: '',
+        website: '',
+        annual_revenue: ''
       });
     } catch (error) {
-      console.error('Error creating address:', error);
-      showToast('Failed to create address', { type: 'error' });
+      console.error('Error creating organization:', error);
+
+      // Handle specific error types
+      if (error instanceof Error) {
+        if (error.message.includes('DuplicateEntryError') || error.message.includes('409')) {
+          showToast('An organization with this name already exists', { type: 'error' });
+        } else {
+          showToast('Failed to create organization', { type: 'error' });
+        }
+      } else {
+        showToast('Failed to create organization', { type: 'error' });
+      }
     } finally {
       setLoading(false);
     }
   };
 
+  // Add this function to fetch updated organizations (IN THE CreateOrganizationModal COMPONENT)
+  const fetchUpdatedOrganizations = async () => {
+    try {
+      const session = getUserSession();
+      const sessionCompany = session?.company || '';
+      const token = getAuthToken();
+
+      if (!session) return;
+
+      // This is the same API call used in OrganizationsTable
+      const refreshApiUrl = 'https://api.erpnext.ai/api/method/crm.api.doc.get_data';
+
+      const refreshPayload = {
+        doctype: "CRM Organization",
+        filters: {
+          company: sessionCompany
+        },
+        order_by: "modified desc",
+        default_filters: {},
+        column_field: "status",
+        columns: JSON.stringify([
+          { label: "Organization", type: "Data", key: "organization_name", width: "16rem" },
+          { label: "Website", type: "Data", key: "website", width: "14rem" },
+          { label: "Industry", type: "Link", key: "industry", options: "CRM Industry", width: "92px" },
+          { label: "Annual Revenue", type: "Currency", key: "annual_revenue", width: "14rem" },
+          { label: "Last Modified", type: "Datetime", key: "modified", width: "8rem" }
+        ]),
+        kanban_columns: JSON.stringify([]),
+        kanban_fields: JSON.stringify([]),
+        page_length: 1000,
+        page_length_count: 1000,
+        rows: JSON.stringify([
+          "name", "organization_name", "organization_logo", "website", "industry",
+          "currency", "annual_revenue", "modified", "owner", "creation",
+          "modified_by", "_assign", "_liked_by", "territory", "no_of_employees"
+        ]),
+        title_field: "",
+        view: {
+          custom_view_name: 8,
+          view_type: "list",
+          group_by_field: "owner"
+        }
+      };
+
+      const response = await fetch(refreshApiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token,
+        },
+        body: JSON.stringify(refreshPayload)
+      });
+
+      if (!response.ok) {
+        throw new Error(`Refresh failed: ${response.status}`);
+      }
+
+      // You can optionally return the data or just let it refresh
+      return await response.json();
+    } catch (error) {
+      console.error('Error refreshing organizations:', error);
+      throw error;
+    }
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    
+
     setFormData({
       ...formData,
       [name]: value
@@ -211,7 +307,7 @@ function CreateAddressModal({ isOpen, onClose, onSubmit }: CreateAddressModalPro
                 <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'
                   }`}>
                   Address Title <span className='text-red-500'>*</span>
-                </label> 
+                </label>
                 <input
                   type="text"
                   name="address_title"
@@ -359,9 +455,10 @@ interface CreateOrganizationModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: any) => void;
+  onRefresh?: () => void;
 }
 
-export function CreateOrganizationModal({ isOpen, onClose, onSubmit }: CreateOrganizationModalProps) {
+export function CreateOrganizationModal({ isOpen, onClose, onSubmit, onRefresh }: CreateOrganizationModalProps) {
   const { theme } = useTheme();
   const [formData, setFormData] = useState({
     organization_name: '',
@@ -397,7 +494,7 @@ export function CreateOrganizationModal({ isOpen, onClose, onSubmit }: CreateOrg
 
   const validateField = (name: string, value: string) => {
     let error = '';
-    
+
     switch (name) {
       case 'organization_name':
         if (!value.trim()) {
@@ -423,7 +520,7 @@ export function CreateOrganizationModal({ isOpen, onClose, onSubmit }: CreateOrg
       default:
         break;
     }
-    
+
     return error;
   };
 
@@ -433,9 +530,9 @@ export function CreateOrganizationModal({ isOpen, onClose, onSubmit }: CreateOrg
       website: validateField('website', formData.website),
       annual_revenue: validateField('annual_revenue', formData.annual_revenue)
     };
-    
+
     setErrors(newErrors);
-    
+
     return !Object.values(newErrors).some(error => error !== '');
   };
 
@@ -443,7 +540,7 @@ export function CreateOrganizationModal({ isOpen, onClose, onSubmit }: CreateOrg
     setLoadingIndustries(true);
     try {
       const session = getUserSession();
-       const token = getAuthToken();
+      const token = getAuthToken();
       if (!session) {
         showToast('Session not found', { type: 'error' });
         return;
@@ -455,7 +552,7 @@ export function CreateOrganizationModal({ isOpen, onClose, onSubmit }: CreateOrg
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': token 
+          'Authorization': token
         },
         body: JSON.stringify({
           txt: "",
@@ -481,7 +578,7 @@ export function CreateOrganizationModal({ isOpen, onClose, onSubmit }: CreateOrg
     setLoadingTerritories(true);
     try {
       const session = getUserSession();
-       const token = getAuthToken();
+      const token = getAuthToken();
       if (!session) {
         showToast('Session not found', { type: 'error' });
         return;
@@ -493,7 +590,7 @@ export function CreateOrganizationModal({ isOpen, onClose, onSubmit }: CreateOrg
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': token 
+          'Authorization': token
         },
         body: JSON.stringify({
           txt: "",
@@ -519,7 +616,7 @@ export function CreateOrganizationModal({ isOpen, onClose, onSubmit }: CreateOrg
     setLoadingAddresses(true);
     try {
       const session = getUserSession();
-       const token = getAuthToken();
+      const token = getAuthToken();
       if (!session) {
         showToast('Session not found', { type: 'error' });
         return;
@@ -541,7 +638,7 @@ export function CreateOrganizationModal({ isOpen, onClose, onSubmit }: CreateOrg
       const response = await fetch(apiUrl, {
         method: 'GET',
         headers: {
-          'Authorization': token ,
+          'Authorization': token,
         }
       });
 
@@ -582,9 +679,10 @@ export function CreateOrganizationModal({ isOpen, onClose, onSubmit }: CreateOrg
 
   if (!isOpen) return null;
 
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       showToast('Please fix the validation errors', { type: 'error' });
       return;
@@ -629,7 +727,7 @@ export function CreateOrganizationModal({ isOpen, onClose, onSubmit }: CreateOrg
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': token 
+          'Authorization': token
         },
         body: JSON.stringify(payload)
       });
@@ -648,7 +746,15 @@ export function CreateOrganizationModal({ isOpen, onClose, onSubmit }: CreateOrg
 
       const result = await response.json();
       showToast('Organization created successfully', { type: 'success' });
+
+      // Call onSubmit with the created result
       onSubmit(result);
+
+      // Call onRefresh if provided (this will trigger table refresh)
+      if (onRefresh) {
+        onRefresh();
+      }
+
       onClose();
 
       // Reset form
@@ -684,9 +790,11 @@ export function CreateOrganizationModal({ isOpen, onClose, onSubmit }: CreateOrg
     }
   };
 
+ 
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    
+
     setFormData({
       ...formData,
       [name]: value
@@ -793,16 +901,16 @@ export function CreateOrganizationModal({ isOpen, onClose, onSubmit }: CreateOrg
                     value={formData.annual_revenue}
                     maxLength={10}
                     onChange={(e) => {
-                    const value = e.target.value;
-                    if (value === '' || /^\d*\.?\d*$/.test(value)) {
-                      handleChange(e);
-                    }
-                  }}
-                  onKeyDown={(e) => {
-                    if (!/[0-9.]|Backspace|Delete|ArrowLeft|ArrowRight|Tab/.test(e.key)) {
-                      e.preventDefault();
-                    }
-                  }}
+                      const value = e.target.value;
+                      if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                        handleChange(e);
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (!/[0-9.]|Backspace|Delete|ArrowLeft|ArrowRight|Tab/.test(e.key)) {
+                        e.preventDefault();
+                      }
+                    }}
                     placeholder="₹ 0.00"
                     disabled={loading}
                     className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'

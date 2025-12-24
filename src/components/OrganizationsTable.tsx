@@ -29,6 +29,8 @@ interface Organization {
 interface OrganizationsTableProps {
   searchTerm: string;
   onOrganizationClick?: (organization: Organization) => void;
+  onRefresh?: () => void;
+   refreshTrigger?: number;
 }
 
 interface FilterState {
@@ -71,7 +73,7 @@ const defaultColumns: ColumnConfig[] = [
   { key: 'currency', label: 'Currency', visible: false, sortable: true },
 ];
 
-export function OrganizationsTable({ searchTerm, onOrganizationClick }: OrganizationsTableProps) {
+export function OrganizationsTable({ searchTerm, onOrganizationClick, onRefresh,  refreshTrigger }: OrganizationsTableProps) {
   const { theme } = useTheme();
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [loading, setLoading] = useState(true);
@@ -146,6 +148,19 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
   const [addressOptions, setAddressOptions] = useState<string[]>([]);
 
   useEffect(() => {
+    if (onRefresh) {
+      
+      fetchOrganizations();
+    }
+  }, [onRefresh]);
+
+   useEffect(() => {
+    if (refreshTrigger && refreshTrigger > 0) {
+      fetchOrganizations();
+    }
+  }, [refreshTrigger]);
+
+  useEffect(() => {
     fetchOrganizations();
     fetchIndustryOptions();
     fetchTerritoryOptions();
@@ -154,7 +169,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
     // Start the soft refresh interval (every 1 second)
     intervalRef.current = setInterval(() => {
       softRefreshOrganizations();
-    }, 50000);
+    }, 900000);
 
     // Cleanup interval on unmount
     return () => {
@@ -340,13 +355,13 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
       const result = await api.post('/api/method/crm.api.doc.get_data', requestBody);
 
       const formatOrganizationName = (name: string): string => {
-  if (!name) return 'Unknown';
-  // Split by "@" and take the first part
-  const parts = name.split('@');
-  return parts[0].trim();
-}
+        if (!name) return 'Unknown';
+        // Split by "@" and take the first part
+        const parts = name.split('@');
+        return parts[0].trim();
+      };
 
-      // Transform API data to match our Organization interface
+
       const transformedOrganizations: Organization[] = result.message.data.map((apiOrg: any) => ({
         id: apiOrg.name || Math.random().toString(),
         name: formatOrganizationName(apiOrg.organization_name || apiOrg.name || ''),
@@ -386,7 +401,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
     }
   };
 
-  // Soft refresh function - fetches data without showing loading state
+
   const softRefreshOrganizations = async () => {
     try {
       const session = getUserSession();
@@ -544,6 +559,9 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
 
   const handleRefresh = () => {
     fetchOrganizations();
+    if (onRefresh) {
+      onRefresh();
+    }
   };
 
   const handleFilterChange = (filterType: keyof FilterState, value: string) => {
@@ -553,7 +571,7 @@ export function OrganizationsTable({ searchTerm, onOrganizationClick }: Organiza
         ? prev[filterType].filter(item => item !== value)
         : [...prev[filterType], value]
     }));
-    setCurrentPage(1); // Reset to first page when filters change
+    setCurrentPage(1);
   };
 
   const clearFilters = () => {
