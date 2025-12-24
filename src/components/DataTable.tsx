@@ -2034,389 +2034,389 @@ export function DataTable({ searchTerm, onLeadClick }: DataTableProps) {
       )}
 
       <div className="flex flex-col mb-3 sm:flex-row gap-4 items-start sm:items-center justify-between">
-  {/* Mobile layout - hidden on desktop */}
-  <div className="sm:hidden w-full">
-    {/* Top row: Action buttons */}
-    <div className="flex items-center justify-between mb-3">
-      <div className="flex items-center gap-2">
-        <button
-          onClick={handleRefresh}
-          className={`p-2 text-sm border rounded-lg transition-colors ${theme === 'dark'
-            ? 'border-purple-500/30 text-white hover:bg-purple-800/50'
-            : 'border-gray-300 hover:bg-gray-50'
-            }`}
-          title="Refresh"
-        >
-          <RefreshCcw className="w-4 h-4" />
-        </button>
+        {/* Mobile layout - hidden on desktop */}
+        <div className="sm:hidden w-full">
+          {/* Top row: Action buttons */}
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleRefresh}
+                className={`p-2 text-sm border rounded-lg transition-colors ${theme === 'dark'
+                  ? 'border-purple-500/30 text-white hover:bg-purple-800/50'
+                  : 'border-gray-300 hover:bg-gray-50'
+                  }`}
+                title="Refresh"
+              >
+                <RefreshCcw className="w-4 h-4" />
+              </button>
 
-        <button
-          onClick={handleImportClick}
-          className={`p-2 text-sm border rounded-lg transition-colors ${theme === 'dark'
-            ? 'border-purple-500/30 text-white hover:bg-purple-800/50'
-            : 'border-gray-300 hover:bg-gray-50'
-            }`}
-          title="Import"
-        >
-          <Download className="w-4 h-4" />
-        </button>
+              <button
+                onClick={handleImportClick}
+                className={`p-2 text-sm border rounded-lg transition-colors ${theme === 'dark'
+                  ? 'border-purple-500/30 text-white hover:bg-purple-800/50'
+                  : 'border-gray-300 hover:bg-gray-50'
+                  }`}
+                title="Import"
+              >
+                <Download className="w-4 h-4" />
+              </button>
 
-        <div className="relative">
+              <div className="relative">
+                <button
+                  onClick={() => setShowFilters(!showFilters)}
+                  className={`p-2 text-sm border rounded-lg transition-colors flex items-center ${Object.values(filters).some(arr => arr.length > 0)
+                    ? theme === 'dark'
+                      ? 'border-purple-500 bg-purplebg/30 text-purple-300'
+                      : 'border-blue-500 bg-blue-50 text-blue-700'
+                    : theme === 'dark'
+                      ? 'border-purple-500/30 text-white hover:bg-purple-800/50'
+                      : 'border-gray-300 hover:bg-gray-50'
+                    }`}
+                  title="Filter"
+                >
+                  <Filter className="w-4 h-4" />
+                  {Object.values(filters).some(arr => arr.length > 0) && (
+                    <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-xs font-semibold rounded-full w-4 h-4 flex items-center justify-center">
+                      {Object.values(filters).reduce((sum, arr) => sum + arr.length, 0)}
+                    </span>
+                  )}
+                </button>
+              </div>
+
+              {view === 'table' && (
+                <div className="relative">
+                  <button
+                    onClick={() => setShowColumnSettings(!showColumnSettings)}
+                    className={`p-2 text-sm border rounded-lg transition-colors ${theme === 'dark'
+                      ? 'border-purple-500/30 text-white hover:bg-purple-800/50'
+                      : 'border-gray-300 hover:bg-gray-50'
+                      }`}
+                    title="Columns"
+                  >
+                    <Settings className="w-4 h-4" />
+                  </button>
+
+                  {/* Columns dropdown for mobile */}
+                  {showColumnSettings && (
+                    <div className={`absolute top-full left-0 mt-2 w-64 rounded-lg shadow-lg z-20 p-4 ${theme === 'dark'
+                      ? 'bg-dark-accent border border-purple-500/30'
+                      : 'bg-white border border-gray-200'
+                      }`}>
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Manage Columns</h3>
+                        <button
+                          onClick={() => setShowColumnSettings(false)}
+                          className={`p-1 rounded ${theme === 'dark'
+                            ? 'text-gray-400 hover:text-white'
+                            : 'text-gray-500 hover:text-gray-700'
+                            }`}
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      <div className="space-y-2">
+                        {columns.map(column => (
+                          <label key={column.key} className="flex items-center space-x-2 text-sm">
+                            <input
+                              type="checkbox"
+                              checked={column.visible}
+                              onChange={() => toggleColumn(column.key)}
+                              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            />
+                            <span className={theme === 'dark' ? 'text-white' : 'text-gray-700'}>{column.label}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <button
+                onClick={() => setIsExportPopupOpen(true)}
+                className={`p-2 text-sm border rounded-lg transition-colors ${theme === 'dark'
+                  ? 'border-purple-500/30 text-white hover:bg-purple-800/50'
+                  : 'border-gray-300 hover:bg-gray-50'
+                  }`}
+                title="Export"
+              >
+                <Upload className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* View switcher on mobile */}
+            <div className={`flex items-center p-1 rounded-lg ${theme === 'dark' ? 'bg-dark-accent' : 'bg-gray-200'}`}>
+              <button
+                onClick={() => setView('table')}
+                className={`px-2 py-1 text-sm rounded-md flex items-center transition-colors ${view === 'table'
+                  ? theme === 'dark' ? 'bg-purplebg text-white' : 'bg-white text-gray-800 shadow-sm'
+                  : theme === 'dark' ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-500 hover:bg-gray-100'
+                  }`}
+                title="Table View"
+              >
+                <List className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setView('kanban')}
+                className={`px-2 py-1 text-sm rounded-md flex items-center transition-colors ${view === 'kanban'
+                  ? theme === 'dark' ? 'bg-purplebg text-white' : 'bg-white text-gray-800 shadow-sm'
+                  : theme === 'dark' ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-500 hover:bg-gray-100'
+                  }`}
+                title="Kanban View"
+              >
+                <LayoutGrid className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* Bottom row: Results info */}
+          <div className="flex justify-between items-center">
+            {view === 'table' && (
+              <>
+                <span className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>
+                  Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredDataLength)} of {filteredDataLength}
+                </span>
+                <select
+                  value={itemsPerPage}
+                  onChange={(e) => {
+                    setItemsPerPage(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  className={`text-sm border rounded px-2 py-1 ${theme === 'dark'
+                    ? 'bg-white-31 border-white text-white'
+                    : 'border-gray-300'
+                    }`}
+                >
+                  <option value={10}>10</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Desktop layout - hidden on mobile */}
+        <div className="hidden sm:flex items-center space-x-2">
           <button
-            onClick={() => setShowFilters(!showFilters)}
-            className={`p-2 text-sm border rounded-lg transition-colors flex items-center ${Object.values(filters).some(arr => arr.length > 0)
+            onClick={handleRefresh}
+            className={`px-3 py-2 text-sm border rounded-lg transition-colors ${theme === 'dark'
+              ? 'border-purple-500/30 text-white hover:bg-purple-800/50'
+              : 'border-gray-300 hover:bg-gray-50'
+              }`}
+          >
+            <RefreshCcw className="w-4 h-4" />
+          </button>
+
+          <button
+            onClick={handleImportClick}
+            className={`px-3 py-2 text-sm border rounded-lg transition-colors flex items-center space-x-1 ${theme === 'dark'
+              ? 'border-purple-500/30 text-white hover:bg-purple-800/50'
+              : 'border-gray-300 hover:bg-gray-50'
+              }`}
+          >
+            <Download className="w-4 h-4" />
+            <span>Import</span>
+          </button>
+
+          <div className="relative">
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={`px-3 py-2 text-sm border rounded-lg transition-colors flex items-center space-x-1 ${Object.values(filters).some(arr => arr.length > 0)
                 ? theme === 'dark'
                   ? 'border-purple-500 bg-purplebg/30 text-purple-300'
                   : 'border-blue-500 bg-blue-50 text-blue-700'
                 : theme === 'dark'
                   ? 'border-purple-500/30 text-white hover:bg-purple-800/50'
                   : 'border-gray-300 hover:bg-gray-50'
-              }`}
-            title="Filter"
-          >
-            <Filter className="w-4 h-4" />
-            {Object.values(filters).some(arr => arr.length > 0) && (
-              <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-xs font-semibold rounded-full w-4 h-4 flex items-center justify-center">
-                {Object.values(filters).reduce((sum, arr) => sum + arr.length, 0)}
-              </span>
-            )}
-          </button>
-        </div>
-
-        {view === 'table' && (
-          <div className="relative">
-            <button
-              onClick={() => setShowColumnSettings(!showColumnSettings)}
-              className={`p-2 text-sm border rounded-lg transition-colors ${theme === 'dark'
-                ? 'border-purple-500/30 text-white hover:bg-purple-800/50'
-                : 'border-gray-300 hover:bg-gray-50'
                 }`}
-              title="Columns"
             >
-              <Settings className="w-4 h-4" />
+              <Filter className="w-4 h-4" />
+              <span>Filter</span>
+              {Object.values(filters).some(arr => arr.length > 0) && (
+                <span className="bg-blue-600 text-white text-sm font-semibold rounded-full w-5 h-5 flex items-center justify-center">
+                  {Object.values(filters).reduce((sum, arr) => sum + arr.length, 0)}
+                </span>
+              )}
             </button>
-            
-            {/* Columns dropdown for mobile */}
-            {showColumnSettings && (
-              <div className={`absolute top-full left-0 mt-2 w-64 rounded-lg shadow-lg z-20 p-4 ${theme === 'dark'
-                  ? 'bg-dark-accent border border-purple-500/30'
-                  : 'bg-white border border-gray-200'
+
+            {/* Filters dropdown for desktop */}
+            {showFilters && (
+              <div className={`absolute top-full left-0 mt-2 w-80 rounded-lg shadow-lg z-10 p-4 ${theme === 'dark'
+                ? 'bg-dark-accent border border-purple-500/30'
+                : 'bg-white border border-gray-200'
                 }`}>
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Manage Columns</h3>
-                  <button
-                    onClick={() => setShowColumnSettings(false)}
-                    className={`p-1 rounded ${theme === 'dark'
-                      ? 'text-gray-400 hover:text-white'
-                      : 'text-gray-500 hover:text-gray-700'
-                      }`}
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
+                  <h3 className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Filters</h3>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={clearFilters}
+                      className={`text-sm ${theme === 'dark' ? 'text-white hover:text-white' : 'text-gray-500 hover:text-gray-700'
+                        }`}
+                    >
+                      Clear All
+                    </button>
+                    <button
+                      onClick={() => setShowFilters(false)}
+                      className={`p-1 rounded ${theme === 'dark'
+                        ? 'text-gray-400 hover:text-white'
+                        : 'text-gray-500 hover:text-gray-700'
+                        }`}
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                  {columns.map(column => (
-                    <label key={column.key} className="flex items-center space-x-2 text-sm">
-                      <input
-                        type="checkbox"
-                        checked={column.visible}
-                        onChange={() => toggleColumn(column.key)}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      />
-                      <span className={theme === 'dark' ? 'text-white' : 'text-gray-700'}>{column.label}</span>
-                    </label>
-                  ))}
+                <div className="space-y-4">
+                  <FilterDropdown
+                    title="Status"
+                    options={filterOptions.status}
+                    selected={filters.status}
+                    onChange={(value) => handleFilterChange('status', value)}
+                  />
+
+                  {filterOptions.territory.length > 0 && (
+                    <FilterDropdown
+                      title="Territory"
+                      options={filterOptions.territory}
+                      selected={filters.territory}
+                      onChange={(value) => handleFilterChange('territory', value)}
+                    />
+                  )}
+
+                  {filterOptions.industry.length > 0 && (
+                    <FilterDropdown
+                      title="Industry"
+                      options={filterOptions.industry}
+                      selected={filters.industry}
+                      onChange={(value) => handleFilterChange('industry', value)}
+                    />
+                  )}
                 </div>
               </div>
             )}
           </div>
-        )}
 
-        <button
-          onClick={() => setIsExportPopupOpen(true)}
-          className={`p-2 text-sm border rounded-lg transition-colors ${theme === 'dark'
-            ? 'border-purple-500/30 text-white hover:bg-purple-800/50'
-            : 'border-gray-300 hover:bg-gray-50'
-            }`}
-          title="Export"
-        >
-          <Upload className="w-4 h-4" />
-        </button>
-      </div>
-
-      {/* View switcher on mobile */}
-      <div className={`flex items-center p-1 rounded-lg ${theme === 'dark' ? 'bg-dark-accent' : 'bg-gray-200'}`}>
-        <button
-          onClick={() => setView('table')}
-          className={`px-2 py-1 text-sm rounded-md flex items-center transition-colors ${view === 'table'
-              ? theme === 'dark' ? 'bg-purplebg text-white' : 'bg-white text-gray-800 shadow-sm'
-              : theme === 'dark' ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-500 hover:bg-gray-100'
-            }`}
-          title="Table View"
-        >
-          <List className="w-4 h-4" />
-        </button>
-        <button
-          onClick={() => setView('kanban')}
-          className={`px-2 py-1 text-sm rounded-md flex items-center transition-colors ${view === 'kanban'
-              ? theme === 'dark' ? 'bg-purplebg text-white' : 'bg-white text-gray-800 shadow-sm'
-              : theme === 'dark' ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-500 hover:bg-gray-100'
-            }`}
-          title="Kanban View"
-        >
-          <LayoutGrid className="w-4 h-4" />
-        </button>
-      </div>
-    </div>
-
-    {/* Bottom row: Results info */}
-    <div className="flex justify-between items-center">
-      {view === 'table' && (
-        <>
-          <span className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>
-            Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredDataLength)} of {filteredDataLength}
-          </span>
-          <select
-            value={itemsPerPage}
-            onChange={(e) => {
-              setItemsPerPage(Number(e.target.value));
-              setCurrentPage(1);
-            }}
-            className={`text-sm border rounded px-2 py-1 ${theme === 'dark'
-                ? 'bg-white-31 border-white text-white'
-                : 'border-gray-300'
-              }`}
-          >
-            <option value={10}>10</option>
-            <option value={25}>25</option>
-            <option value={50}>50</option>
-            <option value={100}>100</option>
-          </select>
-        </>
-      )}
-    </div>
-  </div>
-
-  {/* Desktop layout - hidden on mobile */}
-  <div className="hidden sm:flex items-center space-x-2">
-    <button
-      onClick={handleRefresh}
-      className={`px-3 py-2 text-sm border rounded-lg transition-colors ${theme === 'dark'
-        ? 'border-purple-500/30 text-white hover:bg-purple-800/50'
-        : 'border-gray-300 hover:bg-gray-50'
-        }`}
-    >
-      <RefreshCcw className="w-4 h-4" />
-    </button>
-
-    <button
-      onClick={handleImportClick}
-      className={`px-3 py-2 text-sm border rounded-lg transition-colors flex items-center space-x-1 ${theme === 'dark'
-        ? 'border-purple-500/30 text-white hover:bg-purple-800/50'
-        : 'border-gray-300 hover:bg-gray-50'
-        }`}
-    >
-      <Download className="w-4 h-4" />
-      <span>Import</span>
-    </button>
-
-    <div className="relative">
-      <button
-        onClick={() => setShowFilters(!showFilters)}
-        className={`px-3 py-2 text-sm border rounded-lg transition-colors flex items-center space-x-1 ${Object.values(filters).some(arr => arr.length > 0)
-            ? theme === 'dark'
-              ? 'border-purple-500 bg-purplebg/30 text-purple-300'
-              : 'border-blue-500 bg-blue-50 text-blue-700'
-            : theme === 'dark'
-              ? 'border-purple-500/30 text-white hover:bg-purple-800/50'
-              : 'border-gray-300 hover:bg-gray-50'
-          }`}
-      >
-        <Filter className="w-4 h-4" />
-        <span>Filter</span>
-        {Object.values(filters).some(arr => arr.length > 0) && (
-          <span className="bg-blue-600 text-white text-sm font-semibold rounded-full w-5 h-5 flex items-center justify-center">
-            {Object.values(filters).reduce((sum, arr) => sum + arr.length, 0)}
-          </span>
-        )}
-      </button>
-      
-      {/* Filters dropdown for desktop */}
-      {showFilters && (
-        <div className={`absolute top-full left-0 mt-2 w-80 rounded-lg shadow-lg z-10 p-4 ${theme === 'dark'
-            ? 'bg-dark-accent border border-purple-500/30'
-            : 'bg-white border border-gray-200'
-          }`}>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Filters</h3>
-            <div className="flex items-center space-x-2">
+          {view === 'table' && (
+            <div className="relative">
               <button
-                onClick={clearFilters}
-                className={`text-sm ${theme === 'dark' ? 'text-white hover:text-white' : 'text-gray-500 hover:text-gray-700'
+                onClick={() => setShowColumnSettings(!showColumnSettings)}
+                className={`px-3 py-2 text-sm border rounded-lg transition-colors flex items-center space-x-1 ${theme === 'dark'
+                  ? 'border-purple-500/30 text-white hover:bg-purple-800/50'
+                  : 'border-gray-300 hover:bg-gray-50'
                   }`}
               >
-                Clear All
+                <Settings className="w-4 h-4" />
+                <span>Columns</span>
               </button>
-              <button
-                onClick={() => setShowFilters(false)}
-                className={`p-1 rounded ${theme === 'dark'
-                  ? 'text-gray-400 hover:text-white'
-                  : 'text-gray-500 hover:text-gray-700'
-                  }`}
-              >
-                <X className="w-4 h-4" />
-              </button>
+
+              {/* Columns dropdown for desktop */}
+              {showColumnSettings && (
+                <div className={`absolute top-full left-0 mt-2 w-64 rounded-lg shadow-lg z-10 p-4 ${theme === 'dark'
+                  ? 'bg-dark-accent border border-purple-500/30'
+                  : 'bg-white border border-gray-200'
+                  }`}>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Manage Columns</h3>
+                    <button
+                      onClick={() => setShowColumnSettings(false)}
+                      className={`p-1 rounded ${theme === 'dark'
+                        ? 'text-gray-400 hover:text-white'
+                        : 'text-gray-500 hover:text-gray-700'
+                        }`}
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <div className="space-y-2">
+                    {columns.map(column => (
+                      <label key={column.key} className="flex items-center space-x-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={column.visible}
+                          onChange={() => toggleColumn(column.key)}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className={theme === 'dark' ? 'text-white' : 'text-gray-700'}>{column.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
+          )}
+        </div>
+
+        <div className="hidden sm:flex items-center space-x-2">
+          {/* View Switcher */}
+          <div className={`flex items-center p-1 rounded-lg ${theme === 'dark' ? 'bg-dark-accent' : 'bg-gray-200'}`}>
+            <button
+              onClick={() => setView('table')}
+              className={`px-3 py-1 text-sm rounded-md flex items-center space-x-2 transition-colors ${view === 'table'
+                ? theme === 'dark' ? 'bg-purplebg text-white' : 'bg-white text-gray-800 shadow-sm'
+                : theme === 'dark' ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-500 hover:bg-gray-100'
+                }`}
+            >
+              <List className="w-4 h-4" />
+              <span>Table</span>
+            </button>
+            <button
+              onClick={() => setView('kanban')}
+              className={`px-3 py-1 text-sm rounded-md flex items-center space-x-2 transition-colors ${view === 'kanban'
+                ? theme === 'dark' ? 'bg-purplebg text-white' : 'bg-white text-gray-800 shadow-sm'
+                : theme === 'dark' ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-500 hover:bg-gray-100'
+                }`}
+            >
+              <LayoutGrid className="w-4 h-4" />
+              <span>Kanban</span>
+            </button>
           </div>
 
-          <div className="space-y-4">
-            <FilterDropdown
-              title="Status"
-              options={filterOptions.status}
-              selected={filters.status}
-              onChange={(value) => handleFilterChange('status', value)}
-            />
-
-            {filterOptions.territory.length > 0 && (
-              <FilterDropdown
-                title="Territory"
-                options={filterOptions.territory}
-                selected={filters.territory}
-                onChange={(value) => handleFilterChange('territory', value)}
-              />
-            )}
-
-            {filterOptions.industry.length > 0 && (
-              <FilterDropdown
-                title="Industry"
-                options={filterOptions.industry}
-                selected={filters.industry}
-                onChange={(value) => handleFilterChange('industry', value)}
-              />
+          <div className="flex items-center space-x-2">
+            {filteredDataLength > 0 && (
+              <div title="Export Excel">
+                <button
+                  onClick={() => setIsExportPopupOpen(true)}
+                  className={`px-3 py-2 text-sm border rounded-lg transition-colors ${theme === 'dark'
+                    ? 'border-purple-500/30 text-white hover:bg-purple-800/50'
+                    : 'border-gray-300 hover:bg-gray-50'
+                    }`}
+                >
+                  <Upload className="w-4 h-4" />
+                </button>
+              </div>
             )}
           </div>
-        </div>
-      )}
-    </div>
 
-    {view === 'table' && (
-      <div className="relative">
-        <button
-          onClick={() => setShowColumnSettings(!showColumnSettings)}
-          className={`px-3 py-2 text-sm border rounded-lg transition-colors flex items-center space-x-1 ${theme === 'dark'
-            ? 'border-purple-500/30 text-white hover:bg-purple-800/50'
-            : 'border-gray-300 hover:bg-gray-50'
-            }`}
-        >
-          <Settings className="w-4 h-4" />
-          <span>Columns</span>
-        </button>
-        
-        {/* Columns dropdown for desktop */}
-        {showColumnSettings && (
-          <div className={`absolute top-full left-0 mt-2 w-64 rounded-lg shadow-lg z-10 p-4 ${theme === 'dark'
-              ? 'bg-dark-accent border border-purple-500/30'
-              : 'bg-white border border-gray-200'
-            }`}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Manage Columns</h3>
-              <button
-                onClick={() => setShowColumnSettings(false)}
-                className={`p-1 rounded ${theme === 'dark'
-                  ? 'text-gray-400 hover:text-white'
-                  : 'text-gray-500 hover:text-gray-700'
+          {view === 'table' && (
+            <>
+              <span className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-600'} ${view === 'kanban' ? 'hidden' : ''}`}>
+                Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredDataLength)} of {filteredDataLength} results
+              </span>
+              <select
+                value={itemsPerPage}
+                onChange={(e) => {
+                  setItemsPerPage(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className={`text-sm border rounded px-2 py-1 ${theme === 'dark'
+                  ? 'bg-white-31 border-white text-white'
+                  : 'border-gray-300'
                   }`}
               >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="space-y-2">
-              {columns.map(column => (
-                <label key={column.key} className="flex items-center space-x-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={column.visible}
-                    onChange={() => toggleColumn(column.key)}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  />
-                  <span className={theme === 'dark' ? 'text-white' : 'text-gray-700'}>{column.label}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    )}
-  </div>
-
-  <div className="hidden sm:flex items-center space-x-2">
-    {/* View Switcher */}
-    <div className={`flex items-center p-1 rounded-lg ${theme === 'dark' ? 'bg-dark-accent' : 'bg-gray-200'}`}>
-      <button
-        onClick={() => setView('table')}
-        className={`px-3 py-1 text-sm rounded-md flex items-center space-x-2 transition-colors ${view === 'table'
-            ? theme === 'dark' ? 'bg-purplebg text-white' : 'bg-white text-gray-800 shadow-sm'
-            : theme === 'dark' ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-500 hover:bg-gray-100'
-          }`}
-      >
-        <List className="w-4 h-4" />
-        <span>Table</span>
-      </button>
-      <button
-        onClick={() => setView('kanban')}
-        className={`px-3 py-1 text-sm rounded-md flex items-center space-x-2 transition-colors ${view === 'kanban'
-            ? theme === 'dark' ? 'bg-purplebg text-white' : 'bg-white text-gray-800 shadow-sm'
-            : theme === 'dark' ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-500 hover:bg-gray-100'
-          }`}
-      >
-        <LayoutGrid className="w-4 h-4" />
-        <span>Kanban</span>
-      </button>
-    </div>
-
-    <div className="flex items-center space-x-2">
-      {filteredDataLength > 0 && (
-        <div title="Export Excel">
-          <button
-            onClick={() => setIsExportPopupOpen(true)}
-            className={`px-3 py-2 text-sm border rounded-lg transition-colors ${theme === 'dark'
-              ? 'border-purple-500/30 text-white hover:bg-purple-800/50'
-              : 'border-gray-300 hover:bg-gray-50'
-              }`}
-          >
-            <Upload className="w-4 h-4" />
-          </button>
+                <option value={10}>10 per page</option>
+                <option value={25}>25 per page</option>
+                <option value={50}>50 per page</option>
+                <option value={100}>100 per page</option>
+              </select>
+            </>
+          )}
         </div>
-      )}
-    </div>
-
-    {view === 'table' && (
-      <>
-        <span className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-600'} ${view === 'kanban' ? 'hidden' : ''}`}>
-          Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredDataLength)} of {filteredDataLength} results
-        </span>
-        <select
-          value={itemsPerPage}
-          onChange={(e) => {
-            setItemsPerPage(Number(e.target.value));
-            setCurrentPage(1);
-          }}
-          className={`text-sm border rounded px-2 py-1 ${theme === 'dark'
-            ? 'bg-white-31 border-white text-white'
-            : 'border-gray-300'
-            }`}
-        >
-          <option value={10}>10 per page</option>
-          <option value={25}>25 per page</option>
-          <option value={50}>50 per page</option>
-          <option value={100}>100 per page</option>
-        </select>
-      </>
-    )}
-  </div>
-</div>
+      </div>
 
       {/* Table */}
       <div

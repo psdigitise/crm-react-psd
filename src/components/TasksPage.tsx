@@ -1,12 +1,11 @@
-import { useState, useEffect } from 'react';
-import { ChevronDown, ChevronUp, Loader2, ChevronLeft, ChevronRight, Filter, X, Settings, RefreshCcw, LayoutGrid, List } from 'lucide-react';
-import { showToast } from '../utils/toast';
-import { Menu } from 'lucide-react';
-import { Header } from './Header';
+import React, { useState, useEffect, useRef } from 'react';
+import { ChevronDown, ChevronUp, Loader2, ChevronLeft, ChevronRight, Filter, X, Settings, RefreshCcw, LayoutGrid, List, Upload, Download } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import { getUserSession } from '../utils/session';
+import { showToast } from '../utils/toast';
+import { Menu } from 'lucide-react';
 import { BsThreeDots } from 'react-icons/bs';
-import { AUTH_TOKEN, getAuthToken } from '../api/apiUrl';
+import { getAuthToken } from '../api/apiUrl';
 import { api } from '../api/apiService';
 
 interface Task {
@@ -69,7 +68,6 @@ const defaultColumns: ColumnConfig[] = [
   { key: 'due_date', label: 'Due Date', visible: true, sortable: true },
 ];
 
-// Utility function to parse ERPNext error messages
 const parseERPNextError = (error: any): string => {
   if (typeof error === 'string') {
     try {
@@ -145,10 +143,20 @@ export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0, onMenuTo
   const [columns, setColumns] = useState<ColumnConfig[]>(defaultColumns);
   const [showColumnSettings, setShowColumnSettings] = useState(false);
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState<{
+    status: string[];
+    priority: string[];
+    assignedTo: string[];
+  }>({
+    status: [],
+    priority: [],
+    assignedTo: []
+  });
 
   // View mode state
   const [view, setView] = useState<'table' | 'kanban'>('table');
-  const token =  getAuthToken();
+  const token = getAuthToken();
 
   // Combine external and internal refresh triggers
   useEffect(() => {
@@ -423,12 +431,44 @@ export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0, onMenuTo
     ));
   };
 
+  const handleFilterChange = (filterType: keyof typeof filters, value: string) => {
+    setFilters(prev => ({
+      ...prev,
+      [filterType]: prev[filterType].includes(value)
+        ? prev[filterType].filter(item => item !== value)
+        : [...prev[filterType], value]
+    }));
+    setCurrentPage(1);
+  };
+
+  const clearFilters = () => {
+    setFilters({
+      status: [],
+      priority: [],
+      assignedTo: []
+    });
+    setCurrentPage(1);
+  };
+
   const getFilteredAndSortedData = () => {
     let filteredData = tasks.filter(task =>
       Object.values(task).some(value =>
         value?.toString().toLowerCase().includes(searchTerm.toLowerCase())
       )
     );
+
+    // Apply filters
+    if (filters.status.length > 0) {
+      filteredData = filteredData.filter(task => filters.status.includes(task.status));
+    }
+
+    if (filters.priority.length > 0) {
+      filteredData = filteredData.filter(task => filters.priority.includes(task.priority));
+    }
+
+    if (filters.assignedTo.length > 0) {
+      filteredData = filteredData.filter(task => filters.assignedTo.includes(task.assigned_to));
+    }
 
     if (sortField) {
       filteredData.sort((a, b) => {
@@ -604,6 +644,35 @@ export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0, onMenuTo
           : <ChevronDown className="w-4 h-4" />
       )}
     </button>
+  );
+
+  const FilterDropdown = ({
+    title,
+    options,
+    selected,
+    onChange
+  }: {
+    title: string;
+    options: string[];
+    selected: string[];
+    onChange: (value: string) => void;
+  }) => (
+    <div className="space-y-2">
+      <h4 className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{title}</h4>
+      <div className="space-y-1 max-h-32 overflow-y-auto">
+        {options.map(option => (
+          <label key={option} className="flex items-center space-x-2 text-sm">
+            <input
+              type="checkbox"
+              checked={selected.includes(option)}
+              onChange={() => onChange(option)}
+              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
+            <span className={theme === 'dark' ? 'text-white' : 'text-gray-700'}>{option}</span>
+          </label>
+        ))}
+      </div>
+    </div>
   );
 
   const filteredDataLength = getFilteredAndSortedData().length;
@@ -902,9 +971,241 @@ export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0, onMenuTo
       }`}>
 
       <div className="p-4 sm:p-6">
-        {/* Action Bar */}
+        {/* Action Bar - Mobile & Desktop */}
         <div className="flex flex-col mb-3 sm:flex-row gap-4 items-start sm:items-center justify-between">
-          <div className="flex items-center space-x-2">
+          {/* Mobile layout - hidden on desktop */}
+          <div className="sm:hidden w-full">
+            {/* Top row: Action buttons */}
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={refreshTasks}
+                  className={`p-2 text-sm border rounded-lg transition-colors ${theme === 'dark'
+                    ? 'border-purple-500/30 text-white hover:bg-purple-800/50'
+                    : 'border-gray-300 hover:bg-gray-50'
+                    }`}
+                  title="Refresh"
+                >
+                  <RefreshCcw className="w-4 h-4" />
+                </button>
+
+                <div className="relative">
+                  <button
+                    onClick={() => setShowFilters(!showFilters)}
+                    className={`p-2 text-sm border rounded-lg transition-colors flex items-center ${Object.values(filters).some(arr => arr.length > 0)
+                      ? theme === 'dark'
+                        ? 'border-purple-500 bg-purplebg/30 text-purple-300'
+                        : 'border-blue-500 bg-blue-50 text-blue-700'
+                      : theme === 'dark'
+                        ? 'border-purple-500/30 text-white hover:bg-purple-800/50'
+                        : 'border-gray-300 hover:bg-gray-50'
+                      }`}
+                    title="Filter"
+                  >
+                    <Filter className="w-4 h-4" />
+                    {Object.values(filters).some(arr => arr.length > 0) && (
+                      <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-xs font-semibold rounded-full w-4 h-4 flex items-center justify-center">
+                        {Object.values(filters).reduce((sum, arr) => sum + arr.length, 0)}
+                      </span>
+                    )}
+                  </button>
+                  
+                  {/* Mobile filters dropdown */}
+                  {showFilters && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                      <div className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-md rounded-lg shadow-lg p-4 ${theme === 'dark'
+                        ? 'bg-dark-accent border border-purple-500/30'
+                        : 'bg-white border border-gray-200'
+                        }`}>
+                        <div className="flex items-center justify-between mb-4">
+                          <h3 className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                            }`}>
+                            Filters
+                          </h3>
+                          <div className="flex items-center space-x-2">
+                            <button
+                              onClick={clearFilters}
+                              className={`text-sm ${theme === 'dark' ? 'text-white hover:text-white' : 'text-gray-500 hover:text-gray-700'
+                                }`}
+                            >
+                              Clear All
+                            </button>
+                            <button
+                              onClick={() => setShowFilters(false)}
+                              className={`p-1 rounded ${theme === 'dark'
+                                ? 'text-gray-400 hover:text-white'
+                                : 'text-gray-500 hover:text-gray-700'
+                                }`}
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+                          <div className="space-y-2">
+                            <h4 className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                              }`}>
+                              Status
+                            </h4>
+                            <div className="space-y-1 max-h-32 overflow-y-auto">
+                              {['Backlog', 'Todo', 'In Progress', 'Done', 'Canceled', 'Open'].map(option => (
+                                <label key={option} className="flex items-center space-x-2 text-sm">
+                                  <input
+                                    type="checkbox"
+                                    checked={filters.status.includes(option)}
+                                    onChange={() => handleFilterChange('status', option)}
+                                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                  />
+                                  <span className={theme === 'dark' ? 'text-white' : 'text-gray-700'}>
+                                    {option}
+                                  </span>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <h4 className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                              }`}>
+                              Priority
+                            </h4>
+                            <div className="space-y-1 max-h-32 overflow-y-auto">
+                              {['Low', 'Medium', 'High'].map(option => (
+                                <label key={option} className="flex items-center space-x-2 text-sm">
+                                  <input
+                                    type="checkbox"
+                                    checked={filters.priority.includes(option)}
+                                    onChange={() => handleFilterChange('priority', option)}
+                                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                  />
+                                  <span className={theme === 'dark' ? 'text-white' : 'text-gray-700'}>
+                                    {option}
+                                  </span>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {view === 'table' && (
+                  <div className="relative">
+                    <button
+                      onClick={() => setShowColumnSettings(!showColumnSettings)}
+                      className={`p-2 text-sm border rounded-lg transition-colors ${theme === 'dark'
+                        ? 'border-purple-500/30 text-white hover:bg-purple-800/50'
+                        : 'border-gray-300 hover:bg-gray-50'
+                        }`}
+                      title="Columns"
+                    >
+                      <Settings className="w-4 h-4" />
+                    </button>
+                    
+                    {/* Columns dropdown for mobile */}
+                    {showColumnSettings && (
+                      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                        <div className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-md rounded-lg shadow-lg p-4 ${theme === 'dark'
+                          ? 'bg-dark-accent border border-purple-500/30'
+                          : 'bg-white border border-gray-200'
+                          }`}>
+                          <div className="flex items-center justify-between mb-4">
+                            <h3 className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                              }`}>
+                              Manage Columns
+                            </h3>
+                            <button
+                              onClick={() => setShowColumnSettings(false)}
+                              className={`p-1 rounded ${theme === 'dark'
+                                ? 'text-gray-400 hover:text-white'
+                                : 'text-gray-500 hover:text-gray-700'
+                                }`}
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+
+                          <div className="space-y-2 max-h-[60vh] overflow-y-auto">
+                            {columns.map(column => (
+                              <label key={column.key} className="flex items-center space-x-2 text-sm">
+                                <input
+                                  type="checkbox"
+                                  checked={column.visible}
+                                  onChange={() => toggleColumn(column.key)}
+                                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                />
+                                <span className={theme === 'dark' ? 'text-white' : 'text-gray-700'}>
+                                  {column.label}
+                                </span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* View switcher on mobile */}
+              <div className={`flex items-center p-1 rounded-lg ${theme === 'dark' ? 'bg-dark-accent' : 'bg-gray-200'}`}>
+                <button
+                  onClick={() => setView('table')}
+                  className={`px-2 py-1 text-sm rounded-md flex items-center transition-colors ${view === 'table'
+                    ? theme === 'dark' ? 'bg-purplebg text-white' : 'bg-white text-gray-800 shadow-sm'
+                    : theme === 'dark' ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-500 hover:bg-gray-100'
+                    }`}
+                  title="Table View"
+                >
+                  <List className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setView('kanban')}
+                  className={`px-2 py-1 text-sm rounded-md flex items-center transition-colors ${view === 'kanban'
+                    ? theme === 'dark' ? 'bg-purplebg text-white' : 'bg-white text-gray-800 shadow-sm'
+                    : theme === 'dark' ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-500 hover:bg-gray-100'
+                    }`}
+                  title="Kanban View"
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Bottom row: Results info and items per page */}
+            <div className="flex justify-between items-center">
+              {view === 'table' && (
+                <>
+                  <span className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-600'
+                    }`}>
+                    Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredDataLength)} of {filteredDataLength}
+                  </span>
+                  <select
+                    value={itemsPerPage}
+                    onChange={(e) => {
+                      setItemsPerPage(Number(e.target.value));
+                      setCurrentPage(1);
+                    }}
+                    className={`text-sm border rounded px-2 py-1 ${theme === 'dark'
+                      ? 'bg-white-31 border-white text-white'
+                      : 'border-gray-300'
+                      }`}
+                  >
+                    <option value={10}>10</option>
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                  </select>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Desktop layout - hidden on mobile */}
+          <div className="hidden sm:flex items-center space-x-2">
             <button
               onClick={refreshTasks}
               className={`px-3 py-2 text-sm border rounded-lg transition-colors ${theme === 'dark'
@@ -914,6 +1215,74 @@ export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0, onMenuTo
             >
               <RefreshCcw className="w-4 h-4" />
             </button>
+
+            <div className="relative">
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className={`px-3 py-2 text-sm border rounded-lg transition-colors flex items-center space-x-1 ${Object.values(filters).some(arr => arr.length > 0)
+                  ? theme === 'dark'
+                    ? 'border-purple-500 bg-purplebg/30 text-purple-300'
+                    : 'border-blue-500 bg-blue-50 text-blue-700'
+                  : theme === 'dark'
+                    ? 'border-purple-500/30 text-white hover:bg-purple-800/50'
+                    : 'border-gray-300 hover:bg-gray-50'
+                  }`}
+              >
+                <Filter className="w-4 h-4" />
+                <span>Filter</span>
+                {Object.values(filters).some(arr => arr.length > 0) && (
+                  <span className="bg-blue-600 text-white text-sm font-semibold rounded-full w-5 h-5 flex items-center justify-center">
+                    {Object.values(filters).reduce((sum, arr) => sum + arr.length, 0)}
+                  </span>
+                )}
+              </button>
+              
+              {/* Filters dropdown for desktop */}
+              {showFilters && (
+                <div className={`absolute top-full left-0 mt-2 w-80 rounded-lg shadow-lg z-10 p-4 ${theme === 'dark'
+                  ? 'bg-dark-accent border border-purple-500/30'
+                  : 'bg-white border border-gray-200'
+                  }`}>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Filters</h3>
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={clearFilters}
+                        className={`text-sm ${theme === 'dark' ? 'text-white hover:text-white' : 'text-gray-500 hover:text-gray-700'
+                          }`}
+                      >
+                        Clear All
+                      </button>
+                      <button
+                        onClick={() => setShowFilters(false)}
+                        className={`p-1 rounded ${theme === 'dark'
+                          ? 'text-gray-400 hover:text-white'
+                          : 'text-gray-500 hover:text-gray-700'
+                          }`}
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <FilterDropdown
+                      title="Status"
+                      options={['Backlog', 'Todo', 'In Progress', 'Done', 'Canceled', 'Open']}
+                      selected={filters.status}
+                      onChange={(value) => handleFilterChange('status', value)}
+                    />
+
+                    <FilterDropdown
+                      title="Priority"
+                      options={['Low', 'Medium', 'High']}
+                      selected={filters.priority}
+                      onChange={(value) => handleFilterChange('priority', value)}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
 
             {view === 'table' && (
               <div className="relative">
@@ -927,7 +1296,8 @@ export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0, onMenuTo
                   <Settings className="w-4 h-4" />
                   <span>Columns</span>
                 </button>
-
+                
+                {/* Columns dropdown for desktop */}
                 {showColumnSettings && (
                   <div className={`absolute top-full left-0 mt-2 w-64 rounded-lg shadow-lg z-10 p-4 ${theme === 'dark'
                     ? 'bg-dark-accent border border-purple-500/30'
@@ -965,14 +1335,14 @@ export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0, onMenuTo
             )}
           </div>
 
-          <div className="flex items-center space-x-2">
+          <div className="hidden sm:flex items-center space-x-2">
             {/* View Switcher */}
             <div className={`flex items-center p-1 rounded-lg ${theme === 'dark' ? 'bg-dark-accent' : 'bg-gray-200'}`}>
               <button
                 onClick={() => setView('table')}
                 className={`px-3 py-1 text-sm rounded-md flex items-center space-x-2 transition-colors ${view === 'table'
-                    ? theme === 'dark' ? 'bg-purplebg text-white' : 'bg-white text-gray-800 shadow-sm'
-                    : theme === 'dark' ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-500 hover:bg-gray-100'
+                  ? theme === 'dark' ? 'bg-purplebg text-white' : 'bg-white text-gray-800 shadow-sm'
+                  : theme === 'dark' ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-500 hover:bg-gray-100'
                   }`}
               >
                 <List className="w-4 h-4" />
@@ -981,17 +1351,18 @@ export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0, onMenuTo
               <button
                 onClick={() => setView('kanban')}
                 className={`px-3 py-1 text-sm rounded-md flex items-center space-x-2 transition-colors ${view === 'kanban'
-                    ? theme === 'dark' ? 'bg-purplebg text-white' : 'bg-white text-gray-800 shadow-sm'
-                    : theme === 'dark' ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-500 hover:bg-gray-100'
+                  ? theme === 'dark' ? 'bg-purplebg text-white' : 'bg-white text-gray-800 shadow-sm'
+                  : theme === 'dark' ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-500 hover:bg-gray-100'
                   }`}
               >
                 <LayoutGrid className="w-4 h-4" />
                 <span>Kanban</span>
               </button>
             </div>
+
             {view === 'table' && (
               <>
-                <span className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}>
+                <span className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-600'} ${view === 'kanban' ? 'hidden' : ''}`}>
                   Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredDataLength)} of {filteredDataLength} results
                 </span>
                 <select
@@ -1027,146 +1398,139 @@ export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0, onMenuTo
           ) : (
             <div className="w-full">
               {/* Desktop Table View */}
-            <div className="hidden md:block overflow-x-auto">
-              <table className="w-full">
-                <thead
-                  className={`border-b ${theme === 'dark'
-                    ? 'bg-purplebg border-transparent'
-                    : 'bg-gray-50 border-gray-200'
-                    }`}
-                >
-                  <tr className="divide-x-[1px]">
-                    <th className="px-6 py-3 text-left">
-                      <input
-                        type="checkbox"
-                        checked={
-                          paginatedData.length > 0 &&
-                          selectedTasks.length === paginatedData.length
-                        }
-                        onChange={handleSelectAll}
-                        // ref={(el) => {
-                        //   if (el) {
-                        //     el.indeterminate =
-                        //       selectedTasks.length > 0 &&
-                        //       selectedTasks.length < paginatedData.length;
-                        //   }
-                        // }}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      />
-                    </th>
-                    {visibleColumns.map((column) => (
-                      <th
-                        key={column.key}
-                        className={`px-6 py-3 text-left text-sm font-semibold uppercase tracking-wider ${theme === 'dark' ? 'text-white' : 'text-gray-500'
-                          }`}
-                      >
-                        {column.sortable ? (
-                          <SortButton field={column.key}>{column.label}</SortButton>
-                        ) : (
-                          column.label
-                        )}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-
-                <tbody
-                  className={`divide-y ${theme === 'dark' ? 'divide-white' : 'divide-gray-200'
-                    }`}
-                >
-                  {paginatedData.map((task) => (
-                    <tr
-                      key={task.name}
-                      className={`transition-colors cursor-pointer ${theme === 'dark'
-                        ? 'hover:bg-purple-800/20'
-                        : 'hover:bg-gray-50'
-                        }`}
-                      onClick={() => handleRowClick(task)}
-                    >
-                      <td
-                        className="px-6 py-4 whitespace-nowrap"
-                        onClick={(e) => e.stopPropagation()}
-                      >
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full">
+                  <thead
+                    className={`border-b ${theme === 'dark'
+                      ? 'bg-purplebg border-transparent'
+                      : 'bg-gray-50 border-gray-200'
+                      }`}
+                  >
+                    <tr className="divide-x-[1px]">
+                      <th className="px-6 py-3 text-left">
                         <input
                           type="checkbox"
-                          checked={selectedTasks.includes(task.name)}
-                          onChange={(e) => {
-                            e.stopPropagation();
-                            handleCheckboxChange(task.name);
-                          }}
+                          checked={
+                            paginatedData.length > 0 &&
+                            selectedTasks.length === paginatedData.length
+                          }
+                          onChange={handleSelectAll}
                           className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                         />
-                      </td>
-
+                      </th>
                       {visibleColumns.map((column) => (
-                        <td key={column.key} className="px-6 py-4 whitespace-nowrap">
-                          {column.key === 'title' ? (
-                            <div className="flex items-center">
-                              <div
-                                className={`w-6 h-6 rounded-full flex items-center justify-center mr-3 ${theme === 'dark' ? 'bg-purplebg' : 'bg-gray-200'
-                                  }`}
-                              >
-                                <span
-                                  className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-700'
-                                    }`}
-                                >
-                                  {task.title?.charAt(0).toUpperCase()}
-                                </span>
-                              </div>
-                              <div>
-                                <div
-                                  className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'
-                                    }`}
-                                >
-                                  {task.title}
-                                </div>
-                                {task.description && (
-                                  <div className={`text-sm truncate max-w-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
-                                    {task.description}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          ) : column.key === 'status' ? (
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${statusColors[task.status]}`}>
-                              {task.status}
-                            </span>
-                          ) : column.key === 'priority' ? (
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${priorityColors[task.priority]}`}>
-                              {task.priority}
-                            </span>
-                          ) : column.key === 'due_date' ? (
-                            <span className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                              {task.due_date ? formatDateForDisplay(task.due_date) : 'N/A'}
-                            </span>
+                        <th
+                          key={column.key}
+                          className={`px-6 py-3 text-left text-sm font-semibold uppercase tracking-wider ${theme === 'dark' ? 'text-white' : 'text-gray-500'
+                            }`}
+                        >
+                          {column.sortable ? (
+                            <SortButton field={column.key}>{column.label}</SortButton>
                           ) : (
-                            <span
-                              className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-900'
-                                }`}
-                            >
-                              {task[column.key] || 'N/A'}
-                            </span>
+                            column.label
                           )}
-                        </td>
+                        </th>
                       ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
 
-            {/* Mobile Card View */}
-            <div className="block md:hidden space-y-4">
-              {paginatedData.map((task) => (
-                <div
-                  key={task.name}
-                  className={`p-4 rounded-lg border ${theme === 'dark'
-                    ? 'bg-purplebg border-transparent'
-                    : 'bg-white border-gray-200'
-                    } shadow-sm`}
-                >
-                  <div className="flex justify-between items-center">
-                    <input
+                  <tbody
+                    className={`divide-y ${theme === 'dark' ? 'divide-white' : 'divide-gray-200'
+                      }`}
+                  >
+                    {paginatedData.map((task) => (
+                      <tr
+                        key={task.name}
+                        className={`transition-colors cursor-pointer ${theme === 'dark'
+                          ? 'hover:bg-purple-800/20'
+                          : 'hover:bg-gray-50'
+                          }`}
+                        onClick={() => handleRowClick(task)}
+                      >
+                        <td
+                          className="px-6 py-4 whitespace-nowrap"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedTasks.includes(task.name)}
+                            onChange={(e) => {
+                              e.stopPropagation();
+                              handleCheckboxChange(task.name);
+                            }}
+                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          />
+                        </td>
+
+                        {visibleColumns.map((column) => (
+                          <td key={column.key} className="px-6 py-4 whitespace-nowrap">
+                            {column.key === 'title' ? (
+                              <div className="flex items-center">
+                                <div
+                                  className={`w-6 h-6 rounded-full flex items-center justify-center mr-3 ${theme === 'dark' ? 'bg-purplebg' : 'bg-gray-200'
+                                    }`}
+                                >
+                                  <span
+                                    className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-700'
+                                      }`}
+                                  >
+                                    {task.title?.charAt(0).toUpperCase()}
+                                  </span>
+                                </div>
+                                <div>
+                                  <div
+                                    className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                                      }`}
+                                  >
+                                    {task.title}
+                                  </div>
+                                  {task.description && (
+                                    <div className={`text-sm truncate max-w-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
+                                      {task.description}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            ) : column.key === 'status' ? (
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${statusColors[task.status]}`}>
+                                {task.status}
+                              </span>
+                            ) : column.key === 'priority' ? (
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${priorityColors[task.priority]}`}>
+                                {task.priority}
+                              </span>
+                            ) : column.key === 'due_date' ? (
+                              <span className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                                {task.due_date ? formatDateForDisplay(task.due_date) : 'N/A'}
+                              </span>
+                            ) : (
+                              <span
+                                className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-900'
+                                  }`}
+                              >
+                                {task[column.key] || 'N/A'}
+                              </span>
+                            )}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile Card View */}
+              <div className="block md:hidden space-y-4">
+                {paginatedData.map((task) => (
+                  <div
+                    key={task.name}
+                    className={`p-4 rounded-lg border ${theme === 'dark'
+                      ? 'bg-purplebg border-transparent'
+                      : 'bg-white border-gray-200'
+                      } shadow-sm`}
+                  >
+                    <div className="flex justify-between items-center">
+                      <input
                         type="checkbox"
                         checked={selectedTasks.includes(task.name)}
                         onChange={(e) => {
@@ -1175,94 +1539,92 @@ export function TasksPage({ onCreateTask, leadName, refreshTrigger = 0, onMenuTo
                         }}
                         className="rounded mr-4 border-gray-300 text-blue-600 focus:ring-blue-500"
                       />
-                    <div
-                      className="flex items-center flex-1 cursor-pointer"
-                      onClick={() => handleRowClick(task)}
-                    >
                       <div
-                        className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 ${theme === 'dark' ? 'bg-purple-700' : 'bg-gray-200'
-                          }`}
+                        className="flex items-center flex-1 cursor-pointer"
+                        onClick={() => handleRowClick(task)}
                       >
-                        <span
-                          className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-800'
+                        <div
+                          className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 ${theme === 'dark' ? 'bg-purple-700' : 'bg-gray-200'
                             }`}
                         >
-                          {task.title?.charAt(0).toUpperCase()}
-                        </span>
-                      </div>
-                      <h3
-                        className={`text-base font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'
-                          }`}
-                      >
-                        {task.title}
-                      </h3>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      
-
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleTaskDetails(task.name);
-                        }}
-                        className={`p-1 rounded transition-transform ${theme === 'dark' ? 'hover:bg-purple-700' : 'hover:bg-gray-100'
-                          }`}
-                      >
-                        <svg
-                          className={`w-4 h-4 transform transition-transform ${isTaskExpanded(task.name) ? 'rotate-180' : ''
-                            } ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Collapsible details section */}
-                  {isTaskExpanded(task.name) && (
-                    <div className="mt-3 pt-3 border-t border-gray-200">
-                      {visibleColumns.map((column) =>
-                        column.key !== 'title' ? (
-                          <div
-                            key={column.key}
-                            className="flex justify-between text-sm py-1"
+                          <span
+                            className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-800'
+                              }`}
                           >
-                            <span
-                              className={`font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-500'
-                                }`}
-                            >
-                              {column.label}:
-                            </span>
-                            <span
-                              className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'
-                                }`}
-                            >
-                              {column.key === 'status' ? (
-                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${statusColors[task.status]}`}>
-                                  {task.status}
-                                </span>
-                              ) : column.key === 'priority' ? (
-                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${priorityColors[task.priority]}`}>
-                                  {task.priority}
-                                </span>
-                              ) : column.key === 'due_date' ? (
-                                task.due_date ? formatDateForDisplay(task.due_date) : 'N/A'
-                              ) : (
-                                task[column.key] || 'N/A'
-                              )}
-                            </span>
-                          </div>
-                        ) : null
-                      )}
+                            {task.title?.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                        <h3
+                          className={`text-base font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                            }`}
+                        >
+                          {task.title}
+                        </h3>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleTaskDetails(task.name);
+                          }}
+                          className={`p-1 rounded transition-transform ${theme === 'dark' ? 'hover:bg-purple-700' : 'hover:bg-gray-100'
+                            }`}
+                        >
+                          <svg
+                            className={`w-4 h-4 transform transition-transform ${isTaskExpanded(task.name) ? 'rotate-180' : ''
+                              } ${theme === 'dark' ? 'text-white' : 'text-gray-600'}`}
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
+                      </div>
                     </div>
-                  )}
-                </div>
-              ))}
-            </div>
+
+                    {/* Collapsible details section */}
+                    {isTaskExpanded(task.name) && (
+                      <div className="mt-3 pt-3 border-t border-gray-200">
+                        {visibleColumns.map((column) =>
+                          column.key !== 'title' ? (
+                            <div
+                              key={column.key}
+                              className="flex justify-between text-sm py-1"
+                            >
+                              <span
+                                className={`font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-500'
+                                  }`}
+                              >
+                                {column.label}:
+                              </span>
+                              <span
+                                className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                                  }`}
+                              >
+                                {column.key === 'status' ? (
+                                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${statusColors[task.status]}`}>
+                                    {task.status}
+                                  </span>
+                                ) : column.key === 'priority' ? (
+                                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${priorityColors[task.priority]}`}>
+                                    {task.priority}
+                                  </span>
+                                ) : column.key === 'due_date' ? (
+                                  task.due_date ? formatDateForDisplay(task.due_date) : 'N/A'
+                                ) : (
+                                  task[column.key] || 'N/A'
+                                )}
+                              </span>
+                            </div>
+                          ) : null
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           )}
           {paginatedData.length === 0 && !loading && (
