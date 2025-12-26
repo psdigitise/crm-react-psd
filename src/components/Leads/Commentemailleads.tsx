@@ -13,8 +13,8 @@ import { getAuthToken } from "../../api/apiUrl";
 import { showToast } from "../../utils/toast";
 
 const API_BASE_URL = "https://api.erpnext.ai/api/method";
-//const AUTH_TOKEN = getAuthToken();
-const token = getAuthToken();
+const AUTH_TOKEN = getAuthToken();
+// constAUTH_TOKEN = getAuthToken();
 
 // File upload configuration
 const MAX_FILE_SIZE = 1 * 1024 * 1024; // 1MB in bytes
@@ -186,10 +186,12 @@ export default function Commentemailleads({
       formData.append("folder", "Home/Attachments");
 
       try {
+        const TOKEN = getAuthToken()
+        
         const response = await fetch("https://api.erpnext.ai/api/method/upload_file/", {
           method: "POST",
           headers: {
-            Authorization: token,
+            Authorization:TOKEN,
           },
           body: formData,
         });
@@ -236,11 +238,12 @@ export default function Commentemailleads({
 
     setLoading(true);
     try {
+      const TOKEN = getAuthToken()
       // First create the comment without attachments
       const response = await fetch(`${API_BASE_URL}/frappe.desk.form.utils.add_comment`, {
         method: "POST",
         headers: {
-          Authorization: token,
+          Authorization:TOKEN,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -297,12 +300,13 @@ export default function Commentemailleads({
 
   const addAttachmentsToComment = async (commentName: string, attachmentNames: string[]) => {
     try {
+      const TOKEN = getAuthToken()
       const response = await fetch(
         "https://api.erpnext.ai/api/method/crm.api.comment.add_attachments",
         {
           method: "POST",
           headers: {
-            "Authorization": token,
+            "Authorization":TOKEN,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
