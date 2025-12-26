@@ -818,7 +818,7 @@ useEffect(() => {
 }, [organization]);
 
 
-    
+
 
   const handleClick = (field: keyof Organization) => {
     setEditingField(field as string);
@@ -1549,7 +1549,7 @@ useEffect(() => {
                     <table className="min-w-full text-sm border-collapse">
                       <thead>
                         <tr className={`${isDark ? "bg-white/10" : "bg-gray-100"} text-left sticky top-0 z-10`}>
-                          <th className="p-3 font-medium min-w-[150px]">Name</th>
+                          
                           <th className="p-3 font-medium min-w-[150px]">Full Name</th>
                           <th className="p-3 font-medium min-w-[180px]">Email</th>
                           <th className="p-3 font-medium min-w-[130px]">Phone</th>
@@ -1564,27 +1564,7 @@ useEffect(() => {
                             className={`border-t ${isDark ? 'border-white/10' : 'border-gray-200'} hover:bg-opacity-50 ${isDark ? 'hover:bg-white/5' : 'hover:bg-gray-50'} cursor-pointer transition-colors`}
                             onClick={() => handleContactClick(contact)}
                           >
-                            <td className="p-3 min-w-[150px]">
-                              <div className="flex items-center gap-2">
-                                {contact.image ? (
-                                  <img
-                                    src={getFullImageUrl(contact.image)}
-                                    alt="Contact"
-                                    className="w-8 h-8 rounded-full object-cover flex-shrink-0"
-                                    onError={(e) => {
-                                      const target = e.target as HTMLImageElement;
-                                      target.style.display = 'none';
-                                      const fallback = target.nextElementSibling as HTMLElement;
-                                      if (fallback) fallback.style.display = 'flex';
-                                    }}
-                                  />
-                                ) : null}
-                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${isDark ? 'bg-purple-600' : 'bg-gray-300'} text-white ${contact.image ? 'hidden' : 'flex'} flex-shrink-0`}>
-                                  {contact.name?.[0]?.toUpperCase() || 'C'}
-                                </div>
-                                <span className="font-medium truncate">{contact.name}</span>
-                              </div>
-                            </td>
+                            
                             <td className="p-3 min-w-[150px]">
                               <div className="truncate">{contact.full_name}</div>
                             </td>

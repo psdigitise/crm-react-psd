@@ -145,9 +145,7 @@ export function ContactDetailView({ contact, onBack, onSave, onDealClick }: Cont
                                 <h1 className={`text-xl font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
                                     {contact.name}
                                 </h1>
-                                <p className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-500'}`}>
-                                    {contact.id}
-                                </p>
+                               
                             </div>
                         </div>
                     </div>
