@@ -101,20 +101,20 @@ function CreateAddressModal({ isOpen, onClose, onSubmit }: CreateAddressModalPro
         return;
       }
 
-      // Prepare payload according to new API structure
+      
       const payload = {
         doc: {
-          doctype: "CRM Organization",
-          organization_name: formData.organization_name,
-          website: formData.website,
-          address: formData.address,
-          company: sessionCompany,
-          annual_revenue: formData.annual_revenue ? parseFloat(formData.annual_revenue) : undefined,
-          industry: formData.industry,
-          no_of_employees: formData.no_of_employees,
-          territory: formData.territory
-        }
-      };
+          doctype: "Address",
+          address_title: formData.address_title,
+          address_type: formData.address_type,
+          address_line1: formData.address_line1,
+          city: formData.city,
+          country: formData.country,
+company: sessionCompany,
+          is_primary_address: 0,
+          is_shipping_address: 0
+}
+      }
 
       // Remove undefined fields from the doc object
       Object.keys(payload.doc).forEach(key => {
@@ -157,7 +157,7 @@ function CreateAddressModal({ isOpen, onClose, onSubmit }: CreateAddressModalPro
         // Don't fail the entire operation if refresh fails
       }
 
-      showToast('Organization created successfully', { type: 'success' });
+      showToast('Address created successfully', { type: 'success' });
 
       // Call onSubmit with the created result
       onSubmit(createResult);

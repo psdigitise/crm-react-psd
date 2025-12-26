@@ -24,6 +24,7 @@ const getFullImageUrl = (imagePath: string | null) => {
 
 interface Organization {
   name: string;
+  originalName?: string;
   organization_name: string;
   website?: string;
   territory?: string;
@@ -596,7 +597,8 @@ export default function OrganizationDetails({
     }
   }, [editingField]);
 
-  // Fetch organization details
+
+
   useEffect(() => {
     const fetchOrganization = async () => {
       try {
@@ -623,17 +625,24 @@ export default function OrganizationDetails({
         if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
 
         const data = await response.json();
-
-        // Extract name before @ symbol
         const organizationData = data.message;
-        if (organizationData?.name?.includes('@')) {
-          organizationData.name = organizationData.name.split('@')[0];
-        }
-        if (organizationData?.organization_name?.includes('@')) {
-          organizationData.organization_name = organizationData.organization_name.split('@')[0];
-        }
 
-        setOrganization(organizationData);
+        // Store the original name as a separate property
+        const originalName = organizationData.name;
+        const displayName = originalName?.includes('@')
+          ? originalName.split('@')[0]
+          : originalName;
+
+        const displayOrgName = organizationData.organization_name?.includes('@')
+          ? organizationData.organization_name.split('@')[0]
+          : organizationData.organization_name;
+
+        setOrganization({
+          ...organizationData,
+          name: displayName, // Display name without @
+          organization_name: displayOrgName, // Display name without @
+          originalName: originalName // Store original name with @
+        });
 
       } catch (error) {
         console.error('Error fetching organization:', error);
@@ -647,174 +656,169 @@ export default function OrganizationDetails({
   }, [organizationId]);
 
   // Fetch deals data
-  useEffect(() => {
-    const fetchDeals = async () => {
-      if (!organization) return;
+  // Fetch deals data
+useEffect(() => {
+  const fetchDeals = async () => {
+    if (!organization) return;
 
-      try {
-        const session = getUserSession();
-        if (!session) return;
+    try {
+      const session = getUserSession();
+      if (!session) return;
 
-        // Use the original organization name (with @) for API filter
-        const originalOrganizationName = organization.name; // This should be "PSD@109"
+      // Use the original organization name with @
+      const apiOrganizationName = organization.originalName || organization.name;
 
-        // If organization.name doesn't have @, check other fields
-        const apiOrganizationName = organization.name?.includes('@')
-          ? organization.name
-          : `${organization.organization_name}@${organization.idx || '100'}`;
-
-        const response = await fetch(`${API_BASE}/frappe.client.get_list`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': token
+      const response = await fetch(`${API_BASE}/frappe.client.get_list`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token
+        },
+        body: JSON.stringify({
+          doctype: "CRM Deal",
+          fields: [
+            "name",
+            "organization",
+            "currency",
+            "annual_revenue",
+            "status",
+            "email",
+            "mobile_no",
+            "deal_owner",
+            "modified"
+          ],
+          filters: {
+            organization: apiOrganizationName // Use original name here
           },
-          body: JSON.stringify({
-            doctype: "CRM Deal",
-            fields: [
-              "name",
-              "organization",
-              "currency",
-              "annual_revenue",
-              "status",
-              "email",
-              "mobile_no",
-              "deal_owner",
-              "modified"
-            ],
-            filters: {
-              // Pass the full organization name with @
-              organization: apiOrganizationName
-            },
-            limit: 1000,
-            limit_page_length: 1000,
-            limit_start: 0,
-            order_by: "modified desc",
-            start: 0,
-            debug: 0
-          })
-        });
+          limit: 1000,
+          limit_page_length: 1000,
+          limit_start: 0,
+          order_by: "modified desc",
+          start: 0,
+          debug: 0
+        })
+      });
 
-        if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
 
-        const data = await response.json();
-        const transformedDeals = (data.message || []).map((deal: any) => {
-          // Extract name before @ symbol for display only
-          const displayOrganizationName = deal.organization?.includes('@')
-            ? deal.organization.split('@')[0]
-            : deal.organization;
+      const data = await response.json();
+      const transformedDeals = (data.message || []).map((deal: any) => {
+        // Extract name before @ symbol for display only
+        const displayOrganizationName = deal.organization?.includes('@') 
+          ? deal.organization.split('@')[0] 
+          : deal.organization;
+        
+        const displayDealName = deal.name?.includes('@') 
+          ? deal.name.split('@')[0] 
+          : deal.name;
 
-          const displayDealName = deal.name?.includes('@')
-            ? deal.name.split('@')[0]
-            : deal.name;
+        return {
+          ...deal,
+          name: displayDealName,
+          organization: displayOrganizationName, // For display
+          id: deal.name, // Keep original ID
+          mobileNo: deal.mobile_no,
+          assignedTo: deal.deal_owner,
+          lastModified: deal.modified,
+          annualRevenue: deal.annual_revenue?.toString() || '0'
+        };
+      });
 
-          return {
-            ...deal,
-            name: displayDealName,
-            organization: displayOrganizationName, // For display
-            id: deal.name, // Keep original ID
-            mobileNo: deal.mobile_no,
-            assignedTo: deal.deal_owner,
-            lastModified: deal.modified,
-            annualRevenue: deal.annual_revenue?.toString() || '0'
-          };
-        });
+      setDeals(transformedDeals);
+    } catch (error) {
+      console.error('Error fetching deals:', error);
+      showToast('Failed to load deals', { type: 'error' });
+    }
+  };
 
-        setDeals(transformedDeals);
-      } catch (error) {
-        console.error('Error fetching deals:', error);
-        showToast('Failed to load deals', { type: 'error' });
-      }
-    };
+  fetchDeals();
+}, [organization]);
 
-    fetchDeals();
-  }, [organization]);
+// Fetch contacts data
+useEffect(() => {
+  const fetchContacts = async () => {
+    if (!organization) return;
 
-  // Fetch contacts data
-  useEffect(() => {
-    const fetchContacts = async () => {
-      if (!organization) return;
+    try {
+      const session = getUserSession();
+      if (!session) return;
 
-      try {
-        const session = getUserSession();
-        if (!session) return;
+      // Use the original organization name with @
+      const apiOrganizationName = organization.originalName || organization.name;
 
-        // Use the original organization name (with @) for API filter
-        const apiOrganizationName = organization.name?.includes('@')
-          ? organization.name
-          : `${organization.organization_name}@${organization.idx || '100'}`;
-
-        const response = await fetch(`${API_BASE}/frappe.client.get_list`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': token
+      const response = await fetch(`${API_BASE}/frappe.client.get_list`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token
+        },
+        body: JSON.stringify({
+          doctype: "Contact",
+          fields: [
+            "name",
+            "full_name",
+            "image",
+            "email_id",
+            "mobile_no",
+            "company_name",
+            "modified",
+            "salutation",
+            "first_name",
+            "last_name",
+            "gender",
+            "status",
+            "designation",
+            "middle_name",
+            "creation"
+          ],
+          filters: {
+            company_name: apiOrganizationName // Use original name here
           },
-          body: JSON.stringify({
-            doctype: "Contact",
-            fields: [
-              "name",
-              "full_name",
-              "image",
-              "email_id",
-              "mobile_no",
-              "company_name",
-              "modified",
-              "salutation",
-              "first_name",
-              "last_name",
-              "gender",
-              "status",
-              "designation",
-              "middle_name",
-              "creation"
-            ],
-            filters: {
-              // Pass the full organization name with @
-              company_name: apiOrganizationName
-            },
-            limit: 1000,
-            limit_page_length: 1000,
-            limit_start: 0,
-            order_by: "modified desc",
-            start: 0,
-            debug: 0
-          })
-        });
+          limit: 1000,
+          limit_page_length: 1000,
+          limit_start: 0,
+          order_by: "modified desc",
+          start: 0,
+          debug: 0
+        })
+      });
 
-        if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
 
-        const data = await response.json();
-        const transformedContacts = (data.message || []).map((contact: any) => {
-          // Extract name before @ symbol for display only
-          const displayCompanyName = contact.company_name?.includes('@')
-            ? contact.company_name.split('@')[0]
-            : contact.company_name;
+      const data = await response.json();
+      const transformedContacts = (data.message || []).map((contact: any) => {
+        // Extract name before @ symbol for display only
+        const displayCompanyName = contact.company_name?.includes('@') 
+          ? contact.company_name.split('@')[0] 
+          : contact.company_name;
+        
+        const displayContactName = contact.name?.includes('@') 
+          ? contact.name.split('@')[0] 
+          : contact.name;
 
-          const displayContactName = contact.name?.includes('@')
-            ? contact.name.split('@')[0]
-            : contact.name;
+        return {
+          ...contact,
+          name: displayContactName,
+          company_name: displayCompanyName, // For display
+          id: contact.name, // Keep original ID
+          email: contact.email_id,
+          phone: contact.mobile_no,
+          status: contact.status || 'Active'
+        };
+      });
 
-          return {
-            ...contact,
-            name: displayContactName,
-            company_name: displayCompanyName, // For display
-            id: contact.name, // Keep original ID
-            email: contact.email_id,
-            phone: contact.mobile_no,
-            status: contact.status || 'Active'
-          };
-        });
+      setContacts(transformedContacts);
+    } catch (error) {
+      console.error('Error fetching contacts:', error);
+      showToast('Failed to load contacts', { type: 'error' });
+    }
+  };
 
-        setContacts(transformedContacts);
-      } catch (error) {
-        console.error('Error fetching contacts:', error);
-        showToast('Failed to load contacts', { type: 'error' });
-      }
-    };
+  fetchContacts();
+}, [organization]);
 
-    fetchContacts();
-  }, [organization]);
+
+    
 
   const handleClick = (field: keyof Organization) => {
     setEditingField(field as string);
