@@ -4875,7 +4875,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
                       }}
                     >
                       <div className="flex items-center justify-between mb-2">
-                        <h4 className={`text-lg font-semibold ${textColor}`}>{note.title}</h4>
+                        <h4 className={`text-lg whitespace-pre-wrap line-clamp-3 font-semibold ${textColor}`}>{note.title}</h4>
                         <div className="relative">
                           <button
                             onClick={(e) => {
@@ -4906,7 +4906,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
                         </div>
                       </div>
 
-                      <p className={`text-base overflow-hidden font-semibold ${textSecondaryColor} whitespace-pre-wrap`}>
+                      <p className={`text-base  line-clamp-3 font-semibold ${textSecondaryColor} whitespace-pre-wrap`}>
                         {note.content}
                       </p>
 
