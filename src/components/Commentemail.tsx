@@ -22,7 +22,7 @@ interface CommentEmailProps {
 }
 
 //const AUTH_TOKEN =  getAuthToken();
-const token = getAuthToken();
+// const token = getAuthToken();
 const UPLOAD_API_URL = "https://api.erpnext.ai/api/method/upload_file";
 
 // File upload configuration
@@ -94,6 +94,7 @@ export default function Commentemail({
       formData.append("folder", "Home/Attachments");
 
       try {
+        const token = getAuthToken();
         const response = await axios.post(UPLOAD_API_URL, formData, {
           headers: {
             Authorization: token,
@@ -162,6 +163,7 @@ export default function Commentemail({
     setLoading(true);
     try {
       let attachmentIds: string[] = [];
+      const token = getAuthToken();
 
       // Step 1: Upload attachments if any
       if (uploadedFiles.length > 0) {
