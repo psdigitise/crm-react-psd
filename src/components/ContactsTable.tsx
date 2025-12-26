@@ -571,6 +571,7 @@ export function ContactsTable({ searchTerm, onContactClick, onRefresh }: Contact
 
   const continueImportProcess = async (dataImportName: string) => {
   try {
+   const AUTH_TOKEN = getAuthToken();
     setImportProgress(60);
     setImportStatus('Starting data import...');
 
