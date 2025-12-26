@@ -756,6 +756,7 @@ export function ContactsTable({ searchTerm, onContactClick, onRefresh }: Contact
     const session = getUserSession();
     const sessionCompany = session?.company;
     const AUTH_TOKEN = getAuthToken();
+    
 
     if (!session?.api_key || !session?.api_secret) {
       throw new Error("User session or API credentials not found.");
@@ -1108,6 +1109,7 @@ export function ContactsTable({ searchTerm, onContactClick, onRefresh }: Contact
 
     setUpdating(true);
     try {
+      const AUTH_TOKEN = getAuthToken();
       const session = getUserSession();
       if (!session) {
         throw new Error('No active session');
@@ -1171,6 +1173,7 @@ export function ContactsTable({ searchTerm, onContactClick, onRefresh }: Contact
     setLoading(true);
 
     try {
+      const AUTH_TOKEN = getAuthToken();
       const apiUrl = `https://api.erpnext.ai/api/method/frappe.desk.reportview.delete_items`;
       const payload = {
         items: JSON.stringify(selectedIds),

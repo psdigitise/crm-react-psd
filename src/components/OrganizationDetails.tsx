@@ -146,7 +146,7 @@ export default function OrganizationDetails({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [expandedDeals, setExpandedDeals] = useState<Set<string>>(new Set());
   const [expandedContacts, setExpandedContacts] = useState<Set<string>>(new Set());
-  const token =  getAuthToken();
+  const token = getAuthToken();
 
   const API_BASE = 'https://api.erpnext.ai/api/method';
 
@@ -598,139 +598,151 @@ export default function OrganizationDetails({
 
   // Fetch organization details
   useEffect(() => {
-  const fetchOrganization = async () => {
-    try {
-      setFetchLoading(true);
+    const fetchOrganization = async () => {
+      try {
+        setFetchLoading(true);
 
-      const session = getUserSession();
-      if (!session) {
-        showToast('Session not found', { type: 'error' });
-        return;
-      }
+        const session = getUserSession();
+        if (!session) {
+          showToast('Session not found', { type: 'error' });
+          return;
+        }
 
-      const response = await fetch(`${API_BASE}/frappe.client.get`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': token
-        },
-        body: JSON.stringify({
-          doctype: "CRM Organization",
-          name: organizationId
-        })
-      });
-
-      if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-
-      const data = await response.json();
-      
-      // Extract name before @ symbol
-      const organizationData = data.message;
-      if (organizationData?.name?.includes('@')) {
-        organizationData.name = organizationData.name.split('@')[0];
-      }
-      if (organizationData?.organization_name?.includes('@')) {
-        organizationData.organization_name = organizationData.organization_name.split('@')[0];
-      }
-      
-      setOrganization(organizationData);
-
-    } catch (error) {
-      console.error('Error fetching organization:', error);
-      showToast('Failed to load organization details', { type: 'error' });
-    } finally {
-      setFetchLoading(false);
-    }
-  };
-
-  fetchOrganization();
-}, [organizationId]);
-
-  // Fetch deals data
-  // Fetch deals data
-useEffect(() => {
-  const fetchDeals = async () => {
-    if (!organization?.organization_name) return;
-
-    try {
-      const session = getUserSession();
-      if (!session) return;
-
-      const response = await fetch(`${API_BASE}/frappe.client.get_list`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': token
-        },
-        body: JSON.stringify({
-          doctype: "CRM Deal",
-          fields: [
-            "name",
-            "organization",
-            "currency",
-            "annual_revenue",
-            "status",
-            "email",
-            "mobile_no",
-            "deal_owner",
-            "modified"
-          ],
-          filters: {
-            organization: organization.organization_name
+        const response = await fetch(`${API_BASE}/frappe.client.get`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': token
           },
-          limit: 1000,
-          limit_page_length: 1000,
-          limit_start: 0,
-          order_by: "modified desc",
-          start: 0,
-          debug: 0
-        })
-      });
+          body: JSON.stringify({
+            doctype: "CRM Organization",
+            name: organizationId
+          })
+        });
 
-      if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
 
-      const data = await response.json();
-      const transformedDeals = (data.message || []).map((deal: any) => {
-        // Extract name before @ symbol for organization
-        const organizationName = deal.organization?.includes('@') 
-          ? deal.organization.split('@')[0] 
-          : deal.organization;
-        
-        // Extract name before @ symbol for deal name if needed
-        const dealName = deal.name?.includes('@') 
-          ? deal.name.split('@')[0] 
-          : deal.name;
+        const data = await response.json();
 
-        return {
-          ...deal,
-          name: dealName,
-          organization: organizationName,
-          id: deal.name,
-          mobileNo: deal.mobile_no,
-          assignedTo: deal.deal_owner,
-          lastModified: deal.modified,
-          annualRevenue: deal.annual_revenue?.toString() || '0'
-        };
-      });
+        // Extract name before @ symbol
+        const organizationData = data.message;
+        if (organizationData?.name?.includes('@')) {
+          organizationData.name = organizationData.name.split('@')[0];
+        }
+        if (organizationData?.organization_name?.includes('@')) {
+          organizationData.organization_name = organizationData.organization_name.split('@')[0];
+        }
 
-      setDeals(transformedDeals);
-    } catch (error) {
-      console.error('Error fetching deals:', error);
-      showToast('Failed to load deals', { type: 'error' });
-    }
-  };
+        setOrganization(organizationData);
 
-  fetchDeals();
-}, [organization?.organization_name]);
+      } catch (error) {
+        console.error('Error fetching organization:', error);
+        showToast('Failed to load organization details', { type: 'error' });
+      } finally {
+        setFetchLoading(false);
+      }
+    };
 
-  // Fetch contacts data
+    fetchOrganization();
+  }, [organizationId]);
+
+  // Fetch deals data
   useEffect(() => {
-    const fetchContacts = async () => {
-      if (!organization?.organization_name) return;
+    const fetchDeals = async () => {
+      if (!organization) return;
 
       try {
         const session = getUserSession();
         if (!session) return;
+
+        // Use the original organization name (with @) for API filter
+        const originalOrganizationName = organization.name; // This should be "PSD@109"
+
+        // If organization.name doesn't have @, check other fields
+        const apiOrganizationName = organization.name?.includes('@')
+          ? organization.name
+          : `${organization.organization_name}@${organization.idx || '100'}`;
+
+        const response = await fetch(`${API_BASE}/frappe.client.get_list`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': token
+          },
+          body: JSON.stringify({
+            doctype: "CRM Deal",
+            fields: [
+              "name",
+              "organization",
+              "currency",
+              "annual_revenue",
+              "status",
+              "email",
+              "mobile_no",
+              "deal_owner",
+              "modified"
+            ],
+            filters: {
+              // Pass the full organization name with @
+              organization: apiOrganizationName
+            },
+            limit: 1000,
+            limit_page_length: 1000,
+            limit_start: 0,
+            order_by: "modified desc",
+            start: 0,
+            debug: 0
+          })
+        });
+
+        if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+
+        const data = await response.json();
+        const transformedDeals = (data.message || []).map((deal: any) => {
+          // Extract name before @ symbol for display only
+          const displayOrganizationName = deal.organization?.includes('@')
+            ? deal.organization.split('@')[0]
+            : deal.organization;
+
+          const displayDealName = deal.name?.includes('@')
+            ? deal.name.split('@')[0]
+            : deal.name;
+
+          return {
+            ...deal,
+            name: displayDealName,
+            organization: displayOrganizationName, // For display
+            id: deal.name, // Keep original ID
+            mobileNo: deal.mobile_no,
+            assignedTo: deal.deal_owner,
+            lastModified: deal.modified,
+            annualRevenue: deal.annual_revenue?.toString() || '0'
+          };
+        });
+
+        setDeals(transformedDeals);
+      } catch (error) {
+        console.error('Error fetching deals:', error);
+        showToast('Failed to load deals', { type: 'error' });
+      }
+    };
+
+    fetchDeals();
+  }, [organization]);
+
+  // Fetch contacts data
+  useEffect(() => {
+    const fetchContacts = async () => {
+      if (!organization) return;
+
+      try {
+        const session = getUserSession();
+        if (!session) return;
+
+        // Use the original organization name (with @) for API filter
+        const apiOrganizationName = organization.name?.includes('@')
+          ? organization.name
+          : `${organization.organization_name}@${organization.idx || '100'}`;
 
         const response = await fetch(`${API_BASE}/frappe.client.get_list`, {
           method: 'POST',
@@ -758,7 +770,8 @@ useEffect(() => {
               "creation"
             ],
             filters: {
-              company_name: organization.organization_name
+              // Pass the full organization name with @
+              company_name: apiOrganizationName
             },
             limit: 1000,
             limit_page_length: 1000,
@@ -772,13 +785,26 @@ useEffect(() => {
         if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
 
         const data = await response.json();
-        const transformedContacts = (data.message || []).map((contact: any) => ({
-          ...contact,
-          id: contact.name,
-          email: contact.email_id,
-          phone: contact.mobile_no,
-          status: contact.status || 'Active'
-        }));
+        const transformedContacts = (data.message || []).map((contact: any) => {
+          // Extract name before @ symbol for display only
+          const displayCompanyName = contact.company_name?.includes('@')
+            ? contact.company_name.split('@')[0]
+            : contact.company_name;
+
+          const displayContactName = contact.name?.includes('@')
+            ? contact.name.split('@')[0]
+            : contact.name;
+
+          return {
+            ...contact,
+            name: displayContactName,
+            company_name: displayCompanyName, // For display
+            id: contact.name, // Keep original ID
+            email: contact.email_id,
+            phone: contact.mobile_no,
+            status: contact.status || 'Active'
+          };
+        });
 
         setContacts(transformedContacts);
       } catch (error) {
@@ -788,7 +814,7 @@ useEffect(() => {
     };
 
     fetchContacts();
-  }, [organization?.organization_name]);
+  }, [organization]);
 
   const handleClick = (field: keyof Organization) => {
     setEditingField(field as string);
@@ -992,9 +1018,9 @@ useEffect(() => {
                   disabled={loading}
                 >
                   <option className={`px-4 py-2 rounded border ${isDark
-                ? 'border-gray-600 text-white hover:bg-gray-700'
-                : 'border-gray-300 text-gray-700 hover:bg-gray-100'
-                } transition-colors`} value="">Select {label.toLowerCase()}...</option>
+                    ? 'border-gray-600 text-white hover:bg-gray-700'
+                    : 'border-gray-300 text-gray-700 hover:bg-gray-100'
+                    } transition-colors`} value="">Select {label.toLowerCase()}...</option>
                   {getDropdownOptions(field as string).map((option) => (
                     <option
                       key={option}

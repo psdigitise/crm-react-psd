@@ -408,7 +408,7 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
   // const [userOptions, setUserOptions] = useState<string[]>([]);
   const [callerOptions, setCallerOptions] = useState<{ value: string; description: string; }[]>([]);
   const [noteFormError, setNoteFormError] = useState(false);
-  const [organizationOptions, setOrganizationOptions] = useState<string[]>([]);
+  const [organizationOptions, setOrganizationOptions] = useState<{value: string, fullName: string}[]>([]);
   const [contactOptions, setContactOptions] = useState<string[]>([]);
   const [showPopup, setShowPopup] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
@@ -1576,13 +1576,18 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
     if (response.ok) {
       const result = await response.json();
       
-      // Extract organization names and remove everything after @
+      // Store both display name and full name
       const organizations = result.message?.map((org: any) => {
         const fullName = org.value || '';
-        // Split by @ and take the first part
-        const nameParts = fullName.split('@');
-        return nameParts[0].trim();
-      }).filter((name: string) => name !== '') || [];
+        const displayName = fullName.includes('@') 
+          ? fullName.split('@')[0].trim() 
+          : fullName.trim();
+        
+        return {
+          value: displayName, // For display
+          fullName: fullName  // For API calls
+        };
+      }).filter((org: any) => org.value !== '') || [];
       
       setOrganizationOptions(organizations);
     }
@@ -1980,154 +1985,148 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
   }, []);
 
   const handleConvert = async (params: {
-    lead: string;
-    deal?: any;
-    existing_contact?: string;
-    existing_organization?: string;
-    company_info?: string;
-  }) => {
-    try {
-      setLoading(true);
-      const session = getUserSession();
-      const sessionCompany = session?.company || 'PSD-branch2';
-      const {
+  lead: string;
+  deal?: any;
+  existing_contact?: string;
+  existing_organization?: string;
+  company_info?: string;
+}) => {
+  try {
+    setLoading(true);
+    const session = getUserSession();
+    const sessionCompany = session?.company || 'PSD-branch2';
+    const {
+      lead: leadName,
+      deal: dealData = {},
+      existing_contact,
+      existing_organization,
+      company_info
+    } = params;
+
+    const companyInfoData = company_info || (editedLead.company_info
+      ? JSON.stringify(editedLead.company_info)
+      : undefined);
+
+    // Include the expected_deal_value and expected_closure_date in the deal data
+    const dealWithValues = {
+      ...dealData,
+      expected_deal_value: dealData.expected_deal_value,
+      expected_closure_date: dealData.expected_closure_date,
+      ...(companyInfoData && { company_info: companyInfoData })
+    };
+
+    // --- MODIFICATION START ---
+    // Use the full organization name (with @) when orgToggle is true
+    const organizationForApi = orgToggle && selectedOrganization 
+      ? selectedOrganization.fullName // Use full name with @
+      : undefined;
+    // --- MODIFICATION END ---
+
+    // --- 1. First API Call: Convert the Lead to a Deal ---
+    const leadResponse = await fetch(`${API_BASE_URL}/method/crm.fcrm.doctype.crm_lead.crm_lead.convert_to_deal`, {
+      method: 'POST',
+      headers: {
+        'Authorization': token,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
         lead: leadName,
-        deal: dealData = {},
+        deal: dealWithValues,
+        company: sessionCompany,
         existing_contact,
-        existing_organization,
-        company_info
-      } = params;
+        existing_organization: organizationForApi, // Use the full name here
+        company_info: company_info
+      })
+    });
 
-      const companyInfoData = company_info || (editedLead.company_info
-        ? JSON.stringify(editedLead.company_info)
-        : undefined);
+    if (!leadResponse.ok) {
+      const errorData = await leadResponse.json();
 
-      // Include the expected_deal_value and expected_closure_date in the deal data
-      const dealWithValues = {
-        ...dealData,
-        expected_deal_value: dealData.expected_deal_value,
-        expected_closure_date: dealData.expected_closure_date,
-        ...(companyInfoData && { company_info: companyInfoData })
-      };
+      // Check for _server_messages in the response data
+      if (errorData._server_messages) {
+        try {
+          // Parse the outer JSON string (stringified array)
+          const serverMessagesArray = JSON.parse(errorData._server_messages);
 
-      // --- 1. First API Call: Convert the Lead to a Deal ---
-      const leadResponse = await fetch(`${API_BASE_URL}/method/crm.fcrm.doctype.crm_lead.crm_lead.convert_to_deal`, {
-        method: 'POST',
-        headers: {
-          'Authorization': token,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          lead: leadName,
-          deal: dealWithValues, // Use the updated deal data with the new fields
-          company: sessionCompany,
-          existing_contact,
-          existing_organization,
-          company_info: company_info
-        })
-      });
+          // The first element is the actual message object (still a stringified JSON object)
+          if (serverMessagesArray && serverMessagesArray.length > 0) {
+            const messageObject = JSON.parse(serverMessagesArray[0]);
 
-      // if (!leadResponse.ok) {
-      //   throw new Error('Failed to fetch lead details');
-      // }
+            // Use showToast with the extracted information
+            const message = messageObject.message.replace(/<\/?strong>/g, ''); // Strip HTML tags
+            showToast(message, { type: messageObject.indicator === 'red' ? 'error' : 'warning' });
 
-
-      if (!leadResponse.ok) {
-        const errorData = await leadResponse.json();
-
-        // Check for _server_messages in the response data
-        if (errorData._server_messages) {
-          try {
-            // Parse the outer JSON string (stringified array)
-            const serverMessagesArray = JSON.parse(errorData._server_messages);
-
-            // The first element is the actual message object (still a stringified JSON object)
-            if (serverMessagesArray && serverMessagesArray.length > 0) {
-              const messageObject = JSON.parse(serverMessagesArray[0]);
-
-              // Use showToast with the extracted information
-              const message = messageObject.message.replace(/<\/?strong>/g, ''); // Strip HTML tags
-              showToast(message, { type: messageObject.indicator === 'red' ? 'error' : 'warning' });
-
-              // Skip the rest of the conversion logic on failure
-              return;
-            }
-          } catch (parseError) {
-            // Fallback if parsing fails
-            console.error('Failed to parse _server_messages:', parseError);
+            // Skip the rest of the conversion logic on failure
+            return;
           }
+        } catch (parseError) {
+          // Fallback if parsing fails
+          console.error('Failed to parse _server_messages:', parseError);
         }
-
-        // Fallback to generic error message if no specific server message was handled
-        throw new Error(errorData.exception || 'Failed to convert lead (Unknown API Error).');
       }
-      showToast('Deal converted successfully!', { type: 'success' });
 
-      // --- 2. Second API Call: Fetch Organization Details ---
+      // Fallback to generic error message if no specific server message was handled
+      throw new Error(errorData.exception || 'Failed to convert lead (Unknown API Error).');
+    }
+    showToast('Deal converted successfully!', { type: 'success' });
 
-      const organizationToFetch = existing_organization || editedLead.organization;
+    // --- 2. Second API Call: Fetch Organization Details ---
+    const organizationToFetch = organizationForApi || editedLead.organization;
 
-      // Now, we check if we have an organization name from either source.
-      if (organizationToFetch) {
-        console.log(`Fetching details for organization: ${organizationToFetch}`);
-        const orgDetailsResponse = await fetch(`${API_BASE_URL}/method/frappe.client.get`, {
-          method: 'POST',
-          headers: {
-            'Authorization': token,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            doctype: "CRM Organization",
-            name: organizationToFetch, // ✅ Use the determined organization name here
-            company: sessionCompany,
-            // filters: {
-            //   company: sessionCompany   // ✅ Add filters here
-            // },
-          })
-        });
-
-        if (!orgDetailsResponse.ok) {
-          throw new Error('Failed to fetch organization details after conversion');
-        }
-
-        const orgData = await orgDetailsResponse.json();
-        console.log('Successfully fetched organization details:', orgData.message);
-      }
-      // ✅ MODIFICATION END
-
-      // --- 3. Final Step: Update the Lead's 'converted' status ---
-      // This part also remains the same.
-      const updateLeadResponse = await fetch(`${API_BASE_URL}/method/frappe.client.set_value`, {
+    if (organizationToFetch) {
+      console.log(`Fetching details for organization: ${organizationToFetch}`);
+      const orgDetailsResponse = await fetch(`${API_BASE_URL}/method/frappe.client.get`, {
         method: 'POST',
         headers: {
           'Authorization': token,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          doctype: 'CRM Lead',
-          name: leadName,
-          fieldname: 'converted',
-          value: "1"
+          doctype: "CRM Organization",
+          name: organizationToFetch,
+          company: sessionCompany,
         })
       });
 
-      if (!updateLeadResponse.ok) {
-        throw new Error('Deal created, but failed to update lead');
+      if (!orgDetailsResponse.ok) {
+        throw new Error('Failed to fetch organization details after conversion');
       }
 
-      showToast('Deal converted successfully!', { type: 'success' });
-      setShowPopup(false);
-      const leadResponseData = await leadResponse.json();
-      const newDealId = leadResponseData.message;
-      //onBack();
-      onConversionSuccess(newDealId);
-    } catch (error) {
-      console.error('Conversion failed:', error);
-      showToast('Failed to convert deal.', { type: 'error' });
-    } finally {
-      setLoading(false);
+      const orgData = await orgDetailsResponse.json();
+      console.log('Successfully fetched organization details:', orgData.message);
     }
-  };
+
+    // --- 3. Final Step: Update the Lead's 'converted' status ---
+    const updateLeadResponse = await fetch(`${API_BASE_URL}/method/frappe.client.set_value`, {
+      method: 'POST',
+      headers: {
+        'Authorization': token,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        doctype: 'CRM Lead',
+        name: leadName,
+        fieldname: 'converted',
+        value: "1"
+      })
+    });
+
+    if (!updateLeadResponse.ok) {
+      throw new Error('Deal created, but failed to update lead');
+    }
+
+    showToast('Deal converted successfully!', { type: 'success' });
+    setShowPopup(false);
+    const leadResponseData = await leadResponse.json();
+    const newDealId = leadResponseData.message;
+    onConversionSuccess(newDealId);
+  } catch (error) {
+    console.error('Conversion failed:', error);
+    showToast('Failed to convert deal.', { type: 'error' });
+  } finally {
+    setLoading(false);
+  }
+};
 
 
 
@@ -3342,31 +3341,31 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
                         />
                       </div>
                       {orgToggle ? (
-                        <select
-                          value={selectedOrganization}
-                          onChange={(e) => setSelectedOrganization(e.target.value)}
-                          className={`mt-2 w-full rounded px-3 py-2 ${theme === 'dark'
-                            ? 'bg-gray-800 border-gray-600 text-white'
-                            : 'bg-white border-gray-300 text-gray-900'
-                            } border`}
-                        >
-                          <option className={`mt-2 w-full rounded px-3 py-2 ${theme === 'dark'
-                            ? 'bg-gray-800 border-gray-600 text-white'
-                            : 'bg-white border-gray-300 text-gray-900'
-                            } border`} value="">Choose Existing Organization</option>
-                          {organizationOptions.map(org => (
-                            <option className={`mt-2 w-full rounded px-3 py-2 ${theme === 'dark'
-                              ? 'bg-gray-800 border-gray-600 text-white'
-                              : 'bg-white border-gray-300 text-gray-900'
-                              } border`} key={org} value={org}>{org}</option>
-                          ))}
-                        </select>
-                      ) : (
-                        <p className={`text-sm mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-                          }`}>
-                          New organization will be created based on the data in details section
-                        </p>
-                      )}
+  <select
+    value={selectedOrganization?.value || ""}
+    onChange={(e) => {
+      const selectedValue = e.target.value;
+      const selectedOrg = organizationOptions.find(org => org.value === selectedValue);
+      setSelectedOrganization(selectedOrg || null);
+    }}
+    className={`mt-2 w-full rounded px-3 py-2 ${
+      theme === 'dark'
+        ? 'bg-gray-800 border-gray-600 text-white'
+        : 'bg-white border-gray-300 text-gray-900'
+    } border`}
+  >
+    <option value="">Choose Existing Organization</option>
+    {organizationOptions.map(org => (
+      <option key={org.fullName} value={org.value}>
+        {org.value}
+      </option>
+    ))}
+  </select>
+) : (
+  <p className={`text-sm mt-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
+    New organization will be created based on the data in details section
+  </p>
+)}
                     </div>
 
                     <div className="mb-4">
