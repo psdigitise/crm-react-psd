@@ -2046,39 +2046,39 @@ const timelineActivities = timelineItems.map((item: any) => {
 
 
   const fetchOrganizations = async () => {
-    try {
-      const session = getUserSession();
-      const sessionCompany = session?.company;
-      const response = await apiAxios.post(
-        '/api/method/frappe.desk.search.search_link',
-        {
-          txt: "",
-          doctype: "CRM Organization",
-          filters: sessionCompany ? { company: sessionCompany } : null
-        },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': token
-          }
+  try {
+    const session = getUserSession();
+    const sessionCompany = session?.company;
+    const response = await apiAxios.post(
+      '/api/method/frappe.desk.search.search_link',
+      {
+        txt: "",
+        doctype: "CRM Organization",
+        filters: sessionCompany ? { company: sessionCompany } : null
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token
         }
-      );
+      }
+    );
 
-      // Axios automatically parses the JSON response, so we can access it directly
-      const data = response.data;
+    // Axios automatically parses the JSON response, so we can access it directly
+    const data = response.data;
 
-      // Transform the API response to match the format expected by Select
-      const options = data.message.map((item: { value: any; description: any; }) => ({
-        value: item.value,
-        label: item.value,
-        description: item.description
-      }));
-      setOrganizationOptions(options);
-    } catch (err) {
-      // You might want to handle the error here, e.g., show a toast notification
-      console.error('Error fetching organizations:', err);
-    }
-  };
+    // Transform the API response to match the format expected by Select
+    const options = data.message.map((item: { value: any; description: any; }) => ({
+      // Extract only the part before "@" for both value and label
+      value: item.value?.split('@')[0] || item.value || '',
+      label: item.value?.split('@')[0] || item.value || '',
+      description: item.description
+    }));
+    setOrganizationOptions(options);
+  } catch (err) {
+    console.error('Error fetching organizations:', err);
+  }
+};
   useEffect(() => {
     fetchOrganizations();
   }, []);

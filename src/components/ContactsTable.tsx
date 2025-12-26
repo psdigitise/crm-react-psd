@@ -272,7 +272,7 @@ export function ContactsTable({ searchTerm, onContactClick, onRefresh }: Contact
 
   const userSession = getUserSession();
   const Company = userSession?.company;
-  const token = getAuthToken();
+ 
 
   // Available filter options
   const [filterOptions, setFilterOptions] = useState({
@@ -643,6 +643,7 @@ export function ContactsTable({ searchTerm, onContactClick, onRefresh }: Contact
   // Handle template download
   const handleDownloadTemplate = async () => {
     try {
+       const token = getAuthToken();
       setDownloadStatus('Downloading template...');
 
       const response = await fetch(
@@ -754,6 +755,7 @@ export function ContactsTable({ searchTerm, onContactClick, onRefresh }: Contact
 
     const session = getUserSession();
     const sessionCompany = session?.company;
+    const AUTH_TOKEN = getAuthToken();
 
     if (!session?.api_key || !session?.api_secret) {
       throw new Error("User session or API credentials not found.");
@@ -859,6 +861,7 @@ export function ContactsTable({ searchTerm, onContactClick, onRefresh }: Contact
   setImportStatus('Applying column mappings...');
 
   try {
+    const AUTH_TOKEN = getAuthToken();
     const session = getUserSession();
     const sessionCompany = session?.company;
 

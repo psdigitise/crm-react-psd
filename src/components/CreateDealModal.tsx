@@ -1209,7 +1209,7 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
                   <option value="Negotiation">Negotiation</option>
                   <option value="Ready to Close">Ready To Close</option>
                   <option value="Won">Won</option>
-                  <option value="Lost">Lost</option>
+                  {/* <option value="Lost">Lost</option> */}
                 </select>
                 {errors.status && (
                   <p className="text-sm text-red-500 mt-1">{errors.status}</p>
