@@ -50,7 +50,7 @@ interface AIResponse {
 }
 
 const API_BASE_URL = "https://api.erpnext.ai/api/method/frappe.core.doctype.communication.email.make";
-const AUTH_TOKEN = getAuthToken();
+
 const SEARCH_API_URL = "https://api.erpnext.ai/api/method/frappe.desk.search.search_link";
 const AI_GENERATE_API = "https://api.erpnext.ai/api/method/customcrm.email.email_generator.generate_email";
 const CHECK_CREDITS_API = "https://api.erpnext.ai/api/method/customcrm.api.check_credits_available";
@@ -295,6 +295,7 @@ export default function EmailComposerleads({
         setCheckingCredits(true);
         try {
             const session = getUserSession();
+            const AUTH_TOKEN = getAuthToken();
             const sessionCompany = session?.company || '';
 
             const response = await apiAxios.post(
@@ -355,6 +356,7 @@ export default function EmailComposerleads({
         inrCost: number
     ) => {
         try {
+            const AUTH_TOKEN = getAuthToken();
             await apiAxios.post(
                 ADD_ACTION_LOG_API,
                 {
@@ -423,13 +425,13 @@ export default function EmailComposerleads({
             }
         }
 
-        // Validate all attached files before sending
+       
         for (const file of uploadedFiles) {
             // Note: The file object here is { name: string; url: string }
             // We need to check the actual file size during upload, which is already validated
             // This is a safety check in case files were added before validation was implemented
             if (file.name && uploadedFiles.length > 0) {
-                showToast(`Validating file: ${file.name}...`, { type: 'info' });
+                // showToast(`Validating file: ${file.name}...`, { type: 'info' });
             }
         }
 
@@ -535,6 +537,7 @@ export default function EmailComposerleads({
             formData.append("folder", "Home/Attachments");
 
             try {
+                const AUTH_TOKEN = getAuthToken();
                 const response = await fetch("https://api.erpnext.ai/api/method/upload_file/", {
                     method: "POST",
                     headers: {
@@ -651,6 +654,7 @@ export default function EmailComposerleads({
         }
 
         try {
+            const AUTH_TOKEN = getAuthToken();
             setGeneratingContent(true);
 
             // Build modify prompt if needed
@@ -770,6 +774,7 @@ Instruction: ${emailForm.aiPrompt.trim()}
             setGeneratingContent(true);
 
             const userSession = getUserSession();
+            const AUTH_TOKEN = getAuthToken();
 
             // Get recipient name if not provided
             let finalRecipientName = recipientName;

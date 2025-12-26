@@ -4,7 +4,7 @@ import { useTheme } from './ThemeProvider';
 import { getUserSession } from '../utils/session';
 import { FaCircleDot } from 'react-icons/fa6';
 import * as XLSX from 'xlsx';
-import { apiAxios, AUTH_TOKEN } from '../api/apiUrl';
+import { apiAxios, getAuthToken } from '../api/apiUrl';
 import { BsThreeDots } from 'react-icons/bs';
 import { EditDealPopup } from './DealPopups/EditDealPopup';
 import { DeleteDealPopup } from './DealPopups/DeleteDealPopup';
@@ -14,6 +14,7 @@ import axios from 'axios';
 import { api } from '../api/apiService';
 import { ExportPopup } from './LeadsPopup/ExportPopup';
 import { LinkedItemsPopup } from './LeadsPopup/LinkedItemsPopup';
+
 
 interface Deal {
   id: string;
@@ -202,6 +203,8 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
   const [showDeleteLinkedConfirm, setShowDeleteLinkedConfirm] = useState(false);
   const [dealsToDelete, setDealsToDelete] = useState<string[]>([]);
 
+   const TOKEN = getAuthToken()
+
   const showToast = (message: string, type: 'error' | 'success' = 'error') => {
     setToast({ message, type });
   };
@@ -307,7 +310,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
         {
           method: 'POST',
           headers: {
-            'Authorization': AUTH_TOKEN,
+            'Authorization': TOKEN,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify(startImportPayload)
@@ -356,7 +359,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
         {
           method: 'POST',
           headers: {
-            'Authorization': AUTH_TOKEN,
+            'Authorization': TOKEN,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
@@ -476,7 +479,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
         {
           method: 'POST',
           headers: {
-            'Authorization': AUTH_TOKEN,
+            'Authorization': TOKEN,
           },
           body: formData
         }
@@ -567,7 +570,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
         {
           method: 'POST',
           headers: {
-            'Authorization': AUTH_TOKEN,
+            'Authorization': TOKEN,
           },
           body: formData
         }
@@ -1054,7 +1057,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': AUTH_TOKEN
+            'Authorization': TOKEN
           },
           body: JSON.stringify({
             doctype: "CRM Deal",
@@ -1098,7 +1101,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': AUTH_TOKEN
+              'Authorization': TOKEN
             },
             body: JSON.stringify({
               doctype: "CRM Deal",
@@ -1156,7 +1159,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': AUTH_TOKEN
+              'Authorization': TOKEN
             },
             body: JSON.stringify({
               items: itemsToUnlink,
@@ -1181,7 +1184,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': AUTH_TOKEN
+              'Authorization': TOKEN
             },
             body: JSON.stringify({
               doctype: "CRM Deal",
@@ -1282,7 +1285,7 @@ export function DealsTable({ searchTerm, onDealClick }: DealsTableProps) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': AUTH_TOKEN
+          'Authorization': TOKEN
         },
         body: JSON.stringify(payload)
       });
