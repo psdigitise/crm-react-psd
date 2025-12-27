@@ -166,6 +166,11 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
   const [isProcessingPayment, setIsProcessingPayment] = useState<string | null>(null);
   const [isLoadingAIUsage, setIsLoadingAIUsage] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  // Credits purchase modal state
+  const [isBuyingCredits, setIsBuyingCredits] = useState(false);
+  const [selectedCreditPlan, setSelectedCreditPlan] = useState<string | null>(null);
+  const [isProcessingCreditPayment, setIsProcessingCreditPayment] = useState<string | null>(null);
+
   const [profileData, setProfileData] = useState<UserProfile>({
     email: '',
     first_name: '',
@@ -966,11 +971,99 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
     rzp.open();
   };
 
-  const handleBuyMoreActions = () => {
-    showInfoToast('Redirecting to purchase page...');
-    setTimeout(() => {
-      showSuccessToast('Purchase page opened in a new tab');
-    }, 500);
+  const openBuyCreditsModal = () => {
+    setIsBuyingCredits(true);
+  };
+
+  const closeBuyCreditsModal = () => {
+    setIsBuyingCredits(false);
+    setSelectedCreditPlan(null);
+    setIsProcessingCreditPayment(null);
+  };
+
+  const handleBuyMoreActions = openBuyCreditsModal;
+
+  const handleCreditPayment = async (packName: string, credits: number, amount: number, planKey: string) => {
+    if (!userSession || !userSession.email || !userSession.company) {
+      showErrorToast('User session is invalid. Please log in again.');
+      return;
+    }
+
+    if (!(window as any).Razorpay) {
+      showErrorToast('Payment gateway is not loaded. Please try again in a moment.');
+      return;
+    }
+
+    setSelectedCreditPlan(planKey);
+    setIsProcessingCreditPayment(planKey);
+
+    const options = {
+      key: 'rzp_live_RbHLiSn5xiGADx',
+      amount: amount * 100,
+      currency: 'INR',
+      name: 'CRM Credits Purchase',
+      description: `${packName} - ${credits} Credits`,
+      handler: async (response: any) => {
+        console.log('Razorpay success response (credits):', response);
+        const { razorpay_payment_id, razorpay_order_id } = response;
+
+        try {
+          const payload = {
+            company: userSession.company,
+            amount: amount,
+            order_id: razorpay_order_id || `ORD_${Date.now()}`,
+            payment_id: razorpay_payment_id
+          };
+
+          const apiResponse = await fetch('https://api.erpnext.ai/api/resource/Credit%20payment', {
+            method: 'POST',
+            headers: {
+              'Authorization': token,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+          });
+
+          if (apiResponse.ok) {
+            showSuccessToast(`Purchased ${credits} credits successfully!`);
+          } else {
+            const errorText = await apiResponse.text();
+            console.error('Failed to record credit payment:', errorText);
+            showErrorToast('Payment succeeded but failed to record purchase. Please contact support.');
+          }
+        } catch (error) {
+          console.error('Error recording credit payment:', error);
+          showErrorToast('Payment succeeded but an error occurred while recording the purchase.');
+        } finally {
+          setIsProcessingCreditPayment(null);
+          setSelectedCreditPlan(null);
+          setIsBuyingCredits(false);
+        }
+      },
+      prefill: {
+        name: userSession.full_name || '',
+        email: userSession.email || '',
+      },
+      theme: {
+        color: theme === 'dark' ? '#8B5CF6' : '#2563EB'
+      },
+      modal: {
+        ondismiss: () => {
+          showInfoToast('Payment was Cancelled.');
+          setIsProcessingCreditPayment(null);
+          setSelectedCreditPlan(null);
+        }
+      }
+    };
+
+    const rzp = new (window as any).Razorpay(options);
+    rzp.on('payment.failed', (response: any) => {
+      console.error('Razorpay payment failed (credits):', response.error);
+      showErrorToast(`Payment failed: ${response.error.description}`);
+      setIsProcessingCreditPayment(null);
+      setSelectedCreditPlan(null);
+    });
+    rzp.open();
   };
 
   const handleContactSales = async () => {
@@ -2016,6 +2109,75 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
 
       {/* Mobile Menu Overlay */}
       {isMobileView && isMobileMenuOpen && <MobileMenu />}
+
+      {/* Buy Credits Modal */}
+      {isBuyingCredits && (
+        <>
+          <div
+            className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-[80]"
+            onClick={closeBuyCreditsModal}
+          />
+
+          <div className="fixed inset-0 z-[90] flex items-center justify-center p-4">
+            <div
+              className={`w-full max-w-3xl rounded-xl shadow-2xl overflow-hidden ${theme === 'dark' ? 'bg-gray-900' : 'bg-white'}`}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className={`flex items-center justify-between p-6 border-b ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
+                <h2 className={`text-xl font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Buy Credits</h2>
+                <button
+                  onClick={closeBuyCreditsModal}
+                  className={`p-2 rounded-lg transition-colors ${theme === 'dark' ? 'hover:bg-gray-800 text-gray-400 hover:text-white' : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'}`}>
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Small */}
+                  <div className={`border rounded-lg p-4 text-center ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
+                    <h4 className="font-semibold">Small</h4>
+                    <p className="text-sm text-gray-500 mt-1">100 Credits</p>
+                    <p className="text-xl font-bold mt-3">₹300</p>
+                    <button
+                      onClick={() => handleCreditPayment('Small', 100, 1, 'credits-small')}
+                      disabled={isProcessingCreditPayment !== null}
+                      className={`mt-4 px-4 py-2 rounded-lg w-full ${isProcessingCreditPayment ? 'opacity-50 cursor-not-allowed' : (theme === 'dark' ? 'bg-purple-600 hover:bg-purple-700 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white')}`}>
+                      {isProcessingCreditPayment === 'credits-small' ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin inline-block" /> Processing...</>) : 'Buy'}
+                    </button>
+                  </div>
+
+                  {/* Medium */}
+                  <div className={`border rounded-lg p-4 text-center ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
+                    <h4 className="font-semibold">Medium</h4>
+                    <p className="text-sm text-gray-500 mt-1">300 Credits</p>
+                    <p className="text-xl font-bold mt-3">₹700</p>
+                    <button
+                      onClick={() => handleCreditPayment('Medium', 300, 700, 'credits-medium')}
+                      disabled={isProcessingCreditPayment !== null}
+                      className={`mt-4 px-4 py-2 rounded-lg w-full ${isProcessingCreditPayment ? 'opacity-50 cursor-not-allowed' : (theme === 'dark' ? 'bg-purple-600 hover:bg-purple-700 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white')}`}>
+                      {isProcessingCreditPayment === 'credits-medium' ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin inline-block" /> Processing...</>) : 'Buy'}
+                    </button>
+                  </div>
+
+                  {/* Large */}
+                  <div className={`border rounded-lg p-4 text-center ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
+                    <h4 className="font-semibold">Large</h4>
+                    <p className="text-sm text-gray-500 mt-1">1000 Credits</p>
+                    <p className="text-xl font-bold mt-3">₹1,800</p>
+                    <button
+                      onClick={() => handleCreditPayment('Large', 1000, 1800, 'credits-large')}
+                      disabled={isProcessingCreditPayment !== null}
+                      className={`mt-4 px-4 py-2 rounded-lg w-full ${isProcessingCreditPayment ? 'opacity-50 cursor-not-allowed' : (theme === 'dark' ? 'bg-purple-600 hover:bg-purple-700 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white')}`}>
+                      {isProcessingCreditPayment === 'credits-large' ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin inline-block" /> Processing...</>) : 'Buy'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Password Change Modal */}
       {isChangingPassword && (

@@ -600,63 +600,89 @@ export default function OrganizationDetails({
 
 
   useEffect(() => {
-    const fetchOrganization = async () => {
-      try {
-        setFetchLoading(true);
+  const fetchOrganization = async () => {
+    try {
+      setFetchLoading(true);
 
-        const session = getUserSession();
-        if (!session) {
-          showToast('Session not found', { type: 'error' });
-          return;
-        }
-
-        const response = await fetch(`${API_BASE}/frappe.client.get`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': token
-          },
-          body: JSON.stringify({
-            doctype: "CRM Organization",
-            name: organizationId
-          })
-        });
-
-        if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-
-        const data = await response.json();
-        const organizationData = data.message;
-
-        // Store the original name as a separate property
-        const originalName = organizationData.name;
-        const displayName = originalName?.includes('@')
-          ? originalName.split('@')[0]
-          : originalName;
-
-        const displayOrgName = organizationData.organization_name?.includes('@')
-          ? organizationData.organization_name.split('@')[0]
-          : organizationData.organization_name;
-
-        setOrganization({
-          ...organizationData,
-          name: displayName, // Display name without @
-          organization_name: displayOrgName, // Display name without @
-          originalName: originalName // Store original name with @
-        });
-
-      } catch (error) {
-        console.error('Error fetching organization:', error);
-        showToast('Failed to load organization details', { type: 'error' });
-      } finally {
-        setFetchLoading(false);
+      const session = getUserSession();
+      if (!session) {
+        showToast('Session not found', { type: 'error' });
+        return;
       }
-    };
 
+      const response = await fetch(`${API_BASE}/frappe.client.get`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token
+        },
+        body: JSON.stringify({
+          doctype: "CRM Organization",
+          name: organizationId // This should be the original ID with @
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Fetch error response:', errorText);
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      const organizationData = data.message;
+
+      console.log('Fetched organization data:', organizationData);
+
+      if (!organizationData) {
+        throw new Error('No organization data received');
+      }
+
+      // Store the original name as a separate property
+      const originalName = organizationData.name;
+      const displayName = originalName?.includes('@')
+        ? originalName.split('@')[0]
+        : originalName;
+
+      const displayOrgName = organizationData.organization_name?.includes('@')
+        ? organizationData.organization_name.split('@')[0]
+        : organizationData.organization_name;
+
+      setOrganization({
+        ...organizationData,
+        name: displayName, // Display name without @
+        organization_name: displayOrgName, // Display name without @
+        originalName: originalName // Store original name with @
+      });
+
+    } catch (error) {
+      console.error('Error fetching organization:', error);
+      
+      // Try to parse Frappe error message
+      let errorMessage = 'Failed to load organization details';
+      try {
+        if (error.message?._server_messages) {
+          const serverMessages = JSON.parse(error.message._server_messages);
+          if (Array.isArray(serverMessages) && serverMessages.length > 0) {
+            const parsedMessage = JSON.parse(serverMessages[0]);
+            errorMessage = parsedMessage.message || errorMessage;
+          }
+        }
+      } catch (e) {
+        // If parsing fails, use default message
+      }
+      
+      showToast(errorMessage, { type: 'error' });
+    } finally {
+      setFetchLoading(false);
+    }
+  };
+
+  if (organizationId) {
     fetchOrganization();
-  }, [organizationId]);
+  }
+}, [organizationId]);
 
-  // Fetch deals data
-  // Fetch deals data
+  
 useEffect(() => {
   const fetchDeals = async () => {
     if (!organization) return;
@@ -665,7 +691,7 @@ useEffect(() => {
       const session = getUserSession();
       if (!session) return;
 
-      // Use the original organization name with @
+     
       const apiOrganizationName = organization.originalName || organization.name;
 
       const response = await fetch(`${API_BASE}/frappe.client.get_list`, {
@@ -826,72 +852,99 @@ useEffect(() => {
   };
 
   const handleSave = async (field: string, value: string) => {
-    if (!organization || value === organization[field as keyof Organization]?.toString()) {
-      setEditingField(null);
+  if (!organization || value === organization[field as keyof Organization]?.toString()) {
+    setEditingField(null);
+    return;
+  }
+
+  try {
+    setLoading(true);
+
+    const session = getUserSession();
+    if (!session) {
+      showToast('Session not found', { type: 'error' });
       return;
     }
 
-    try {
-      setLoading(true);
+    // Use the original organization name (with @) for API calls
+    const apiOrganizationName = organization.originalName || organization.name;
 
-      const session = getUserSession();
-      if (!session) {
-        showToast('Session not found', { type: 'error' });
-        return;
-      }
+    if (!apiOrganizationName) {
+      console.error('Organization name is missing:', organization);
+      showToast('Organization name is missing', { type: 'error' });
+      return;
+    }
 
-      if (!organization.name) {
-        console.error('Organization name is missing:', organization);
-        showToast('Organization name is missing', { type: 'error' });
-        return;
-      }
+    // Convert annual_revenue to number if it's that field
+    let processedValue: any = value;
+    if (field === 'annual_revenue') {
+      processedValue = parseFloat(value) || 0;
+    }
 
-      const requestBody = {
-        doctype: "CRM Organization",
-        name: organization.name,
-        fieldname: field,
-        value: value
+    const requestBody = {
+      doctype: "CRM Organization",
+      name: apiOrganizationName, // Use the original name with @
+      fieldname: field,
+      value: processedValue
+    };
+
+    console.log('Update request body:', requestBody);
+
+    const response = await fetch(`${API_BASE}/frappe.client.set_value`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': token
+      },
+      body: JSON.stringify(requestBody)
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Error response:', errorText);
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const result = await response.json();
+    console.log('Update response:', result);
+
+    if (result.message) {
+      // Update the organization state with the new value
+      const updatedOrganization = {
+        ...organization,
+        [field]: processedValue,
+        modified: new Date().toISOString(), // Update modification timestamp
       };
 
-      const response = await fetch(`${API_BASE}/frappe.client.set_value`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': token
-        },
-        body: JSON.stringify(requestBody)
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Error response:', errorText);
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const result = await response.json();
-      const updatedOrgData = result.message;
-
-      if (updatedOrgData) {
-        const updatedOrganization = {
-          ...organization,
-          [field]: value,
-          modified: updatedOrgData.modified || organization.modified,
-        };
-
-        setOrganization(updatedOrganization);
-        if (onSave) onSave(updatedOrganization);
-        showToast('Organization updated successfully', { type: 'success' });
-      }
-
-      setEditingField(null);
-    } catch (error: any) {
-      console.error('Error updating organization:', error);
-      showToast(`Failed to update organization: ${error.message}`, { type: 'error' });
-      setEditingField(null);
-    } finally {
-      setLoading(false);
+      setOrganization(updatedOrganization);
+      if (onSave) onSave(updatedOrganization);
+      showToast('Organization updated successfully', { type: 'success' });
+    } else {
+      throw new Error('No response message from server');
     }
-  };
+
+    setEditingField(null);
+  } catch (error: any) {
+    console.error('Error updating organization:', error);
+    
+    // Try to parse the error message from Frappe
+    let errorMessage = error.message;
+    try {
+      const serverMessages = JSON.parse(error.message?._server_messages || '[]');
+      if (Array.isArray(serverMessages) && serverMessages.length > 0) {
+        const parsedMessage = JSON.parse(serverMessages[0]);
+        errorMessage = parsedMessage.message || errorMessage;
+      }
+    } catch (e) {
+      // If parsing fails, use the original error message
+    }
+    
+    showToast(`Failed to update organization: ${errorMessage}`, { type: 'error' });
+    setEditingField(null);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleKeyDown = (e: React.KeyboardEvent, field: string) => {
     if (e.key === 'Enter') {

@@ -263,58 +263,58 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
   };
 
   const fetchOrganizationOptions = async () => {
-  try {
-    setIsLoadingOrganizations(true);
-    const session = getUserSession();
-    const sessionCompany = session?.company;
+    try {
+      setIsLoadingOrganizations(true);
+      const session = getUserSession();
+      const sessionCompany = session?.company;
 
-    if (!sessionCompany) {
-      setOrganizationOptions([]);
-      setIsLoadingOrganizations(false);
-      return;
-    }
+      if (!sessionCompany) {
+        setOrganizationOptions([]);
+        setIsLoadingOrganizations(false);
+        return;
+      }
 
-    const response = await fetch(`${API_BASE_URL}/method/frappe.desk.search.search_link`, {
-      method: 'POST',
-      headers: {
-        'Authorization': token,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        txt: "",
-        doctype: "CRM Organization",
-        filters: [["company", "=", sessionCompany]]
-      })
-    });
-
-    if (response.ok) {
-      const result = await response.json();
-      
-      // Filter and transform organization names
-      const transformedOrganizations = (result.message || []).map((org: any) => {
-        const orgName = org.value || '';
-        
-        // If organization name contains "@", extract text before "@"
-        if (orgName.includes('@')) {
-          return orgName.split('@')[0].trim();
-        }
-        
-        return orgName;
+      const response = await fetch(`${API_BASE_URL}/method/frappe.desk.search.search_link`, {
+        method: 'POST',
+        headers: {
+          'Authorization': token,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          txt: "",
+          doctype: "CRM Organization",
+          filters: [["company", "=", sessionCompany]]
+        })
       });
-      
-      // Remove duplicates and empty strings
-      const uniqueOrganizations = Array.from(new Set(transformedOrganizations))
-        .filter((name: string) => !!name && name.trim() !== "");
-      
-      setOrganizationOptions(uniqueOrganizations);
+
+      if (response.ok) {
+        const result = await response.json();
+
+        // Filter and transform organization names
+        const transformedOrganizations = (result.message || []).map((org: any) => {
+          const orgName = org.value || '';
+
+          // If organization name contains "@", extract text before "@"
+          if (orgName.includes('@')) {
+            return orgName.split('@')[0].trim();
+          }
+
+          return orgName;
+        });
+
+        // Remove duplicates and empty strings
+        const uniqueOrganizations = Array.from(new Set(transformedOrganizations))
+          .filter((name: string) => !!name && name.trim() !== "");
+
+        setOrganizationOptions(uniqueOrganizations);
+      }
+    } catch (error) {
+      console.error('Error fetching organizations:', error);
+      setOrganizationOptions([]);
+    } finally {
+      setIsLoadingOrganizations(false);
     }
-  } catch (error) {
-    console.error('Error fetching organizations:', error);
-    setOrganizationOptions([]);
-  } finally {
-    setIsLoadingOrganizations(false);
-  }
-};
+  };
 
   const fetchContactOptions = async () => {
     try {
@@ -552,14 +552,44 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
         }, 2000);
       }
 
+      // } catch (error) {
+      //   let errorMessage = 'Failed to create deal. Please try again.';
+      //   if (error instanceof TypeError && error.message.includes('fetch')) {
+      //     errorMessage = 'Unable to connect to the server. Please check your network connection.';
+      //   } else if (error instanceof Error) {
+      //     errorMessage = error.message;
+      //   }
+      //   setError(errorMessage);
+      // } finally {
+      //   setIsLoading(false);
+      // }
     } catch (error) {
       let errorMessage = 'Failed to create deal. Please try again.';
+
       if (error instanceof TypeError && error.message.includes('fetch')) {
         errorMessage = 'Unable to connect to the server. Please check your network connection.';
       } else if (error instanceof Error) {
-        errorMessage = error.message;
+        // Extract meaningful error message from API response
+        const errorText = error.message;
+
+        // Check if it's an email validation error
+        if (errorText.includes('InvalidEmailAddressError') || errorText.includes('not a valid Email Address')) {
+          // Extract the email from error message
+          const emailMatch = errorText.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/);
+          const email = emailMatch ? emailMatch[0] : 'the provided email';
+          errorMessage = `Invalid email address: ${email}`;
+        } else if (errorText.includes('HTTP 417')) {
+          errorMessage = 'Validation error: Please check all required fields';
+        } else if (errorText.includes('HTTP')) {
+          // Generic HTTP error
+          errorMessage = 'Failed to create deal. Please check your input and try again.';
+        } else {
+          errorMessage = error.message;
+        }
       }
-      setError(errorMessage);
+
+      // Show error as toast instead of in modal
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -1002,17 +1032,17 @@ export function CreateDealModal({ isOpen, onClose, onSubmit }: CreateDealModalPr
                       name="last_name"
                       value={formData.last_name}
                       onChange={(e) => {
-                    const value = e.target.value;
-                    if (value === '' || /^[A-Za-z\s]*$/.test(value)) {
-                      handleChange(e);
-                    }
-                  }}
-                  onKeyDown={(e) => {
-                    if (!/^[a-zA-Z\s]$/.test(e.key) &&
-                      !['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(e.key)) {
-                      e.preventDefault();
-                    }
-                  }}
+                        const value = e.target.value;
+                        if (value === '' || /^[A-Za-z\s]*$/.test(value)) {
+                          handleChange(e);
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (!/^[a-zA-Z\s]$/.test(e.key) &&
+                          !['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(e.key)) {
+                          e.preventDefault();
+                        }
+                      }}
                       placeholder="Last Name"
                       disabled={isLoading}
                       className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-sm ${theme === 'dark'
