@@ -2804,124 +2804,156 @@ export function LeadDetailView({ lead, onBack, onSave, onDelete, onConversionSuc
 
 
   const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    let newErrors: { [key: string]: string } = {};
+  e.preventDefault();
+  let newErrors: { [key: string]: string } = {};
 
-    // ✅ Validation
-    if (!editedLead.firstName || editedLead.firstName.trim() === "") {
-      newErrors.firstName = "First Name is required";
+  // ✅ Validation
+  if (!editedLead.firstName || editedLead.firstName.trim() === "") {
+    newErrors.firstName = "First Name is required";
+  }
+
+  if (editedLead.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editedLead.email)) {
+    newErrors.email = 'Invalid email address';
+  }
+
+  if (editedLead.mobile) {
+    if (!/^\d+$/.test(editedLead.mobile)) {
+      newErrors.mobile = 'Invalid mobile number (digits only allowed)';
+    } else if (editedLead.mobile.length < 10) {
+      newErrors.mobile = 'Please enter at least 10 digits';
     }
+  }
 
-    if (editedLead.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editedLead.email)) {
-      newErrors.email = 'Invalid email address';
-    }
+  if (editedLead.website && !isValidUrl(editedLead.website)) {
+    newErrors.website = 'Please enter a valid website URL (e.g., example.com or https://example.com)';
+  }
+  
+  // If there are errors, stop and show them
+  if (Object.keys(newErrors).length > 0) {
+    setErrors(newErrors);
+    return;
+  }
 
-    if (editedLead.mobile) {
-      if (!/^\d+$/.test(editedLead.mobile)) {
-        newErrors.mobile = 'Invalid mobile number (digits only allowed)';
-      } else if (editedLead.mobile.length < 10) {
-        newErrors.mobile = 'Please enter at least 10 digits';
-      }
-    }
+  setErrors({}); // clear errors
+  setLoading(true);
 
-    if (editedLead.website && !isValidUrl(editedLead.website)) {
-      newErrors.website = 'Please enter a valid website URL (e.g., example.com or https://example.com)';
-    }
-    // If there are errors, stop and show them
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
-    }
+  try {
+    // First API Call: Update the lead data on the server
+    const setValueResponse = await fetch(`${API_BASE_URL}/method/frappe.client.set_value`, {
+      method: 'POST',
+      headers: {
+        'Authorization': token,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        doctype: 'CRM Lead',
+        name: lead.name,
+        fieldname: {
+          first_name: editedLead.firstName,
+          last_name: editedLead.lastName,
+          email: editedLead.email,
+          mobile_no: editedLead.mobile,
+          organization: editedLead.organization,
+          status: editedLead.status,
+          website: editedLead.website,
+          territory: editedLead.territory,
+          industry: editedLead.industry,
+          job_title: editedLead.jobTitle,
+          source: editedLead.source,
+          salutation: editedLead.salutation,
+          lead_owner: editedLead.lead_owner,
+        }
+      })
+    });
 
-    setErrors({}); // clear errors
-    setLoading(true);
+    const responseData = await setValueResponse.json();
 
-    try {
-      // First API Call: Update the lead data on the server (this part is correct)
-      const setValueResponse = await fetch(`${API_BASE_URL}/method/frappe.client.set_value`, {
-        method: 'POST',
-        headers: {
-          'Authorization': token,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          doctype: 'CRM Lead',
-          name: lead.name,
-          fieldname: {
-            first_name: editedLead.firstName,
-            last_name: editedLead.lastName,
-            email: editedLead.email,
-            mobile_no: editedLead.mobile,
-            organization: editedLead.organization,
-            status: editedLead.status,
-            website: editedLead.website,
-            territory: editedLead.territory,
-            industry: editedLead.industry,
-            job_title: editedLead.jobTitle,
-            source: editedLead.source,
-            salutation: editedLead.salutation,
-            lead_owner: editedLead.lead_owner,
-
+    if (!setValueResponse.ok) {
+      // Check for server messages in the response
+      if (responseData._server_messages) {
+        try {
+          // Parse the server messages
+          const serverMessagesArray = JSON.parse(responseData._server_messages);
+          
+          if (serverMessagesArray && serverMessagesArray.length > 0) {
+            const messageObject = JSON.parse(serverMessagesArray[0]);
+            
+            // Extract and display the message
+            const errorMessage = messageObject.message.replace(/<\/?strong>/g, '');
+            showToast(errorMessage, { 
+              type: messageObject.indicator === 'red' ? 'error' : 'warning' 
+            });
+            
+            // Don't proceed with the rest of the save logic
+            return;
           }
-        })
-      });
-
-      if (!setValueResponse.ok) {
-        throw new Error('Failed to update lead');
+        } catch (parseError) {
+          console.error('Failed to parse _server_messages:', parseError);
+          // Fallback to generic error
+          throw new Error(responseData.exception || 'Failed to update lead');
+        }
+      } else {
+        throw new Error(responseData.message || responseData.exception || 'Failed to update lead');
       }
-
-      // Second API Call: Fetch the updated lead data
-      const getResponse = await fetch(`${API_BASE_URL}/method/frappe.client.get`, {
-        method: 'POST',
-        headers: {
-          'Authorization': token,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          doctype: 'CRM Lead',
-          name: lead.name
-        })
-      });
-
-      if (!getResponse.ok) {
-        throw new Error('Failed to fetch updated lead data after saving.');
-      }
-
-      const result = await getResponse.json();
-      const updatedLeadFromServer = result.message;
-
-      // --- ✨ NEW MAPPING LOGIC ADDED HERE ---
-      // Map the API response (snake_case) to your component's state structure (camelCase).
-      const mappedLead: Lead = {
-        ...updatedLeadFromServer, // Copy all matching properties
-        firstName: updatedLeadFromServer.first_name,  // Map first_name -> firstName
-        lastName: updatedLeadFromServer.last_name,    // Map last_name -> lastName
-        mobile: updatedLeadFromServer.mobile_no,      // Map mobile_no -> mobile
-        jobTitle: updatedLeadFromServer.job_title,    // Map job_title -> jobTitle
-        // Ensure other properties from the Lead interface are present if they don't exist on the server response
-        id: updatedLeadFromServer.name, // Assuming 'name' is the ID
-        leadId: updatedLeadFromServer.name,
-        assignedTo: updatedLeadFromServer.lead_owner,
-        lastModified: updatedLeadFromServer.modified,
-        lead_score: updatedLeadFromServer.lead_score,
-        lead_summary: updatedLeadFromServer.lead_summary,
-      };
-
-      // Update the local state with the correctly mapped data
-      setEditedLead(mappedLead);
-
-      // Propagate changes and update UI
-      onSave(mappedLead);
-      setIsEditing(false);
-      showToast('Lead updated successfully', { type: 'success' });
-
-    } catch (error) {
-      console.error('Error in save process:', error);
-      showToast('An error occurred while saving the lead', { type: 'error' });
-    } finally {
-      setLoading(false);
     }
-  };
+
+    // If we get here, the save was successful
+    // Second API Call: Fetch the updated lead data
+    const getResponse = await fetch(`${API_BASE_URL}/method/frappe.client.get`, {
+      method: 'POST',
+      headers: {
+        'Authorization': token,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        doctype: 'CRM Lead',
+        name: lead.name
+      })
+    });
+
+    if (!getResponse.ok) {
+      throw new Error('Failed to fetch updated lead data after saving.');
+    }
+
+    const result = await getResponse.json();
+    const updatedLeadFromServer = result.message;
+
+    const mappedLead: Lead = {
+      ...updatedLeadFromServer, // Copy all matching properties
+      firstName: updatedLeadFromServer.first_name,  // Map first_name -> firstName
+      lastName: updatedLeadFromServer.last_name,    // Map last_name -> lastName
+      mobile: updatedLeadFromServer.mobile_no,      // Map mobile_no -> mobile
+      jobTitle: updatedLeadFromServer.job_title,    // Map job_title -> jobTitle
+      // Ensure other properties from the Lead interface are present if they don't exist on the server response
+      id: updatedLeadFromServer.name, // Assuming 'name' is the ID
+      leadId: updatedLeadFromServer.name,
+      assignedTo: updatedLeadFromServer.lead_owner,
+      lastModified: updatedLeadFromServer.modified,
+      lead_score: updatedLeadFromServer.lead_score,
+      lead_summary: updatedLeadFromServer.lead_summary,
+    };
+
+    // Update the local state with the correctly mapped data
+    setEditedLead(mappedLead);
+
+    // Propagate changes and update UI
+    onSave(mappedLead);
+    setIsEditing(false);
+    showToast('Lead updated successfully', { type: 'success' });
+
+  } catch (error) {
+    console.error('Error in save process:', error);
+    
+    // Handle different error types
+    if (error instanceof Error) {
+      showToast(error.message, { type: 'error' });
+    } else {
+      showToast('An error occurred while saving the lead', { type: 'error' });
+    }
+  } finally {
+    setLoading(false);
+  }
+};
 
   const stripHtml = (html: string) => {
     const div = document.createElement('div')

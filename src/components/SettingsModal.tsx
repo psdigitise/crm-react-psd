@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   X,
   User,
@@ -206,7 +206,7 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
   const [isMobileView, setIsMobileView] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const userSession = getUserSession();
+  const userSession = useMemo(() => getUserSession(), []);
   const sessionEmail = userSession?.email;
   const sessionUsername = userSession?.username;
   const sessionFullName = userSession?.full_name;
@@ -230,17 +230,20 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
   }, []);
 
   useEffect(() => {
-    if (isOpen) {
-      setActiveSettingsTab(initialTab);
-      if (sessionEmail) {
-        fetchUserProfile();
-      }
-    } else {
-      setPasswordData({ newPassword: '', confirmPassword: '' });
-      setPasswordErrors({});
-      setIsChangingPassword(false);
+  if (isOpen) {
+    setActiveSettingsTab(initialTab);
+    
+    // Only fetch profile if we have a session
+    if (userSession?.email) {
+      fetchUserProfile();
     }
-  }, [isOpen, initialTab, sessionEmail]);
+  } else {
+    // Reset form states when modal closes
+    setPasswordData({ newPassword: '', confirmPassword: '' });
+    setPasswordErrors({});
+    setIsChangingPassword(false);
+  }
+}, [isOpen, initialTab]); 
 
   // Check for mobile view on resize and initial load
   useEffect(() => {
@@ -270,12 +273,12 @@ export function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProp
 
   // Fetch AI usage data when AI Usage tab is active
   useEffect(() => {
-    if (isOpen && activeSettingsTab === 'aiUsage' && sessionCompany) {
-      fetchAIUsageData();
-    }
-  }, [isOpen, activeSettingsTab, sessionCompany]);
+  if (isOpen && activeSettingsTab === 'aiUsage' && userSession?.company) {
+    fetchAIUsageData();
+  }
+}, [isOpen, activeSettingsTab]);
 
-  // Initialize website integration data when tab is active
+  
   useEffect(() => {
     if (activeSettingsTab === 'websiteIntegration' && userSession) {
       const existingApiKey = localStorage.getItem('website_integration_api_key');
