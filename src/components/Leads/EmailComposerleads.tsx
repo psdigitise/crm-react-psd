@@ -447,7 +447,7 @@ export default function EmailComposerleads({
                 content: htmlMessage,
                 send_email: 1,
                 now: 1,
-                sender_full_name: senderUsername,
+                sender_full_name: sessionfullname,
                 name: lead?.name || "",
                 doctype: "CRM Lead"
             };

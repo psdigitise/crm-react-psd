@@ -784,7 +784,7 @@ Instruction: ${emailForm.aiPrompt.trim()}
         name: dealName,
         now: 1,
         doctype: "CRM Deal",
-        sender_full_name: senderUsername,
+        sender_full_name: sessionfullname,
         attachments: attachmentIds,
       };
 
